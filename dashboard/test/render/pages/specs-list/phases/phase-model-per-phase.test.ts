@@ -12,6 +12,10 @@ import {
   openKeys,
 } from "../../fixtures.ts";
 import { TOOL_ICONS } from "../../../../../src/render/ui/components/icons.ts";
+import { phaseLine } from "../../../../../src/render/pages/specs-list/model-resolve.ts";
+import { sidePickers } from "../../../../../src/render/pages/specs-list/model-picker";
+import { analyzeRests } from "../../../../../src/render/pages/specs-list/phase-rows.ts";
+import type { SpecGroup } from "../../../../../src/render/pages/specs-list/data-model";
 
 // --- One picker per phase, AI and model together -------------------
 //
@@ -308,5 +312,49 @@ describe("a phase that has run keeps what it ran on across a rename of the choic
   test("a phase that has not run still resolves pending, then the default", () => {
     expect(resolveChosenModel(models, "Sonnet", undefined, "gpt-5.6-sol")).toBe("gpt-5.6-sol");
     expect(resolveChosenModel(models, "Sonnet", undefined)).toBe("Sonnet");
+  });
+});
+
+// A project's own choice for a step stands between the spec's own pick and
+// the board's Models per phase, and the line says when it is what it rests on.
+describe("a line resting on the project's choice", () => {
+  const g = { project: "woodstack", specFolder: "1-x", named: true } as SpecGroup;
+  const base = {
+    modelChoices: [{ name: "Opus" }, { name: "Sonnet" }, { name: "Haiku" }],
+    providerChoices: [{ key: "claude-max", name: "Claude Max", tool: "claude" as const }],
+    defaultModels: { default: "Opus", implement: "Opus" },
+    defaultProviders: {},
+    projectChoices: { woodstack: { model: { implement: "Sonnet", analyze: "Sonnet" }, provider: { implement: "claude-max" } } },
+  };
+
+  test("the Implement line is on the project's model and AI, and says it is the project's choice (AC-4)", () => {
+    const line = phaseLine(g, base, "implement", { live: false });
+    expect(line?.model).toBe("Sonnet");
+    expect(line?.provider?.key).toBe("claude-max");
+    expect(line?.fromProject).toBe(true);
+  });
+
+  test("the spec's own pending pick wins, and the line does not say it comes from the project (AC-4)", () => {
+    const line = phaseLine(g, { ...base, pendingModels: { "woodstack/1-x": { implement: "Haiku" } } }, "implement", { live: false });
+    expect(line?.model).toBe("Haiku");
+    expect(line?.fromProject).toBeFalsy();
+  });
+
+  test("another project's line is on the board's choice (AC-4)", () => {
+    const line = phaseLine({ ...g, project: "aide" }, base, "implement", { live: false });
+    expect(line?.model).toBe("Opus");
+    expect(line?.fromProject).toBeFalsy();
+  });
+
+  test("Review under Analyze follows the project's Analyze as the project's choice (AC-4)", () => {
+    const html = sidePickers(g, base, "plan-review", false, undefined, undefined, analyzeRests(g, base));
+    expect(html).toContain('data-project-model="Sonnet"');
+  });
+
+  test("a board's own Review under Analyze wins over following, and is not the project's (AC-4)", () => {
+    const board = { ...base, defaultModels: { ...base.defaultModels, "plan-review": "Haiku" } };
+    const html = sidePickers(g, board, "plan-review", false, undefined, undefined, analyzeRests(g, board));
+    expect(html).toMatch(/value="Haiku"[^>]*selected/);
+    expect(html).not.toContain("data-project-model");
   });
 });

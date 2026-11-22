@@ -41,6 +41,13 @@ export function offerEachToItsTool(root: ParentNode): void {
   }
 }
 
+/** A form's Cancel puts each select's value back, but not which models
+ *  its AI offers: narrowed again once the reset has happened (the event
+ *  fires before it). */
+export function offerAgainAfterReset(form: HTMLFormElement): void {
+  form.addEventListener("reset", () => setTimeout(() => offerEachToItsTool(form), 0));
+}
+
 export function offerOnly(model: HTMLSelectElement, tool: string): void {
   // The groups are collected from the options themselves rather than
   // queried for: a group is hidden exactly when every option under it
@@ -159,5 +166,10 @@ export function refreshAiModelBox(container: Element): void {
   const face = box?.querySelector(".providerface");
   if (face) drawFace(face, option?.dataset.tool ?? model.selectedOptions[0]?.dataset.tool, option?.dataset.short);
   modelEl.textContent = model.value;
-  box?.setAttribute("title", option ? `${option.textContent ?? ""} · ${model.value}` : model.value);
+  // "project's choice" holds only while the line is on the project's model:
+  // another pick is the spec's own choice.
+  const mark = container.querySelector("[data-project-model]") as HTMLElement | null;
+  if (mark) mark.hidden = model.value !== mark.getAttribute("data-project-model");
+  const said = option ? `${option.textContent ?? ""} · ${model.value}` : model.value;
+  box?.setAttribute("title", mark && !mark.hidden ? `${said} · ${mark.textContent ?? ""}` : said);
 }

@@ -6,7 +6,8 @@ import {
   flush,
 } from "../fixtures.ts";
 import { Window } from "happy-dom";
-import { applyAiPick, offerEachToItsTool, refreshAiModelBox } from "../../../src/specs-client/ai-sync.ts";
+import { applyAiPick, offerAgainAfterReset, offerEachToItsTool, refreshAiModelBox } from "../../../src/specs-client/ai-sync.ts";
+import { projectModelsCard } from "../../../src/render/pages/projects-page/project-models.ts";
 import { restoreChosen } from "../../../src/specs-client/row-swap/index.ts";
 import { chosen, selectKey } from "../../../src/specs-client/state.ts";
 import { TOOL_ICONS } from "../../../src/render/ui/components/icons.ts";
@@ -353,6 +354,85 @@ describe("the closed provider picker's face", () => {
       ai.value = "codex";
       applyAiPick(ai);
       expect(ai.getAttribute("title")).toBe("Claude Personal");
+    } finally { done(); }
+  });
+});
+
+describe("a line that says it rests on the project's choice", () => {
+  const line =
+    `<span class="aimodel"><label class="aimodelnow" for="b" title="Claude · sonnet"><span class="aimodelshort">sonnet</span></label>` +
+    `<span class="aimodelpanel">` +
+    `<select name="provider.implement" data-ai="model.implement" form="f">` +
+    `<option value="personal" data-tool="claude" data-default="sonnet" data-short="CP" selected>Claude Personal</option>` +
+    `<option value="codex" data-tool="codex" data-default="codex-fast" data-short="CO">Codex Pro</option></select>` +
+    `<select name="model.implement" form="f"><option value="sonnet" data-tool="claude" selected>sonnet</option>` +
+    `<option value="codex-fast" data-tool="codex">codex-fast</option></select></span>` +
+    `<span class="muted" data-project-model="sonnet">project's choice</span></span>`;
+
+  test("hides the words after another pick, and shows them again for the project's model (AC-4)", () => {
+    const window = new Window();
+    window.document.body.innerHTML = line;
+    const doc = window.document as unknown as Document;
+    const before = globalThis.document;
+    globalThis.document = doc;
+    try {
+      const ai = doc.querySelector("select[data-ai]") as HTMLSelectElement;
+      const model = doc.querySelector('select[name="model.implement"]') as HTMLSelectElement;
+      const mark = doc.querySelector("[data-project-model]") as HTMLElement;
+      ai.value = "codex";
+      applyAiPick(ai);
+      refreshAiModelBox(doc.querySelector(".aimodel")!);
+      expect(mark.hidden).toBe(true);
+      ai.value = "personal";
+      model.value = "sonnet";
+      refreshAiModelBox(doc.querySelector(".aimodel")!);
+      expect(mark.hidden).toBe(false);
+    } finally {
+      globalThis.document = before;
+      chosen.clear();
+    }
+  });
+});
+
+describe("a project's Models per phase card", () => {
+  const card = (own: Record<string, string> = {}, provider: Record<string, string> = {}) => projectModelsCard("woodstack", {
+    defaults: { model: { default: "sonnet" }, provider: {}, projectModels: { woodstack: { model: own, provider } } },
+    modelChoices: [{ name: "sonnet" }, { name: "codex-fast", tool: "codex" }],
+    providerChoices: [{ key: "personal", name: "Claude Personal", tool: "claude" }, { key: "codex", name: "Codex Pro", tool: "codex" }],
+  }, "en");
+  const page = (html: string) => {
+    const window = new Window();
+    window.document.body.innerHTML = html;
+    const doc = window.document as unknown as Document;
+    const before = globalThis.document;
+    globalThis.document = doc;
+    const select = (name: string) => doc.querySelector(`select[name="${name}"]`) as HTMLSelectElement;
+    const offered = (name: string) => Array.from(select(name).options).filter((o) => !o.disabled).map((o) => o.value);
+    return { doc, select, offered, done: () => { globalThis.document = before; chosen.clear(); } };
+  };
+
+  test("a row on Board default offers only the models of the AI it shows (AC-2)", () => {
+    const { select, offered, done } = page(card());
+    try {
+      offerEachToItsTool(select("model.implement").ownerDocument as unknown as Document);
+      expect(select("provider.implement").value).toBe("personal");
+      expect(offered("model.implement")).toEqual(["", "sonnet"]);
+    } finally { done(); }
+  });
+
+  test("Cancel puts back the saved pair with its AI's models offered again (AC-1)", async () => {
+    const { doc, select, offered, done } = page(card({ implement: "sonnet" }, { implement: "personal" }));
+    try {
+      const form = doc.querySelector("form") as HTMLFormElement;
+      offerEachToItsTool(doc);
+      offerAgainAfterReset(form);
+      select("provider.implement").value = "codex";
+      applyAiPick(select("provider.implement"));
+      expect(select("model.implement").value).toBe("codex-fast");
+      form.reset();
+      await new Promise((r) => setTimeout(r, 5));
+      expect(select("model.implement").value).toBe("sonnet");
+      expect(offered("model.implement")).toEqual(["", "sonnet"]);
     } finally { done(); }
   });
 });

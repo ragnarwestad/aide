@@ -6,6 +6,7 @@ import type { ScheduleEntry } from "../../../queue/schedule.ts";
 import { projectScheduleTab, renderScheduleNewPage, schedulePagePath } from "../../../render";
 import { languageChoice, modelChoiceOptions, modelsInUse, specsClientScript } from "../../serve-helpers";
 import type { RoutesContext } from "..";
+import { forProject } from "../../../queue/providers/project-defaults.ts";
 
 export { projectScheduleTab };
 
@@ -41,8 +42,9 @@ export async function scheduleNewPageResponse(
     values: page.values,
     backHref: page.back,
     modelChoices: modelChoiceOptions(ctx.queue, modelsInUse(ctx)),
-    defaultModels: ctx.queue.defaults.model,
+    defaultModels: forProject(ctx.queue.defaults, page.project).model,
     ...providerPickerOptions(ctx.queue),
+    defaultProviders: forProject(ctx.queue.defaults, page.project).provider,
     script: await specsClientScript(),
     lang: langResult.lang,
     currentUrl: langResult.currentUrl,

@@ -466,6 +466,21 @@ hands `--model opus` to Claude Code. Beside the models the page holds a `timeout
 `POST /api/queue/settings`, which validates every model name against `modelChoices` and updates `queue-config.json`
 atomically. Later jobs use the new values at once; jobs already accepted keep their stored choices.
 
+A project can set its own AI and model per step on its Config tab ([Projects](projects.md#a-projects-own-page)), so
+a step's model is chosen in this order:
+
+1. the spec's own choice, including the names a Run press posts for its lines;
+2. the project's choice;
+3. the board's Models per phase;
+4. the default model.
+
+The project's choices sit in `queue-config.json` under `projectModels.<project>`, beside the board's own `model` and
+`provider`, and nothing in the project's repository changes. Review under Analyze with no choice of its own in either
+place follows Analyze as the project runs it. The Run dialog and a spec's AI/model lines pre-fill from the same order, and
+a line resting on the project's choice says "project's choice" beside it until another model is picked there. A model
+choice or provider a project's choice names cannot be removed until it is changed there, and removing a project removes
+its choices.
+
 ## Running a job on a schedule
 
 The serving host keeps each project's recurring work — a periodic analysis or report — in its own `queue-config.json`,

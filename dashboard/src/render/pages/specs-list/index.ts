@@ -164,6 +164,8 @@ export interface SpecsPageOptions {
    *  pre-filled with when the phase has not run yet — the reader sees
    *  the real name, never the word "default" (asked for 2026-08-19). */
   defaultModels?: Record<string, string>;
+  /** Each project's own model and AI per step, laid over the two above for its specs (`pickerFor`). */
+  projectChoices?: Record<string, { model?: Record<string, string>; provider?: Record<string, string> }>;
   /** A model picked for a phase before any job exists for it to attach
    *  to, keyed by `project/specFolder` and then by step —
    *  what `resolveChosenModel()`'s new tier reads to survive a reload,

@@ -46,11 +46,18 @@ export function modelSelect(o: {
   ranModelId?: string;
   postTo?: string;
   ran?: boolean;
+  /** A first option standing for no choice of its own: selected while
+   *  `chosen` is absent, and posted empty. It carries the tool of the model
+   *  it stands for, so the list is narrowed to that AI's models. */
+  boardDefault?: { label: string; tool: string };
 }): string {
   return `<select name="${esc(o.name)}" form="${esc(o.form)}"` +
     (o.postTo ? ` data-post-to="${esc(o.postTo)}"` : "") +
     (o.ran ? ` data-ran="1"` : "") +
     (o.ariaLabel ? ` aria-label="${esc(o.ariaLabel)}"` : "") +
     (o.disabled ? " disabled" : "") + `>` +
+    (o.boardDefault !== undefined
+      ? `<option value="" data-tool="${esc(o.boardDefault.tool)}"${o.chosen === undefined ? " selected" : ""}>${esc(o.boardDefault.label)}</option>`
+      : "") +
     modelOptions(o.opts.modelChoices ?? [], o.chosen, o.ranModelId) + `</select>`;
 }

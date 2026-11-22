@@ -43,6 +43,7 @@ import { handleWaitingRoutes } from "./waiting";
 import { handlePageRoutes } from "./page-routes";
 import { handleQueueEvents } from "./sse.ts";
 import { handleQueueAdminRoutes } from "./queue-admin.ts";
+import { handleProjectModelsRoute } from "./settings-save/project-models.ts";
 import { handleSettingsConcurrencyRoute } from "./settings-concurrency.ts";
 import { handleSettingsModelsRoutes } from "./settings-models.ts";
 import { handleProviderRoutes } from "./providers";
@@ -200,6 +201,7 @@ async function answerRoute(ctx: RoutesContext, req: Request, url: URL, path: str
     failedCreateRoutes(ctx, req, path) ??
     (await handleDeploySteps(ctx, req, path)) ??
     (await handleLandSteps(ctx, req, path)) ??
+    (await handleProjectModelsRoute(ctx, req, path)) ??
     (await handleQueueAdminRoutes(ctx, req, path)) ??
     (await handleSettingsConcurrencyRoute(ctx, req, path)) ??
     (await handleSettingsModelsRoutes(ctx, req, path)) ??

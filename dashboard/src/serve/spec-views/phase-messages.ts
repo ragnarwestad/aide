@@ -19,6 +19,7 @@ import { stepLinesOf } from "./job-marks.ts";
 import { phaseAttempts, resultKey, workRoundJobs } from "./work-round.ts";
 import { aiLabel } from "./job-detail.ts";
 import { withModelId } from "../../render/ui/components/model-label.ts";
+import { forProject } from "../../queue/providers/project-defaults.ts";
 
 /** `attemptIds` is newest first; the first attempt that ran (or is
  *  running) the step is the one read. A newer job only queued for the step
@@ -31,6 +32,7 @@ export function phaseMessagesFor(
   for (const id of attemptIds) {
     const job = queue.get(id);
     if (!job) continue;
+    const defaults = forProject(queue.defaults, job.project);
     const resultIndex = job.results.findLastIndex((r) => r.step === step);
     const result = resultIndex < 0 ? undefined : job.results[resultIndex];
     const running = job.state === "running" && job.steps[job.stepIndex] === step;
@@ -42,7 +44,7 @@ export function phaseMessagesFor(
     // landing, so the merge step and its test run show here as they go.
     const transcript = file ? tailFileAt(file, Infinity) : { text: "", start: 0 };
     const runLog = file ? readRunLog(file) : undefined;
-    const shown = stepLog(transcript, runLog, { tool: running ? undefined : result?.tool, final: !running, codexSession: codexSessionReader(running ? resolveStepProvider(job, step, queue.defaults) : result?.provider?.key ?? resolveStepProvider(job, step, queue.defaults), queue.defaults.providers) });
+    const shown = stepLog(transcript, runLog, { tool: running ? undefined : result?.tool, final: !running, codexSession: codexSessionReader(running ? resolveStepProvider(job, step, defaults) : result?.provider?.key ?? resolveStepProvider(job, step, defaults), defaults.providers) });
     const { logs } = shown;
     // The steps the log marked, each with its time and the tokens it used, listed above the Log.
     const marks = queuedWhileMergeWaits(stepMarks(logs, stepTokens(transcript.text, result?.tool)), queue.waiting, job.id);
@@ -57,11 +59,11 @@ export function phaseMessagesFor(
       aiModel: withModelId(
         aiLabel(
           running
-            ? queue.defaults.modelChoices?.[resolveStepModel(job, step, queue.defaults.model) ?? ""]?.tool
+            ? defaults.modelChoices?.[resolveStepModel(job, step, defaults.model) ?? ""]?.tool
             : result?.tool,
-          resolveStepModel(job, step, queue.defaults.model ?? {}),
+          resolveStepModel(job, step, defaults.model ?? {}),
           (running ? job.provider?.[step] : result?.provider?.key)
-            ? (running ? queue.defaults.providers?.[job.provider![step]!] ?.name ?? job.provider![step] : result?.provider?.name)
+            ? (running ? defaults.providers?.[job.provider![step]!] ?.name ?? job.provider![step] : result?.provider?.name)
             : undefined,
         ),
         running ? undefined : result?.modelId,

@@ -8,7 +8,7 @@ import { bindListWindow, acceptListWindow } from "../list-window";
 
 import { bindAddProjectForm } from "../add-project";
 import { keepBack } from "../back-link";
-import { applyAiPick, offerEachToItsTool } from "../ai-sync";
+import { applyAiPick, offerAgainAfterReset, offerEachToItsTool } from "../ai-sync";
 import { startOriginCheck } from "../deploy/origin-check";
 import { bindOneLineFields, settingsAnswer, submitCreate, submitProjectChange, submitProjectSettings, syncDependsOn } from "../forms";
 import { drawLimits } from "../limits";
@@ -54,6 +54,11 @@ export function mountPage(doc: Document, options: { referrer: string; background
     const form = el as HTMLFormElement;
     form.addEventListener("submit", ((event: Event) => submitProjectSettings(form, event)) as EventListener);
     cleanups.push(bindOneLineFields(form));
+    // The Models per phase card pairs each row's AI and model, as Settings does.
+    if (form.hasAttribute?.("data-project-models")) {
+      form.addEventListener("change", onAiChange);
+      offerAgainAfterReset(form);
+    }
   }
   // `hasAttribute`: a stand-in document in the tests answers with a form of another page.
   const settingsCandidate = doc.querySelector("form[data-settings-form]") as HTMLFormElement | null;

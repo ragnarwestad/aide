@@ -6,6 +6,7 @@ import type { SpecsPageOptions } from "./";
 import { shortNameFrom } from "../../../queue/providers/short-name.ts";
 import { RUNNABLE_TOOLS, SHORT_TOOL_NAMES, TOOL_NAMES, asProviderTool, providerFamily, type ProviderTool } from "../../../queue/providers/tools.ts";
 import { groupKey, lockedAsArchived, type SpecGroup } from "./data-model";
+import { forProject, projectSets } from "../../../queue/providers/project-defaults.ts";
 
 // The select is PRE-FILLED, never a "default" entry (asked for
 // 2026-08-19: "vi trenger jo bare å fylle inn den som er brukt"): a
@@ -152,8 +153,23 @@ export function resolveProvider(
  *  satisfies this structurally, so none of them change. */
 export type PickerOptions = Pick<
   SpecsPageOptions,
-  "modelChoices" | "defaultModels" | "pendingModels" | "providerChoices" | "defaultProviders" | "pendingProviders"
+  "modelChoices" | "defaultModels" | "pendingModels" | "providerChoices" | "defaultProviders" | "pendingProviders" | "projectChoices"
 >;
+
+/** The options a line of `project`'s spec is drawn from: the board's
+ *  defaults with the project's own choices laid over them, the same table
+ *  the runner resolves that project's steps against (`forProject`). */
+export function pickerFor<O extends PickerOptions>(opts: O, project: string): O {
+  if (!opts.projectChoices?.[project]) return opts;
+  const own = forProject({ model: opts.defaultModels ?? {}, provider: opts.defaultProviders, projectModels: opts.projectChoices }, project);
+  return { ...opts, defaultModels: own.model, defaultProviders: own.provider };
+}
+
+/** Whether a line that rests on its configured model rests on the
+ *  project's own choice for `step`, rather than on the board's. */
+export function restsOnProject(opts: PickerOptions, project: string, step: string, model: string): boolean {
+  return projectSets({ projectModels: opts.projectChoices }, project, step) && opts.projectChoices?.[project]?.model?.[step] === model;
+}
 
 export { SHORT_TOOL_NAMES, TOOL_NAMES };
 
@@ -191,6 +207,8 @@ export interface PhaseLine {
   provider?: ProviderOption;
   /** The provider it ran on, since removed from Settings: named by its key. */
   removed?: { key: string; tool: ProviderTool | undefined; short: string };
+  /** The line rests on the project's own choice for the step. */
+  fromProject?: boolean;
 }
 
 /** The pick a phase that has not run yet pre-fills from. A phase the
@@ -208,15 +226,18 @@ export function pendingPick(
 /** What one phase line is on — model, tool and provider — in one place,
  *  read by the closed button (`phaseAiModel`) and by the two selects inside
  *  it (`modelPicker`, `aiPicker`), so the three cannot disagree. */
-export function phaseLine(g: SpecGroup, opts: PickerOptions, step: string, facts: PhaseFacts): PhaseLine | undefined {
+export function phaseLine(g: SpecGroup, board: PickerOptions, step: string, facts: PhaseFacts): PhaseLine | undefined {
+  const opts = pickerFor(board, g.project);
   const models = opts.modelChoices ?? [];
   if (!models.length) return undefined;
   const record = lockedAsArchived(g, step);
   const configured = opts.defaultModels?.[step] ?? opts.defaultModels?.default;
   // A record is what happened, never a choice about what is to come.
+  const pending = pendingPick(g, opts, step, facts.live);
   const model = record
     ? resolveRecordedModel(models, configured, facts.recordedModel)
-    : resolveChosenModel(models, configured, facts.used, pendingPick(g, opts, step, facts.live), facts.recordedModel);
+    : resolveChosenModel(models, configured, facts.used, pending, facts.recordedModel);
+  const fromProject = !record && facts.used === undefined && !models.some((m) => m.name === pending) && restsOnProject(opts, g.project, step, model);
   const listed = models.find((m) => m.name === model);
   const tool = listed ? (listed.tool ?? "claude") : (facts.usedTool ?? "claude");
   const usedProvider = facts.usedProvider;
@@ -230,7 +251,7 @@ export function phaseLine(g: SpecGroup, opts: PickerOptions, step: string, facts
     usedProvider,
     record ? undefined : opts.pendingProviders?.[groupKey(g.project, g.specFolder)]?.[step],
   ], tool);
-  return { record, model, tool, ...(provider ? { provider } : {}) };
+  return { record, model, tool, ...(provider ? { provider } : {}), ...(fromProject ? { fromProject } : {}) };
 }
 
 /** What the closed AI/model button of a phase line says: `phaseLine`'s
@@ -240,11 +261,11 @@ export function phaseAiModel(
   opts: PickerOptions,
   step: string,
   facts: PhaseFacts,
-): { model: string; tool: string; provider?: LineProvider } | undefined {
+): { model: string; tool: string; provider?: LineProvider; fromProject?: boolean } | undefined {
   const line = phaseLine(g, opts, step, facts);
   if (!line) return undefined;
   const provider = line.removed
     ? { name: line.removed.key, short: line.removed.short }
     : line.provider && { name: line.provider.name, short: shortOf(line.provider) };
-  return { model: line.model, tool: line.tool, ...(provider ? { provider } : {}) };
+  return { model: line.model, tool: line.tool, ...(provider ? { provider } : {}), ...(line.fromProject ? { fromProject: true } : {}) };
 }

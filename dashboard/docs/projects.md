@@ -289,7 +289,7 @@ unavailable.
 
 #### Config
 
-Four things, in this order.
+Five things, in this order.
 
 A line saying the checkout has no `.aide/config`, when it has none: "no file" and "a file setting nothing" are
 different states, and the first is what a project cloned onto a second machine is in.
@@ -333,6 +333,15 @@ A save writes each value to the file its card names, and to no other file, regar
 currently lives: Specs path and Install command to `.aide/config`, which is never committed; Worktree links,
 Preview command, Test command, Criterion prefix, Description, Icon, Code merge and Try a branch (`deployment.previewFrom`) to the manifest — the project's own `.aide/project.yaml` where it
 is tracked, else the dashboard's `settings.yaml`. A description or a criterion prefix is written on one line, quoted where a plain line would not read back as typed, and replaces a description that an older Add stored over several lines. Unchanged values are not rewritten.
+
+**A Models per phase card**, under the two settings cards, on a board that offers model choices. It has one row per
+step and part that Settings → Models per phase lists, in the same order, each with the same AI and model choices.
+A row the project has no choice for shows **Board default** with the board's model named, and the AI that model runs
+on. Picking a model makes it the project's choice; picking Board default again and saving removes it. The card is a
+form of its own with Save and Cancel, like the two above it, and posts to `POST /api/queue/projects/<name>/models`.
+The choices are a setting of the board, kept in its `queue-config.json`: a save commits and changes nothing in the
+project. [Global defaults for the AI and model](running-specs.md#global-defaults-for-the-ai-and-model) has the order
+a step's model is chosen in.
 
 #### Schedule
 

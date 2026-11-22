@@ -39,6 +39,7 @@ import { type Job, type WorkflowStep } from "../queue.ts";
 import { modelIdOf, tokenUsage, type RunnerOptions, type StepOutcome } from "./types.ts";
 import { isRunStop } from "../steps.ts";
 import { resolveStepModel } from "../model-name.ts";
+import { forProject } from "../providers/project-defaults.ts";
 import { stepDetail, getStepFailureMessage } from "../../messages/jobs/failure.ts";
 import { endUntickedArchive } from "./unticked-archive.ts";
 import { clearStaleHolds, holdFor, holdJob, type HoldAnswers } from "./holds.ts";
@@ -339,9 +340,10 @@ export class Runner {
     // could make ambiguous.
     const resultIndex = job.results.length;
     const measures = { cost, tokens, modelId, at: landingWork ? undefined : this.o.now() };
-    const results = [...job.results, stepResultEntry(job, step, outcome, measures, this.o.store.defaults)];
+    const defaults = forProject(this.o.store.defaults, job.project);
+    const results = [...job.results, stepResultEntry(job, step, outcome, measures, defaults)];
     // Against the choice the step ran on: what the pickers say an alias gives today.
-    if (modelId) this.o.store.recordModelId(resolveStepModel(job, step, this.o.store.defaults.model), modelId);
+    if (modelId) this.o.store.recordModelId(resolveStepModel(job, step, defaults.model), modelId);
     const landing = landingWork
       ? holdLanding(this.o.store, job.id, landingWork, { index: resultIndex, step, now: this.o.now })
       : undefined;
@@ -364,7 +366,7 @@ export class Runner {
     // limit leaves it waiting for the reset.
     if (isRunStop(outcome.terminalReason)) {
       const stoppedAt = this.o.now();
-      const stopMessage = getRunStopMessage(step, outcome, resolveStepModel(job, step, this.o.store.defaults.model));
+      const stopMessage = getRunStopMessage(step, outcome, resolveStepModel(job, step, defaults.model));
       const worded = stopMessage && attemptsLeft(retryAttempts) === 0 && outcome.terminalReason === "timeout"
         ? { key: "runner.afterTwoTimeouts" as const, inner: stopMessage }
         : stopMessage;

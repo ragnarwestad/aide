@@ -238,6 +238,9 @@ export interface QueueSettingsUpdate {
   providers?: Record<string, Provider | null>;
   /** The phase defaults' providers, per step, by key; `null` removes one. */
   provider?: Record<string, string | null>;
+  /** A project's own choices, by project name: a `null` step removes that
+   *  choice, a `null` project its whole entry. */
+  projectModels?: Record<string, { model?: Record<string, string | null>; provider?: Record<string, string | null> } | null>;
   /** Top-level keys to remove whole. */
   removeKeys?: string[];
 }
@@ -276,6 +279,15 @@ export function persistQueueSettingsResult(file: string, next: QueueSettingsUpda
     for (const [step, key] of Object.entries(next.provider ?? {})) {
       source = applyEdits(source, modify(source, ["provider", step], key ?? undefined, opts));
     }
+    for (const [name, own] of Object.entries(next.projectModels ?? {})) {
+      for (const table of ["model", "provider"] as const) {
+        for (const [step, value] of Object.entries(own?.[table] ?? {})) {
+          source = applyEdits(source, modify(source, ["projectModels", name, table, step], value ?? undefined, opts));
+        }
+      }
+      source = withoutEmptied(source, ["projectModels", name], opts, own === null);
+    }
+    if (next.projectModels) source = withoutEmptied(source, ["projectModels"], opts);
     for (const key of next.removeKeys ?? []) {
       source = applyEdits(source, modify(source, [key], undefined, opts));
     }
@@ -292,6 +304,23 @@ export function persistQueueSettingsResult(file: string, next: QueueSettingsUpda
   } catch (err) {
     return { error: `could not write ${file}: ${err instanceof Error ? err.message : String(err)}` };
   }
+}
+
+/** `source` with the object at `path` removed when `whole`, and otherwise
+ *  emptied tables under it and the object itself, once nothing is left in
+ *  it: a project with no choice left is no entry. */
+function withoutEmptied(source: string, path: string[], opts: Parameters<typeof modify>[3], whole = false): string {
+  const empty = (v: unknown): boolean => v !== null && typeof v === "object" && !Array.isArray(v) && Object.keys(v).length === 0;
+  const at = (doc: string): unknown => path.reduce<unknown>((v, key) => (v as Record<string, unknown> | undefined)?.[key], parse(doc));
+  let out = source;
+  const value = at(out);
+  if (value === undefined) return out;
+  if (!whole && value && typeof value === "object") {
+    for (const [key, inner] of Object.entries(value as Record<string, unknown>)) {
+      if (empty(inner)) out = applyEdits(out, modify(out, [...path, key], undefined, opts));
+    }
+  }
+  return whole || empty(at(out)) ? applyEdits(out, modify(out, path, undefined, opts)) : out;
 }
 
 /** The error-only form used before a live queue exists. */
@@ -372,8 +401,29 @@ export function mergeQueueDefaults(base: QueueDefaults, raw: unknown): QueueDefa
       ? { providers: parseProviders(r.providers) }
       : emptiedProviders(r.providers) ? {} : base.providers ? { providers: base.providers } : {}),
     ...(r.provider !== undefined || base.provider ? { provider: withoutDefault(table(r.provider, base.provider ?? {})) } : {}),
+    ...projectTables(r.projectModels),
     ...(r.resumeAnalysis === true || (r.resumeAnalysis === undefined && base.resumeAnalysis) ? { resumeAnalysis: true } : {}),
   };
+}
+
+/** The `projectModels` section as the live defaults hold it: string entries
+ *  only, never a `default`, and a project with nothing left is dropped. */
+function projectTables(raw: unknown): Pick<QueueDefaults, "projectModels"> {
+  const isTable = (v: unknown): v is Record<string, unknown> => v !== null && typeof v === "object" && !Array.isArray(v);
+  if (!isTable(raw)) return {};
+  const strings = (v: unknown): Record<string, string> | undefined => {
+    if (!isTable(v)) return undefined;
+    const out = Object.fromEntries(Object.entries(v).filter(([k, val]) => k !== "default" && typeof val === "string" && val));
+    return Object.keys(out).length ? (out as Record<string, string>) : undefined;
+  };
+  const projects: NonNullable<QueueDefaults["projectModels"]> = {};
+  for (const [name, entry] of Object.entries(raw)) {
+    if (!isTable(entry)) continue;
+    const model = strings(entry.model);
+    const provider = strings(entry.provider);
+    if (model || provider) projects[name] = { ...(model ? { model } : {}), ...(provider ? { provider } : {}) };
+  }
+  return Object.keys(projects).length ? { projectModels: projects } : {};
 }
 
 function renamedRetiredKey(value: unknown): unknown {

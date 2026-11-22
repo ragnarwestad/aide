@@ -9,7 +9,9 @@ import { runFormId } from "../cells.ts";
 import {
   TOOL_NAMES,
   phaseLine,
+  pickerFor,
   providerToolOf,
+  restsOnProject,
   resolveChosenModel,
   resolveProvider,
   shortOf,
@@ -314,7 +316,7 @@ export function phaseCaptionCells(
 // tags and tied to it by that attribute alone.
 export function aiPicker(
   g: SpecGroup,
-  opts: PickerOptions,
+  board: PickerOptions,
   step: string,
   busy: boolean,
   facts: PhaseFacts,
@@ -325,6 +327,7 @@ export function aiPicker(
 ): string {
   // Drawn for a single provider too: one entry is a statement rather than
   // a choice, which is what the column is for.
+  const opts = pickerFor(board, g.project);
   if ((opts.providerChoices ?? []).length === 0) return "";
   // The same answer the model select beside it and the closed button read,
   // so the three cannot disagree. Drawn, disabled, on an archived row too,
@@ -342,7 +345,7 @@ export function aiPicker(
 
 export function sidePickers(
   g: SpecGroup,
-  opts: PickerOptions & { lang?: Language },
+  board: PickerOptions & { lang?: Language },
   part: PickPart,
   locked: boolean,
   /** The model id the session's own run reported, when it ran. */
@@ -350,12 +353,13 @@ export function sidePickers(
   /** The provider recorded when this side run was launched. */
   ranProviderKey?: string,
   /** What the line follows with no choice of its own, in place of the default. */
-  rests?: { model: string; provider?: string },
+  rests?: { model: string; provider?: string; fromProject?: boolean },
   formId = runFormId(g),
   /** The model the phase's job was given for this line. A line that can no
    *  longer be changed shows it, not today's settings. */
   jobModel?: string,
 ): string {
+  const opts = pickerFor(board, g.project);
   const models = opts.modelChoices ?? [];
   const choices = models;
   const providers = opts.providerChoices ?? [];
@@ -370,12 +374,16 @@ export function sidePickers(
   const ai = providerSelect({ name: `provider.${part}`, modelName: `model.${part}`, form: formId, opts, configured: chosen, chosenProvider: resting?.key, disabled: !!disabled });
   const model = modelSelect({ name: `model.${part}`, form: formId, opts: { ...opts, modelChoices: pickerModels(models, chosen, ranModelId !== undefined, ranModelId) }, chosen, disabled: !!disabled, ranModelId });
   const tool = models.find((m) => m.name === chosen)?.tool ?? "claude";
+  // Resting on the project's own choice: its own entry for the part, or the
+  // project's Analyze the plan review follows.
+  const fromProject = !disabled && !saved && (follows ? !!follows.fromProject : restsOnProject(opts, g.project, part, chosen));
   return compactAiModel({
     id: `aim-${key}-${part}`,
     lang: opts.lang ?? "en",
     ai,
     model,
     locked: !!disabled,
+    ...(fromProject ? { fromProject: chosen } : {}),
     on: { model: chosen, tool, ...(resting ? { provider: { name: resting.name, short: shortOf(resting) } } : {}) },
   });
 }
@@ -393,10 +401,15 @@ export function compactAiModel(o: {
   model: string;
   locked: boolean;
   on: { model: string; tool: string; provider?: LineProvider } | undefined;
+  /** The line rests on the project's own choice, this model: said beside
+   *  the control, at every width, until another pick (`refreshAiModelBox`). */
+  fromProject?: string;
 }): string {
   const now = (o.on ? providerFace(asProviderTool(providerToolOf(o.on.tool)), o.on.provider?.short) : "") +
     `<span class="aimodelshort">${esc(o.on?.model ?? "")}</span>`;
-  const title = o.on ? ` title="${esc(o.on.provider ? `${o.on.provider.name} · ${o.on.model}` : o.on.model)}"` : "";
+  const words = t(o.lang, "project.models.fromProject");
+  const said = o.on ? (o.on.provider ? `${o.on.provider.name} · ${o.on.model}` : o.on.model) + (o.fromProject ? ` · ${words}` : "") : "";
+  const title = o.on ? ` title="${esc(said)}"` : "";
   const button = o.locked
     ? `<span class="aimodelnow" aria-disabled="true"${title}>${now}</span>`
     : `<input type="checkbox" class="aimodelopen" id="${esc(o.id)}">` +
@@ -405,6 +418,8 @@ export function compactAiModel(o: {
     `<span class="aimodel">${button}<span class="aimodelpanel">` +
     (o.ai ? `<label class="aimodelfield"><span>${t(o.lang, "list.captionAi")}</span>${o.ai}</label>` : "") +
     `<label class="aimodelfield"><span>${t(o.lang, "list.captionModel")}</span>${o.model}</label>` +
-    `</span></span>`
+    `</span>` +
+    (o.fromProject !== undefined ? `<span class="muted" data-project-model="${esc(o.fromProject)}">${esc(words)}</span>` : "") +
+    `</span>`
   );
 }

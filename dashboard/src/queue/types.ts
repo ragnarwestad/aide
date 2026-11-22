@@ -454,6 +454,8 @@ export interface QueueDefaults {
   /** The provider each step runs on by default, as a key, per step. A step
    *  with no entry runs on the first provider that runs its model. */
   provider?: Record<string, string>;
+  /** Each project's own model and provider per step, laid over `model` and `provider` (`forProject`). */
+  projectModels?: Record<string, { model?: Record<string, string>; provider?: Record<string, string> }>;
   /** An implement continues its analysis's own AI session when both ran
    *  with the same AI and the analysis ended within the hour
    *  (`analysisSessionToResume`). Off unless the host's config says so. */

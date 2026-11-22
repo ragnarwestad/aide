@@ -19,6 +19,7 @@ import { serveStatic } from "../../serve-helpers";
 import type { RoutesContext } from "..";
 import { scheduleLastRun } from "./schedule-last-run.ts";
 import { projectScheduleTab, scheduleNewPageResponse } from "./schedule-edit-page.ts";
+import { forProject } from "../../../queue/providers/project-defaults.ts";
 
 export async function schedulePages(
   ctx: RoutesContext,
@@ -159,8 +160,10 @@ export async function schedulePages(
       // lands back on what is saved.
       editing: tab === "settings" && url.searchParams.get("edit") === "1",
       modelChoices: modelChoiceOptions(ctx.queue, modelsInUse(ctx)),
-      defaultModels: ctx.queue.defaults.model,
+      // What a scheduled job of this project runs on, the project's own choice included.
+      defaultModels: forProject(ctx.queue.defaults, project).model,
       ...providerPickerOptions(ctx.queue),
+      defaultProviders: forProject(ctx.queue.defaults, project).provider,
       deleteDone: projectScheduleTab(project),
       runs: jobs,
       shownRun: shown?.id,

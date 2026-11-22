@@ -37,6 +37,7 @@ import {
 import { stepTool } from "../serve-helpers/runner-argv.ts";
 import type { ScheduleStore } from "../../queue/schedule-store.ts";
 import { checkoutsToRecheck } from "../../render/ui/checkout-faults.ts";
+import { forProject } from "../../queue/providers/project-defaults.ts";
 
 export {
   approachChoiceHolds, archiveWithOpenAcceptance, blockedDependencies, blockedForMissingAnalyze,
@@ -407,7 +408,8 @@ export async function tickRunner(ctx: ScheduleContext): Promise<void> {
   // again before the checkout refresh and the tool recheck, and gets both.
   const providerOf = (job: Job): string => {
     const step = job.steps[job.stepIndex] ?? "";
-    return resolveStepProvider(job, step, ctx.queue.defaults) ?? stepTool(job, step, ctx.queue.defaults);
+    const defaults = forProject(ctx.queue.defaults, job.project);
+    return resolveStepProvider(job, step, defaults) ?? stepTool(job, step, defaults);
   };
   const nameOf = (key: string): string => ctx.queue.defaults.providers?.[key]?.name ?? key;
   restartAfterUsageLimit(ctx.queue, providerOf, (ctx.now ?? Date.now)());
@@ -427,7 +429,7 @@ export async function tickRunner(ctx: ScheduleContext): Promise<void> {
   // can start, so the notice on every page is about the run to come.
   if (ctx.recheckTools) {
     const queued = ctx.queue.list().filter((j) => j.state === "queued");
-    await ctx.recheckTools(queued.map((j) => stepTool(j, j.steps[j.stepIndex] ?? "", ctx.queue.defaults)));
+    await ctx.recheckTools(queued.map((j) => stepTool(j, j.steps[j.stepIndex] ?? "", forProject(ctx.queue.defaults, j.project))));
   }
   runner.tick({
     dependencies: await blockedDependencies(ctx),

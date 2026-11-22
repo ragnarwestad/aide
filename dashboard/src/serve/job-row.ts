@@ -13,6 +13,7 @@ import type { SideRun } from "../queue/runner/side-run.ts";
 import { resolveStepProvider } from "../queue/providers/index.ts";
 import { resolveStepEffort, resolveStepModel, resolveTimeoutSec } from "./serve-helpers";
 import { requireWorkflowStep } from "../workflow-steps.ts";
+import { forProject } from "../queue/providers/project-defaults.ts";
 
 export interface JobRowContext {
   queue: QueueStore;
@@ -33,7 +34,8 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
   // The step whose model the row is about: the one running, or the
   // last one for a job that has finished.
   const step = job.steps[job.stepIndex] ?? job.steps[job.steps.length - 1];
-  const providerKey = step && requireWorkflowStep(step).runsModel ? resolveStepProvider(job, step, ctx.queue.defaults) : undefined;
+  const defaults = forProject(ctx.queue.defaults, job.project);
+  const providerKey = step && requireWorkflowStep(step).runsModel ? resolveStepProvider(job, step, defaults) : undefined;
   const waiting = ctx.queue.waiting.snapshot().entries;
   const waitingFacts = jobWaiting(waiting, job);
   return {
@@ -60,7 +62,7 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
     branchGone: (await gone) || undefined,
     removedAt: job.removedAt,
     deploy: job.deploy,
-    model: step ? resolveStepModel(job, step, ctx.queue.defaults.model) : job.modelChoice,
+    model: step ? resolveStepModel(job, step, defaults.model) : job.modelChoice,
     // The newest run of this step that named one; a running step has no
     // result yet and speaks with the id of the attempt before it.
     modelId: step ? [...job.results].reverse().find((r) => r.step === step && r.modelId)?.modelId : undefined,

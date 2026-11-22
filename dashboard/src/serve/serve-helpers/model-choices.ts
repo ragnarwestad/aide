@@ -51,6 +51,7 @@ export function modelChoiceOptions(queue: Pick<QueueStore, "defaults" | "modelId
 export function modelsInUse(ctx: { queue: Pick<QueueStore, "defaults" | "pendingModels">; scheduleStore: Pick<ScheduleStore, "list">; allowed: ReadonlySet<string> }): Set<string> {
   const names = new Set(Object.values(ctx.queue.defaults.model ?? {}));
   for (const picks of Object.values(ctx.queue.pendingModels)) for (const model of Object.values(picks)) names.add(model);
+  for (const own of Object.values(ctx.queue.defaults.projectModels ?? {})) for (const model of Object.values(own.model ?? {})) names.add(model);
   for (const project of ctx.allowed) for (const entry of ctx.scheduleStore.list(project)) if (entry.model) names.add(entry.model);
   return names;
 }

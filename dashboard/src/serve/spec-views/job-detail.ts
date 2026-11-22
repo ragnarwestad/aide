@@ -14,6 +14,7 @@ import { resolveStepProvider } from "../../queue/providers/index.ts";
 import { RUN_LOG_MAX_BYTES, runLogPath, screenshotsDir } from "../../queue/runner/run-log-path.ts";
 import { diffStatBetween } from "../../git/diff-stat.ts";
 import type { SpecViewsContext } from "./";
+import { forProject } from "../../queue/providers/project-defaults.ts";
 
 /** The AI's name in its separator: the tool and the model choice, each word
  *  capitalised (`Claude Sonnet`); a choice that starts with the tool's name is
@@ -50,6 +51,7 @@ export async function jobDetailView(
   job: Job,
 ): Promise<JobDetailView> {
   const target = ctx.targets().find((t) => t.project === job.project && t.specFolder === job.specFolder);
+  const defaults = forProject(ctx.queue.defaults, job.project);
   // Which CLI this page is about. A running step's tool is
   // not recorded anywhere yet — the result file that would carry it is
   // written when the step ENDS — so it is resolved the same way the
@@ -58,7 +60,7 @@ export async function jobDetailView(
   const step = job.steps[job.stepIndex];
   const running = job.state === "running";
   const named = running
-    ? ctx.queue.defaults.modelChoices?.[resolveStepModel(job, step ?? "", ctx.queue.defaults.model) ?? ""]?.tool
+    ? defaults.modelChoices?.[resolveStepModel(job, step ?? "", defaults.model) ?? ""]?.tool
     : job.results[job.results.length - 1]?.tool;
   const tool = named ?? "claude";
   // What this job's step WROTE. The step running now, or
@@ -73,7 +75,7 @@ export async function jobDetailView(
   const liveRunLog = running && step && job.streamFile ? readRunLog(job.streamFile) : undefined; // before the transcript
   const live =
     running && step && job.streamFile
-      ? stepLog(tailFileAt(job.streamFile, Infinity), liveRunLog, { tool: named, final: false, codexSession: codexSessionReader(step ? resolveStepProvider(job, step, ctx.queue.defaults) : undefined, ctx.queue.defaults.providers) })
+      ? stepLog(tailFileAt(job.streamFile, Infinity), liveRunLog, { tool: named, final: false, codexSession: codexSessionReader(step ? resolveStepProvider(job, step, defaults) : undefined, defaults.providers) })
       : undefined;
   const currentJob = (ctx.queue.list?.() ?? [job]).find((candidate) =>
     candidate.project === job.project && candidate.specFolder === job.specFolder
@@ -101,7 +103,7 @@ export async function jobDetailView(
         // the size the transcript has when it is read, whether or not the step is still running.
         const runLog = r.streamFile ? readRunLog(r.streamFile) : undefined;
         const tail = r.streamFile ? tailFileAt(r.streamFile, Infinity) : undefined;
-        const choice = resolveStepModel(job, r.step, ctx.queue.defaults.model ?? {});
+        const choice = resolveStepModel(job, r.step, defaults.model ?? {});
         const changedFiles = r.repos
           ? (
               await Promise.all(
@@ -109,7 +111,7 @@ export async function jobDetailView(
               )
             ).flat()
           : undefined;
-        const shown = tail ? stepLog(tail, runLog, { tool, final: true, codexSession: codexSessionReader(r.provider?.key ?? resolveStepProvider(job, r.step, ctx.queue.defaults), ctx.queue.defaults.providers) }) : undefined;
+        const shown = tail ? stepLog(tail, runLog, { tool, final: true, codexSession: codexSessionReader(r.provider?.key ?? resolveStepProvider(job, r.step, defaults), defaults.providers) }) : undefined;
         return {
           ...r,
           tokens: r.tokens?.total,
@@ -133,8 +135,8 @@ export async function jobDetailView(
             sessionId: job.sessionId,
             logs: live?.logs ?? [],
             errors: live?.errors ?? [],
-            aiModel: aiLabel(tool, resolveStepModel(job, step, ctx.queue.defaults.model ?? {}),
-              job.provider?.[step] ? (ctx.queue.defaults.providers?.[job.provider[step]!]?.name ?? job.provider[step]) : undefined),
+            aiModel: aiLabel(tool, resolveStepModel(job, step, defaults.model ?? {}),
+              job.provider?.[step] ? (defaults.providers?.[job.provider[step]!]?.name ?? job.provider[step]) : undefined),
           }
         : undefined,
     archiveHeldBack: target?.archiveHeldBack?.reason,

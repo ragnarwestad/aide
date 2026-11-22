@@ -448,6 +448,8 @@ export async function handleQueueAdminRoutes(
     const steps = [...result.steps];
     if (result.ok) {
       ctx.invalidateScan();
+      // A project added again later under the same name starts without the old one's model choices.
+      if (ctx.queue.defaults.projectModels?.[name]) saveQueueSettings(ctx, { projectModels: { [name]: null } });
       // `removeProject` already reported the allowlist step; this
       // replaces it with the same step told from the other side of the
       // write, rather than reporting the one thing twice.

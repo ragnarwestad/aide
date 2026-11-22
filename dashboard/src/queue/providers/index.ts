@@ -147,18 +147,24 @@ const capitalised = (step: string): string => step.charAt(0).toUpperCase() + ste
 export const willRun = (job: Job): boolean =>
   job.state === "queued" || job.state === "running" || (job.state === "waiting" && job.usageLimitWait !== undefined);
 
-/** What uses the provider, one phrase each: the phase defaults that name it,
+/** What uses the provider, one phrase each: the phase defaults and the
+ *  projects' own choices that name it,
  *  the schedule entries that name it and the jobs that will still run on it.
  *  Empty when nothing does, which is when it may be removed. */
 export function providerUses(
   key: string,
-  defaults: Pick<QueueDefaults, "provider">,
+  defaults: Pick<QueueDefaults, "provider" | "projectModels">,
   schedules: Record<string, { name: string; provider?: string }[]>,
   jobs: Job[],
 ): string[] {
   const uses: string[] = [];
   for (const [step, chosen] of Object.entries(defaults.provider ?? {})) {
     if (step !== "default" && chosen === key) uses.push(`the ${capitalised(step)} default`);
+  }
+  for (const [project, own] of Object.entries(defaults.projectModels ?? {})) {
+    for (const [step, chosen] of Object.entries(own.provider ?? {})) {
+      if (chosen === key) uses.push(`the ${capitalised(step)} choice of ${project}`);
+    }
   }
   for (const [project, entries] of Object.entries(schedules)) {
     for (const entry of entries) if (entry.provider === key) uses.push(`the schedule ${entry.name} in ${project}`);

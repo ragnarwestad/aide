@@ -273,6 +273,11 @@ export async function projectPages(
         },
         scheduleModelNames: Object.keys(ctx.queue.defaults.modelChoices ?? {}),
         worktreeLinkCandidates: gitignoreCandidates(dir),
+        models: {
+          defaults: ctx.queue.defaults,
+          modelChoices: modelChoiceOptions(ctx.queue, modelsInUse(ctx)),
+          providerChoices: providerPickerOptions(ctx.queue).providerChoices,
+        },
         icon: await projectIconSrc(ctx, name),
         drift,
         deployFailure: ctx.readDeployFailure(name),

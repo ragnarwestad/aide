@@ -14,6 +14,7 @@ import {
   type WorkflowStep,
 } from "../steps.ts";
 import type { CreateProjectAllower, Job, JobAction, ProjectResolver, QueueDefaults } from "../types.ts";
+import { forProject } from "../providers/project-defaults.ts";
 import type { Sentence } from "../../messages/types.ts";
 import { mergeBranchRefs, type BranchRef } from "../types.ts";
 import {
@@ -113,7 +114,7 @@ export class QueueStore {
   }
 
   enqueue(raw: unknown): ParseResult {
-    const parsed = parseJobRequest(raw, { resolve: this.resolve, defaults: this.defaults });
+    const parsed = parseJobRequest(raw, { resolve: this.resolve, defaults: forProject(this.defaults, (raw as { project?: unknown } | null)?.project) });
     if (!parsed.ok) return parsed;
     return this.insert(parsed);
   }
@@ -125,7 +126,7 @@ export class QueueStore {
     const parsed: CreateParseResult = parseCreateRequest(raw, {
       allow: this.allowCreateProject,
       resolve: this.resolve,
-      defaults: this.defaults,
+      defaults: forProject(this.defaults, (raw as { project?: unknown } | null)?.project),
     });
     if (!parsed.ok) return parsed;
     const result = this.insert(parsed);

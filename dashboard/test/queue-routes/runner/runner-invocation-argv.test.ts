@@ -577,3 +577,29 @@ describe("the provider folders handed to the runner's environment", () => {
     expect(await envListFor(BASE)).toBe("<unset>\n<unset>");
   });
 });
+
+describe("a project's own choice for a side part", () => {
+  test("the runner is handed the project's Review model and AI when the job carries no pick for it (AC-3)", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "aide-queue-project-review-"));
+    ownDirs.push(dir);
+    const argvFile = join(dir, "runner-argv.txt");
+    const bin = join(dir, "fake-run-spec");
+    writeFileSync(bin, `#!/usr/bin/env bash\nprintf '%s\\n' "$*" > ${argvFile}\n`, { mode: 0o755 });
+    const queueDefaults = {
+      timeoutSec: { default: 1200 }, permissionMode: { default: "acceptEdits" },
+      model: { implement: "opus", default: "opus" },
+      modelChoices: { opus: {}, Sonnet: { model: "sonnet" } },
+      providers: { Claude: { name: "Claude", tool: "claude" }, Work: { name: "Work", tool: "claude", configDir: "/opt/claude-work" } },
+      projectModels: { aide: { model: { review: "Sonnet" }, provider: { review: "Work" } } },
+    };
+    const { base } = start({ queueRunnerBin: bin, queueResultDir: join(dir, "jobs"), queuePush: "branch", queueDefaults } as never);
+    const res = await fetch(`${base}/api/queue`, {
+      method: "POST",
+      headers: { "content-type": "application/json", accept: "application/json" },
+      body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"] }),
+    });
+    expect(res.status).toBe(200);
+    const argv = await fileOnceWritten(argvFile, "the runner was never invoked");
+    expect(argv).toContain("--review-model sonnet --review-tool claude --review-claude-config-dir /opt/claude-work");
+  });
+});

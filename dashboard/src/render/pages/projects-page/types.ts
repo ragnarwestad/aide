@@ -5,6 +5,7 @@ import type { ScheduleEntry } from "../../../queue/schedule.ts";
 import type { Language } from "../../../i18n";
 import type { Sentence } from "../../../messages/types.ts";
 import type { PreviewFrom } from "../../../project/parse-manifest.ts";
+import type { ProjectModelsOptions } from "./project-models.ts";
 
 export type { SpecView, ProjectView };
 
@@ -43,6 +44,9 @@ export interface ProjectPageOptions {
    *  does not. Absent draws no flag. */
   scheduleModelNames?: readonly string[];
   worktreeLinkCandidates: string[];
+  /** What the Config tab's Models per phase card is drawn from. Absent
+   *  draws no card. */
+  models?: ProjectModelsOptions;
   /** Where the project's icon image is served, or null to draw its
    *  initials. Absent draws the initials. */
   icon?: { src: string } | null;

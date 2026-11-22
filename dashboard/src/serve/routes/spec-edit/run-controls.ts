@@ -10,6 +10,7 @@ import { stepTool } from "../../serve-helpers/runner-argv.ts";
 import { resolveStepProvider } from "../../../queue/providers";
 
 import type { RoutesContext } from "..";
+import { forProject } from "../../../queue/providers/project-defaults.ts";
 
 export async function runControlRoutes(
   ctx: RoutesContext,
@@ -54,7 +55,8 @@ export async function runControlRoutes(
       const { [step]: _old, ...providers } = waiting.provider ?? {};
       const next = { ...waiting, model: { ...waiting.model, [step]: model },
         provider: { ...providers, ...(provider ? { [step]: provider } : {}) } };
-      const providerOf = (job: typeof waiting) => resolveStepProvider(job, current, ctx.queue.defaults) ?? stepTool(job, current, ctx.queue.defaults);
+      const defaults = forProject(ctx.queue.defaults, waiting.project);
+      const providerOf = (job: typeof waiting) => resolveStepProvider(job, current, defaults) ?? stepTool(job, current, defaults);
       const changedProvider = providerOf(waiting) !== providerOf(next);
       ctx.queue.update(waiting.id, { model: next.model, provider: next.provider });
       if (changedProvider) {

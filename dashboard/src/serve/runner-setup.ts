@@ -35,6 +35,7 @@ import { landingPolicy, STOPPED_ENDINGS_THAT_LAND, type LandingKind } from "./la
 import { createCleanupJob, hostCleanupDependencies } from "./process-cleanup";
 import type { TestServerStore } from "./test-servers/store.ts";
 import { PICK_PARTS } from "../queue/providers/side-tools.ts";
+import { forProject } from "../queue/providers/project-defaults.ts";
 
 export interface RunnerSetupContext {
   store: QueueStore;
@@ -164,9 +165,10 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
     now: () => new Date().toISOString(),
     today: () => new Date().toISOString().slice(0, 10),
     spawn: (job, step, resultFile, sessionId, streamFile) => {
+      const defaults = forProject(ctx.store.defaults, job.project);
       const sidePicks = { ...ctx.store.pendingModels[`${job.project}/${job.specFolder}`], ...Object.fromEntries(PICK_PARTS.flatMap((part) => job.model[part] ? [[part, job.model[part]]] : [])) };
       const sideProviders = { ...ctx.store.pendingProviders[`${job.project}/${job.specFolder}`], ...Object.fromEntries(PICK_PARTS.flatMap((part) => job.provider?.[part] ? [[part, job.provider[part]]] : [])) };
-      const providers = launchProviders(job, step, { model: ctx.store.defaults.model, modelChoices: ctx.store.defaults.modelChoices, sidePicks, sideProviders, providers: ctx.store.defaults.providers, provider: ctx.store.defaults.provider });
+      const providers = launchProviders(job, step, { model: defaults.model, modelChoices: defaults.modelChoices, sidePicks, sideProviders, providers: defaults.providers, provider: defaults.provider });
       const launchJob = { ...job, provider: { ...job.provider, ...providers } };
       return { providers, start: () => {
       mkdirSync(dirname(resultFile), { recursive: true });
@@ -210,13 +212,13 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
       };
       // Every folder a provider keeps a login in, so the runner's sandbox
       // keeps a step from writing to any of their settings.
-      const folders = providerFolders(ctx.store.defaults.providers, homedir());
+      const folders = providerFolders(defaults.providers, homedir());
       if (folders.claude.length) env.AIDE_CLAUDE_CONFIG_DIRS = folders.claude.join("\n");
       if (folders.codex.length) env.AIDE_CODEX_HOMES = folders.codex.join("\n");
       // A Codex step on a provider with a shadow home links in whatever the
       // shared CODEX_HOME gained since it was saved. A conflict is left: the
       // step runs on its login without the shared sessions.
-      const provider = ctx.store.defaults.providers?.[providers[step] ?? ""];
+      const provider = defaults.providers?.[providers[step] ?? ""];
       if (provider?.tool === "codex" && provider.shadowHome) {
         prepareShadowHome(expandDir(provider.codexHome || NORMAL_CODEX_HOME, homedir()), expandDir(provider.shadowHome, homedir()));
       }
@@ -270,21 +272,21 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
             promptFile: ctx.promptFileFor(job, step),
             chrome: ctx.chromeFor(job, step),
             noSandbox: ctx.noSandboxFor(job, step),
-            modelChoices: ctx.store.defaults.modelChoices,
-            timeoutSec: ctx.store.defaults.timeoutSec,
-            permissionMode: ctx.store.defaults.permissionMode,
-            model: ctx.store.defaults.model,
+            modelChoices: defaults.modelChoices,
+            timeoutSec: defaults.timeoutSec,
+            permissionMode: defaults.permissionMode,
+            model: defaults.model,
             sidePicks,
             sideProviders: { ...sideProviders, ...providers },
-            providers: ctx.store.defaults.providers,
-            provider: ctx.store.defaults.provider,
+            providers: defaults.providers,
+            provider: defaults.provider,
             acceptanceNotRequiredForAnalyze:
               step === "analyze" ? acceptanceNotRequiredForAnalyze(ctx, job) : false,
             resumeSession:
-              step === "implement" && ctx.store.defaults.resumeAnalysis
-                ? analysisSessionToResume(job, ctx.store.list(), stepTool(job, step, ctx.store.defaults), Date.now(), {
-                    key: resolveStepProvider(job, step, ctx.store.defaults),
-                    providers: ctx.store.defaults.providers,
+              step === "implement" && defaults.resumeAnalysis
+                ? analysisSessionToResume(job, ctx.store.list(), stepTool(job, step, defaults), Date.now(), {
+                    key: resolveStepProvider(job, step, defaults),
+                    providers: defaults.providers,
                   })
                 : undefined,
           },

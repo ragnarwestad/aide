@@ -15,7 +15,7 @@ import { chosenSteps, runFormId, specLocked, specRunChoices } from "./row-state.
 import { phaseHasRun, phaseMessagesFold, phaseMessagesRow } from "./phase-messages";
 import { sideLines, sideRunOf } from "./phase-messages/side-lines.ts";
 import { dependsOnLine } from "./depends-on";
-import { resolveProvider } from "./model-resolve.ts";
+import { pickerFor, resolveProvider, type PickerOptions } from "./model-resolve.ts";
 import { PLAN_REVIEW, SIDE_PARTS_OF } from "../../../queue/providers/side-tools.ts";
 import { isGuardEnding } from "../../../step-endings.ts";
 import { specReference } from "../../../project/spec-folder.ts";
@@ -424,21 +424,26 @@ function aiModel(
   // running, and an archived or already-run phase needs no sentence to
   // say it cannot run again. The column has no room for a mark.
   if (!model) return `<span class="aimodel">${ai}</span>`;
+  const on = phaseAiModel(g, opts, step, facts);
   return compactAiModel({
     id: `aim-${groupKey(g.project, g.specFolder)}-${step}`,
     lang,
     ai,
     model,
     locked,
-    on: phaseAiModel(g, opts, step, facts),
+    on,
+    ...(on?.fromProject && !locked ? { fromProject: on.model } : {}),
   });
 }
 
 /** What the Review line under Analyze follows without a choice of its own:
  *  the model and provider the Analyze line would run on next. */
-function analyzeRests(g: SpecGroup, opts: SpecsPageOptions): { model: string; provider?: string } | undefined {
+export function analyzeRests(
+  g: SpecGroup, board: PickerOptions,
+): { model: string; provider?: string; fromProject?: boolean } | undefined {
+  const opts = pickerFor(board, g.project);
   const on = phaseAiModel(g, opts, "analyze", { live: false });
   if (!on) return undefined;
   const pick = isArchivedRow(g) ? undefined : opts.pendingProviders?.[groupKey(g.project, g.specFolder)]?.analyze;
-  return { model: on.model, provider: resolveProvider(opts, "analyze", on.model, [pick])?.key };
+  return { model: on.model, provider: resolveProvider(opts, "analyze", on.model, [pick])?.key, ...(on.fromProject ? { fromProject: true } : {}) };
 }

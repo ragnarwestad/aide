@@ -21,6 +21,7 @@ import { deployAskDialog, STEP_LABEL } from "./deploy-dialog.ts";
 import { projectDescription } from "./overview-list.ts";
 import { PROJECTS_ROUTE, projectPagePath } from "./routes.ts";
 import { unifiedSettingsTable } from "./settings-table.ts";
+import { projectModelsCard } from "./project-models.ts";
 import { reloadMarker } from "../spec-page/tabs.ts";
 import type { ProjectDrift, ProjectPageOptions, ProjectView } from "./types.ts";
 
@@ -342,7 +343,8 @@ function configSection(
     : rowMessage("info", t(lang, "project.noConfigFile"));
   const summary = readiness ? readinessSummary(readiness, lang) : "";
   const checkout = readiness ? checkoutChecks(readiness, lang) : "";
-  return noFile + summary + checkout + `<div class="cardstack">${unifiedSettingsTable(settings, name, opts)}</div>`;
+  return noFile + summary + checkout +
+    `<div class="cardstack">${unifiedSettingsTable(settings, name, opts)}${projectModelsCard(name, opts.models, lang)}</div>`;
 }
 
 /** The page's tabs, in the order they are drawn: Deploy first. Default

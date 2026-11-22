@@ -40,6 +40,7 @@ export function specRowOptions(ctx: RoutesContext, url: URL, lang: Language): Sp
     modelChoices: modelChoiceOptions(ctx.queue, modelsInUse(ctx)),
     defaultModels: ctx.queue.defaults.model,
     ...providerPickerOptions(ctx.queue),
+    projectChoices: ctx.queue.defaults.projectModels,
     // A model picked for a phase before any job exists, and which phases a
     // reader chose: what a fresh render shows instead of re-deriving them
     // from history alone.

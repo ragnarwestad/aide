@@ -2,8 +2,10 @@ import { homedir } from "node:os";
 import type { Job, QueueDefaults } from "../../../queue/queue.ts";
 import { resolveStepModel } from "../../../queue/model-name.ts";
 import { expandDir, providerLoginEnv, resolveStepProvider } from "../../../queue/providers/index.ts";
+import { forProject } from "../../../queue/providers/project-defaults.ts";
 
-export function repairModel(defaults: QueueDefaults, job: Job, prompt: string) {
+export function repairModel(board: QueueDefaults, job: Job, prompt: string) {
+  const defaults = forProject(board, job.project);
   const name = resolveStepModel(job, "implement", defaults.model);
   const choice = name ? defaults.modelChoices?.[name] : undefined;
   if (!name || !choice) return undefined;
