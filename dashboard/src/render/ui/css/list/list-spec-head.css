@@ -49,9 +49,10 @@ table.list td.foldcell > .fold { display: block; width: 100%; height: 40px; line
 table.list td.foldcell > .fold > svg { vertical-align: middle; width: 20px; height: 20px; }
 table.list tr.spechead:has(.fold[aria-expanded="true"]) + tr.specstate .pipslot { display: none; }
 /* The two rows are one row to a reader: no border between them, and the
-   line's own air sits under the second. */
+   line's own air sits under the second. The second keeps enough air above
+   it that a filled state chip stands clear of the title. */
 table.list tr.spechead > td { padding-bottom: 0; border-bottom: 0; }
-table.list tr.specstate > td { padding-top: var(--sp-1); }
+table.list tr.specstate > td { padding-top: var(--sp-2); }
 .spec-name { font-weight: 600; font-family: var(--mono), monospace; font-size: var(--fs-m);
   display: flex; align-items: flex-start; gap: var(--sp-2); min-width: 0;
   /* The cell's own width, since 2026-09-08. It was a fixed 27rem from
@@ -210,6 +211,10 @@ table:is([data-list="jobs"], [data-list="specs"]) tr:is(.spechead, .grouphead) .
 table:is([data-list="jobs"], [data-list="specs"]) tr:is(.spechead, .grouphead) > .foldcell > .fold > :is(svg, .spin) {
   position: relative; left: 2.5px; top: var(--sp-3);
 }
+/* A spec's chevron stands on its state line, which has its own air above it. */
+table:is([data-list="jobs"], [data-list="specs"]) tr.spechead > .foldcell > .fold > :is(svg, .spin) {
+  top: calc(var(--sp-3) + var(--sp-1));
+}
 table:is([data-list="jobs"], [data-list="specs"]) table.groupcard > tbody > tr.grouphead .groupheadline { margin-left: 0; }
 @media (min-width: 40.0625rem) {
   /* The folder drawing starts inside its SVG view box. */
@@ -225,5 +230,5 @@ table:is([data-list="jobs"], [data-list="specs"]) table.groupcard > tbody > tr.g
   /* The fold keeps its 40px hit area but reaches 16px into the state line,
      so that line sits under the name, and the chevron stands on it. */
   table:is([data-list="jobs"], [data-list="specs"]) tr.spechead > td.foldcell > .fold { margin-bottom: -16px; position: relative; z-index: 1; }
-  table:is([data-list="jobs"], [data-list="specs"]) tr.spechead > .foldcell > .fold > :is(svg, .spin) { left: -5px; top: 14px; }
+  table:is([data-list="jobs"], [data-list="specs"]) tr.spechead > .foldcell > .fold > :is(svg, .spin) { left: -5px; top: 18px; }
 }

@@ -90,9 +90,10 @@
   /* The title line's own air above it sits on the CELLS: a phone's head
      row is still a table row, and a table row's padding draws nothing —
      which left the title against the line above it. The state line under
-     it keeps none, so the two read as one. */
+     it keeps a little, so the two read as one and a filled state chip
+     stands clear of the title. */
   table.list tr.spechead > td { padding-top: var(--sp-2); padding-bottom: 0; }
-  table.list tr.specstate > td { padding-top: 0; padding-bottom: 0; }
+  table.list tr.specstate > td { padding-top: var(--sp-1); padding-bottom: 0; }
   /* The horizontal cell padding goes the same way as the vertical did:
      each line-2 cell kept the desktop 12px on both sides, which put
      up to 24px of dead air between badge, date and cost — enough to
