@@ -222,5 +222,8 @@ table:is([data-list="jobs"], [data-list="specs"]) table.groupcard > tbody > tr.g
      on a wider screen: the label's inset, and the 2.5px the drawing starts
      inside its view box. */
   table:is([data-list="jobs"], [data-list="specs"]) tr.spechead .spec-title { padding-left: calc(6px + 2.5px); }
-  table:is([data-list="jobs"], [data-list="specs"]) tr.spechead > .foldcell > .fold > :is(svg, .spin) { left: -5px; top: var(--sp-3); }
+  /* The fold keeps its 40px hit area but reaches 16px into the state line,
+     so that line sits under the name, and the chevron stands on it. */
+  table:is([data-list="jobs"], [data-list="specs"]) tr.spechead > td.foldcell > .fold { margin-bottom: -16px; position: relative; z-index: 1; }
+  table:is([data-list="jobs"], [data-list="specs"]) tr.spechead > .foldcell > .fold > :is(svg, .spin) { left: -5px; top: 14px; }
 }
