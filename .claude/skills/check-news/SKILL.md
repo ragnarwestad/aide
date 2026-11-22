@@ -133,6 +133,11 @@ For each news item, assess:
   - ℹ Informative, low relevance
   - ⚠️ Breaking change or something that must be verified
 
+A pre-release (a Copilot CLI `-N` pre-release, a Codex alpha) goes in the
+tool's table and nowhere else: no ⭐ or ⚠️, no Relevance line and no
+"verify when it reaches stable" follow-up. Its changes are assessed when a
+stable release carries them, since that release appears in a later review.
+
 An article from one of the four vendors on how to work with coding agents —
 writing specs or plans, reviewing an agent's work, splitting work over
 subagents, managing context, test-driven work, running agents unattended — is
