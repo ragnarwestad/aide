@@ -505,6 +505,23 @@ def test_a_close_that_moved_nothing_says_why(runner, workspace, fake_claude, tmp
         assert message.rstrip().endswith(" (stopped: conflict-open)"), message
 
 
+def test_a_close_the_runner_moved_itself_marks_the_move_done(runner, workspace, fake_claude, tmp_path):
+    """A session that stopped at the move leaves Step 1 marked stopped; when
+    aide-close-spec then does the move itself, the log marks Step 1 done."""
+    scripts = tmp_path / "scripts"
+    shutil.copytree(runner.parent, scripts, symlinks=True)
+    stand_in(scripts / "aide-close-spec",
+             "#!/bin/sh\necho '{\"ok\":true,\"exitCode\":0,\"terminalReason\":\"closed\"}'\n")
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        "echo '--- Step 1 of 4: Move the spec to the archive as closed — stopped: unknown spec' >&2\n"
+        f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    _, _, _, err = run(runner, workspace, claude, command="close", reason="the idea does not hold",
+                       runner_path=scripts / "aide-run-spec", return_stderr=True)
+    assert "--- Step 1 of 4: Move the spec to the archive as closed — done" in err, err
+
+
 def _default_ref(repo):
     gates = pathlib.Path(__file__).resolve().parents[7] / "scripts/lib/run-spec/setup/gates.sh"
     return subprocess.run(["bash", "-c", f'source "{gates}"; default_ref "$1"', "_", str(repo)],

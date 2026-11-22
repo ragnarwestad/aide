@@ -418,7 +418,12 @@ if [ "$command_name" = "close" ] && [ "$terminal_reason" = "completed" ]; then
   close_outcome="$(jq -r '.terminalReason // empty' <<<"$close_after" 2>/dev/null)"
   # Any other answer moved nothing: the step stops, and says why.
   case "$close_outcome" in
-    closed|already-closed) ;;
+    # `closed` here means the session's Step 1 did not move the folder and
+    # this call did: the step is marked done in the log, after whatever the
+    # session marked it, so the Close's line shows the move that happened.
+    # The title is aide-close's Step 1 heading.
+    closed) stage_line "$(aide_step_mark "1 of 4" "Move the spec to the archive as closed" "done (moved by Aide)")" ;;
+    already-closed) ;;
     *)
       close_said="$(jq -r '.error // .note // empty' <<<"$close_after" 2>/dev/null)"
       case "$close_outcome" in
