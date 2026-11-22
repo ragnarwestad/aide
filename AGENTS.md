@@ -194,10 +194,6 @@ the runner reads them too.
 A project's specs are its own, not this repo's; `AIDE_SPECS_PATH` points
 Aide's own at `aide-specs/aide/`.
 
-**`scripts/generate-toc.py` and `scripts/normalize-specs.py` write
-"Table of contents" and recognise "Innholdsfortegnelse" as well**, so a
-spec written before the repo was translated still has its heading found.
-
 ## What gets installed where
 
 Everything is installed **globally** — not per project. `./install-all.sh`
