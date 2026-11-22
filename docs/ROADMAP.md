@@ -6,7 +6,7 @@
 - [To consider](#to-consider)
   - [4. An append-only event log for runs](#4-an-append-only-event-log-for-runs)
   - [5. Spec writing that follows the sources](#5-spec-writing-that-follows-the-sources)
-  - [8. Aide's skills as a Claude plugin](#8-aides-skills-as-a-claude-plugin)
+  - [8. Aide as a plugin in each AI tool](#8-aide-as-a-plugin-in-each-ai-tool)
   - [10. Keep an archived spec's tests from disappearing unnoticed](#10-keep-an-archived-specs-tests-from-disappearing-unnoticed)
   - [11. A review that also holds the code to the repo's own rules](#11-a-review-that-also-holds-the-code-to-the-repos-own-rules)
   - [12. One project, several code repositories](#12-one-project-several-code-repositories)
@@ -62,10 +62,24 @@ From comparing Aide's specs with the sources in `docs/SPEC_WRITING_SOURCES.md`:
 - **The spec-structure rule** describes a spec as it is written today, throughout.
 - **The plan review** holds a plan's scenarios to the criteria they come from, and its tests to the testing rules.
 
-### 8. Aide's skills as a Claude plugin
+### 8. Aide as a plugin in each AI tool
 
-From "Build plugins for Claude" and the Claude Marketplace: a second way to deliver Aide's skills to Claude users,
-beside the installer that also serves Codex, OpenCode and Copilot.
+Installing Aide as a plugin would keep its files apart from the user's own, instead of writing into the tools'
+config folders. All four tools take plugins, but in two of them a plugin cannot carry the rules Aide loads in every
+session:
+
+- **Claude Code:** a plugin ships skills, hooks and agents, but not `CLAUDE.md`, `rules/` or settings. Always-on text
+  must come from a hook, capped at 10,000 characters, and Aide's shared rules are over three times that.
+- **Codex:** a plugin ships skills, hooks and MCP servers, but not `AGENTS.md` text or `config.toml` keys. Installing
+  one writes `config.toml` anyway, and its hooks need the user's trust before they run.
+- **Copilot:** a plugin can ship always-on rules, but a personal skill of the same name wins over the plugin's.
+- **OpenCode:** a plugin adds skills and always-on text from TypeScript, but is itself an entry in `opencode.json` or
+  a file in `~/.config/opencode/plugins/`.
+
+A plugin's skills are also renamed `plugin:skill` in Claude Code, Codex and Copilot, which the runner and every
+place that calls a skill would have to follow. The board, the runner and the scripts in `~/.local/bin` install as
+today either way. Taken up again when Claude Code and Codex plugins can ship always-on instructions;
+`ai-tools-reference`, "Plugins as a way to install Aide", has the details.
 
 ### 10. Keep an archived spec's tests from disappearing unnoticed
 

@@ -106,6 +106,24 @@ reads only `AGENTS.md`; Aide adds `"CLAUDE.md"` to `instructions` in its global
 config, which reads it beside `AGENTS.md` too (verified 2.3.0). In a project the user owns, `AGENTS.md` holds the
 instructions and `CLAUDE.md` holds `@AGENTS.md`; Aide writes neither file.
 
+### Plugins as a way to install Aide
+
+All four tools take plugins, and none can carry Aide's whole setup, so Aide
+installs files instead (verified 2026-11-22):
+
+| Tool        | A plugin can ship                         | Always-on rules                                        | Note                                                         |
+|-------------|-------------------------------------------|--------------------------------------------------------|--------------------------------------------------------------|
+| Claude Code | skills, hooks, agents, MCP, LSP, `bin/`   | no: a plugin `CLAUDE.md` is ignored, no `rules/`       | Hook `additionalContext` capped at 10,000 characters         |
+| Codex       | skills, hooks, MCP, apps                  | no AGENTS.md text, no `config.toml` keys               | Install writes `config.toml`; plugin hooks need trust        |
+| Copilot     | skills, agents, hooks, MCP, LSP, rules    | yes: `com.github.copilot/rules/` with `alwaysApply`    | A personal skill of the same name wins over the plugin's     |
+| OpenCode    | TS module: skills, commands, system text  | yes, from code (`ctx.session.hook("context", ...)`)    | Still a `plugins` entry or a file in `~/.config/opencode/`   |
+
+Claude Code, Codex and Copilot name a plugin's skills `plugin:skill`, so
+`aide-implement` would be called by a new name. Plugins load headless in
+`claude -p` (not `--bare`) and `copilot -p`; for `codex exec` and
+`opencode run` it is not documented. Revisit when Claude Code and Codex
+plugins can ship always-on instructions (`docs/ROADMAP.md`, item 8).
+
 ---
 
 ## Claude Code
@@ -433,11 +451,12 @@ project-level `AGENTS.md` (v0.150). Aide's own instructions are global
 its own `AGENTS.md` needs the checkouts and worktrees the runner works
 in listed under `[projects]` in `~/.codex/config.toml`.
 
-### Plugins (v0.117.0+)
+### Plugins (v0.110.0+, stable)
 
-Plugins are now a first-class workflow in Codex. Synced at startup,
-browsed with `/plugins`, installed/removed with auth handling.
-Sub-agents use path-based addresses (`/root/agent_a`) with
+Browsed with `/plugins`; from a script, `codex plugin marketplace add
+<path|git>` then `codex plugin add PLUGIN@MARKETPLACE`, stored under
+`~/.codex/plugins/cache/`. What a plugin can hold is under "Plugins as a
+way to install Aide" above. Sub-agents use path-based addresses (`/root/agent_a`) with
 structured inter-agent messaging.
 
 ---
@@ -485,6 +504,7 @@ structured inter-agent messaging.
 - Skills: <https://code.claude.com/docs/en/skills.md>
 - Agents: <https://code.claude.com/docs/en/sub-agents.md>
 - Hooks: <https://code.claude.com/docs/en/hooks.md>
+- Plugins: <https://code.claude.com/docs/en/plugins/manifest-reference.md>
 - MCP: <https://code.claude.com/docs/en/mcp.md>
 - Permission modes: <https://code.claude.com/docs/en/permission-modes>
 - Release notes: <https://github.com/anthropics/claude-code/releases>
@@ -501,6 +521,7 @@ structured inter-agent messaging.
 - CLI config: <https://docs.github.com/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/configure-copilot-cli>
 - Coding Agent env: <https://docs.github.com/en/copilot/how-tos/use-copilot-agents/coding-agent/customize-the-agent-environment>
 - Plugins and their precedence: <https://docs.github.com/copilot/concepts/customizations/plugins>
+- CLI plugins: <https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/plugins-creating>
 - Team defaults: <https://github.blog/changelog/2026-11-18-customize-github-copilot-for-your-team>
 - Enterprise team settings: <https://docs.github.com/en/copilot/how-tos/administer-copilot/manage-for-enterprise/use-managed-settings/override-settings-for-teams>
 - Connectors: <https://github.blog/changelog/2026-11-18-connect-supabase-box-calendly-and-more-to-copilot>
@@ -514,4 +535,5 @@ structured inter-agent messaging.
 - Skills: <https://developers.openai.com/codex/skills>
 - MCP: <https://developers.openai.com/codex/mcp>
 - Hooks: <https://developers.openai.com/codex/hooks>
+- Plugins: <https://developers.openai.com/codex/plugins/build>
 - Repo: <https://github.com/openai/codex>
