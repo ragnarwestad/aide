@@ -8,6 +8,7 @@
   - [YouTube channels](#youtube-channels)
 - [Notation](#notation)
 - [News log](#news-log)
+  - [2026-11-22](#2026-11-22)
   - [2026-11-21](#2026-11-21)
   - [2026-11-20](#2026-11-20)
   - [2026-11-19](#2026-11-19)
@@ -43,7 +44,6 @@
   - [2026-09-30](#2026-09-30)
   - [2026-09-28](#2026-09-28)
   - [2026-09-26](#2026-09-26)
-  - [2026-09-21](#2026-09-21)
 
 ---
 
@@ -163,6 +163,66 @@ Relevance markers in each review's `Relevance for aide` section:
 ---
 
 ## News log
+
+### 2026-11-22
+
+Review period: 2026-11-21 to 2026-11-22. All 16 source addresses, 28 watched pages and 14 YouTube channels fetched.
+Fresh X failed: HTTP Error 503: Service Unavailable; complete=false, zero posts collected or retained.
+Six videos listed; four selected and all four caption files read (local AI talk searched by topic). No channel or caption fetch failed.
+Four watched pages changed; all differences are wording, feedback footers or repository counters.
+
+**Claude Code (review period):**
+
+| Date             | Version       | News                                                                                                                                                                                                | Source                                                       |
+|------------------|---------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------|
+| Nov 21–22        | —             | No release since Nov 21; blog/articles latest Nov 17, news latest Nov 20. Featured model announcements are older articles, not new releases.                                                        | [Source](https://github.com/anthropics/claude-code/releases) |
+| Nov 22 (changed) | watched pages | Best-practices and hooks-guide drop feedback footers; prompting guidance changes examples to list. No changed recommendation.                                                                       | [Source](https://code.claude.com/docs/en/best-practices)     |
+| Nov 21           | video         | Ben AI: define outcomes and feedback, reduce review burden, keep decisions visible and periodically remove obsolete setup. Research supports associations, not proof that these tips cause success. | [Source](https://www.youtube.com/watch?v=81Jg17dQz1A)        |
+
+**GitHub Copilot CLI (review period):**
+
+| Date             | Version                  | News                                                                                                                           | Source                                                                  |
+|------------------|--------------------------|--------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------|
+| Nov 21           | v1.0.115-6 (pre-release) | Fixes Unix shell cancellation leaving children in the process group, required-plugin retry and unsigned-in /delegate feedback. | [Source](https://github.com/github/copilot-cli/releases/tag/v1.0.115-6) |
+| Nov 21           | v1.0.115-5 (pre-release) | Reduces disk use and speeds resume for long local sessions; fixes queued Fusion routing acknowledgement.                       | [Source](https://github.com/github/copilot-cli/releases/tag/v1.0.115-5) |
+| Nov 21           | v1.0.115-4 (pre-release) | Previously reviewed: ACP forms, plugin-start race and Windows child-process cleanup.                                           | [Source](https://github.com/github/copilot-cli/releases/tag/v1.0.115-4) |
+| Nov 22 (checked) | —                        | No in-period changelog article. Displayed blog article publication metadata checked; newest dated Nov 12.                      | [Source](https://github.blog/ai-and-ml/github-copilot/)                 |
+
+**OpenAI Codex CLI (review period):**
+
+| Date             | Version         | News                                                                                                           | Source                                                                       |
+|------------------|-----------------|----------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------|
+| Nov 21           | 0.173.0-alpha.4 | Previously reviewed alpha tag has generic release text only; no detailed change can be inferred.               | [Source](https://github.com/openai/codex/releases/tag/rust-v0.173.0-alpha.4) |
+| Nov 22 (checked) | —               | Learn changelog latest CLI release Nov 20 (0.171.0); developer blog latest Nov 20. No in-period article found. | [Source](https://learn.chatgpt.com/docs/changelog)                           |
+
+**OpenCode (review period):**
+
+| Date      | Version | News                                                                                                           | Source                                                   |
+|-----------|---------|----------------------------------------------------------------------------------------------------------------|----------------------------------------------------------|
+| Nov 21–22 | —       | No release since Nov 21; public changelog still leads with the previously reviewed GPT-6.2 prompt-caching fix. | [Source](https://github.com/anomalyco/opencode/releases) |
+
+**Across tools (review period):**
+
+| Date             | Version                | News                                                                                                                                                                                          | Source                                                                 |
+|------------------|------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------|
+| Nov 21           | video (topic excerpts) | Local AI talk: compare complete tool setups, provide current search and use real task traces for evaluation. Hardware and savings claims were not independently validated.                    | [Source](https://www.youtube.com/watch?v=GKSQYbELDzw)                  |
+| Nov 21           | video                  | Code with Beto: humans still need to understand important code they must maintain. Historical timeline and third-party statistics are not adopted as verified facts.                          | [Source](https://www.youtube.com/shorts/zstnTLvsRt8)                   |
+| Nov 21           | video                  | Chase AI comparison re-read: consider quality, cost and elapsed time together; different tools and unexplained long runs prevent a general model ranking. Already covered Nov 21.             | [Source](https://www.youtube.com/watch?v=ycF6TVRgawE)                  |
+| Nov 22 (changed) | watched page           | agents.md changes repository counters only; 24 of 28 watched pages unchanged.                                                                                                                 | [Source](https://agents.md)                                            |
+| Nov 22 (checked) | —                      | Cookbooks latest commit Nov 20: no in-period recipe change. Fowler latest dated Nov 12. Artificial Analysis harness comparison still coming soon; chart values not available in fetched text. | [Source](https://github.com/anthropics/claude-cookbooks/commits/main/) |
+
+**Relevance for aide:**
+
+- ⭐ Ben AI video: extend repository maintenance guidance with a read-only review of obsolete or duplicated rules and skills, followed by measured trials before removing anything. Current maintenance guidance covers adding and updating; it has no periodic setup audit. This concerns .claude/skills/aide-repo-maintenance/SKILL.md and the rule/skill sources, not a new CLI capability. [Source](https://www.youtube.com/watch?v=81Jg17dQz1A)
+- ⚠️ Copilot 1.0.115-6 changes cancellation of shell descendants on Unix. Verify when the fix reaches the installed stable CLI, then document its scope in ai-tools-reference; do not remove runner process-group cleanup on the strength of a pre-release note. [Source](https://github.com/github/copilot-cli/releases/tag/v1.0.115-6)
+- ✅ Local AI video: search/tool availability and task traces matter when evaluating agents. Relevant to scripts/replay_specs and docs/REPLAY.md, which already measure actual archived tasks, time, tokens and cost. Only the search/evaluation excerpts were read; no model or hardware ranking is endorsed. [Source](https://www.youtube.com/watch?v=GKSQYbELDzw)
+- ✅ Code with Beto video: human understanding of important code remains necessary. Relevant to the existing diff review and delivery guidance; no claim that passing automated tests removes human accountability. [Source](https://www.youtube.com/shorts/zstnTLvsRt8)
+- ✅ Chase AI video: retain quality, cost and runtime in comparisons and distinguish model from tool setup. Relevant to replay; already assessed in the previous review, and no default-model change is justified. [Source](https://www.youtube.com/watch?v=ycF6TVRgawE)
+- ℹ Watched-page differences are wording, feedback footers and repository counters only. All four diffs were read in full; no instruction, setting or limit changed. [Source](https://code.claude.com/docs/en/best-practices) [Source](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) [Source](https://code.claude.com/docs/en/hooks-guide) [Source](https://agents.md)
+- ℹ Primary-source check for Ben AI: the expertise study uses transcript-based classifiers and reports 15% verified success for novice sessions versus 28–33% for intermediate and above; it does not observe real-world outcomes directly. The employment study supports the review/idle-time and decision-visibility observations. These are older studies linked by a new video, not new releases. [Source](https://www.anthropic.com/research/claude-code-expertise) [Source](https://www.anthropic.com/research/employment-at-anthropic)
+- ⚠️ Coverage gap: fresh MyAI X collection failed with HTTP Error 503: Service Unavailable; complete=false. Zero posts collected or retained, so X was not assessed. All 16 source addresses, 28 watched pages and 14 channels succeeded; all four selected caption fetches succeeded. [Source](https://api.fxtwitter.com/2/search)
+
+---
 
 ### 2026-11-21
 
@@ -2320,57 +2380,5 @@ Versions v2.1.280–282 were not itemised on the releases page.
   could not be verified on 1.0.88 without a live run, and the runner does not drive Copilot.
 - Done here: the Codex changelog address is now `learn.chatgpt.com/docs/changelog` in the Sources table and in the
   check-news skill.
-
----
-
-### 2026-09-21
-
-Short period (Sep 14 – Sep 21). The one finding that matters for Aide: **Claude Code v2.1.277 reads `AGENTS.md` in projects without a `CLAUDE.md`**. The Codex changelog has moved from `developers.openai.com/codex/changelog/` to `learn.chatgpt.com/docs/changelog` (a permanent redirect).
-
-**Claude Code (Sep 17 – Sep 19, v2.1.271 → v2.1.278):**
-
-| Date   | Version  | News                                                                                                                                                                                       | Source                                                                |
-|--------|----------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|
-| Sep 17 | v2.1.275 | `ctrl+enter` interrupts the turn and sends queued messages; skills and plugins enabled on claude.ai sync to terminal sessions (`syncClaudeAiSkills`/`syncClaudeAiPlugins: false` opts out) | [GitHub Releases](https://github.com/anthropics/claude-code/releases) |
-| Sep 18 | v2.1.276 | Fixed every request failing with `400 … advisor_20260301` behind a proxy or gateway (2.1.275 regression)                                                                                   | [GitHub Releases](https://github.com/anthropics/claude-code/releases) |
-| Sep 18 | v2.1.277 | **Reads `AGENTS.md` in projects without `CLAUDE.md`** (not yet on Bedrock/Vertex/Foundry); `CLAUDE_GATEWAY_PROXY_IS_EGRESS_BOUNDARY=1`; `headers:` map on gateway upstreams                | [GitHub Releases](https://github.com/anthropics/claude-code/releases) |
-| Sep 19 | v2.1.278 | Auto mode defaults to a server-side classifier for Claude API and Enterprise users (`CLAUDE_CODE_AUTO_MODE_SERVER=0` opts out); `/status` shows where the classifier runs                  | [GitHub Releases](https://github.com/anthropics/claude-code/releases) |
-
-Versions v2.1.271–274 were not itemised on the releases page.
-
-**GitHub Copilot CLI (Sep 16 – Sep 18, v1.0.85 → v1.0.87-0):**
-
-| Date   | Version         | News                                                                                                                                                                           | Source                                                            |
-|--------|-----------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|
-| Sep 16 | v1.0.85         | Vim mode for everyone; `transcriptView: "concise"`; `enable`/`disable` on `plugin`, `mcp` and `skill` commands; `copilot instruction list` and `copilot lsp list`; GPT-6 Astra | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
-| Sep 17 | v1.0.86         | Custom agents can opt into repo instruction files with `include-custom-instructions: true`; session resume keeps marketplace plugins and skills                                | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
-| Sep 18 | v1.0.87-0 (pre) | Auto routing tier with org policy; `worktreePathTemplate` setting; configurable MCP slow-connection warning                                                                    | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
-
-**GitHub Copilot Platform (Sep 14–18):**
-
-| Date   | News                                                               | Source                                                      |
-|--------|--------------------------------------------------------------------|-------------------------------------------------------------|
-| Sep 14 | Cost and quality configurable in Copilot auto model selection      | [GitHub Blog](https://github.blog/changelog/label/copilot/) |
-| Sep 17 | Agentic CLI customizations available through the usage metrics API | [GitHub Blog](https://github.blog/changelog/label/copilot/) |
-| Sep 18 | Selected Copilot models are phased out in mid-October              | [GitHub Blog](https://github.blog/changelog/label/copilot/) |
-
-**OpenAI Codex CLI (Sep 17 – Sep 18, v0.155.0 → v0.155.1):**
-
-| Date   | Version  | News                                                                                                                                                       | Source                                                      |
-|--------|----------|------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------|
-| Sep 14 | —        | GPT-5.3-Codex-Spark deprecated; GPT-5.5 retires Oct 14 (switch to GPT-5.6-Sol)                                                                             | [Codex changelog](https://learn.chatgpt.com/docs/changelog) |
-| Sep 17 | v0.155.0 | Experimental voice conversations; Touch ID verification for MCP requests on macOS; configurable daemon updates; AWS credential handling for Amazon Bedrock | [Codex changelog](https://learn.chatgpt.com/docs/changelog) |
-| Sep 18 | v0.155.1 | New local TUI sessions leave reasoning summaries off by default (fixes rejections by providers that do not support them)                                   | [GitHub](https://github.com/openai/codex/releases)          |
-
-The 0.156.0 alphas (Sep 19–21) carry no release notes.
-
-**Relevance for Aide:**
-
-- ⭐ **Claude Code reads `AGENTS.md` when a project has no `CLAUDE.md` (v2.1.277)** — a project where Aide's Codex-side instructions live in `AGENTS.md` alone now also reaches Claude Code. Verify the installer's handling of a project with `AGENTS.md` and no `CLAUDE.md` before relying on it. Proposed: in `.claude/skills/ai-tools-reference/SKILL.md`, note under Claude Code's instruction files that `AGENTS.md` is a fallback when `CLAUDE.md` is absent (not on Bedrock/Vertex/Foundry).
-- ✅ **Claude Code syncs claude.ai skills and plugins to the terminal (v2.1.275)** — skills enabled on claude.ai can now appear next to Aide's; opt out with `syncClaudeAiSkills: false`. Proposed: in `.claude/skills/ai-tools-reference/SKILL.md`, list the two settings under skill discovery.
-- ✅ **Copilot CLI `enable`/`disable` on `plugin`, `mcp`, `skill` (v1.0.85) and `include-custom-instructions` for custom agents (v1.0.86)** — logged for the next verification sweep. Proposed: in `docs/AI_SUPPORT_MATRIX.md`, add `include-custom-instructions` to the Copilot agents row after verifying it on the installed 1.0.86.
-- ✅ **Auto mode server-side classifier (Claude Code v2.1.278)** — no effect on the queue, which passes `--permission-mode` per step.
-- ⚠️ **Codex changelog URL moved to `learn.chatgpt.com/docs/changelog` (permanent redirect)** — Proposed: in `docs/AI_NEWS_LOG.md` (Sources) and `.claude/skills/check-news/SKILL.md`, replace the old URL; that is a source list, not the matrix or reference, so it is left for a user to approve.
-- ℹ **Codex 0.155 voice, Touch ID for MCP, Bedrock credentials; Copilot Vim mode, auto routing, model phase-out; GPT-5.5 retirement Oct 14** — no Aide action; Aide's `modelChoices` should not name GPT-5.5 or GPT-5.3-Codex-Spark.
 
 ---
