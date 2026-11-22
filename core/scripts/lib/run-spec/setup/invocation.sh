@@ -82,6 +82,9 @@ safety_flags=()
 # agent outranks a general rule, which is why the deny is written for the
 # plan agent too and `task` is denied with it. The plan agent is then left
 # with glob, grep, read, skill, todowrite, webfetch and websearch.
+# The turn runs with `--standalone` (below): OpenCode 2's background service
+# never sees OPENCODE_CONFIG_CONTENT, and a plan turn under the deny ran a
+# shell command through it (2.3.0).
 opencode_config=""
 opencode_safety_flags() {
   local deny='{"edit":"deny","bash":"deny","task":"deny"}'
@@ -140,7 +143,7 @@ invocation_build() {  # <tool> <bin> <permission> <model> <effort> <requested-id
       ;;
     opencode)
       opencode_safety_flags "$invocation_permission" || return 1
-      invocation_argv=("$invocation_bin" run --format json "${safety_flags[@]}")
+      invocation_argv=("$invocation_bin" run --standalone --format json "${safety_flags[@]}")
       [ -n "$invocation_model" ] && invocation_argv+=(--model "$invocation_model")
       [ -z "$invocation_resume" ] || invocation_argv+=(--session "$invocation_resume")
       ;;

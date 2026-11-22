@@ -216,3 +216,13 @@ def test_a_missing_opencode_binary_refuses_by_name(runner, workspace, tmp_path):
     rc, out, _ = run(runner, workspace, tool="opencode", opencode=missing)
     assert rc != 0, out
     assert "AIDE_OPENCODE_BIN" in json.dumps(out)
+
+
+def test_opencode_runs_on_a_server_of_its_own(runner, workspace, fake_opencode):
+    """`opencode run` hands the turn to a background service otherwise, which
+    never sees this turn's environment: the read-only deny in
+    OPENCODE_CONFIG_CONTENT and the provider's login were ignored there
+    (2.3.0, a plan turn under the deny ran a shell command)."""
+    oc = fake_opencode(emits(OPENCODE_STREAM_OK))
+    run(runner, workspace, tool="opencode", opencode=oc)
+    assert "--standalone" in fake_opencode.calls.read_text().split()

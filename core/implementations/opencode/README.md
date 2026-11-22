@@ -58,8 +58,12 @@ needs no key of its own. `OPENCODE_CLAUDE_PATH` points it at another
 The dashboard's runner drives it headless:
 
 ```bash
-opencode run --format json --agent build
+opencode run --standalone --format json --agent build
 ```
+
+`--standalone` gives the turn a server of its own. Without it the turn goes to
+OpenCode's background service, which ignores the environment the runner sets
+for the turn, the read-only permission config included.
 
 The prompt arrives on stdin and one JSON event comes back per line. A
 step's totals are the SUM over every `step_finish` event, because

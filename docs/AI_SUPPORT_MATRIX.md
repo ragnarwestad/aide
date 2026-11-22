@@ -398,6 +398,13 @@ reads the prompt from stdin and prints one JSON event per line; OpenCode
   OpenCode 2's plan agent likewise may write plan files and leaves shell
   commands to the permission config.
 - `--agent build` — the default.
+- `--standalone` — OpenCode 2 runs a background service (`opencode serve
+  --service`), and `opencode run` hands the turn to it unless told
+  otherwise. The service never sees the turn's environment, so
+  `OPENCODE_CONFIG_CONTENT` and a provider's login set for the turn are
+  ignored: under the deny above, a plan turn ran a shell command through
+  the service and was stopped with `--standalone` (verified 2.3.0). The
+  runner and the merge's repair session pass it on every OpenCode turn.
 - `--auto` — additionally answers what it would otherwise ask about.
 - `--session <id>` — continues a session.
 

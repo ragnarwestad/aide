@@ -17,7 +17,7 @@ export function repairModel(board: QueueDefaults, job: Job, prompt: string) {
   const model = choice.model ?? name;
   const argv = tool === "codex" ? [binary, "exec", "--json", "--dangerously-bypass-approvals-and-sandbox", "--model", model, prompt]
     : tool === "claude" ? [binary, "-p", "--output-format", "stream-json", "--verbose", "--permission-mode", "bypassPermissions", "--model", model, prompt]
-      : tool === "opencode" ? [binary, "run", "--format", "json", "--agent", "build", "--auto", "--model", model, prompt] : [];
+      : tool === "opencode" ? [binary, "run", "--standalone", "--format", "json", "--agent", "build", "--auto", "--model", model, prompt] : [];
   if (!argv.length) return undefined;
   return { name, key: key ?? tool, argv, env: { ...(provider ? providerLoginEnv(provider, homedir()) : {}), AIDE_HEADLESS: "1", ENABLE_CLAUDEAI_MCP_SERVERS: "false" } };
 }

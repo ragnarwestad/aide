@@ -163,7 +163,7 @@ def test_an_opencode_review_beside_a_claude_step_runs_read_only(
                      review_tool="opencode", review_model="openai/gpt-5", return_stderr=False)
     assert rc == 0, out
     (review,) = fake_opencode.calls.read_text().splitlines()
-    assert review.startswith("run --format json --agent plan --model openai/gpt-5"), review
+    assert review.startswith("run --standalone --format json --agent plan --model openai/gpt-5"), review
 
 
 def test_an_opencode_review_keeps_its_own_session_id_ac_1(
