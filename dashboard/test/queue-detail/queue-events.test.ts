@@ -152,7 +152,7 @@ describe("a `changed` event after a queue move carries how many specs wait", () 
     const s = await connect(base, "?counts=1");
     const event = await s.next();
     expect(event).toStartWith("event: counts\n");
-    expect(event).toContain('"needsAttention":0');
+    expect(event).toContain('"activeJobs":0');
     expect(event).toContain('"openSpecs":1');
   });
 
@@ -162,7 +162,7 @@ describe("a `changed` event after a queue move carries how many specs wait", () 
     expect((await enqueueFor(base, "82-another-spec")).status).toBe(200);
     const event = await s.next();
     expect(event).toContain('"waiting":1');
-    expect(event).toContain('"needsAttention":1');
+    expect(event).toContain('"activeJobs":1');
   });
 
   test("a new job for the failed spec itself leaves nothing waiting: the event says 0", async () => {

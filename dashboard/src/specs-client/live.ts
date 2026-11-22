@@ -94,12 +94,12 @@ export function onChanged(): void {
 // jobs that need attention, including zero.
 function announceCounts(e: Event): void {
   let waiting: unknown;
-  let needsAttention: unknown;
+  let activeJobs: unknown;
   let openSpecs: unknown;
   try {
     const counts = JSON.parse(String((e as MessageEvent).data));
     waiting = counts.waiting;
-    needsAttention = counts.needsAttention;
+    activeJobs = counts.activeJobs;
     openSpecs = counts.openSpecs;
   } catch {
     return;
@@ -107,8 +107,8 @@ function announceCounts(e: Event): void {
   if (typeof waiting === "number" && Number.isInteger(waiting) && waiting >= 0) {
     document.dispatchEvent(new CustomEvent("aide:waiting", { detail: waiting }));
   }
-  if (typeof needsAttention === "number" && Number.isInteger(needsAttention) && needsAttention >= 0) {
-    for (const count of document.querySelectorAll('nav.tabbar a[href="/"] [data-tab-count]')) count.textContent = ` (${needsAttention})`;
+  if (typeof activeJobs === "number" && Number.isInteger(activeJobs) && activeJobs >= 0) {
+    for (const count of document.querySelectorAll('nav.tabbar a[href="/"] [data-tab-count]')) count.textContent = ` (${activeJobs})`;
   }
   if (typeof openSpecs === "number" && Number.isInteger(openSpecs) && openSpecs >= 0) {
     for (const count of document.querySelectorAll('nav.tabbar a[href="/specs"] [data-tab-count]')) count.textContent = ` (${openSpecs})`;

@@ -1,4 +1,4 @@
-export interface SpecTabCounts { needsAttention: number; openSpecs: number }
+export interface SpecTabCounts { activeJobs: number; openSpecs: number }
 
 let read: (() => SpecTabCounts) | undefined;
 
@@ -7,5 +7,5 @@ export function setSpecActivityCounts(source: (() => SpecTabCounts) | undefined)
 }
 
 export function readSpecActivityCounts(): SpecTabCounts {
-  return read?.() ?? { needsAttention: 0, openSpecs: 0 };
+  return read?.() ?? { activeJobs: 0, openSpecs: 0 };
 }

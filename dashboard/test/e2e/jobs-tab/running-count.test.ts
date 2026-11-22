@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { chromium, type Browser } from "playwright";
+import { t } from "../../../src/i18n";
 import { browserDeadline } from "../../helpers/browser-deadline.ts";
 import { createdJob, queueHarness } from "../../helpers/queue-server.ts";
 
@@ -27,14 +28,14 @@ for (const width of [1440, 390]) {
         }
         Object.assign(window, {
           EventSource: FakeStream,
-          showCounts: (needsAttention: number, openSpecs = 7) => streams.forEach((stream) => stream.dispatchEvent(new MessageEvent("changed", { data: JSON.stringify({ needsAttention, openSpecs }) }))),
+          showCounts: (activeJobs: number, openSpecs = 7) => streams.forEach((stream) => stream.dispatchEvent(new MessageEvent("changed", { data: JSON.stringify({ activeJobs, openSpecs }) }))),
         });
       });
       await page.goto(`${base}/specs?q=no-match&state=active`);
       expect(await page.getByRole("link", { name: "Specs (1)", exact: true }).count()).toBe(1);
       await page.getByRole("link", { name: "Jobs (0)", exact: true }).waitFor();
-      expect(await page.getByRole("link", { name: "Jobs (0)", exact: true }).getAttribute("title")).toBe("Jobs that need your attention");
-      expect(await page.getByRole("link", { name: "Specs (1)", exact: true }).getAttribute("title")).toBe("Open specs: Created, Idle or Reopened");
+      expect(await page.getByRole("link", { name: "Jobs (0)", exact: true }).getAttribute("title")).toBe(t("en", "shell.jobsCountHint"));
+      expect(await page.getByRole("link", { name: "Specs (1)", exact: true }).getAttribute("title")).toBe(t("en", "shell.specsCountHint"));
       await page.evaluate(() => (window as unknown as { showCounts: (n: number, o?: number) => void }).showCounts(4));
       expect(await page.getByRole("link", { name: "Jobs (4)", exact: true }).count()).toBe(1);
       await page.evaluate(() => (window as unknown as { showCounts: (n: number, o?: number) => void }).showCounts(5));

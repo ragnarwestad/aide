@@ -14,7 +14,7 @@ afterEach(() => {
 // counts ride on it: without them "Specs (n)" keeps its old number.
 describe("the notice a route sends to open pages", () => {
   test("carries the tab counts", () => {
-    setSpecActivityCounts(() => ({ needsAttention: 1, openSpecs: 7 }));
+    setSpecActivityCounts(() => ({ activeJobs: 1, openSpecs: 7 }));
     setWaitingCount(() => 3);
     const sent: string[] = [];
     const watcher = {} as ReadableStreamDefaultController;
@@ -25,6 +25,6 @@ describe("the notice a route sends to open pages", () => {
     ctx.notifyQueueChanged();
     const data = JSON.parse(sent[0]!.match(/^data: (.*)$/m)![1]!);
     expect(sent[0]).toStartWith("event: changed\n");
-    expect(data).toEqual({ waiting: 3, needsAttention: 1, openSpecs: 7 });
+    expect(data).toEqual({ waiting: 3, activeJobs: 1, openSpecs: 7 });
   });
 });

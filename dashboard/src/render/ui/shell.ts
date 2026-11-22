@@ -322,7 +322,7 @@ function siteTabs(entries: NavEntry[], currentPath: string, lang: Language): str
   const icons = new Map([...kinds].map(([path, kind]) => [path, tabIcon(kind)]));
   const help = tabBarHelp(lang, keys.map((path) => ({ word: words.get(path)!, kind: kinds.get(path) })));
   const activity = readSpecActivityCounts();
-  return tabBar(keys, (path) => path, current, { "/": activity.needsAttention, "/specs": activity.openSpecs }, help, {
+  return tabBar(keys, (path) => path, current, { "/": activity.activeJobs, "/specs": activity.openSpecs }, help, {
     label: (path) => words.get(path)!, icon: (path) => icons.get(path), site: true, showZero: true,
     title: (path) => path === "/" ? t(lang, "shell.jobsCountHint")
       : path === "/specs" ? t(lang, "shell.specsCountHint") : undefined,

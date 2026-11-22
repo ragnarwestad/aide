@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { jobsNeedingAttention } from "../../../src/queue/job-rules/attention-count.ts";
+import { activeJobCount } from "../../../src/queue/job-rules/active-count.ts";
 import type { Job } from "../../../src/queue/types.ts";
 import type { ExecutionGroup } from "../../../src/queue/execution-groups";
 
@@ -9,20 +9,30 @@ const job = (id: string, overrides: Partial<Job> = {}): Job => ({
 } as Job);
 const serves = (project: string) => project === "aide";
 const counts = (jobs: Job[], groups: ExecutionGroup[] = [], open = (_: string, folder: string) => !folder.includes("archived-since")) =>
-  jobsNeedingAttention(jobs, groups, serves, (_, key) => key === "schedule-daily", open);
+  activeJobCount(jobs, groups, serves, (_, key) => key === "schedule-daily", open);
 
-test("counts manual holds and failed jobs, but not automatic waits or cancellations", () => {
+test("counts running jobs and jobs held for a person, not jobs that go on by themselves", () => {
   expect(counts([
     job("1-choice", { state: "queued", errorReason: "held-back", error: { key: "runner.approachChoice" } }),
     job("2-dependency", { state: "queued", errorReason: "held-back", error: { key: "runner.dependencyNotArchived", values: { spec: "1-choice" } } }),
     job("3-usage", { state: "waiting", stopReason: "provider-limit", usageLimitWait: { until: "2026-11-19T00:00:00Z", resetKnown: true } }),
-    job("4-cancelled", { state: "cancelled" }),
-    job("5-running", { state: "running" }),
-    job("6-queued", { state: "queued" }),
-    job("7-tests", { state: "failed", stopReason: "tests-red" }),
-    job("8-foreign", { project: "other" }),
-    job("9-acceptance", { state: "done", results: [{ terminalReason: "acceptance-criteria-unticked" }] as Job["results"] }),
-  ])).toBe(3);
+    job("4-running", { state: "running" }),
+    job("5-queued", { state: "queued" }),
+    job("6-tests", { state: "failed", stopReason: "tests-red" }),
+    job("7-foreign", { project: "other" }),
+    job("8-acceptance", { state: "done", results: [{ terminalReason: "acceptance-criteria-unticked" }] as Job["results"] }),
+    job("9-landing", { state: "done", landing: true, steps: ["analyze", "implement", "archive"], stepIndex: 2 }),
+  ])).toBe(5);
+});
+
+test("a cancelled job counts while its spec is open or its branch unmerged, and not once it is over", () => {
+  expect(counts([
+    job("1-open", { state: "cancelled" }),
+    job("2-archived-since", { state: "cancelled" }),
+    job("merge", { specFolder: "land", steps: ["land"], branch: "feature", state: "cancelled" }),
+    job("deploy", { specFolder: "deploy", steps: ["deploy"], state: "cancelled" }),
+    job("schedule-daily", { steps: ["schedule"], state: "cancelled" }),
+  ])).toBe(2);
 });
 
 test("only the latest attempt in each branch, spec or schedule can count", () => {
@@ -37,12 +47,22 @@ test("only the latest attempt in each branch, spec or schedule can count", () =>
     job("schedule-daily", { steps: ["schedule"] }),
     job("schedule-deleted", { steps: ["schedule"] }),
     job("schedule-old", { specFolder: "schedule-daily", steps: ["schedule"] }),
-  ])).toBe(2);
+  ])).toBe(3);
 });
 
-test("a group awaiting acceptance counts once even if its member job is also waiting", () => {
-  const group = { id: "group", project: "aide", state: "waiting-acceptance" } as ExecutionGroup;
-  expect(counts([job("1-spec", { executionGroupId: group.id })], [group])).toBe(1);
+test("a group counts once by its own state, never by its members' jobs", () => {
+  const group = (id: string, state: ExecutionGroup["state"], extra: Partial<ExecutionGroup> = {}) =>
+    ({ id, project: "aide", state, members: [], ...extra }) as ExecutionGroup;
+  const groups = [
+    group("running", "running"), group("archiving", "archiving"), group("acceptance", "waiting-acceptance"),
+    group("prepared", "prepared"), group("stopped", "stopped"),
+    group("queued", "queued"), group("completed", "completed"), group("removed", "stopped", { removedAt: "2026-11-20T00:00:00Z" }),
+  ];
+  const members = [
+    job("1-member", { executionGroupId: "running", state: "running" }),
+    job("2-member", { executionGroupId: "queued", state: "failed" }),
+  ];
+  expect(counts(members, groups)).toBe(5);
 });
 
 test("a spec whose latest job ended done before archive waits for the next step", () => {
@@ -56,11 +76,6 @@ test("a spec whose latest job ended done before archive waits for the next step"
     done("5-reopened", ["reopen"]),
     done("6-archived-since", ["analyze", "implement"]),
   ])).toBe(2);
-});
-
-test("a group member that finished its own steps waits on its group, not on the reader", () => {
-  const group = { id: "group", project: "aide", state: "running" } as ExecutionGroup;
-  expect(counts([job("1-member", { state: "done", steps: ["analyze", "implement"], stepIndex: 1, executionGroupId: group.id })], [group])).toBe(0);
 });
 
 test("a failed job that has been removed from Jobs no longer counts", () => {
