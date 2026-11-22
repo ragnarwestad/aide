@@ -159,7 +159,8 @@ For whoever changes Aide itself.
 
 - `make test` under `dashboard/` type-checks first, then deals the test files out over one bun process per core
   (`scripts/run-tests.sh`). A process stopped by a signal with no failing test is run once more, and a file with a
-  failing test is run once more on its own; only a second failure turns the suite red.
+  failing test is run once more on its own; only a second failure turns the suite red. The output keeps the first
+  attempt's lines as well as the retry's, marked `[first attempt]`.
 - The root's pytest suite runs through `scripts/test-python` in Aide's test command, which runs the failing tests
   once more on their own (`--lf`) in the same way. A test that lost to a busy host then costs seconds, and the
   merge runs the whole command a second time only for a failure that held twice.

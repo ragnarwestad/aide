@@ -13,6 +13,7 @@ pair, and each is a silent failure if it drifts:
   beside another job's suite.
 """
 
+import os
 import re
 import subprocess
 
@@ -46,16 +47,21 @@ class TestTheTestTarget:
 # the one file it is given: `killed-once` is stopped by a signal the first
 # time only, `killed` every time, `red-once` has a failing test the first
 # time only, `red` every time. Like bun, it heads the file's output with
-# its path.
+# its path, and prints a failing test's error and assertion lines above its
+# `(fail)` line; those name the attempt, so the two can be told apart. The
+# temp directory it was given is noted beside the file.
 _FAKE_BUN = r'''() {
   [ "$1" = test ] || return 0
   f="${@: -1}"; name="$(basename "$f" .test.ts)"
+  echo "$TMPDIR" > "$f.tmpdir"
+  echo "x" >> "$f.attempts"; n=$(wc -l < "$f.attempts" | tr -d ' ')
+  fail() { echo "error: boom on attempt $n"; echo "expect(1).toBe(2) on attempt $n"; echo "(fail) a test > that fails"; echo " 0 pass"; echo " 1 fail"; echo "Ran 1 tests across 1 file."; }
   echo "$f:"
   case "$name" in
     killed-once) [ -e "$f.seen" ] || { : > "$f.seen"; kill -9 "$(sh -c 'echo $PPID')"; } ;;
     killed) kill -9 "$(sh -c 'echo $PPID')" ;;
-    red-once) [ -e "$f.seen" ] || { : > "$f.seen"; echo "(fail) a test > that fails"; echo "Ran 1 tests across 1 file."; return 1; } ;;
-    red) echo "(fail) a test > that fails"; echo "Ran 1 tests across 1 file."; return 1 ;;
+    red-once) [ -e "$f.seen" ] || { : > "$f.seen"; fail; return 1; } ;;
+    red) fail; return 1 ;;
   esac
   echo "Ran 1 tests across 1 file."
 }'''
@@ -110,6 +116,65 @@ class TestAFailingTest:
         )
         assert result.returncode == 1
         assert "running its failing file(s) again" not in result.stdout
+
+
+def _failing_tests(workspace_root, tmp_path, output):
+    """What the board's parser of a red run reads from this output."""
+    import json
+    log = tmp_path / "run.log"
+    log.write_text(output)
+    lib = workspace_root / "core" / "scripts" / "lib" / "failing-tests.sh"
+    r = subprocess.run(
+        ["bash", "-c", f'source "{lib}" && failing_tests "{log}"'],
+        capture_output=True, text=True, timeout=30, check=True,
+    )
+    return json.loads(r.stdout)
+
+
+def _first_attempt_lines(output):
+    return [ln for ln in output.splitlines() if "[first attempt]" in ln]
+
+
+class TestBothAttemptsAreKept:
+    def test_a_file_that_passes_on_its_retry_keeps_the_first_attempt_s_failure_ac_1(self, workspace_root, tmp_path):
+        r = _run_suite(workspace_root, tmp_path, "red-once")
+        assert r.returncode == 0, r.stdout + r.stderr
+        first = "\n".join(_first_attempt_lines(r.stdout))
+        assert "(fail) a test > that fails" in first, r.stdout
+        assert "error: boom on attempt 1" in first, r.stdout
+        assert "expect(1).toBe(2) on attempt 1" in first, r.stdout
+        retry_line = r.stdout.index("run again alone: Ran 1 tests")
+        assert r.stdout.index("error: boom on attempt 1") < retry_line, r.stdout
+
+    def test_a_file_that_fails_on_its_retry_shows_both_attempts_marked_ac_2(self, workspace_root, tmp_path):
+        r = _run_suite(workspace_root, tmp_path, "red")
+        assert r.returncode == 1, r.stdout + r.stderr
+        first = "\n".join(_first_attempt_lines(r.stdout))
+        assert "(fail) a test > that fails" in first, r.stdout
+        assert "error: boom on attempt 1" in first, r.stdout
+        assert "expect(1).toBe(2) on attempt 1" in first, r.stdout
+        retry = r.stdout[r.stdout.index("--- worker 0, retry, in full:"):]
+        assert "error: boom on attempt 2" in retry, r.stdout
+        assert "expect(1).toBe(2) on attempt 2" in retry, r.stdout
+        assert "(fail) a test > that fails" in retry, r.stdout
+
+    def test_the_first_attempt_is_not_read_as_a_failing_test_ac_1_ac_2(self, workspace_root, tmp_path):
+        (tmp_path / "green").mkdir()
+        (tmp_path / "red").mkdir()
+        green = _run_suite(workspace_root, tmp_path / "green", "red-once")
+        assert _failing_tests(workspace_root, tmp_path, green.stdout)["tests"] == []
+        red = _run_suite(workspace_root, tmp_path / "red", "red")
+        found = _failing_tests(workspace_root, tmp_path, red.stdout)
+        assert len(found["tests"]) == 1, found
+        assert found["errors"] == ["error: boom on attempt 2"], found
+
+    @pytest.mark.parametrize("name", ["red-once", "red"])
+    def test_one_retry_and_the_temp_folder_is_removed_ac_3(self, workspace_root, tmp_path, name):
+        r = _run_suite(workspace_root, tmp_path, name)
+        assert r.returncode == (0 if name == "red-once" else 1), r.stdout + r.stderr
+        assert (tmp_path / f"{name}.test.ts.attempts").read_text().count("x") == 2
+        run_tmp = (tmp_path / f"{name}.test.ts.tmpdir").read_text().strip()
+        assert run_tmp and not os.path.exists(os.path.dirname(run_tmp))
 
 
 

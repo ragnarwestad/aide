@@ -22,6 +22,9 @@ make serve-local                    # serves the checkout it is started in, no b
 `make test` is part of aide's `AIDE_TEST_CMD`, which a step and a merge run whatever the change touched. It deals the test files out to one bun process per core, leaving two cores free for whatever else the
 machine is doing, and the whole of it takes about a minute on a 14-core machine. It leaves out the round's own tests
 alone: each starts a real test server, and they lose to load on a busy machine without a fault in the change.
+A file with a failing test is run once more on its own, and the output keeps both attempts: the first attempt's lines
+in full, each marked `[first attempt]`, then the retry's result, so a test that failed once and then passed still
+shows how it failed.
 
 A change to the documentation alone, these pages included, has a command of its own at the repository root:
 `scripts/check-docs` runs the tests that read a page rather than the code, in about ten seconds. A change that also

@@ -165,6 +165,16 @@ while :; do
   sleep 2
 done
 
+# A failing attempt that is run again is printed whole before the retry's
+# own result, so how it failed is not lost when the retry passes or
+# replaces it. Each line is indented and marked, so none of it reads as a
+# file heading, a `(fail)` line, an error or a count to the parsers of a
+# red run's log: only the retry's own failures are the real ones.
+print_first_attempt() {
+  echo "--- worker $1, first attempt, in full:"
+  sed 's/^/  [first attempt] /' "$OUT/first.$1"
+}
+
 # A worker that ended on a signal with no failing test was stopped from
 # outside — the machine short of memory, another job's cleanup — and says
 # nothing about the code. Its files are run once more, and only a second
@@ -195,8 +205,10 @@ for p in $pids; do
     again=$(awk '/^[^ ].*\.test\.ts:$/ { file = substr($0, 1, length($0) - 1) } /^\(fail\)/ && file { print file }' "$OUT/out.$w" | sort -u)
     if [ -n "$again" ]; then
       echo "--- worker $w: running its failing file(s) again alone: $(tr '\n' ' ' <<<"$again")"
+      cp "$OUT/out.$w" "$OUT/first.$w"
       # shellcheck disable=SC2086  # the paths are our own, one per line
       if ( bun test --timeout "$LIMIT" $again ) > "$OUT/again.$w" 2>&1; then
+        print_first_attempt "$w"
         echo "--- worker $w, run again alone: $(grep -E '^Ran [0-9]+ tests' "$OUT/again.$w" | tail -1)"
         continue
       fi
@@ -214,7 +226,11 @@ for w in $(seq 0 $(( WORKERS - 1 ))); do
   total=$(( total + ${n:-0} ))
   # A red worker's whole output, so the failing lines and their diffs are
   # here: what was printed while it ran was the one-line headline.
-  if [[ " $failed " == *" $w "* ]]; then
+  if [[ " $failed " == *" $w "* ]] && [ -f "$OUT/first.$w" ]; then
+    print_first_attempt "$w"
+    echo "--- worker $w, retry, in full:"
+    cat "$OUT/out.$w"
+  elif [[ " $failed " == *" $w "* ]]; then
     echo "--- worker $w, in full:"
     cat "$OUT/out.$w"
   fi
