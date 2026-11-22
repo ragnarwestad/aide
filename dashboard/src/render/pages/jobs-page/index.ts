@@ -27,7 +27,7 @@ import { executionGroupActivity, type ExecutionGroup } from "../../../queue/exec
 import { executionGroupCard, executionGroupPlace } from "./execution-group-card.ts";
 import { groupBranch } from "../../../project/spec-names.ts";
 import { withSpecFacts } from "../../../project/spec-facts.ts";
-import { eligibleGroupMembers, lockedGroupMembers } from "../../../queue/execution-groups/eligibility.ts";
+import { eligibleGroupMembers, groupableProjects, lockedGroupMembers } from "../../../queue/execution-groups/eligibility.ts";
 import { executionGroupEditor } from "./execution-group-editor.ts";
 
 export { jobKey, jobsShown, jobTitle, scheduleStreamKey, streamKey } from "./rows.ts";
@@ -259,9 +259,10 @@ export function renderJobsRows(v: JobsView): string {
   const body = shown.length
     ? shown.map((r) => drawn.get(r.key) ?? "").join("")
     : `<tr><td colspan="${LIST_COLUMNS}" class="empty muted">${t(lang, all.length ? "jobs.noRowMatchesFilter" : "jobs.nothingRunning")}</td></tr>`;
+  const editor = newGroupEditor(v, lang);
   return (
-    notices + executionGroupEditors(v, lang) +
-    jobsFilterBar(all.map((e) => e.facts), f, lang, jobsMatchingCount(all, f), v.list.createProjects) +
+    notices + editor.html +
+    jobsFilterBar(all.map((e) => e.facts), f, lang, jobsMatchingCount(all, f), v.list.createProjects, editor.groupable) +
     listTable({ tableAttrs: ' data-list="jobs"', head: jobsHead(f, lang), columns: columnGroup(), boxAttrs: windowAttributes(window), body, after: more })
   );
 }
@@ -270,12 +271,16 @@ export function renderJobsRows(v: JobsView): string {
 const groupJobs = (v: JobsView): { project: string; specFolder: string; state: string }[] =>
   (v.list.groupJobs ?? [...v.shown, ...v.specJobs]).map((job) => ({ project: job.project, specFolder: job.specFolder, state: job.state }));
 
-function executionGroupEditors(v: JobsView, lang: Language): string {
+/** The New group dialog, offering only the projects with two specs to group,
+ *  and whether there is one, which turns its button on. */
+function newGroupEditor(v: JobsView, lang: Language): { html: string; groupable: boolean } {
   const groups = v.summaryExecutionGroups ?? activeExecutionGroups({ ...v, list: { ...v.list, summary: true } });
-  const projects = [...new Set(v.list.targets.map((target) => target.project))].sort();
   const jobs = groupJobs(v);
-  const candidates = projects.flatMap((project) => eligibleGroupMembers({ project, targets: v.list.targets, groups, jobs }));
-  return executionGroupEditor({ projects, candidates, lang });
+  const offered = [...new Set(v.list.targets.map((target) => target.project))]
+    .flatMap((project) => eligibleGroupMembers({ project, targets: v.list.targets, groups, jobs }));
+  const projects = groupableProjects(offered);
+  const candidates = offered.filter((candidate) => projects.includes(candidate.project));
+  return { html: executionGroupEditor({ projects, candidates, lang }), groupable: projects.length > 0 };
 }
 
 /** One spec's rows alone, for a fold: an empty body when the spec has no row

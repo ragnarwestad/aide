@@ -33,8 +33,9 @@ const KIND_LABELS = {
 } as const;
 
 /** The search box with the type, state and project dropdowns after its help,
- *  and New group after them. `projects` is the Project filter's list, in its order. */
-export function jobsFilterBar(facts: RowFacts[], f: JobsFilter, lang: Language, shownCount = facts.length, projects: readonly string[] = []): string {
+ *  and New group after them. `projects` is the Project filter's list, in its order;
+ *  New group is off while no project has two specs to group (`groupable`). */
+export function jobsFilterBar(facts: RowFacts[], f: JobsFilter, lang: Language, shownCount = facts.length, projects: readonly string[] = [], groupable = true): string {
   const stateOptions = jobsStateOptions(facts, f);
   const kindOptions = jobsKindOptions(facts, f);
   const state = menuDropdown({
@@ -69,7 +70,7 @@ export function jobsFilterBar(facts: RowFacts[], f: JobsFilter, lang: Language, 
       hidden: [["state", jobsStateValue(f.state)], ["kind", jobsKindValue(f.kind)], ...KEPT.filter((k) => f[k]).map((k): [string, string] => [k, f[k]!])],
       q: f.q ?? "",
       clearHref: esc(jobsViewPath(f, { q: "" })),
-      after: kind + state + projectDropdown(f, projects, (p) => esc(jobsViewPath(f, { project: p })), lang) + resultCount(shownCount) + askButton({ label: t(lang, "list.groupCreate"), dialogId: NEW_GROUP_DIALOG, variant: "primary" }),
+      after: kind + state + projectDropdown(f, projects, (p) => esc(jobsViewPath(f, { project: p })), lang) + resultCount(shownCount) + askButton({ label: t(lang, "list.groupCreate"), dialogId: NEW_GROUP_DIALOG, variant: "primary", disabled: !groupable, title: groupable ? undefined : t(lang, "list.groupNoneToGroup") }),
     },
     lang,
   );

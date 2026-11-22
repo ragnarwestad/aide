@@ -11,7 +11,7 @@ const running = {
 test("New group excludes a spec with an ordinary job in flight (AC-4)", () => {
   const view: JobsView = {
     shown: [], specJobs: [running], now: Date.parse("2026-11-11T12:01:00Z"),
-    list: { runnerAvailable: true, targets: [{ project: "aide", specFolder: "1-running" }, { project: "aide", specFolder: "2-ready" }] },
+    list: { runnerAvailable: true, targets: [{ project: "aide", specFolder: "1-running" }, { project: "aide", specFolder: "2-ready" }, { project: "aide", specFolder: "3-ready" }] },
   };
   const html = renderJobsRows(view);
   const editor = html.slice(html.indexOf("data-execution-group-editor"), html.indexOf("</dialog>"));
@@ -70,4 +70,16 @@ test("a group's Edit dialog gets every spec New group would offer (AC-6)", () =>
   const dialog = card.slice(card.indexOf('<dialog class="formdialog"'), card.indexOf("</dialog>"));
   expect(dialog).toContain('value="3-free"');
   expect(dialog).toContain('value="4-required"');
+});
+
+test("New group is off, and its dialog offers no project, while no project has two specs to group", () => {
+  const button = (html: string) => html.slice(html.lastIndexOf("<button", html.indexOf(`data-ask="${NEW_GROUP_DIALOG}"`)), html.indexOf(">", html.indexOf(`data-ask="${NEW_GROUP_DIALOG}"`)));
+  const editor = (html: string) => html.slice(html.indexOf("data-execution-group-editor"), html.indexOf("</dialog>"));
+  const one = renderJobsRows({ shown: [], specJobs: [], list: { runnerAvailable: true, targets: [{ project: "aide", specFolder: "1-only" }, { project: "atlas", specFolder: "2-only" }] } });
+  expect(button(one)).toContain("disabled");
+  expect(editor(one)).not.toContain("<option");
+  const two = renderJobsRows({ shown: [], specJobs: [], list: { runnerAvailable: true, targets: [{ project: "aide", specFolder: "1-only" }, { project: "atlas", specFolder: "2-first" }, { project: "atlas", specFolder: "3-second" }] } });
+  expect(button(two)).not.toContain("disabled");
+  expect(editor(two)).toContain('<option value="atlas">');
+  expect(editor(two)).not.toContain('<option value="aide">');
 });

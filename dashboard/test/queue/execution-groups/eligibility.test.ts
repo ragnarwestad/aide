@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { eligibleGroupMembers, lockedGroupMembers, orderGroupMembers, validateExecutionGroupEdit, validateExecutionGroupRequest } from "../../../src/queue/execution-groups/eligibility.ts";
+import { eligibleGroupMembers, groupableProjects, lockedGroupMembers, orderGroupMembers, validateExecutionGroupEdit, validateExecutionGroupRequest } from "../../../src/queue/execution-groups/eligibility.ts";
 import type { GroupFacts } from "../../../src/project/spec-facts.ts";
 
 const target = (specFolder: string, extra: Record<string, unknown> = {}) => ({
@@ -131,4 +131,15 @@ test("decides from the group facts alone and offers the caller's own objects (AC
   const group = { id: "g", project: "aide", name: "G", members: ["1-first", "3-implemented"], branch: "group/g", state: "prepared" as const, completedMembers: [], jobs: [] };
   expect([...lockedGroupMembers({ group, targets: facts, jobs: [] })]).toEqual(["3-implemented"]);
   expect(orderGroupMembers(["1-first", "2-required"], facts)).toEqual({ ok: true, members: ["2-required", "1-first"] });
+});
+
+test("a project can make a group only with two specs to offer", () => {
+  const offered = [
+    { project: "atlas", specFolder: "1" }, { project: "atlas", specFolder: "2" },
+    { project: "aide", specFolder: "3" }, { project: "aide", specFolder: "4" },
+    { project: "paceup", specFolder: "5" },
+  ];
+  expect(groupableProjects(offered)).toEqual(["aide", "atlas"]);
+  expect(groupableProjects(offered.slice(4))).toEqual([]);
+  expect(groupableProjects([])).toEqual([]);
 });

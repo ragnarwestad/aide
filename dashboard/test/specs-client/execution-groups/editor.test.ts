@@ -132,3 +132,13 @@ test("Run requires and submits a group name only while peers are selected, and c
   expect(name.value).toBe("");
   expect(name.disabled).toBe(true);
 });
+
+test("with no project chosen the form cannot be saved and gives no reason", () => {
+  const window = new Window();
+  window.document.body.innerHTML = executionGroupEditor({ projects: [], candidates: [] });
+  const form = window.document.querySelector("form[data-execution-group-editor]") as unknown as HTMLFormElement;
+  updateExecutionGroupEditor(form);
+  const save = form.querySelector('button[id$="-save"]') as unknown as HTMLButtonElement;
+  const none = form.querySelector("[data-group-none]") as unknown as HTMLElement;
+  expect([save.disabled, none.hidden]).toEqual([true, true]);
+});

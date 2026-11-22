@@ -49,9 +49,10 @@ export function updateExecutionGroupEditor(form: HTMLFormElement): void {
     });
   }
   // A group needs two members, so a project with fewer has nothing to save.
-  const enough = rows(form).filter((row) => !row.hidden).length >= 2;
+  // The reason is given only for a chosen project.
+  const enough = !!project && rows(form).filter((row) => !row.hidden).length >= 2;
   const none = form.querySelector<HTMLElement>("[data-group-none]");
-  if (none) none.hidden = enough;
+  if (none) none.hidden = enough || !project;
   const save = form.querySelector<HTMLButtonElement>('button[id$="-save"]');
   if (save) save.disabled = !enough;
 }

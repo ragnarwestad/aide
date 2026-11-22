@@ -99,8 +99,9 @@ the specs that need them. With nothing ticked, Run starts only the pressed spec 
 **New group**, at the right-hand end of the Jobs tab's search row, opens a dialog: a project and a display name on
 one line, and under them the project's eligible specs, of which at least two are ticked. There is no order field:
 selected specs keep the order they were added, with dependencies placed before the specs that need them. Save and
-Start check the dependencies; circular dependencies are refused with the affected specs named. A project with fewer than two
-eligible specs shows a sentence saying so in the list's place, and Save is off. Save creates a prepared card and does
+Start check the dependencies; circular dependencies are refused with the affected specs named. The dialog offers only
+projects with at least two eligible specs, and New group is off, with a hover line saying why, while no project has
+two. Save creates a prepared card and does
 not start work; Cancel closes the dialog and saves nothing.
 A refused Save says why in the dialog, which stays open with what was typed. The group's … menu keeps **Edit** and **Remove** visible while it has work in flight, but both are disabled.
 Edit is available only while the group and its members have no queued, running or merging job. Edit opens the New group dialog filled with the group's name and members. The display

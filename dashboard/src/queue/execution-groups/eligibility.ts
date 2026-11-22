@@ -29,6 +29,13 @@ export function eligibleGroupMembers<T extends GroupFacts>(input: EligibilityInp
   });
 }
 
+/** The projects with at least two specs to offer, since a group needs two members. */
+export function groupableProjects(offered: readonly { project: string }[]): string[] {
+  const count = new Map<string, number>();
+  for (const spec of offered) count.set(spec.project, (count.get(spec.project) ?? 0) + 1);
+  return [...count].filter(([, n]) => n >= 2).map(([project]) => project).sort();
+}
+
 export function lockedGroupMembers<T extends GroupFacts>(input: LockInput<T>): Set<string> {
   const targetByFolder = new Map(input.targets.filter((target) => target.project === input.group.project).map((target) => [target.specFolder, target]));
   const inFlight = new Set(input.jobs.filter((job) => job.project === input.group.project && active(job.state)).map((job) => job.specFolder));
