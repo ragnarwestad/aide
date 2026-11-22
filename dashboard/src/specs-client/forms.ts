@@ -17,6 +17,7 @@ import { showRefusal } from "./tail-actions.ts";
 import { cardAnswered } from "./depends-on";
 import { clearChosenSteps, NEW_SPEC_FORM } from "./state.ts";
 import { swapPage } from "./page-swap";
+import { REDRAWN_ON_CLOSE } from "./execution-groups/editor.ts";
 import { FORM_SAVED } from "../page-contract.ts";
 
 export async function submitAction(event: Event): Promise<void> {
@@ -44,13 +45,13 @@ export async function submitAction(event: Event): Promise<void> {
       clearChosenSteps(form.id);
       for (const member of groupPhaseForms(form)) clearChosenSteps(member.id);
       cardAnswered(form, "saved");
-      // Its close redraws the rows (`bindLists`).
-      if (held && form.dataset.goto) {
+      // The reader stays where they are. A group form's close redraws the
+      // rows (`bindLists`); any other dialog's rows are redrawn here.
+      if (held) {
         held.close();
-        await swapPage(form.dataset.goto, { history: "push" });
+        if (!form.matches(REDRAWN_ON_CLOSE)) await swapRows();
         return;
       }
-      if (held) return held.close();
       // Now, not on the next five-second tick: the result belongs where
       // the reader already is.
       await swapRows();

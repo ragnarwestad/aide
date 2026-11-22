@@ -94,7 +94,7 @@ test("a live row update preserves an unsubmitted search", async () => {
 });
 
 describe("a spec's row on the Jobs tab acts in place", () => {
-  test("Run on Specs asks for phases and models, starts the job on Jobs and the title link filters the spec (AC-3, AC-4)", async () => {
+  test("Run on Specs asks for phases and models, starts the job while staying on Specs and the title link filters the spec (AC-3, AC-4)", async () => {
     const queueDefaults = {
       timeoutSec: { default: 1200 },
       permissionMode: { default: "acceptEdits" },
@@ -108,11 +108,13 @@ describe("a spec's row on the Jobs tab acts in place", () => {
     const dialog = page.locator("dialog[open]");
     await dialog.locator('input[name="steps"]').first().waitFor();
     expect(await dialog.locator('select[name^="model."]').count()).toBeGreaterThan(0);
-    await Promise.all([
-      page.waitForURL((url) => url.pathname === "/"),
+    const [answer] = await Promise.all([
+      page.waitForResponse((res) => new URL(res.url()).pathname === "/api/queue" && res.request().method() === "POST"),
       dialog.getByRole("button", { name: "Run", exact: true }).click(),
     ]);
-    await page.goto(`${base}/specs/aide/${SPEC}`);
+    expect(answer.ok()).toBe(true);
+    await page.locator("dialog[open]").waitFor({ state: "detached" });
+    expect(new URL(page.url()).pathname).toBe(`/specs/aide/${SPEC}`);
     await Promise.all([
       page.waitForURL((url) => url.searchParams.get("q") === "aide:81"),
       page.locator("#jobrows").getByRole("link", { name: /81.*Queue/ }).click(),

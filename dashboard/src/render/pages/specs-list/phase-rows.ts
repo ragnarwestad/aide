@@ -346,7 +346,6 @@ export function specRunDialog(g: SpecGroup, opts: SpecsPageOptions): { control: 
     title: t(lang, "list.runDialogTitle", { spec: specReference(g.project, g.specFolder) }),
     action: "/api/queue",
     hook: `actionform${peers.length ? "" : ""}`,
-    data: { goto: "/" },
     fields,
     save: { label: t(lang, "shell.runTestRound"), pending: t(lang, "list.starting") },
   });

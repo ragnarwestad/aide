@@ -1,6 +1,5 @@
-// A dialog's form that names a page to go to when it goes through — the
-// Specs list's Run dialog — changes the page in place: the header stays,
-// and the browser loads nothing.
+// The Specs list's Run dialog, run alone or as a group, closes when the
+// Run goes through and leaves the reader on the Specs tab, with no page load.
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { chromium, type Browser } from "playwright";
 import { browserDeadline, withBrowser } from "../../helpers/browser-deadline.ts";
@@ -24,42 +23,32 @@ afterAll(async () => {
   harness.cleanup();
 });
 
-test("a dialog form that goes through changes to its page without loading the app again", async () => {
+test("Run from the Specs list's Run dialog closes it and stays on the Specs tab without loading the page (AC-1)", async () => {
   const page = await browser.newPage();
-  let navigations = 0;
-  page.on("request", (r) => {
-    if (r.isNavigationRequest() && r.frame() === page.mainFrame()) navigations++;
-  });
-  await page.route(
-    (url) => url.pathname === "/api/queue",
-    (route) => route.fulfill({ json: { ok: true } }),
-  );
-  await withBrowser(page.goto(`${base}/specs?live=0`), "page.goto(Specs)");
-  await page.locator("#jobrows").waitFor({ state: "attached" });
-  await page.evaluate(() => (window as unknown as { keptHeader: Element | null }).keptHeader = document.querySelector("header"));
-  // The Run dialog as the list draws it; this board has no checkout, so it offers no Run of its own.
-  await page.evaluate(() => {
-    const dialog = document.createElement("dialog");
-    dialog.className = "formdialog";
-    const form = document.createElement("form");
-    form.className = "actionform";
-    form.method = "post";
-    form.action = "/api/queue";
-    form.dataset.goto = "/";
-    dialog.appendChild(form);
-    document.getElementById("jobrows")!.appendChild(dialog);
-    dialog.showModal();
-    form.dispatchEvent(new SubmitEvent("submit", { bubbles: true, cancelable: true }));
-  });
-  await page.waitForURL((url) => url.pathname === "/");
-  await page.locator("main").waitFor({ state: "attached" });
-  expect(navigations).toBe(1);
-  expect(await page.evaluate(() => document.querySelector("header") === (window as unknown as { keptHeader: Element }).keptHeader)).toBe(true);
-  expect(await page.locator("dialog.formdialog[open]").count()).toBe(0);
-  await page.close();
+  try {
+    let navigations = 0;
+    page.on("request", (r) => {
+      if (r.isNavigationRequest() && r.frame() === page.mainFrame()) navigations++;
+    });
+    const targets = [{ project: "aide", specFolder: "81-first" }];
+    const rendered = specRunDialog(groupBySpec([], targets)[0]!, { targets, runnerAvailable: true });
+    await withBrowser(page.goto(`${base}/specs?live=0`), "page.goto(Specs)");
+    await page.evaluate((html) => document.getElementById("jobrows")!.insertAdjacentHTML("beforeend", html), rendered.control + rendered.dialog);
+    await page.evaluate(() => (window as unknown as { keptHeader: Element | null }).keptHeader = document.querySelector("header"));
+    await page.route((url) => url.pathname === "/api/queue", (route) => route.fulfill({ json: { ok: true } }));
+    await page.locator('button[data-ask="runask-aide/81-first"]').click();
+    const dialog = page.getByRole("dialog", { name: "Run spec aide:81", exact: true });
+    const posted = page.waitForRequest((req) => req.url().endsWith("/api/queue") && req.method() === "POST");
+    await dialog.getByRole("button", { name: "Run", exact: true }).click();
+    await posted;
+    await page.locator("dialog.formdialog[open]").waitFor({ state: "detached" });
+    expect(new URL(page.url()).pathname).toBe("/specs");
+    expect(navigations).toBe(1);
+    expect(await page.evaluate(() => document.querySelector("header") === (window as unknown as { keptHeader: Element }).keptHeader)).toBe(true);
+  } finally { await page.close(); }
 });
 
-test("Run asks for a group name when a peer is selected and submits the entered name", async () => {
+test("Run asks for a group name when a peer is selected, submits the entered name and stays on the Specs tab (AC-3)", async () => {
   const page = await browser.newPage();
   try {
     const targets = ["81-first", "82-next"].map((specFolder) => ({ project: "aide", specFolder }));
@@ -79,6 +68,7 @@ test("Run asks for a group name when a peer is selected and submits the entered 
     await dialog.getByRole("button", { name: "Run", exact: true }).click();
     const request = await posted;
     expect(new URLSearchParams(request.postData()!).get("groupName")).toBe("Shared utilities");
-    await page.waitForURL((url) => url.pathname === "/");
+    await page.locator("dialog.formdialog[open]").waitFor({ state: "detached" });
+    expect(new URL(page.url()).pathname).toBe("/specs");
   } finally { await page.close(); }
 });

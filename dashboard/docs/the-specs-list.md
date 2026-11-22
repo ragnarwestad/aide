@@ -86,7 +86,8 @@ for its own folds.
 On the Specs list an open row is the spec: its title line, short state, description, settings, dependencies,
 acceptance criteria and the spec documents. It shows no phase lines, steps or logs. The Jobs link opens the Jobs tab
 with every round of this spec and no other row. Run opens a dialog for choosing the phases and each phase's AI and
-model before the job starts on Jobs.
+model. When the job starts, alone or with other specs as a group, the dialog closes and the reader stays on the
+Specs tab, with the list's filters and scroll position as they were and the spec's row showing its new state.
 
 The Running tab's open row reveals the workflow phases underneath, always in that order, so how far a spec has got
 is readable without counting rows. The phase lines sit directly under the row; its message rows come after them.

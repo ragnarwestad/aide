@@ -7,6 +7,8 @@ import { writeLine } from "../press.ts";
 
 const EDITOR = "form[data-execution-group-editor]";
 const RUN_GROUP = "form[data-run-group]";
+/** The forms whose dialog redraws the rows when it closes (`closeExecutionGroupEditor`). */
+export const REDRAWN_ON_CLOSE = `${EDITOR}, ${RUN_GROUP}`;
 
 function updateRunGroupName(form: HTMLFormElement): void {
   const field = form.querySelector<HTMLElement>("[data-run-group-name]");
@@ -97,7 +99,7 @@ export function syncExecutionGroupEditors(root: ParentNode): void {
  *  emptied, its reason with it, so the dialog opens again as new. Says
  *  whether the event was such a dialog's. */
 export function closeExecutionGroupEditor(event: Event): boolean {
-  const form = (event.target as Element | null)?.querySelector?.(`${EDITOR}, ${RUN_GROUP}`) as HTMLFormElement | null;
+  const form = (event.target as Element | null)?.querySelector?.(REDRAWN_ON_CLOSE) as HTMLFormElement | null;
   if (!form) return false;
   form.reset();
   for (const member of form.querySelectorAll<HTMLInputElement>('input[name="member"]')) delete member.dataset.selectedAt;

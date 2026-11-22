@@ -49,6 +49,12 @@ const GROUP = formDialog("en", {
   fields: `<input name="name" value="Release">`,
 });
 
+/** The Specs list's Run dialog, as `specRunDialog()` draws its form. */
+const RUN = formDialog("en", {
+  id: "runask-aide/a", title: "Run spec aide:a", action: "/api/queue", hook: "actionform",
+  fields: `<input type="hidden" name="project" value="aide"><input type="hidden" name="specFolder" value="a">`,
+});
+
 /** Posts the form in the open dialog `id`, and hands back the dialog and the form. */
 async function pressIn(doc: Document, id: string): Promise<{ dialog: HTMLDialogElement; form: HTMLFormElement }> {
   const dialog = doc.getElementById(id) as unknown as HTMLDialogElement;
@@ -67,7 +73,7 @@ const rows = (drawn: number, a = "", b = "") =>
 
 /** The list as the server draws it: the line above the rows, the row the
  *  script copies, and `#jobrows`; `answer` is what the rows' redraw gets. */
-function list(inside: string, answer: { rows: () => string; press?: { status: number; body: unknown } }) {
+function list(inside: string, answer: { rows: () => string; press?: { status: number; body: unknown }; fetched?: string[] }) {
   win = new Window({ url: "http://dash.test/?state=active" });
   win.document.write(`${listRefusalLine()}${refusalRowTemplate()}<div id="jobrows">${inside}</div>`);
   (globalThis as { document?: unknown }).document = win.document;
@@ -75,6 +81,7 @@ function list(inside: string, answer: { rows: () => string; press?: { status: nu
   (globalThis as { history?: unknown }).history = { replaceState() { throw new Error("the address is not written"); } };
   (globalThis as unknown as { FormData: unknown }).FormData = win.FormData;
   (globalThis as unknown as { fetch: unknown }).fetch = async (url: string) => {
+    answer.fetched?.push(url);
     if (url.includes("rows=1")) return { ok: true, text: async () => answer.rows() };
     const press = answer.press ?? { status: 200, body: { ok: true } };
     return { ok: press.status < 400, status: press.status, json: async () => press.body };
@@ -167,5 +174,27 @@ describe("a press that goes through", () => {
     const doc = list(GROUP + rows(10), { rows: () => GROUP + rows(10) });
     const { dialog } = await pressIn(doc, "new-group");
     expect(dialog.hasAttribute("open")).toBe(false);
+  });
+
+  test("from the Run dialog closes it, stays on the page and redraws the rows once with the address's query (AC-1, AC-2)", async () => {
+    const fetched: string[] = [];
+    const doc = list(RUN + rows(11), { rows: () => RUN + rows(12, " running"), fetched });
+    const { dialog } = await pressIn(doc, "runask-aide/a");
+    expect(dialog.hasAttribute("open")).toBe(false);
+    expect(win!.location.href).toBe("http://dash.test/?state=active");
+    const redraws = fetched.filter((url) => url.includes("rows=1"));
+    expect(redraws).toHaveLength(1);
+    expect(new URL(redraws[0]!, "http://dash.test").searchParams.get("state")).toBe("active");
+    expect(doc.getElementById("spec-aide/a")!.textContent).toContain("running");
+  });
+
+  test("from the Run dialog run as a group stays on the page and leaves the redraw to the dialog's close (AC-3)", async () => {
+    const fetched: string[] = [];
+    const runGroup = RUN.replace('<form id="', '<form data-run-group id="');
+    const doc = list(runGroup + rows(13), { rows: () => runGroup + rows(13), fetched });
+    const { dialog } = await pressIn(doc, "runask-aide/a");
+    expect(dialog.hasAttribute("open")).toBe(false);
+    expect(win!.location.href).toBe("http://dash.test/?state=active");
+    expect(fetched.filter((url) => url.includes("rows=1"))).toHaveLength(0);
   });
 });
