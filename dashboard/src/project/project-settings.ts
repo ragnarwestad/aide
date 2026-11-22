@@ -25,7 +25,7 @@
 
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { configValue, resolveAcPrefix, resolveDescription, resolveIcon, resolveWorktreeLinks, resolveInstallCmd, resolvePreviewCmd, resolveTestCmd } from "./discover";
+import { configValue, resolveAcPrefix, resolveDescription, resolveIcon, resolveWorktreeLinks, resolveWorktreeSetup, resolveInstallCmd, resolvePreviewCmd, resolveTestCmd } from "./discover";
 import { detectProjectCommands, type CommandKind } from "./detect-commands.ts";
 import { t, type TranslationKey } from "../i18n";
 import type { BoardMessage } from "../messages/types.ts";
@@ -82,6 +82,7 @@ export interface ProjectSettingsView {
 export const SETTING_KEYS = [
   "AIDE_SPECS_PATH",
   "worktreeLinks",
+  "worktreeSetup",
   "AIDE_TEST_CMD",
   "acPrefix",
   "AIDE_INSTALL_CMD",
@@ -98,7 +99,7 @@ export const SETTING_KEYS = [
  *  the same rows into two tables. */
 export const SETTING_GROUPS: { file: ".aide/config" | "manifest"; keys: readonly string[] }[] = [
   { file: ".aide/config", keys: ["AIDE_SPECS_PATH", "AIDE_INSTALL_CMD"] },
-  { file: "manifest", keys: ["worktreeLinks", "previewCmd", "AIDE_TEST_CMD", "acPrefix", "description", "icon"] },
+  { file: "manifest", keys: ["worktreeLinks", "worktreeSetup", "previewCmd", "AIDE_TEST_CMD", "acPrefix", "description", "icon"] },
 ];
 
 export type SettingsGroupFile = (typeof SETTING_GROUPS)[number]["file"];
@@ -108,6 +109,7 @@ export type SettingsGroupFile = (typeof SETTING_GROUPS)[number]["file"];
 export const EDITABLE_FIELD: Record<string, string> = {
   AIDE_SPECS_PATH: "specsPath",
   worktreeLinks: "worktreeLinks",
+  worktreeSetup: "worktreeSetup",
   AIDE_INSTALL_CMD: "installCmd",
   previewCmd: "previewCmd",
   AIDE_TEST_CMD: "testCmd",
@@ -156,8 +158,8 @@ function configuredValue(
     const { links, source } = resolveWorktreeLinks(manifestDir);
     return links ? { value: links, source: source ?? undefined } : null;
   }
-  if (key === "description" || key === "acPrefix" || key === "icon") {
-    const resolve = key === "description" ? resolveDescription : key === "acPrefix" ? resolveAcPrefix : resolveIcon;
+  if (key === "description" || key === "acPrefix" || key === "icon" || key === "worktreeSetup") {
+    const resolve = key === "description" ? resolveDescription : key === "acPrefix" ? resolveAcPrefix : key === "icon" ? resolveIcon : resolveWorktreeSetup;
     const { value, source } = resolve(manifestDir);
     return value ? { value, source: source ?? undefined } : null;
   }

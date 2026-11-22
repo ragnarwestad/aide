@@ -71,7 +71,9 @@ Two pages sit beside this one:
    default branch into it. The shared Archive brings it up to date; a separate specs repository stays up to date
    throughout.
 3. The gitignored paths the project needs are symlinked into each worktree, and the dashboard's own
-   `.aide/project.yaml` and a repointed `.aide/config` are copied in.
+   `.aide/project.yaml` and a repointed `.aide/config` are copied in. Where the manifest sets `worktreeSetup`, that
+   command then runs at the root of the project's worktree (`aide-worktree-setup`), with its output and time in the
+   step's log; a failure stops the step before any session starts, naming the command with its last lines.
 4. The step runs there — one turn of the chosen CLI, under the step's time limit.
 5. Whatever it wrote is committed in every root it touched.
 6. Each root is pushed, or not, by the three conditions below.
@@ -244,7 +246,9 @@ their default branch before the worktrees are made and never leave it, so severa
   the throwaway one.
 - A worktree carries tracked files only. `.venv` and `dashboard/node_modules` reach it through `worktreeLinks:` in the
   `.aide/project.yaml` (committed, or the dashboard's untracked copy, kept out of the commit). The run's log says which
-  file it read.
+  file it read. A project that sets `worktreeSetup` installs its dependencies in each worktree instead, so a run tests
+  the branch with the packages the branch declares; the folders that command installs are left out of
+  `worktreeLinks`, or the install writes through the link into the main checkout.
 - The specs root reaches the worktree in one of three shapes. A separate specs repository gets a worktree of its own. A
   specs root inside the project that git ignores (aide's own `/specs/`) is linked in from the main checkout and never
   committed. One inside the project that is tracked, or not committed yet, is part of the branch and committed with the

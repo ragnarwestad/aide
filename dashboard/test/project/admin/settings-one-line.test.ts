@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { oneLine } from "../../../src/project/project-admin/manifest-io.ts";
 import { updateProjectSettings } from "../../../src/project/project-admin";
+import { EDITABLE_FIELD, SETTING_GROUPS, projectSettings } from "../../../src/project/project-settings.ts";
 
 const dirs: string[] = [];
 afterEach(() => {
@@ -81,5 +82,19 @@ describe("updateProjectSettings folds line breaks", () => {
     await updateProjectSettings(run, dir, { installCmd: "bun install" });
     expect(files(dir)).toEqual(first);
     expect(first.config).toBe("AIDE_INSTALL_CMD=bun install\n");
+  });
+});
+
+describe("the worktree setup command is a manifest setting", () => {
+  test("a save writes it to the manifest, the settings list it editable in the manifest table, and an empty save removes it (AC-9)", async () => {
+    const dir = project();
+    await updateProjectSettings(run, dir, { worktreeSetup: "pnpm install\n--frozen-lockfile" });
+    expect(files(dir).manifest).toContain("worktreeSetup: pnpm install --frozen-lockfile\n");
+    const row = projectSettings(dir).rows.find((r) => r.key === "worktreeSetup");
+    expect(row?.value).toBe("pnpm install --frozen-lockfile");
+    expect(SETTING_GROUPS.find((g) => g.file === "manifest")?.keys).toContain("worktreeSetup");
+    expect(EDITABLE_FIELD.worktreeSetup).toBe("worktreeSetup");
+    await updateProjectSettings(run, dir, { worktreeSetup: "" });
+    expect(files(dir).manifest).not.toContain("worktreeSetup");
   });
 });

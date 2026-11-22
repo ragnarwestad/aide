@@ -122,6 +122,13 @@ for entry in $LINKS; do
   ln -s "$ROOT/$entry" "$WT/$entry" 2>/dev/null || true
 done
 
+# The project's own dependencies, installed in this worktree by the
+# manifest's `worktreeSetup` before the command starts. The setup writes
+# its own lines and output to this log, its failure line last, which is
+# what the dashboard reads as the reason the board did not come up.
+SETUP="$("$(cd "$(dirname "$0")" && pwd)/aide-worktree-setup" --dir "$WT" --manifest-dir "$ROOT" | tail -1)"
+[ "$(jq -r '.ok // false' <<<"$SETUP" 2>/dev/null)" = true ] || exit 1
+
 BASE="http://127.0.0.1:$PORT"
 cd "$WT" || exit 1
 # `bash -lc` rather than a bare exec: the command is written the way a

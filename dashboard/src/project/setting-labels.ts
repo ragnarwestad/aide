@@ -8,7 +8,7 @@
 import { t, type TranslationKey } from "../i18n";
 
 const KEYS = [
-  "AIDE_SPECS_PATH", "worktreeLinks", "AIDE_TEST_CMD", "acPrefix", "AIDE_INSTALL_CMD", "previewCmd", "description", "icon",
+  "AIDE_SPECS_PATH", "worktreeLinks", "worktreeSetup", "AIDE_TEST_CMD", "acPrefix", "AIDE_INSTALL_CMD", "previewCmd", "description", "icon",
 ] as const;
 
 export const SETTING_LABELS: Record<string, string> = Object.fromEntries(

@@ -43,7 +43,7 @@ describe("Add project and the Config tab post the same settings", () => {
     const config = [...configTab(dir).querySelectorAll("form.projectsettingsform")].flatMap((f) => namesIn(f)).sort();
     expect(add).toEqual(config);
     expect(add).toEqual([
-      "acPrefix", "codeLanding", "description", "icon", "installCmd", "previewCmd", "previewFrom", "specsPath", "testCmd", "worktreeLinks",
+      "acPrefix", "codeLanding", "description", "icon", "installCmd", "previewCmd", "previewFrom", "specsPath", "testCmd", "worktreeLinks", "worktreeSetup",
     ]);
   });
 });
@@ -54,7 +54,7 @@ describe("the Config tab's cards", () => {
     expect(forms.map((f) => f.getAttribute("action"))).toEqual(["/api/queue/projects/p/settings", "/api/queue/projects/p/settings"]);
     expect(forms.map((f) => namesIn(f))).toEqual([
       ["installCmd", "specsPath"],
-      ["acPrefix", "codeLanding", "description", "icon", "previewCmd", "previewFrom", "testCmd", "worktreeLinks"],
+      ["acPrefix", "codeLanding", "description", "icon", "previewCmd", "previewFrom", "testCmd", "worktreeLinks", "worktreeSetup"],
     ]);
   });
 

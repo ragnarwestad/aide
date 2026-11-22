@@ -83,6 +83,21 @@ describe("the board log says what a start did", () => {
     expect(lines[1]).toContain("boards: aide/spec-1 did not come up on :8801");
   });
 
+  test("a board whose worktree setup failed names the setup command, with its output as the detail (AC-7)", async () => {
+    const ctx = makeCtx();
+    await startTestServer(ctx, "aide", "spec-1");
+    writeFileSync(
+      join(dir, "board.log"),
+      "worktree setup: pnpm install --frozen-lockfile\nresolving\nbroken-lockfile\n" +
+        "worktree setup failed: pnpm install --frozen-lockfile exited 1 after 3s\n",
+    );
+    const after = refreshTestServerStatus(ctx, "aide", "spec-1");
+    expect(after?.status).toBe("failed");
+    expect(after?.error).toContain("worktree setup failed: pnpm install --frozen-lockfile");
+    expect(after?.error).not.toContain("/checkout/aide/dashboard/test/round/run");
+    expect(after?.detail).toBe("resolving\nbroken-lockfile");
+  });
+
   test("a start whose port was taken names the port and the process holding it", async () => {
     const asked: number[] = [];
     const ctx = makeCtx({ portHolder: (port) => (asked.push(port), { pid: 777, command: "postgres" }) });

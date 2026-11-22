@@ -217,8 +217,11 @@ attempted. **A spec whose code did not merge is not finished, and its row says s
 ## The tests run on the merge, once
 
 The project's own test suite runs on the merged result before the push, in a throwaway worktree of that merge commit
-that carries the project's `worktreeLinks` and `.aide/config`. When `git worktree add` fails, the gate runs in the live
-checkout and says so in its log. The gate (`src/serve/land-branch/test-gate.ts`) asks `aide-resolve-test-cmd` which
+that carries the project's `worktreeLinks` and `.aide/config`. Where the manifest sets `worktreeSetup`, that command
+runs in this worktree before the tests (`src/serve/land-branch/worktree-setup.ts`), with its output in the step's log;
+a setup that fails pushes nothing, runs no test and asks for no repair, and the sentence names the command with its
+last lines as the detail. The run on main alone sets up its own worktree the same way. When `git worktree add` fails,
+the gate runs in the live checkout, with no setup, and says so in its log. The gate (`src/serve/land-branch/test-gate.ts`) asks `aide-resolve-test-cmd` which
 commands the change calls for and runs them through `aide-record-test-run`.
 
 - A red run gets the whole command once more, unless it timed out. Green on the second run merges without a notice

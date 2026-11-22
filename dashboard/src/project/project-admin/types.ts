@@ -21,6 +21,7 @@ export type ProjectStepName =
   | "previewFrom"
   | "installCmd"
   | "previewCmd"
+  | "worktreeSetup"
   | "testCmd"
   | "acPrefix"
   | "description"

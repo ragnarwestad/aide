@@ -7,7 +7,7 @@
 // once its archive actually lands — the same ordering
 // `createServer` already followed inline.
 
-import { existsSync, mkdtempSync } from "node:fs";
+import { closeSync, existsSync, mkdtempSync, openSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import type { GitRunner } from "../../git/process/index.ts";
@@ -20,6 +20,20 @@ import type { ServerState } from "../state.ts";
 import { scriptArgv } from "../../integrations/script-argv.ts";
 
 export const BOARD_TEMP_PREFIX = "aide-board-";
+
+/** Starts a test server in its own process group with both streams in
+ *  `logPath` through ONE open file: two opens of the same path each write
+ *  from the start and overwrite the other's lines. */
+export const spawnTestServer: Spawner = (cmd, logPath) => {
+  const fd = openSync(logPath, "a");
+  try {
+    const proc = Bun.spawn({ cmd: scriptArgv(cmd), stdio: ["ignore", fd, fd], detached: true });
+    proc.unref();
+    return { pid: proc.pid };
+  } finally {
+    closeSync(fd);
+  }
+};
 
 export interface TestServersSetupInputs {
   testServersPath?: string;
@@ -110,11 +124,7 @@ export function setupTestServers(state: ServerState, inputs: TestServersSetupInp
     gitRun: inputs.gitRun,
     spawn:
       inputs.testServersSpawn ??
-      ((cmd, logPath) => {
-        const proc = Bun.spawn({ cmd: scriptArgv(cmd), stdio: ["ignore", Bun.file(logPath), Bun.file(logPath)], detached: true });
-        proc.unref();
-        return { pid: proc.pid };
-      }),
+      spawnTestServer,
     isAlive:
       inputs.testServersIsAlive ??
       ((pid) => {

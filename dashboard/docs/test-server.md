@@ -223,7 +223,10 @@ on its project page writes under the row labelled Preview command.
 The command is expected to serve on `$PORT` and keep running until it is stopped, for example
 `pnpm dev --port $PORT --host 127.0.0.1`. It runs in a worktree of the spec's branch, with the
 project's `worktreeLinks` paths linked in — a worktree carries tracked files only, so the
-dependencies and the local settings a dev server needs get there that way and no other.
+dependencies and the local settings a dev server needs get there that way, or through the manifest's
+`worktreeSetup`, which runs in the worktree before the command starts. A setup that fails starts no test server, and
+the reason names the setup command with its last lines. Aide's round does the same in the worktree it serves a branch
+from, and links the main checkout's `dashboard/node_modules` only when no setup command is set.
 
 Where a project's manifest does not say `command`, or names no way to start, the spec's row carries no start
 link, and the Deploy tab's "Test server with the test specs" section keeps its heading with a sentence saying a test

@@ -240,6 +240,7 @@ export async function handleQueueAdminRoutes(
         ...(text(asked.testCmd) && { testCmd: text(asked.testCmd) }),
         ...(text(asked.installCmd) && { installCmd: text(asked.installCmd) }),
         ...(text(asked.previewCmd) && { previewCmd: text(asked.previewCmd) }),
+        ...(text(asked.worktreeSetup) && { worktreeSetup: text(asked.worktreeSetup) }),
         ...(text(asked.acPrefix) && { acPrefix: text(asked.acPrefix) }),
         ...(text(asked.icon) && { icon: text(asked.icon) }),
       };
@@ -335,6 +336,7 @@ export async function handleQueueAdminRoutes(
       ...("codeLanding" in asked && { codeLanding: str(asked.codeLanding) }),
       ...("installCmd" in asked && { installCmd: str(asked.installCmd) }),
       ...("previewCmd" in asked && { previewCmd: str(asked.previewCmd) }),
+      ...("worktreeSetup" in asked && { worktreeSetup: str(asked.worktreeSetup) }),
       ...("testCmd" in asked && { testCmd: str(asked.testCmd) }),
       ...("acPrefix" in asked && { acPrefix: str(asked.acPrefix) }),
       ...("description" in asked && { description: str(asked.description) }),

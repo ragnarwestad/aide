@@ -64,6 +64,9 @@ export async function updateProjectSettings(
      *  branch is a fact about the project, and a fresh clone that knows
      *  it can offer the board. */
     previewCmd?: string;
+    /** The command that installs a worktree's own dependencies, the
+     *  manifest's `worktreeSetup`. Gated on presence the same way. */
+    worktreeSetup?: string;
     /** The command a run and a landing test with — the manifest's
      *  `AIDE_TEST_CMD`, read by `aide-resolve-test-cmd`. Gated on
      *  presence the same way. */
@@ -88,7 +91,7 @@ export async function updateProjectSettings(
   // A value is one line. A field the request does not carry stays
   // absent, so a partial save clears nothing.
   const req = { ...raw };
-  for (const key of ["specsPath", "worktreeLinks", "installCmd", "previewCmd", "testCmd", "acPrefix", "description", "icon"] as const) {
+  for (const key of ["specsPath", "worktreeLinks", "worktreeSetup", "installCmd", "previewCmd", "testCmd", "acPrefix", "description", "icon"] as const) {
     if (req[key] !== undefined) req[key] = oneLine(req[key]);
   }
   const links = (req.worktreeLinks ?? "").trim();
@@ -229,6 +232,7 @@ export async function updateProjectSettings(
   save("worktreeLinks", req.worktreeLinks, "", "worktreeLinks", storedLinks, false);
   save("installCmd", req.installCmd, "AIDE_INSTALL_CMD", "installCmd", "", true);
   save("previewCmd", req.previewCmd, "", "previewCmd", fromManifest(manifestData.previewCmd), false);
+  save("worktreeSetup", req.worktreeSetup, "", "worktreeSetup", fromManifest(manifestData.worktreeSetup), false);
   save("testCmd", req.testCmd, "", "AIDE_TEST_CMD", fromManifest(manifestData.AIDE_TEST_CMD), false);
   save("acPrefix", req.acPrefix, "", "acPrefix", fromManifest(manifestData.acPrefix), false);
   save("icon", req.icon, "", "icon", fromManifest(manifestData.icon), false);

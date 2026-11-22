@@ -28,13 +28,13 @@ const git = (cwd: string, ...args: string[]): string => {
  *  throwaway directory, never the home directory's own. */
 const previewDir = (): string => mkdtempSync(join(tmpdir(), "aide-preview-wt-"));
 
-function checkout(): { dir: string; cleanup: () => void } {
+function checkout(setup?: string): { dir: string; cleanup: () => void } {
   const dir = mkdtempSync(join(tmpdir(), "aide-preview-repo-"));
   git(dir, "init", "-q", "-b", "main");
   git(dir, "config", "user.email", "test@example.com");
   git(dir, "config", "user.name", "Test");
   mkdirSync(join(dir, ".aide"), { recursive: true });
-  writeFileSync(join(dir, ".aide", "project.yaml"), "name: demo\nworktreeLinks: node_modules\n");
+  writeFileSync(join(dir, ".aide", "project.yaml"), `name: demo\nworktreeLinks: node_modules\n${setup ? `worktreeSetup: ${setup}\n` : ""}`);
   writeFileSync(join(dir, ".gitignore"), "node_modules\n");
   writeFileSync(join(dir, "README.md"), "main\n");
   git(dir, "add", "-A");
@@ -61,9 +61,11 @@ async function freePort(): Promise<number> {
 function runPreview(dir: string, port: number, cmd: string, timeout = "20") {
   const log = join(mkdtempSync(join(tmpdir(), "aide-preview-log-")), "board.log");
   const where = previewDir();
+  // Both streams through ONE open file, as the dashboard's spawn gives
+  // them: two opens of the same path write over each other's lines.
   const res = Bun.spawnSync(
-    [SCRIPT, dir, "--branch", "aide/1-demo", "--port", String(port), "--cmd", cmd, "--timeout", timeout],
-    { env: { ...process.env, AIDE_PREVIEW_DIR: where }, stdout: Bun.file(log), stderr: Bun.file(log) },
+    ["bash", "-c", 'exec "$@" >"$PREVIEW_LOG" 2>&1', "bash", SCRIPT, dir, "--branch", "aide/1-demo", "--port", String(port), "--cmd", cmd, "--timeout", timeout],
+    { env: { ...process.env, AIDE_PREVIEW_DIR: where, PREVIEW_LOG: log } },
   );
   return { code: res.exitCode, log: readFileSync(log, "utf-8"), where };
 }
@@ -169,6 +171,52 @@ describe("aide-preview serves one branch", () => {
       // the port the next board is given.
       await new Promise((r) => setTimeout(r, 300));
       expect(Bun.spawnSync(["pgrep", "-f", "sleep 31.7"]).stdout.toString().trim()).toBe("");
+    } finally {
+      cleanup();
+    }
+  });
+});
+
+describe("aide-preview runs the project's worktree setup first", () => {
+  test("the setup runs in the worktree before the command, and its output and time are in the log (AC-3, AC-4)", async () => {
+    const { dir, cleanup } = checkout("echo installing-deps; touch setup-marker");
+    const port = await freePort();
+    try {
+      // The command refuses to serve without the marker the setup leaves.
+      const result = runPreview(dir, port, "test -f setup-marker || exit 7; python3 -m http.server $PORT --bind 127.0.0.1");
+      expect(result.log).toContain("installing-deps");
+      expect(result.log).toMatch(/^worktree setup: done in \d+s$/m);
+      expect(result.code).toBe(0);
+      const pid = Number(/board up: pid (\d+)/.exec(result.log)![1]);
+      expect(await (await fetch(`http://127.0.0.1:${port}/setup-marker`)).status).toBe(200);
+      process.kill(pid, "SIGTERM");
+    } finally {
+      cleanup();
+    }
+  });
+
+  test("a failing setup never starts the command, ends the log with the failure and leaves no worktree (AC-7)", async () => {
+    const { dir, cleanup } = checkout("echo broken-lockfile; exit 3");
+    const port = await freePort();
+    try {
+      const result = runPreview(dir, port, "echo the-command-ran; exit 4");
+      expect(result.code).toBe(1);
+      expect(result.log).not.toContain("the-command-ran");
+      const lines = result.log.trim().split("\n");
+      expect(lines.at(-1)).toMatch(/^worktree setup failed: echo broken-lockfile; exit 3 exited 3 after \d+s$/);
+      expect(lines.at(-2)).toBe("broken-lockfile");
+      expect(readdirSync(result.where)).toEqual([]);
+    } finally {
+      cleanup();
+    }
+  });
+
+  test("without the key no setup line is written (AC-8)", async () => {
+    const { dir, cleanup } = checkout();
+    const port = await freePort();
+    try {
+      const result = runPreview(dir, port, "exit 3");
+      expect(result.log).not.toContain("worktree setup");
     } finally {
       cleanup();
     }

@@ -262,6 +262,11 @@ export function renderAddProjectPage(
       { wide: true },
     ) +
     field(
+      settingLabel("worktreeSetup", lang),
+      `<input type="text" name="worktreeSetup" maxlength="300" placeholder="${esc(t(lang, "project.add.worktreeSetupPh"))}">`,
+      { wide: true },
+    ) +
+    field(
       settingLabel("AIDE_INSTALL_CMD", lang),
       `<input type="text" name="installCmd" maxlength="300" placeholder="${esc(t(lang, "project.add.installCmdPh"))}">`,
       { wide: true },

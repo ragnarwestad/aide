@@ -144,6 +144,20 @@ export const LANDING_TESTS = {
       fr: "corrigez AIDE_TEST_CMD dans le fichier .aide/project.yaml du projet",
     },
   },
+  "landing.worktreeSetupFailed": {
+    en: "the worktree setup command {command} failed on the merge, so the tests did not run and nothing was pushed — the work is still on {branch}",
+    nb: "oppsettkommandoen for worktreet, {command}, feilet på mergen, så testene ble ikke kjørt og ingenting ble pushet — arbeidet ligger fortsatt på {branch}",
+    es: "el comando de preparación del worktree {command} falló en el merge, así que los tests no se ejecutaron y no se hizo push de nada — el trabajo sigue en {branch}",
+    de: "der Einrichtungsbefehl für den Worktree, {command}, ist beim Merge fehlgeschlagen, also liefen die Tests nicht und nichts wurde gepusht — die Arbeit liegt weiter auf {branch}",
+    fr: "la commande de préparation du worktree {command} a échoué sur le merge, donc les tests n'ont pas tourné et rien n'a été poussé — le travail est toujours sur {branch}",
+    solution: {
+      en: "make the setup command on the project's Config tab succeed for the branch; {button} merges the work once it does",
+      nb: "få oppsettkommandoen på prosjektets Config-fane til å lykkes for grenen; {button} merger arbeidet når den gjør det",
+      es: "haz que el comando de preparación de la pestaña Config del proyecto funcione para la rama; {button} hace el merge del trabajo cuando funcione",
+      de: "bring den Einrichtungsbefehl im Config-Tab des Projekts für den Branch zum Laufen; {button} merged die Arbeit, sobald er gelingt",
+      fr: "faites réussir la commande de préparation de l'onglet Config du projet pour la branche ; {button} fait le merge du travail une fois qu'elle réussit",
+    },
+  },
   "testGate.cannotReadResolverAnswer": {
     en: "the test command answer in {root} could not be read",
     nb: "svaret med testkommandoen i {root} kunne ikke leses",

@@ -29,7 +29,7 @@ export const NAMES: readonly string[] = [
   // Commands and a heading of a spec's own files, written as code.
   "/aide-analyze", "/aide-implement", "## Acceptance criteria",
   ".aide/config", ".aide/project.yaml", "settings.yaml", "project.yaml",
-  "AIDE_SPECS_PATH", "AIDE_TEST_CMD", "AIDE_INSTALL_CMD", "worktreeLinks", "acPrefix", "previewCmd",
+  "AIDE_SPECS_PATH", "AIDE_TEST_CMD", "AIDE_INSTALL_CMD", "worktreeLinks", "worktreeSetup", "acPrefix", "previewCmd",
   "codeLanding", "previewFrom", "specsPath", "installCmd", "testCmd", "gitUrl", "description", "icon",
 ];
 

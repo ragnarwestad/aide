@@ -1,0 +1,133 @@
+#!/usr/bin/env bash
+# aide-worktree-setup — install a worktree's own dependencies with the
+# project's setup command, the manifest's `worktreeSetup:`, so a run tests
+# a branch with the packages the branch itself declares. The one place the
+# rule lives: the runner's step worktree, the test server's and the
+# Merge's each call this.
+#
+# The key is read from --manifest-dir's `.aide/project.yaml`. Unset, the
+# command does nothing and says so. Set, it runs as `bash -lc` at --dir's
+# root (a login shell puts a version manager's shims on PATH), with no
+# input, in a process group of its own that --timeout stops.
+#
+# stderr, the caller's log:
+#   worktree setup: <command>
+#   <the command's own output>
+#   worktree setup: done in Ns
+#   | worktree setup failed: <command> exited N after Ns
+#   | worktree setup failed: <command> did not finish within Ns
+# The failure line is always the last: a reader of the log finds the
+# command's output between the first line and it.
+#
+# stdout, one JSON line:
+#   {"ok":true,"ran":false}
+#   {"ok":true,"ran":true,"command":"…","seconds":N}
+#   {"ok":false,"ran":true,"command":"…","exitCode":N,"seconds":N,"tail":"<last 20 lines>"}
+#   {"ok":false,"ran":true,"command":"…","timedOut":true,"seconds":N,"tail":"…"}
+#   {"ok":false,"exitCode":2,"terminalReason":"refused","error":"…"}
+# Exit 0 when nothing failed, 1 when the command failed, 2 on bad arguments.
+#
+# /bin/bash here is 3.2 (macOS): no mapfile, no associative arrays.
+
+set -uo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=/dev/null
+[ -f "$SCRIPT_DIR/_aide-spec-lib.sh" ] && source "$SCRIPT_DIR/_aide-spec-lib.sh"
+source "$SCRIPT_DIR/lib/spec-result.sh"
+
+TAIL_LINES=20
+dir=""
+manifest_dir=""
+timeout=900
+result_file=""
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -h|--help)
+      cat <<'USAGE'
+Usage:
+  aide-worktree-setup --dir <worktree> --manifest-dir <dir with .aide/project.yaml> [--timeout <seconds>]
+USAGE
+      exit 0 ;;
+    --dir) dir="${2:-}"; shift 2 ;;
+    --manifest-dir) manifest_dir="${2:-}"; shift 2 ;;
+    --timeout) timeout="${2:-}"; shift 2 ;;
+    *) aide_spec_refuse "unknown argument: $1" ;;
+  esac
+done
+
+command -v jq >/dev/null 2>&1 || aide_spec_refuse "jq is required"
+[ -n "$dir" ] || aide_spec_refuse "missing --dir"
+[ -d "$dir" ] || aide_spec_refuse "no such --dir: $dir"
+[ -n "$manifest_dir" ] || aide_spec_refuse "missing --manifest-dir"
+case "$timeout" in
+  ''|*[!0-9]*) aide_spec_refuse "--timeout must be a whole number of seconds: $timeout" ;;
+esac
+declare -f aide_manifest_get >/dev/null 2>&1 \
+  || aide_spec_refuse "aide_manifest_get is not available (missing _aide-spec-lib.sh)"
+
+cmd="$(aide_manifest_get worktreeSetup "$manifest_dir")"
+if [ -z "$cmd" ]; then
+  jq -cn '{ok:true, ran:false}'
+  exit 0
+fi
+
+out="$(mktemp "${TMPDIR:-/tmp}/aide-worktree-setup.XXXXXX")"
+trap 'rm -f "$out"' EXIT
+
+echo "worktree setup: $cmd" >&2
+started=$SECONDS
+# Its own process group (`set -m`), so a timeout reaches whatever the
+# command started; switched off again at once, so bash prints no job
+# notices into the log.
+set -m
+( cd "$dir" || exit 1
+  bash -lc "$cmd" </dev/null 2>&1 | tee "$out" >&2
+  exit "${PIPESTATUS[0]}" ) &
+pid=$!
+set +m
+
+# TERM to the command's group, a moment's grace, then KILL.
+stop_command() {
+  kill -TERM -- "-$pid" 2>/dev/null
+  for _ in 1 2 3 4 5 6 7 8 9 10; do
+    kill -0 "$pid" 2>/dev/null || break
+    sleep 0.2
+  done
+  kill -KILL -- "-$pid" 2>/dev/null
+}
+# A caller's Cancel or Stop signals the group IT started, which the
+# command's own group is not: the signal is passed on, or the install
+# carries on with nobody waiting for it.
+trap 'stop_command; exit 143' TERM INT HUP
+
+timed_out=no
+while kill -0 "$pid" 2>/dev/null; do
+  if [ $(( SECONDS - started )) -ge "$timeout" ]; then
+    timed_out=yes
+    stop_command
+    break
+  fi
+  sleep 0.2
+done
+trap - TERM INT HUP
+wait "$pid" 2>/dev/null
+code=$?
+seconds=$(( SECONDS - started ))
+tail_text="$(tail -n "$TAIL_LINES" "$out")"
+
+if [ "$timed_out" = yes ]; then
+  echo "worktree setup failed: $cmd did not finish within ${timeout}s" >&2
+  jq -cn --arg c "$cmd" --argjson s "$seconds" --arg t "$tail_text" \
+    '{ok:false, ran:true, command:$c, timedOut:true, seconds:$s, tail:$t}'
+  exit 1
+fi
+if [ "$code" -ne 0 ]; then
+  echo "worktree setup failed: $cmd exited $code after ${seconds}s" >&2
+  jq -cn --arg c "$cmd" --argjson n "$code" --argjson s "$seconds" --arg t "$tail_text" \
+    '{ok:false, ran:true, command:$c, exitCode:$n, seconds:$s, tail:$t}'
+  exit 1
+fi
+echo "worktree setup: done in ${seconds}s" >&2
+jq -cn --arg c "$cmd" --argjson s "$seconds" '{ok:true, ran:true, command:$c, seconds:$s}'

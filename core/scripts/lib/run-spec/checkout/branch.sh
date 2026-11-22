@@ -106,6 +106,22 @@ $(git_error_detail "$fetch_retry_said")" "" \
 done
 
 project_wt="${work_roots[0]}"
+# The project's own dependencies, installed in its worktree by the
+# manifest's `worktreeSetup` (aide-worktree-setup), once the links are
+# made and no checkout lock is held. The specs root and passengers get
+# none. A failure stops the step before any AI session starts. Without
+# the key nothing is called, so the worktree is prepared as it always was.
+setup_answer='{"ok":true,"ran":false}'
+if [ -n "$(aide_manifest_get worktreeSetup "$project_root")" ]; then
+  setup_answer="$("$SCRIPT_DIR/aide-worktree-setup" --dir "$project_wt" --manifest-dir "$project_root" | tail -1)"
+fi
+if [ "$(printf '%s' "$setup_answer" | jq -r '.ok // false' 2>/dev/null)" != "true" ]; then
+  setup_cmd="$(printf '%s' "$setup_answer" | jq -r '.command // "the worktree setup command"' 2>/dev/null)"
+  setup_how="$(printf '%s' "$setup_answer" | jq -r 'if .timedOut then "did not finish within \(.seconds)s" elif .exitCode != null then "exited \(.exitCode) after \(.seconds // 0)s" else "could not run: \(.error // "no answer")" end' 2>/dev/null)"
+  setup_tail="$(printf '%s' "$setup_answer" | jq -r '.tail // ""' 2>/dev/null)"
+  refuse_fix "the worktree setup failed: ${setup_cmd:-the worktree setup command} ${setup_how:-gave no answer}${setup_tail:+
+$setup_tail}" "make the setup command on the project's Config tab succeed for the branch, then press $step_button again"
+fi
 sandbox_record_git_links "${work_roots[@]}"
 git_pin_worktrees "${work_roots[@]}"
 specs_wt=""

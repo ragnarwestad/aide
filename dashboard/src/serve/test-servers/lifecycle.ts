@@ -142,6 +142,8 @@ const LEFT_RUNNING_RE = /(?:left running|board up): pid (\d+), (\S+)(?: — serv
  *  says was taken and who holds it, or the command that ran, with the
  *  log's last whole lines as the detail. */
 export function whyNotUp(ctx: Pick<TestServersContext, "portHolder">, entry: TestServer, log: string): { error: string; detail?: string } {
+  const setup = setupFailure(log);
+  if (setup) return setup;
   const detail = outputTail(log) || undefined;
   const port = portInUse(log);
   if (port !== undefined) {
@@ -155,6 +157,19 @@ export function whyNotUp(ctx: Pick<TestServersContext, "portHolder">, entry: Tes
   return detail
     ? { error: `${what} exited before the test server came up: ${cause} — put right what it printed, on the serving host, then try again`, detail }
     : { error: `${what} exited with no output before the test server came up — run it by hand on the serving host to see why` };
+}
+
+/** A board that never started because `aide-worktree-setup` failed: the
+ *  setup command is named, not the start command, and the detail is the
+ *  output it wrote between its first line and its failure line. */
+function setupFailure(log: string): { error: string; detail?: string } | undefined {
+  const lines = log.split("\n");
+  const failed = lines.findLastIndex((line) => line.startsWith("worktree setup failed: "));
+  if (failed < 0) return undefined;
+  const began = lines.slice(0, failed).findLastIndex((line) => line.startsWith("worktree setup: "));
+  const command = lines[failed]!.slice("worktree setup failed: ".length).trim();
+  const detail = outputTail(lines.slice(began + 1, failed).join("\n")) || undefined;
+  return { error: `the worktree setup failed: ${command} — fix it on the project's Config tab, then try again`, ...(detail ? { detail } : {}) };
 }
 
 /** The registry key `restartMainTestServer` tracks its board under —

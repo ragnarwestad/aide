@@ -19,6 +19,7 @@ COMMANDS = (
     "aide-write-spec",
     "aide-close-spec",
     "aide-record-test-run",
+    "aide-worktree-setup",
     "aide-run-spec",
 )
 

@@ -93,18 +93,18 @@ if [ -n "$BRANCH" ]; then
     WT_REF=("$BRANCH")
   fi
   if ! git -C "$AIDE" worktree add -q "$WT" "${WT_REF[@]}" 2>/dev/null; then
-    # Reached here, WORK exists but `trap stop EXIT` is not registered yet
-    # (that happens later, once the server is started) — clean up by hand
-    # rather than leaking the temp directory on this one failure path.
+    # `trap stop EXIT` is not registered yet: WORK is cleaned up by hand.
     rm -rf "$WORK"
     echo "cannot check out $BRANCH in a worktree of $AIDE (it may already be checked out there, or in a leftover worktree)" >&2
     exit 1
   fi
-  # `git worktree add` checks out TRACKED files only — dashboard/node_modules
-  # is gitignored, so bun would otherwise find no dependencies at all in
-  # the new worktree.
-  mkdir -p "$WT/dashboard"
-  ln -sfn "$AIDE/dashboard/node_modules" "$WT/dashboard/node_modules"
+  # Tracked files only: `worktreeSetup` installs the branch's own dependencies, or node_modules is linked.
+  SETUP="$("$HERE/../../../core/scripts/aide-worktree-setup" --dir "$WT" --manifest-dir "$AIDE" | tail -1)"
+  case "$SETUP" in
+    '{"ok":true,"ran":false}') mkdir -p "$WT/dashboard"; ln -sfn "$AIDE/dashboard/node_modules" "$WT/dashboard/node_modules" ;;
+    '{"ok":true,'*) ;;
+    *) git -C "$AIDE" worktree remove --force "$WT" >/dev/null 2>&1; git -C "$AIDE" worktree prune >/dev/null 2>&1; rm -rf "$WORK"; exit 1 ;;
+  esac
   SERVE_FROM="$WT"
   COMMIT="$(git -C "$SERVE_FROM" rev-parse --short HEAD 2>/dev/null)"
 fi

@@ -74,6 +74,11 @@ export interface ManifestData {
    *  A project that carries `dashboard/test/round/run` (aide itself)
    *  needs none — that script is what its own preview starts. */
   previewCmd?: string;
+  /** The command that installs a worktree's own dependencies, run at the
+   *  root of every worktree the board makes for the project
+   *  (`aide-worktree-setup`) before anything runs there. Absent means
+   *  none: the worktree gets only what `worktreeLinks` links in. */
+  worktreeSetup?: string;
   /** What `/aide-implement` puts before a criterion's id in a test's name
    *  (`aide-ac-prefix`): `{spec}` stands for the spec's number as its
    *  folder writes it, so `F{spec}` names criterion n of spec NN as `(FNN AC-n)`.
@@ -118,6 +123,7 @@ export function parseManifest(text: string): ManifestResult {
   if (r.AIDE_TEST_CHANGED_CMD != null) data.AIDE_TEST_CHANGED_CMD = toStr(r.AIDE_TEST_CHANGED_CMD);
   if (r.AIDE_TEST_FILES_CMD != null) data.AIDE_TEST_FILES_CMD = toStr(r.AIDE_TEST_FILES_CMD);
   if (r.previewCmd != null) data.previewCmd = toStr(r.previewCmd);
+  if (r.worktreeSetup != null) data.worktreeSetup = toStr(r.worktreeSetup);
   if (r.acPrefix != null) data.acPrefix = toStr(r.acPrefix);
   if (r.icon != null) data.icon = toStr(r.icon);
   // The one field here that is VALIDATED rather than normalized: it is a

@@ -19,6 +19,7 @@ RUNNER_ERROR_REGISTRY: list[dict] = [
     {"pattern": r'refuse_fix "cannot create the worktree (directory|base)', "solution": "fix its parent directory"},
     {"pattern": r'refuse_fix "cannot create \$branch in a worktree', "solution": "fix the checkout on the serving host"},
     {"pattern": r'refuse_fix "worktreeLinks names a build output', "solution": "remove it from"},
+    {"pattern": r'refuse_fix "the worktree setup failed', "solution": "make the setup command on the project's Config tab succeed"},
     {"pattern": r'refuse_fix "\$spec_reference is under archive/', "solution": "fix the specs checkout"},
     {"pattern": r'refuse_fix "cannot fast-forward \$br', "solution": "merge it by hand"},
     {"pattern": r'refuse_fix "cannot move \$br', "solution": "reconcile it by hand"},
