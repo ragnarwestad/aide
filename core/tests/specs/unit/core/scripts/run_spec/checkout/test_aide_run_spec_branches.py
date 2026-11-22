@@ -164,40 +164,33 @@ def test_a_rejected_push_that_only_needed_a_pull_is_retried_not_reported(
     assert project_repo["headAfter"] == origin_tip, "headAfter must be the POST-rebase tip"
 
 def test_a_push_that_cannot_reach_origin_is_retried_then_succeeds(
-    runner, workspace, fake_claude, fetchable_origin_both_roots, tmp_path
+    runner, workspace, fake_claude, fetchable_origin_both_roots, tmp_path, monkeypatch
 ):
-    """Origin is briefly unreachable — not rejected, just
-    not there — when the push loop's first attempt runs: the step's own
-    script hides the bare repo, then backgrounds its own restore (never
-    inheriting the step's stdout, or the runner would wait on that pipe
-    forever), timed to land AFTER the first two attempts (immediate,
-    then the 1s retry) and BEFORE the third (the 1s+2s retry) — so only
-    a run that actually waits and retries up to the bound can succeed;
-    one that reports on the first failure never gets the chance."""
+    """Origin is briefly unreachable — not rejected, just not there — for
+    the first push and for the check that asks whether it answers. It is
+    back only after that check, so only a run that waits and pushes again
+    succeeds; one that reports on the first failure never gets the chance."""
     project_bare = fetchable_origin_both_roots["project"]
     hidden = tmp_path / "hidden-origin.git"
     project_bare.rename(hidden)
-    ran = tmp_path / "step-ran"
-    # The restore runs HERE, not in the step: the runner stops whatever a
-    # turn leaves running when the turn ends, so a restore the step put
-    # in the background would die with it.
-    def restore():
-        while not ran.exists():
-            time.sleep(0.05)
-        time.sleep(2.5)
-        hidden.rename(project_bare)
-    restorer = threading.Thread(target=restore, daemon=True)
-    restorer.start()
+    # Origin comes back when, after a push has failed, the check that
+    # follows finds it gone.
+    failed = shlex.quote(str(tmp_path / "a-push-failed"))
+    git_on_path(
+        tmp_path, monkeypatch,
+        f'case " $* " in *" push "*) [ $rc -ne 0 ] && touch {failed} ;; '
+        f'*" ls-remote "*) [ $rc -ne 0 ] && [ -e {failed} ] && [ -e {shlex.quote(str(hidden))} ] '
+        f"&& mv {shlex.quote(str(hidden))} {shlex.quote(str(project_bare))} ;; esac",
+    )
     claude = fake_claude(
         "cat > /dev/null\n"
         + 'echo "written by the step" > "$PWD/new-code.txt"\n'
-        + f"touch {ran}\n"
         + f"echo '{json.dumps(RESULT_OK)}'"
     )
     rc, out, _ = run(runner, workspace, claude, push="branch", command="implement")
-    restorer.join(timeout=10)
     assert rc == 0, out
-    assert out["ok"] is True, out
+    assert not hidden.exists(), "the first push must have found origin missing"
+    assert out["ok"] is True, (out.get("terminalReason"), out.get("pushError"), out.get("error"))
     assert out.get("pushError") is None
 
 def test_origin_back_between_a_failed_push_and_the_check_is_pushed_not_rebased(
