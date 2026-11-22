@@ -214,14 +214,21 @@ export async function specPageView(
     error: testServerEntry.error,
     detail: testServerEntry.detail,
   };
-  // The busy reasons `closeUnavailableReason` reads below —
-  // a board is another lifecycle action against this spec's own branch,
-  // and neither should run while a job for it is in flight or a landing
-  // is under way.
+  // The test server's busy reason: another lifecycle action against this
+  // spec's own branch, not run while a job for it is in flight or a
+  // landing is under way anywhere in the project.
   const groupReserved = groupReservesSpec(ctx.queue, project, specFolder);
-  const busyReason = groupReserved || matchingJobs.some((job) => ["queued", "running"].includes(jobActivity(job)))
+  const specBusy = groupReserved || matchingJobs.some((job) => ["queued", "running"].includes(jobActivity(job)));
+  const busyReason = specBusy
     ? "another job for this spec is still running"
     : landingInProject(ctx.queue.list(), project)
+      ? "a merge is in progress"
+      : undefined;
+  // Close waits only for this spec's own merge: another spec's merge in
+  // the project leaves it offered, and its merge waits for the lock.
+  const closeUnavailableReason = specBusy
+    ? "another job for this spec is still running"
+    : matchingJobs.some((job) => job.landing)
       ? "a merge is in progress"
       : undefined;
   return {
@@ -277,7 +284,7 @@ export async function specPageView(
     // closeControl (overview.ts) is what hides it once the spec is
     // archived. No fallback page behind it, so this is a flag.
     closeAvailable: true,
-    closeUnavailableReason: busyReason,
+    closeUnavailableReason,
     testServerAction: testServerCapable ? `/api/queue${specPagePath(project, specFolder)}/test-server` : undefined,
     testServerStopAction: testServerEntry ? `/api/queue${specPagePath(project, specFolder)}/test-server/stop` : undefined,
     // The way IN to a running test server is this dashboard's own start

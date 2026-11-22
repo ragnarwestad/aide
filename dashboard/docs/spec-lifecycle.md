@@ -218,3 +218,7 @@ writes a
 that the work will not be used, not that it was. **Whatever code that branch held is gone with it**, and a later
 reopen does not bring it back — the spec's four files return, the code does not. A closed spec reads `closed`, never `archived`, everywhere a spec's
 state is shown, and only `reopen` is legal on it afterward — the same one-step exception `archived` already has.
+
+Close is available while a Merge runs in the project. Its merge waits for the repository merge lock when another
+merge holds it, with "Waiting for the repository merge lock" on its row, and finishes by itself afterwards. Close is
+disabled only while another job for the same spec is still running or merging.

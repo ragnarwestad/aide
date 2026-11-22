@@ -163,7 +163,7 @@ export function specHeadRow(
   const stateBadge = headStateBadge(g, lang, !!opts.openSpec);
   const run = opts.openSpec ? specRunDialog(g, opts) : { control: "", dialog: "" };
   const columns = opts.openSpec ? SPECS_LIST_COLUMNS : LIST_COLUMNS;
-  const projectLanding = (opts.groupJobs ?? []).some((job) => job.project === g.project && job.landing);
+  const specLanding = ownMergeRunning(g, opts);
   // A create job whose folder has not landed has no spec to close or print
   // yet: its row offers Run alone.
   const actionView: SpecActionView = {
@@ -171,7 +171,7 @@ export function specHeadRow(
     specFolder: g.specFolder,
     archived: locked,
     closeAvailable: true,
-    closeUnavailableReason: projectLanding
+    closeUnavailableReason: specLanding
       ? "a merge is in progress"
       : specLocked(g) ? "another job for this spec is still running" : undefined,
     pdfUnavailableReason: opts.pdfAvailable === false ? PDF_UNAVAILABLE : undefined,
@@ -280,12 +280,18 @@ export function specHeadRow(
   );
 }
 
+/** Whether this spec's own merge is running; another spec's merge in the
+ *  project leaves Close offered, since Close's merge waits for the lock. */
+function ownMergeRunning(g: SpecGroup, opts: SpecsPageOptions): boolean {
+  return (opts.groupJobs ?? []).some((job) => job.project === g.project && job.specFolder === g.specFolder && job.landing);
+}
+
 export function firstActionLabel(g: SpecGroup, opts: SpecsPageOptions): string {
   const locked = isArchivedRow(g);
-  const projectLanding = (opts.groupJobs ?? []).some((job) => job.project === g.project && job.landing);
+  const specLanding = ownMergeRunning(g, opts);
   const view: SpecActionView = {
     project: g.project, specFolder: g.specFolder, archived: locked, closeAvailable: g.named,
-    closeUnavailableReason: projectLanding ? "a merge is in progress" : specLocked(g) ? "another job for this spec is still running" : undefined,
+    closeUnavailableReason: specLanding ? "a merge is in progress" : specLocked(g) ? "another job for this spec is still running" : undefined,
     pdfUnavailableReason: opts.pdfAvailable === false ? PDF_UNAVAILABLE : undefined,
   };
   const runAvailable = specRunChoices(g, opts).length > 0;

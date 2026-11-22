@@ -183,6 +183,94 @@ describe("a step reads busy for the whole landing window", () => {
     git.release();
     await settle(base, job.id, (j) => !j.landing);
   });
+
+  const OTHER = "82-other-spec";
+
+  /** A second active spec in the same project, beside `SPEC`. */
+  function otherSpec(paths: { root: string }): void {
+    const folder = join(paths.root, "aide", "specs", OTHER);
+    mkdirSync(folder, { recursive: true });
+    writeFileSync(join(folder, "1-description.md"), "# 82 - Description\n");
+    writeFileSync(join(folder, "4-status.md"), statusSaying(["create", "analyze"]));
+    writeFileSync(join(folder, "4-status.json"), stateSaying(["create", "analyze"]));
+  }
+
+  /** `SPEC`'s analyze, done and held at its merge into the specs repo. */
+  async function holdAMerge(base: string, results: string, specs: string): Promise<{ id: string }> {
+    const job = await runStep(base, SPEC, "analyze");
+    writeFileSync(join(results, `${job.id}.json`), JSON.stringify(ANALYZE_RESULT(specs)));
+    await settle(base, job.id, (j) => j.state === "done" && j.landing === true);
+    return job;
+  }
+
+  const postClose = (base: string, specFolder: string) =>
+    fetch(`${base}/api/queue/specs/aide/${specFolder}/close`, {
+      method: "POST",
+      headers: AUTH,
+      body: JSON.stringify({ reason: "this idea does not hold" }),
+    });
+
+  test("another spec's page offers Close while a merge runs in the project (AC-1)", async () => {
+    const dir = own("aide-854-page-");
+    const paths = repos(dir);
+    otherSpec(paths);
+    const git = heldGit();
+    const { base, results } = serverWithHeldMerge(dir, paths, git);
+    const job = await holdAMerge(base, results, paths.specs);
+
+    const html = await (await fetch(`${base}/specs/aide/${OTHER}`, { headers: AUTH })).text();
+    // The page lists the project's other rows too, where the merging
+    // spec's own Close stays disabled; this spec's own Close opens its dialog.
+    expect(html).toContain(`data-ask="closeask-aide/${OTHER}">Close</button>`);
+
+    git.release();
+    await settle(base, job.id, (j) => !j.landing);
+  });
+
+  test("the spec's own merge still refuses its Close with today's sentence (AC-4)", async () => {
+    const dir = own("aide-854-own-");
+    const paths = repos(dir);
+    const git = heldGit();
+    const { base, results } = serverWithHeldMerge(dir, paths, git);
+    const job = await holdAMerge(base, results, paths.specs);
+
+    const refused = await postClose(base, SPEC);
+    expect(refused.status).toBe(400);
+    expect(((await refused.json()) as { error: string }).error).toBe("a landing is in progress");
+
+    git.release();
+    await settle(base, job.id, (j) => !j.landing);
+  });
+
+  test("a Close posted during another spec's merge is queued, waits for the lock and completes (AC-2, AC-3)", async () => {
+    const dir = own("aide-854-close-");
+    const paths = repos(dir);
+    otherSpec(paths);
+    const git = heldGit();
+    const { base, results } = serverWithHeldMerge(dir, paths, git);
+    const merging = await holdAMerge(base, results, paths.specs);
+
+    const posted = await postClose(base, OTHER);
+    expect(posted.status).toBe(200);
+    const close = ((await posted.json()) as { job: { id: string; steps: string[] } }).job;
+    expect(close.steps).toEqual(["close"]);
+    writeFileSync(join(results, `${close.id}.json`), JSON.stringify({
+      ...ANALYZE_RESULT(paths.specs),
+      terminalReason: "closed",
+      branch: `aide/${OTHER}`,
+    }));
+    // The close's own step is done, and its merge waits behind the held one.
+    await settle(base, close.id, (j) => j.state === "done" && j.landing === true);
+    await Bun.sleep(200);
+    const merges = () => git.calls.filter((c) => c.args[0] === "merge" && c.dir.includes("aide-specs"));
+    expect(merges()).toHaveLength(1);
+
+    git.release();
+    const closed = await settle(base, close.id, (j) => j.state === "done" && !j.landing);
+    expect(closed.error).toBeFalsy();
+    expect(merges().length).toBeGreaterThanOrEqual(2);
+    await settle(base, merging.id, (j) => !j.landing);
+  });
 });
 // --- One merge at a time, the view survives, a refusal is seen -----
 

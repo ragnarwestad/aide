@@ -6,7 +6,7 @@
 // page behind it: the dialog's page script reads the answer.
 import { bodyToObject, json, logRefusal, readBounded } from "../../serve-helpers";
 
-import { inFlight, landingInProject } from "../../../queue/queue.ts";
+import { inFlight } from "../../../queue/queue.ts";
 import type { RoutesContext } from "..";
 import { specReference } from "../../../project/spec-folder.ts";
 import { enqueueRequest } from "../../../queue/request/index.ts";
@@ -36,12 +36,12 @@ export async function closeControlRoutes(
     const ref = ctx.specRef(project!, specFolder!);
     if (!ref) return new Response("not found", { status: 404 });
     if (ref.archived) return refuseClose(`${specReference(project!, specFolder!)} is archived — Close is only for active specs`);
-    // The same job-in-flight check Reset's own POST makes.
-    if (landingInProject(ctx.queue.list(), project!)) return refuseClose("a landing is in progress");
-    if (ctx.queue.list().some((job) =>
-      job.project === project && job.specFolder === specFolder &&
-      inFlight(job)
-    )) return refuseClose("another job for this spec is still running");
+    // Only this spec's own jobs hold Close back: a merge of another
+    // spec in the project does not, since Close's own merge waits for
+    // the repository merge lock like any other.
+    const specJobs = ctx.queue.list().filter((job) => job.project === project && job.specFolder === specFolder);
+    if (specJobs.some((job) => job.landing)) return refuseClose("a landing is in progress");
+    if (specJobs.some(inFlight)) return refuseClose("another job for this spec is still running");
     const result = enqueueRequest(ctx.queue, { project, specFolder, steps: ["close"], closeReason: reason }, "manual");
     if (!result.ok) {
       logRefusal("close", `${project}/${specFolder}`, result.error);

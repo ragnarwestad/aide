@@ -115,4 +115,24 @@ describe("what a row's Actions cell offers", () => {
     expect(title).toContain("new-abc123");
     expect(title).not.toContain("data-pdf");
   });
+
+  /** A job of this spec whose own step is done and whose merge is still running. */
+  const landingJob = (specFolder: string): QueueRowView =>
+    ({ ...ran(specFolder, 0), landing: true }) as QueueRowView;
+  const closeButton = (html: string, folder: string): string =>
+    cell(html, folder).match(/<button[^>]*>Close<\/button>/)?.[0] ?? "";
+
+  test("another spec's merge in the project leaves Close enabled (AC-1)", () => {
+    const merging = landingJob("82-dear");
+    const html = renderSpecsRows([merging], { runnerAvailable: true, targets, openSpec: {}, groupJobs: [merging] });
+    expect(closeButton(html, "81-cheap")).not.toBe("");
+    expect(closeButton(html, "81-cheap")).not.toContain("disabled");
+  });
+
+  test("the spec's own merge keeps Close disabled with today's reason (AC-4)", () => {
+    const merging = landingJob("82-dear");
+    const html = renderSpecsRows([merging], { runnerAvailable: true, targets, openSpec: {}, groupJobs: [merging] });
+    expect(closeButton(html, "82-dear")).toContain("disabled");
+    expect(cell(html, "82-dear")).toContain("a merge is in progress");
+  });
 });

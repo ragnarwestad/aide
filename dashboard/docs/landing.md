@@ -51,7 +51,9 @@ point.
   queue's history recorded for the spec, and every root of the project where origin still has the branch, recorded or
   not. **The code root goes first and the specs root last**, so a failed code merge stops the loop
   before the specs root, which carries the `Result: completed` stamp, is attempted. After a code root merges,
-  `AIDE_INSTALL_CMD` runs, except in the board's own checkout, which Deploy installs.
+  `AIDE_INSTALL_CMD` runs, except in the board's own checkout, which Deploy installs. Close is offered while a
+  Merge of another spec runs in the project: its merge waits for the repository merge lock like any other and goes on
+  by itself. Only a job of the same spec that is still running or merging holds Close back.
 - A stopped step other than `archive` merges what it pushed outside the code root. That covers a `timeout`,
   `provider-limit` or `shared-files` stop with something pushed and no code root among it. A stopped `implement` whose
   code branch was pushed merges nothing, and that code waits for `archive`. The exception is an implement sent back
