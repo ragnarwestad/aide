@@ -41,33 +41,29 @@ describe("a directory that is not there is an answer, not a crash", () => {
 // Every run then refused: the checkout it needed was a directory that
 // was not a repository.
 describe("one call can ask for longer than the default", () => {
-  // 1 ms is shorter than a process takes to start, so the default kills
-  // every call this runner makes — which is what makes the second
-  // assertion mean something.
-  const impatient = createGitRunner(1);
+  // Emit output before waiting long enough for the default timeout to fire.
+  // Both calls use the same finite workload; only their timeout differs.
+  const slowGit = ["-c", "alias.wait-for-timeout=!printf ready; exec sleep 3", "wait-for-timeout"];
+  const impatient = createGitRunner(1_000);
 
-  test("the runner's own figure kills a call that does not name one", async () => {
-    const res = await impatient(process.cwd(), ["log", "-1", "--format=%H"]);
-    expect(res.stdout.trim()).toBe("");
-  });
+  test("the default timeout preserves output emitted before termination (AC-1, AC-2)", async () => {
+    const res = await impatient(process.cwd(), slowGit);
+    expect(res.unfinished).toBe("timed-out");
+    expect(res.code).not.toBe(0);
+    expect(res.stdout).toBe("ready");
+  }, 20_000);
 
-  test("a call that names its own is not held to it", async () => {
-    const res = await impatient(process.cwd(), ["log", "-1", "--format=%H"], 30_000);
+  test("a per-call timeout lets the same workload finish (AC-1, AC-2)", async () => {
+    const res = await impatient(process.cwd(), slowGit, 15_000);
     expect(res.code).toBe(0);
-    expect(res.stdout.trim().length).toBeGreaterThan(0);
-  });
+    expect(res.stdout).toBe("ready");
+    expect(res.unfinished).toBeUndefined();
+  }, 20_000);
 });
 
-// A killed call comes back as exit 143 with nothing on stdout, and a
-// spawn that failed as exit 128 — codes git can give on its own. Read as
-// git's answer, a `rev-parse` cut off under load says "not a repository".
-// So the result says when git did not run to its own end.
+// Exit codes alone cannot distinguish a stopped call from git's answer.
+// The timeout case is covered by the controlled workload above.
 describe("a call that did not finish says so", () => {
-  test("a call the runner's own timer stopped is marked timed out (AC-1)", async () => {
-    const res = await createGitRunner(1)(process.cwd(), ["log", "-1", "--format=%H"]);
-    expect(res.unfinished).toBe("timed-out");
-  });
-
   test("a call in a directory that is not there is marked not started (AC-1)", async () => {
     const res = await createGitRunner()("/no/such/directory/anywhere", ["rev-parse", "HEAD"]);
     expect(res.unfinished).toBe("not-started");
