@@ -314,6 +314,29 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number, 
   return lines.map((l) => `${l.tag}${l.cells}</tr>`).join("") + (mode.groupArchive ? "" : dependsOnLine(g, opts));
 }
 
+/** The specs a Run dialog may run together with its own, for one project. */
+function runPeers(project: string, opts: SpecsPageOptions) {
+  return eligibleGroupMembers({
+    project,
+    targets: opts.targets,
+    groups: opts.executionGroups ?? [],
+    jobs: opts.groupJobs ?? [],
+  });
+}
+
+/** Each project's Run-together choices, once, for the Run dialogs of its rows
+ *  to take theirs from when they open (`specs-client/execution-groups/run-peers.ts`). */
+export function runPeerLists(projects: readonly string[], opts: SpecsPageOptions): string {
+  return [...new Set(projects)].map((project) => {
+    const peers = runPeers(project, opts);
+    return peers.length
+      ? `<template data-run-peers-of="${esc(project)}">${peers.map((target) =>
+        `<label class="phase"><input type="checkbox" name="member" value="${esc(target.specFolder)}"> <span>${esc(target.specFolder)}</span><input name="position" type="hidden" disabled></label>`,
+      ).join("")}</template>`
+      : "";
+  }).join("");
+}
+
 /** The Specs list's Run control. The dialog reuses the same saved/default
  * phase, provider and model choices as the Jobs row without drawing that
  * row's phase history, states or logs. */
@@ -323,18 +346,15 @@ export function specRunDialog(g: SpecGroup, opts: SpecsPageOptions): { control: 
   const lang = opts.lang ?? "en";
   const id = `runask-${groupKey(g.project, g.specFolder)}`;
   const formId = `${id}-form`;
-  const peers = eligibleGroupMembers({
-    project: g.project,
-    targets: opts.targets,
-    groups: opts.executionGroups ?? [],
-    jobs: opts.groupJobs ?? [],
-  }).filter((target) => target.specFolder !== g.specFolder);
+  const peers = runPeers(g.project, opts).filter((target) => target.specFolder !== g.specFolder);
+  // The peers themselves are drawn once per project (`runPeerLists`) and put
+  // in when the dialog opens: one list per row made the page grow with the
+  // rows times the specs.
   const together = peers.length
     ? `<fieldset class="options-group" data-run-group-options><legend>${esc(t(lang, "list.runTogetherWith"))}</legend>` +
       `<div class="field" data-run-group-name hidden><label for="${esc(formId)}-group-name">${esc(t(lang, "list.runGroupName"))}</label><input id="${esc(formId)}-group-name" name="groupName" required disabled></div>` +
-      `<div role="group" aria-labelledby="${esc(formId)}-specs"><span id="${esc(formId)}-specs">${esc(t(lang, "shell.tabSpecs"))}</span><div class="options-group">${peers.map((target) =>
-      `<label class="phase"><input type="checkbox" name="member" value="${esc(target.specFolder)}"> <span>${esc(target.specFolder)}</span><input name="position" type="hidden" disabled></label>`,
-    ).join("")}</div></div></fieldset>`
+      `<div role="group" aria-labelledby="${esc(formId)}-specs"><span id="${esc(formId)}-specs">${esc(t(lang, "shell.tabSpecs"))}</span>` +
+      `<div class="options-group" data-run-peers="${esc(g.project)}" data-run-self="${esc(g.specFolder)}"></div></div></fieldset>`
     : "";
   const fields =
     `<input type="hidden" name="project" value="${esc(g.project)}">` +

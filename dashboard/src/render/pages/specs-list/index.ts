@@ -100,6 +100,7 @@ import { listRefusalLine, refusalRowTemplate, specLoadingRowTemplate } from "./n
 // on its own Overview tab.
 export { phasePips };
 import { columnGroup, filterBar, listTable, sortableHead } from "./filter-bar.ts";
+import { runPeerLists } from "./phase-rows.ts";
 import type { PhaseMessages } from "./phase-messages";
 import type { LogPart } from "../../../queue/parse-stream";
 import { withGroupArchive } from "./group-archive-projection.ts";
@@ -420,7 +421,8 @@ export function renderSpecsRows(rows: QueueRowView[], opts: SpecsPageOptions, no
     filterBar(opts.summaryGroups ?? groups, f, opts, window.total) +
     listTable({ tableAttrs: opts.openSpec ? ' data-list="specs"' : "", head: sortableHead(f, opts.lang ?? "en", !!opts.openSpec),
       columns: columnGroup(!!opts.openSpec), boxAttrs: windowAttributes(window), body,
-      after: windowControl(window, f, opts.listPath ?? "/specs", opts.lang ?? "en") })
+      after: windowControl(window, f, opts.listPath ?? "/specs", opts.lang ?? "en") }) +
+    (opts.openSpec ? runPeerLists(visible.map((g) => g.project), normalizedOpts) : "")
   );
 }
 

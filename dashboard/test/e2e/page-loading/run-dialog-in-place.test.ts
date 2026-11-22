@@ -4,7 +4,7 @@ import { afterAll, beforeAll, expect, test } from "bun:test";
 import { chromium, type Browser } from "playwright";
 import { browserDeadline, withBrowser } from "../../helpers/browser-deadline.ts";
 import { queueHarness } from "../../helpers/queue-server.ts";
-import { specRunDialog } from "../../../src/render/pages/specs-list/phase-rows.ts";
+import { runPeerLists, specRunDialog } from "../../../src/render/pages/specs-list/phase-rows.ts";
 import { groupBySpec } from "../../../src/render/pages/specs-list/data-model";
 
 browserDeadline();
@@ -53,8 +53,13 @@ test("Run asks for a group name when a peer is selected, submits the entered nam
   try {
     const targets = ["81-first", "82-next"].map((specFolder) => ({ project: "aide", specFolder }));
     const rendered = specRunDialog(groupBySpec([], targets)[0]!, { targets, runnerAvailable: true });
+    const peers = runPeerLists(["aide"], { targets, runnerAvailable: true });
     await page.goto(`${base}/specs?live=0`);
-    await page.evaluate((html) => document.getElementById("jobrows")!.insertAdjacentHTML("beforeend", html), rendered.control + rendered.dialog);
+    // This dialog's own project list stands in for the one the page drew.
+    await page.evaluate((html) => {
+      for (const list of document.querySelectorAll("template[data-run-peers-of]")) list.remove();
+      document.getElementById("jobrows")!.insertAdjacentHTML("beforeend", html);
+    }, rendered.control + rendered.dialog + peers);
     await page.locator('button[data-ask="runask-aide/81-first"]').click();
     const dialog = page.getByRole("dialog", { name: "Run spec aide:81", exact: true });
     const name = dialog.getByRole("textbox", { name: "Group name", exact: true });

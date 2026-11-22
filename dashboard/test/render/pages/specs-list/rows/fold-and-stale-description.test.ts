@@ -188,10 +188,19 @@ describe("an open row on the Specs list is the spec alone", () => {
     const html = onList("aide/81-queue-x");
     expect(html).toContain('action="/api/queue"');
     expect(html).toContain('data-run-group');
-    expect(html).toContain('value="82-queue-y"');
-    expect(html).not.toContain('name="member" value="81-queue-x"');
-    expect(html).toContain('name="position" type="hidden"');
-    expect(html).not.toContain('name="position" type="number"');
+    expect(html).toContain('data-run-peers="aide" data-run-self="81-queue-x"');
+    const page = renderSpecsRows(list, { ...base, filter: { phases: "aide/81-queue-x:create" }, openSpec: { key: "aide/81-queue-x", detail: () => "" } }, NOW);
+    const peers = page.match(/<template data-run-peers-of="aide">[\s\S]*?<\/template>/g) ?? [];
+    expect(peers.length).toBe(1);
+    expect(peers[0]).toContain('name="member" value="82-queue-y"');
+    expect(peers[0]).toContain('name="position" type="hidden"');
+    expect(peers[0]).not.toContain('name="position" type="number"');
+  });
+
+  test("the rows hold each project's peers once, not one list per row's dialog", () => {
+    const three = [...targets, { project: "aide", specFolder: "83-queue-z" }];
+    const page = renderSpecsRows(list, { ...base, targets: three, openSpec: { key: "aide/81-queue-x", detail: () => "" } }, NOW);
+    expect(page.split('name="member" value="82-queue-y"').length - 1).toBe(1);
   });
 
   test("the Run dialog keeps a recorded phase choice and configured models (AC-5)", () => {

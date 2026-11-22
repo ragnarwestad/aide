@@ -5,6 +5,8 @@
 // dialog as a modal. Bound once,
 // on `body`, so a list row drawn by a later redraw reaches it too.
 
+import { fillRunPeers } from "./execution-groups/run-peers.ts";
+
 /** A click on any `button[data-ask]` opens the dialog it names. The id
  *  is looked up with `getElementById`, never a CSS `#…` selector: a
  *  schedule entry's (`deleteask-<project>/<name>`) holds a `/`. */
@@ -17,5 +19,6 @@ export function openAsk(event: Event): void {
 
 /** Opens a shared dialog once any asynchronous preparation has succeeded. */
 export function showAsk(box: HTMLDialogElement): void {
+  fillRunPeers(box);
   if (typeof box.showModal === "function") box.showModal();
 }
