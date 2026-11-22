@@ -43,10 +43,16 @@ test("keeps markup rather than typed, ticked or selected form values (AC-10)", (
 test("keeps copies in module memory without browser storage (AC-11)", () => {
   install();
   let writes = 0;
+  // Storage is shared by every test in this process, so it is put back.
+  const setItem = Object.getOwnPropertyDescriptor(Storage.prototype, "setItem")!;
   Object.defineProperty(Storage.prototype, "setItem", { configurable: true, value: () => { writes += 1; } });
-  rememberPage(location.href, document);
-  expect(rememberedPage(location.href)?.querySelector("main")?.textContent).toBe("Current");
-  expect(writes).toBe(0);
+  try {
+    rememberPage(location.href, document);
+    expect(rememberedPage(location.href)?.querySelector("main")?.textContent).toBe("Current");
+    expect(writes).toBe(0);
+  } finally {
+    Object.defineProperty(Storage.prototype, "setItem", setItem);
+  }
 });
 
 test("keeps open and waiting markup exactly as the reader left it (AC-4)", () => {
