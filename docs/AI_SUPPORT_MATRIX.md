@@ -51,7 +51,7 @@ Yes/no hides the difference that matters: WHO guarantees that a piece is
 followed. Every cell in the next table carries one of these grades:
 
 | Grade               | Meaning                                                                    | Guaranteed by         |
-| ------------------- | -------------------------------------------------------------------------- | --------------------- |
+|---------------------|----------------------------------------------------------------------------|-----------------------|
 | **E — Enforced**    | The tool mechanically enforces it (a hook blocks, config is applied)       | The tool              |
 | **H — Heuristic**   | A tool feature usually triggers it (skill activation on description match) | The tool, best-effort |
 | **I — Instruction** | Plain text the model usually follows — nothing checks it                   | The model             |
@@ -121,24 +121,24 @@ All three tools have skills, stable hooks, subagents and a plan/analysis mode.
 
 Which files each tool reads automatically:
 
-| File/directory                              |    Claude Code    |               Copilot                |             Codex              |
-|---------------------------------------------|:-----------------:|:------------------------------------:|:------------------------------:|
-| `CLAUDE.md`                                 |    ✅ primary     |               ✅ read                | — (not read; verified 0.147.0) |
-| `AGENTS.md`                                 |    ✅ fallback    |               ✅ read                | ✅ primary (verified 0.147.0)  |
-| `.claude/rules/*.md`                        |  ✅ auto-include  |    ✅ read (confirmed v1.0.89-5)     |               —                |
-| `.claude/skills/`                           | ✅ native skills  |      ✅ read (verified 1.0.79)       |               —                |
-| `.github/skills/`                           |         —         |  ✅ native skills (verified 1.0.79)  |               —                |
-| `.agents/skills/`                           |         —         |      ✅ read (verified 1.0.79)       |   ✅ read (verified 0.147.0)   |
-| `~/.agents/skills/`                         |         —         | ✅ personal skills (verified 1.0.79) |            ✅ read             |
-| `~/.copilot/skills/`                        |         —         |           ✅ global skills           |               —                |
-| `.claude/commands/*.md`                     | ✅ slash commands | ✅ read as skills (verified 1.0.79)  |               —                |
-| `.claude/agents/*.md`                       |     ✅ agents     |               ✅ read                |               —                |
-| `.claude/settings.json`                     |  ✅ MCP + hooks   |                  —                   |               —                |
-| `.github/copilot-instructions.md`           |         —         |              ✅ primary              |               —                |
-| `.github/instructions/**/*.instructions.md` |         —         |           ✅ path-specific           |               —                |
-| `~/.copilot/copilot-instructions.md`        |         —         |              ✅ global               |               —                |
-| `~/.codex/AGENTS.md`                        |         —         |                  —                   |  ✅ global (verified 0.147.0)  |
-| `~/.codex/config.toml`                      |         —         |                  —                   |   ✅ MCP (verified 0.147.0)    |
+| File/directory                              |    Claude Code    |               Copilot                |                    Codex                    |
+|---------------------------------------------|:-----------------:|:------------------------------------:|:-------------------------------------------:|
+| `CLAUDE.md`                                 |    ✅ primary     |               ✅ read                | ✅ fallback, set by Aide (verified 0.171.0) |
+| `AGENTS.md`                                 |    ✅ fallback    |               ✅ read                |        ✅ primary (verified 0.147.0)        |
+| `.claude/rules/*.md`                        |  ✅ auto-include  |    ✅ read (confirmed v1.0.89-5)     |                      —                      |
+| `.claude/skills/`                           | ✅ native skills  |      ✅ read (verified 1.0.79)       |                      —                      |
+| `.github/skills/`                           |         —         |  ✅ native skills (verified 1.0.79)  |                      —                      |
+| `.agents/skills/`                           |         —         |      ✅ read (verified 1.0.79)       |         ✅ read (verified 0.147.0)          |
+| `~/.agents/skills/`                         |         —         | ✅ personal skills (verified 1.0.79) |                   ✅ read                   |
+| `~/.copilot/skills/`                        |         —         |           ✅ global skills           |                      —                      |
+| `.claude/commands/*.md`                     | ✅ slash commands | ✅ read as skills (verified 1.0.79)  |                      —                      |
+| `.claude/agents/*.md`                       |     ✅ agents     |               ✅ read                |                      —                      |
+| `.claude/settings.json`                     |  ✅ MCP + hooks   |                  —                   |                      —                      |
+| `.github/copilot-instructions.md`           |         —         |              ✅ primary              |                      —                      |
+| `.github/instructions/**/*.instructions.md` |         —         |           ✅ path-specific           |                      —                      |
+| `~/.copilot/copilot-instructions.md`        |         —         |              ✅ global               |                      —                      |
+| `~/.codex/AGENTS.md`                        |         —         |                  —                   |        ✅ global (verified 0.147.0)         |
+| `~/.codex/config.toml`                      |         —         |                  —                   |          ✅ MCP (verified 0.147.0)          |
 
 > ⚠️ **The Copilot `.claude/agents` row needs re-verification.** The skills and
 > commands rows are verified against CLI 1.0.79 (2026-08-13): project-level
@@ -150,6 +150,11 @@ Which files each tool reads automatically:
 >
 > Claude Code reads `AGENTS.md` only in a folder with no `CLAUDE.md` (since
 > 2.1.277), and not when it runs through Bedrock, Vertex or Foundry.
+>
+> Codex reads a project's `CLAUDE.md` only where the project has no `AGENTS.md`:
+> Aide's Codex installer sets `project_doc_fallback_filenames = ["CLAUDE.md"]` in
+> `~/.codex/config.toml`. Without it Codex reads no `CLAUDE.md` (both verified
+> 0.171.0 with `codex exec` in a folder holding only a `CLAUDE.md`).
 
 ---
 
@@ -288,10 +293,10 @@ core/implementations/copilot/
 
 ### Instruction files (read automatically)
 
-| File                               | Description                                                                         |
-|------------------------------------|-------------------------------------------------------------------------------------|
-| `AGENTS.md` (`~/.codex/AGENTS.md`) | Primary instruction file (installed from `core/AGENTS.md`)                          |
-| `CLAUDE.md`                        | Not read (verified 0.147.0) — needs `project_doc_fallback_filenames` in config.toml |
+| File                               | Description                                                                                                                      |
+|------------------------------------|----------------------------------------------------------------------------------------------------------------------------------|
+| `AGENTS.md` (`~/.codex/AGENTS.md`) | Primary instruction file (installed from `core/AGENTS.md`)                                                                       |
+| `CLAUDE.md`                        | Read where the project has no `AGENTS.md`, through `project_doc_fallback_filenames`, which the installer sets (verified 0.171.0) |
 
 ### Configuration
 
@@ -335,11 +340,11 @@ the machine's Claude Code login.
 
 ### Instruction files (read automatically)
 
-| File                                         | Description                                                                                                                                                                                                                            |
-|----------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `AGENTS.md` (`~/.config/opencode/AGENTS.md`) | Global instruction file (installed from `core/AGENTS.md`)                                                                                                                                                                              |
-| `~/.claude/CLAUDE.md`                        | OpenCode 1: read only when `~/.config/opencode/AGENTS.md` does not exist, so not where Aide is installed. OpenCode 2: not read                                                                                                         |
-| `AGENTS.md` / `CLAUDE.md` in the project     | OpenCode 1: the first of `AGENTS.md`, `CLAUDE.md` and `CONTEXT.md` that exists wins, searched from the working directory up to the root. OpenCode 2: `AGENTS.md` only, every one up to the project root, combined with the global file |
+| File                                         | Description                                                                                                                                                                                                                                                                                                                                                                                                                       |
+|----------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `AGENTS.md` (`~/.config/opencode/AGENTS.md`) | Global instruction file (installed from `core/AGENTS.md`)                                                                                                                                                                                                                                                                                                                                                                         |
+| `~/.claude/CLAUDE.md`                        | OpenCode 1: read only when `~/.config/opencode/AGENTS.md` does not exist, so not where Aide is installed. OpenCode 2: not read                                                                                                                                                                                                                                                                                                    |
+| `AGENTS.md` / `CLAUDE.md` in the project     | OpenCode 1: the first of `AGENTS.md`, `CLAUDE.md` and `CONTEXT.md` that exists wins, searched from the working directory up to the root. OpenCode 2: `AGENTS.md` only, every one up to the project root, combined with the global file (2.3.0). The `instructions` setting adds files on top of these, a relative path searched up to the project root, but it has no fallback: a file named there is read beside `AGENTS.md` too |
 
 ### Skills (read in place — nothing installed)
 

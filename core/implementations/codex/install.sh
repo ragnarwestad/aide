@@ -8,12 +8,14 @@ set -e  # Exit on error
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 source "$SCRIPT_DIR/../../scripts/_install-steps.sh"
 source "$SCRIPT_DIR/lib/optional-mcp.sh"
+source "$SCRIPT_DIR/lib/doc-fallback.sh"
 install_steps_begin codex
 
 # 2. Install global Codex instructions (AGENTS.md)
 echo "2️⃣  Installing global Codex instructions..."
 
 install_instructions "$HOME/.codex/AGENTS.md"
+install_codex_doc_fallback "$HOME/.codex/config.toml"
 
 echo ""
 
@@ -80,6 +82,7 @@ echo "✅ Setup complete!"
 echo ""
 echo "📋 Installed:"
 echo "   ~/.codex/AGENTS.md"
+echo "   ~/.codex/config.toml: project_doc_fallback_filenames (CLAUDE.md where a project has no AGENTS.md)"
 echo "   ~/.codex/hooks.json + ~/.codex/hooks/aide-*.sh"
 echo "   ~/.agents/skills/ (all core/skills/)"
 echo ""

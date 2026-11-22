@@ -127,6 +127,16 @@ at most `project_doc_max_bytes` of AGENTS.md, 32768 by default, and drops
 the rest without saying so, so the file is kept well inside that budget
 (spec 147).
 
+### A project's CLAUDE.md
+
+Codex reads only `AGENTS.md` as a project's instructions unless
+`project_doc_fallback_filenames` names other files. `install.sh` writes
+`project_doc_fallback_filenames = ["CLAUDE.md"]` at the top of
+`~/.codex/config.toml`, under a comment saying who wrote it, so a project with
+only a `CLAUDE.md` still gives Codex its instructions. A value already set there
+is left as it is. `uninstall.sh` removes the two lines only while they stand
+as the installer wrote them.
+
 ### MCP servers (Model Context Protocol)
 
 Codex supports MCP servers for extended functionality. Each server is a `[mcp_servers.<name>]` table in

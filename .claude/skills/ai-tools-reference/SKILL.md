@@ -92,6 +92,7 @@ All tools have a project instruction file that is read automatically:
 | Claude Code | `CLAUDE.md` or `.claude/CLAUDE.md` | `~/.claude/CLAUDE.md`                |
 | Copilot     | `.github/copilot-instructions.md`  | `~/.copilot/copilot-instructions.md` |
 | Codex       | `AGENTS.md`                        | `~/.codex/AGENTS.md`                 |
+| OpenCode    | `AGENTS.md`                        | `~/.config/opencode/AGENTS.md`       |
 
 **Copilot also reads the others' files** (only in Coding Agent):
 `AGENTS.md` and `CLAUDE.md` in the repo root.
@@ -99,6 +100,10 @@ All tools have a project instruction file that is read automatically:
 **Claude Code falls back to `AGENTS.md`** (v2.1.277): a project with no
 `CLAUDE.md` has its `AGENTS.md` read instead — not yet on Bedrock, Vertex or
 Foundry. A project that has a `CLAUDE.md` is read as before.
+**Codex falls back to `CLAUDE.md`**: Aide's installer sets
+`project_doc_fallback_filenames = ["CLAUDE.md"]` (verified 0.171.0). OpenCode 2
+reads only `AGENTS.md`. In a project the user owns, `AGENTS.md` holds the
+instructions and `CLAUDE.md` holds `@AGENTS.md`; Aide writes neither file.
 
 ---
 

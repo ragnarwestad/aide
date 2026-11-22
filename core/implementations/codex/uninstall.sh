@@ -12,10 +12,12 @@ echo ""
 # Codex is global — no project path needed
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+source "$SCRIPT_DIR/lib/doc-fallback.sh"
 
 # Confirm uninstallation
 echo "⚠️  This will remove:"
 echo "   - ~/.codex/AGENTS.md"
+echo "   - project_doc_fallback_filenames in ~/.codex/config.toml (if the installer wrote it)"
 echo "   - ~/.codex/hooks.json (if unchanged) + ~/.codex/hooks/aide-*.sh"
 echo ""
 read -r -p "Are you sure you want to continue? [y/N]: " CONFIRM
@@ -43,6 +45,7 @@ if [ -f "$HOME/.codex/AGENTS.md" ]; then
 else
   echo "   ⏭️  Did not exist: ~/.codex/AGENTS.md"
 fi
+uninstall_codex_doc_fallback "$HOME/.codex/config.toml"
 
 echo ""
 
