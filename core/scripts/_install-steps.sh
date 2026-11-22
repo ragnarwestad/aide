@@ -4,6 +4,7 @@ _INSTALL_STEPS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORKSPACE_ROOT="$(cd "$_INSTALL_STEPS_DIR/../.." && pwd)"
 source "$_INSTALL_STEPS_DIR/_install-bin.sh"
 source "$_INSTALL_STEPS_DIR/_install-skills.sh"
+source "$_INSTALL_STEPS_DIR/_install-instructions.sh"
 source "$_INSTALL_STEPS_DIR/lib/ai-tools/read.sh"
 
 install_steps_begin() {
@@ -20,18 +21,6 @@ install_steps_begin() {
   install_mise_declared_tools
   install_shell_path
   echo ""
-}
-
-install_instructions() {
-  local destination="$1"
-  if [ ! -f "$WORKSPACE_ROOT/core/AGENTS.md" ]; then
-    echo "   ❌ core/AGENTS.md not found!"
-    echo "   Run core/scripts/build-agents-md.sh first, or make sure you have the latest version: git pull"
-    return 1
-  fi
-  mkdir -p "$(dirname "$destination")"
-  cp "$WORKSPACE_ROOT/core/AGENTS.md" "$destination"
-  echo "   ✅ Installed: ${destination/#$HOME/\~}"
 }
 
 install_steps_finish() {

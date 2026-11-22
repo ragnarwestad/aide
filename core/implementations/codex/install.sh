@@ -9,6 +9,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 source "$SCRIPT_DIR/../../scripts/_install-steps.sh"
 source "$SCRIPT_DIR/lib/optional-mcp.sh"
 source "$SCRIPT_DIR/lib/doc-fallback.sh"
+source "$SCRIPT_DIR/lib/hooks-merge.sh"
 install_steps_begin codex
 
 # 2. Install global Codex instructions (AGENTS.md)
@@ -23,11 +24,7 @@ echo ""
 echo "3️⃣  Installing Codex hooks..."
 
 mkdir -p "$HOME/.codex/hooks"
-if [ -f "$HOME/.codex/hooks.json" ] && ! cmp -s "$SCRIPT_DIR/hooks/hooks.json" "$HOME/.codex/hooks.json"; then
-  cp "$HOME/.codex/hooks.json" "$HOME/.codex/hooks.json.bak"
-  echo "   ⚠️  Existing ~/.codex/hooks.json differed — backed up to ~/.codex/hooks.json.bak"
-fi
-cp "$SCRIPT_DIR/hooks/hooks.json" "$HOME/.codex/hooks.json"
+install_codex_hooks "$SCRIPT_DIR/hooks/hooks.json" "$HOME/.codex/hooks.json"
 cp "$SCRIPT_DIR/hooks/"aide-*.sh "$HOME/.codex/hooks/"
 chmod +x "$HOME/.codex/hooks/"aide-*.sh
 echo "   ✅ Installed: ~/.codex/hooks.json + hook scripts in ~/.codex/hooks/"

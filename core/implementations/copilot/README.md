@@ -132,7 +132,8 @@ copilot -p "/aide-analyze 55" --allow-all
 
 ### Custom Instructions
 
-The install script places `AGENTS.md` as global instructions in `~/.copilot/copilot-instructions.md`. It contains:
+The install script writes `AGENTS.md` into `~/.copilot/copilot-instructions.md` as a marked block, beside any
+text of your own there. It contains:
 
 - 🎯 Workspace concept and structure
 - 🧪 TDD rules from `core/rules/testing.md`

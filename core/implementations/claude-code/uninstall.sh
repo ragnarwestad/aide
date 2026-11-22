@@ -18,7 +18,6 @@ echo "⚠️  This will remove:"
 echo "   - Skills recorded in ~/.claude/skills/$AIDE_SKILL_MANIFEST_NAME"
 echo "   - Agents from ~/.claude/agents/ (task-analyzer.md)"
 echo "   - Rules recorded in ~/.claude/rules/$AIDE_RULE_MANIFEST_NAME"
-echo "   - ~/.claude/docs/ and ~/.claude/api-mapping/ (legacy)"
 echo ""
 read -r -p "Are you sure you want to continue? [y/N]: " CONFIRM
 
@@ -36,36 +35,10 @@ echo "1️⃣  Keeping shared scripts in ~/.local/bin/ (removed only by uninstal
 
 echo ""
 
-# 2. Remove old docs and api-mapping from ~/.claude/ (consolidated into skills)
-echo "2️⃣  Removing old docs and api-mapping from ~/.claude/..."
-
-for old_dir in docs api-mapping; do
-  if [ -d "$HOME/.claude/$old_dir" ]; then
-    rm -rf "$HOME/.claude/$old_dir"
-    echo "   ✅ Removed: ~/.claude/$old_dir/"
-  else
-    echo "   ⏭️  Did not exist: ~/.claude/$old_dir/"
-  fi
-done
-
-echo ""
-
 # 4. Remove skills from ~/.claude/skills/
 echo "4️⃣  Removing skills from ~/.claude/skills/..."
 
 uninstall_skills "$HOME/.claude/skills"
-
-echo ""
-
-# 5. Remove old commands from ~/.claude/commands/ (migrated to skills)
-echo "5️⃣  Removing old commands from ~/.claude/commands/..."
-
-if [ -d "$HOME/.claude/commands" ]; then
-  rm -rf "$HOME/.claude/commands"
-  echo "   ✅ Removed: ~/.claude/commands/ (consolidated into skills)"
-else
-  echo "   ⏭️  ~/.claude/commands/ did not exist"
-fi
 
 echo ""
 

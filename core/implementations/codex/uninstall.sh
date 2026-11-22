@@ -13,12 +13,14 @@ echo ""
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 source "$SCRIPT_DIR/lib/doc-fallback.sh"
+source "$SCRIPT_DIR/lib/hooks-merge.sh"
+source "$SCRIPT_DIR/../../scripts/_install-instructions.sh"
 
 # Confirm uninstallation
 echo "⚠️  This will remove:"
-echo "   - ~/.codex/AGENTS.md"
+echo "   - aide's rules from ~/.codex/AGENTS.md (your own text there is kept)"
 echo "   - project_doc_fallback_filenames in ~/.codex/config.toml (if the installer wrote it)"
-echo "   - ~/.codex/hooks.json (if unchanged) + ~/.codex/hooks/aide-*.sh"
+echo "   - aide's hooks from ~/.codex/hooks.json (your own hooks are kept) + ~/.codex/hooks/aide-*.sh"
 echo ""
 read -r -p "Are you sure you want to continue? [y/N]: " CONFIRM
 
@@ -39,12 +41,7 @@ echo ""
 # 2. Remove global Codex instructions
 echo "2️⃣  Removing global Codex instructions..."
 
-if [ -f "$HOME/.codex/AGENTS.md" ]; then
-  rm "$HOME/.codex/AGENTS.md"
-  echo "   ✅ Removed: ~/.codex/AGENTS.md"
-else
-  echo "   ⏭️  Did not exist: ~/.codex/AGENTS.md"
-fi
+uninstall_instructions "$HOME/.codex/AGENTS.md"
 uninstall_codex_doc_fallback "$HOME/.codex/config.toml"
 
 echo ""
@@ -52,16 +49,7 @@ echo ""
 # 3. Remove Codex hooks
 echo "3️⃣  Removing Codex hooks..."
 
-if [ -f "$HOME/.codex/hooks.json" ]; then
-  if cmp -s "$SCRIPT_DIR/hooks/hooks.json" "$HOME/.codex/hooks.json"; then
-    rm "$HOME/.codex/hooks.json"
-    echo "   ✅ Removed: ~/.codex/hooks.json"
-  else
-    echo "   ⚠️  ~/.codex/hooks.json differs from aide's — left in place"
-  fi
-else
-  echo "   ⏭️  Did not exist: ~/.codex/hooks.json"
-fi
+uninstall_codex_hooks "$SCRIPT_DIR/hooks/hooks.json" "$HOME/.codex/hooks.json"
 
 rm -f "$HOME/.codex/hooks/"aide-*.sh
 echo "   ✅ Removed: ~/.codex/hooks/aide-*.sh"

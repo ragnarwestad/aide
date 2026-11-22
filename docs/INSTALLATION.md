@@ -6,6 +6,7 @@
 - [General setup (all AI tools)](#general-setup-all-ai-tools)
   - [Step 1: Clone the AI workspace](#step-1-clone-the-ai-workspace)
 - [AI-tool-specific installation](#ai-tool-specific-installation)
+  - [Files you already have](#files-you-already-have)
   - [Install everything at once](#install-everything-at-once)
   - [Check what is installed](#check-what-is-installed)
   - [Claude Code](#claude-code)
@@ -173,6 +174,23 @@ You now have:
 ## AI-tool-specific installation
 
 Choose your AI tool and follow the relevant guide:
+
+### Files you already have
+
+Every install writes to your home directory only, and keeps what you already
+have there:
+
+- The global instructions for Copilot, Codex and OpenCode get aide's rules in a
+  block between two `aide rules` markers. Your own text outside the block is
+  kept, a new install replaces only the block, and an uninstall removes only the
+  block. A file that holds nothing but an earlier install's copy of the rules is
+  replaced.
+- Codex's `~/.codex/hooks.json` gets aide's hooks beside your own; an uninstall
+  takes out aide's alone. The merge needs `jq`, and without it a file of your own
+  is left as it is.
+- Skills and rules are installed by name, so yours with other names stay. A skill
+  or rule with the same name as one of aide's is replaced.
+- Folders of your own under `~/.claude/`, such as `commands/`, are not touched.
 
 ### Install everything at once
 

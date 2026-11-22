@@ -23,12 +23,6 @@ mkdir -p "$GLOBAL_CLAUDE/skills" "$GLOBAL_CLAUDE/rules"
 install_skills "$GLOBAL_CLAUDE/skills" spec-structure
 echo "   ✅ Skills installed: ~/.claude/skills/"
 
-# Migrate: remove old commands (now consolidated into skills)
-if [ -d "$GLOBAL_CLAUDE/commands" ]; then
-  rm -rf "$GLOBAL_CLAUDE/commands"
-  echo "   🗑️  Removed old: ~/.claude/commands/ (consolidated into skills)"
-fi
-
 # An agent no skill calls any more, left by an earlier install
 if [ -f "$GLOBAL_CLAUDE/agents/task-analyzer.md" ]; then
   rm "$GLOBAL_CLAUDE/agents/task-analyzer.md"
@@ -46,14 +40,6 @@ for retired in tools-and-scripts workflows documentation markdown-linting; do
   if [ -f "$GLOBAL_CLAUDE/rules/$retired.md" ]; then
     rm "$GLOBAL_CLAUDE/rules/$retired.md"
     echo "   🗑️  Removed retired rule: ~/.claude/rules/$retired.md (now a skill)"
-  fi
-done
-
-# Migrate: remove old docs/ and api-mapping/ (now consolidated into skills)
-for old_dir in docs api-mapping; do
-  if [ -d "$GLOBAL_CLAUDE/$old_dir" ]; then
-    rm -rf "${GLOBAL_CLAUDE:?}/$old_dir"
-    echo "   🗑️  Removed old: ~/.claude/$old_dir/ (consolidated into skills)"
   fi
 done
 

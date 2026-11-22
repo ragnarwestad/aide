@@ -5,13 +5,15 @@
 
 set -e  # Exit on error
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../scripts/_install-instructions.sh"
+
 echo "🗑️  GitHub Copilot Uninstall"
 echo "============================"
 echo ""
 
 # Confirm uninstallation
 echo "⚠️  This will remove:"
-echo "   - ~/.copilot/copilot-instructions.md"
+echo "   - aide's rules from ~/.copilot/copilot-instructions.md (your own text there is kept)"
 echo ""
 read -r -p "Are you sure you want to continue? [y/N]: " CONFIRM
 
@@ -34,12 +36,7 @@ echo ""
 # 2. Remove global Copilot instructions
 echo "2️⃣  Removing global Copilot instructions..."
 
-if [ -f "$HOME/.copilot/copilot-instructions.md" ]; then
-  rm "$HOME/.copilot/copilot-instructions.md"
-  echo "   ✅ Removed: ~/.copilot/copilot-instructions.md"
-else
-  echo "   ⏭️  Did not exist: ~/.copilot/copilot-instructions.md"
-fi
+uninstall_instructions "$HOME/.copilot/copilot-instructions.md"
 
 echo ""
 

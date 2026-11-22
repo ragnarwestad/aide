@@ -99,8 +99,9 @@ Run the installer:
 aide/implementations/codex/install.sh
 ```
 
-It copies `core/AGENTS.md` (generated from `core/rules/`) to `~/.codex/AGENTS.md`, installs the hooks
-(`~/.codex/hooks.json` and `~/.codex/hooks/aide-*.sh`, which need `jq`), every skill in `core/skills/` to
+It writes `core/AGENTS.md` (generated from `core/rules/`) into `~/.codex/AGENTS.md` as a marked block beside your
+own text, merges the hooks into `~/.codex/hooks.json` beside your own and copies `~/.codex/hooks/aide-*.sh` (both
+need `jq`), every skill in `core/skills/` to
 `~/.agents/skills/`, and the shared scripts to `~/.local/bin/`.
 
 Codex reads `~/.codex/AGENTS.md` automatically at startup (as well as the repo `AGENTS.md` via directory walk).
