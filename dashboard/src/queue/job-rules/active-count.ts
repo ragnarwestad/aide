@@ -1,18 +1,17 @@
-import { heldBackResolvesOnItsOwn } from "../../messages/jobs/holds.ts";
 import { createEndedWithoutSpec } from "../create-failure.ts";
 import type { ExecutionGroup } from "../execution-groups";
-import { executionGroupActivity } from "../execution-groups/actions.ts";
 import { jobKind, waitsForPerson } from "../steps.ts";
 import type { Job } from "../types.ts";
-import { automaticProviderWait, writing } from "./activity.ts";
+import { writing } from "./activity.ts";
 
 const STOPS_SHORT_OF_ARCHIVE = new Set(["analyze", "implement"]);
 const SPEC_KINDS = new Set(["spec", "close", "reopen"]);
 
-/** The Jobs tab's count: jobs running, and jobs that cannot finish until a
- *  person acts. A job waiting in the queue or on a usage limit's automatic
- *  retry continues on its own and is not counted. The newest attempt for a
- *  branch, spec or schedule decides; a group counts once, by its own state. */
+/** The Jobs tab's count: jobs running, queued, held back or waiting on a
+ *  usage limit, and jobs that cannot finish until a person acts. The newest
+ *  attempt for a branch, spec or schedule decides. A group counts once, by
+ *  its own state, while one of its members is an open spec: the Jobs tab
+ *  draws a group through its open members only. */
 export function activeJobCount(
   jobs: readonly Job[],
   groups: readonly ExecutionGroup[],
@@ -33,18 +32,15 @@ export function activeJobCount(
 
   const liveGroups = new Map(groups.filter(group => !group.removedAt).map(group => [group.id, group]));
   const active = new Set<string>();
-  // A group running counts, and so does one that is prepared, stopped or
-  // waiting for acceptance: each goes on only when a person acts.
   for (const group of liveGroups.values()) {
     if (!serves(group.project) || group.state === "completed") continue;
-    if (executionGroupActivity(group.state) !== "queued") active.add(group.id);
+    if (group.members.some((member) => openSpec(group.project, member))) active.add(group.id);
   }
   for (const job of latest.values()) {
     if (job.removedAt || (job.executionGroupId && liveGroups.has(job.executionGroupId))) continue;
-    if (automaticProviderWait(job)) continue;
     const kind = jobKind(job);
     if (kind === "schedule" && !hasSchedule(job.project, job.specFolder)) continue;
-    const manualHold = job.errorReason === "held-back" && !heldBackResolvesOnItsOwn(job);
+    const unfinished = job.state === "running" || job.state === "queued" || job.state === "waiting";
     const choice = job.state === "done" && job.results.at(-1)?.terminalReason === "approach-choice";
     // An open spec run through analyze or implement and not on to archive
     // waits for a person to start its next step.
@@ -54,7 +50,7 @@ export function activeJobCount(
     // leaves its open spec unfinished; any other cancelled job is over.
     const cancelledUnfinished = job.state === "cancelled" &&
       (kind === "land" || (SPEC_KINDS.has(kind) && openSpec(job.project, job.specFolder)));
-    if (writing(job) || manualHold || choice || nextStepAhead || cancelledUnfinished || waitsForPerson(job) || createEndedWithoutSpec(job)) {
+    if (unfinished || writing(job) || choice || nextStepAhead || cancelledUnfinished || waitsForPerson(job) || createEndedWithoutSpec(job)) {
       active.add(job.id);
     }
   }
