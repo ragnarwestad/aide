@@ -45,10 +45,16 @@
   table.list tr.specstate [data-col="started"] { display: block; white-space: nowrap; flex: 0 0 var(--time-w);
     width: var(--time-w); box-sizing: border-box; text-align: left; }
   table.list tr.specstate [data-col="cost"] { display: none; }
-  table.speclist[data-list="specs"] tr.specstate > td[data-col="actions"] {
-    flex: 0 0 100%; width: 100%; box-sizing: border-box; }
-  table.speclist[data-list="specs"] tr.specstate > td[data-col="actions"] > .row {
-    display: flex; flex-wrap: wrap; max-width: 100%; }
+  /* On the Specs tab the line reads created date, then the buttons, then
+     the state at the right edge: a row there opens the spec's own page,
+     so no phase line below has a state for this one to stand over. Where
+     the buttons do not fit beside the date, they and the state move to
+     the next line together, still at the right. */
+  table.speclist[data-list="specs"] tr.specstate { justify-content: flex-end; padding-right: var(--sp-3); }
+  table.speclist[data-list="specs"] tr.specstate > td:first-child { flex: 0 0 auto; margin-right: auto; }
+  table.speclist[data-list="specs"] tr.specstate > td[data-col="actions"] { order: 1; flex: 0 0 auto; }
+  table.speclist[data-list="specs"] tr.specstate > td[data-col="actions"] > .row { display: flex; flex-wrap: nowrap; }
+  table.speclist[data-list="specs"] tr.specstate > td[data-col="state"] { order: 2; }
   /* No "· " separator before the cost (removed 2026-08-24): it read
      fine while date and cost sat side by side, and as a stray leading
      dot every time the cost wrapped alone or the date showed the
