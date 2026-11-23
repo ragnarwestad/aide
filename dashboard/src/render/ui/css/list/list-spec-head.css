@@ -222,16 +222,18 @@ table:is([data-list="jobs"], [data-list="specs"]) tr.spechead > .foldcell > .fol
   top: calc(var(--sp-3) + var(--sp-1));
 }
 table:is([data-list="jobs"], [data-list="specs"]) table.groupcard > tbody > tr.grouphead .groupheadline { margin-left: 0; }
-/* A Jobs card's chevron is pressed anywhere in the corner under the kind icon:
+/* A card's chevron is pressed anywhere in the corner under the kind icon:
    from the card's edge to the date, from under the icon to the state
    line's foot. The link's own box reaches up beside the icon, so it takes
    no presses itself; the corner, drawn behind the chevron, does, and is
    what hover shades. */
-table[data-list="jobs"] tr.spechead > td.foldcell > .fold { position: relative; isolation: isolate; pointer-events: none; }
-table[data-list="jobs"] tr.spechead > td.foldcell > .fold::before { content: ""; position: absolute; z-index: -1;
+table:is([data-list="jobs"], [data-list="specs"]) tr.spechead > td.foldcell > .fold { position: relative; isolation: isolate; pointer-events: none; }
+table:is([data-list="jobs"], [data-list="specs"]) tr.spechead > td.foldcell > .fold::before { content: ""; position: absolute; z-index: -1;
   pointer-events: auto; border-radius: var(--r-s); left: -4px; top: 14px; width: 36px; height: 39px; }
-table[data-list="jobs"] tr.spechead > td.foldcell > .fold:hover::before { background: var(--surface-2); }
-table[data-list="jobs"] tr.spechead > td.foldcell > .fold:hover svg { background: none; box-shadow: none; }
+table:is([data-list="jobs"], [data-list="specs"]) tr.spechead > td.foldcell > .fold:hover::before { background: var(--surface-2); }
+table:is([data-list="jobs"], [data-list="specs"]) tr.spechead > td.foldcell > .fold:hover svg { background: none; box-shadow: none; }
+/* A Specs card's name sits nearer the chevron and its state line is taller. */
+table[data-list="specs"] tr.spechead > td.foldcell > .fold::before { width: 31px; height: 54px; }
 @media (min-width: 40.0625rem) {
   /* The folder drawing starts inside its SVG view box. */
   table:is([data-list="jobs"], [data-list="specs"]) .spec-name > .label { margin-inline-start: -2.5px; }
@@ -248,4 +250,5 @@ table[data-list="jobs"] tr.spechead > td.foldcell > .fold:hover svg { background
   table:is([data-list="jobs"], [data-list="specs"]) tr.spechead > td.foldcell > .fold { margin-bottom: -16px; position: relative; z-index: 1; }
   table:is([data-list="jobs"], [data-list="specs"]) tr.spechead > .foldcell > .fold > :is(svg, .spin) { left: -5px; top: 18px; }
   table[data-list="jobs"] tr.spechead > td.foldcell > .fold::before { left: -12px; top: 22px; width: 38px; height: 30px; }
+  table[data-list="specs"] tr.spechead > td.foldcell > .fold::before { left: -12px; top: 25px; width: 38px; height: 42px; }
 }
