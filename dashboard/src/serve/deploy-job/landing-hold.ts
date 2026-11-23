@@ -4,10 +4,15 @@ import { type Job, type QueueStore } from "../../queue/queue.ts";
 import { landingStepIndex } from "../../format/gerund.ts";
 import { specReference } from "../../project/spec-folder.ts";
 
-export function deployWaitsFor(jobs: Job[], exceptJobId?: string, admitted?: ReadonlySet<string>): Job[] {
+/** The landings a deploy waits for. A queued deploy waits for every one
+ *  in flight, admitted at its repository or not: the deploy restarts the
+ *  server, and a landing the restart catches is cut short. The queue's
+ *  order decides only which of a deploy and a Merge not yet started goes
+ *  first. */
+export function deployWaitsFor(jobs: Job[], exceptJobId?: string, _admitted?: ReadonlySet<string>): Job[] {
   const deploy = jobs.find((job) => job.id === exceptJobId);
   return jobs.filter((job) => job.id !== exceptJobId && job.landing &&
-    (deploy?.state === "queued" ? admitted?.has(job.id) === true : !deploy?.deployWaitForLandings || deploy.deployWaitForLandings.includes(job.id)));
+    (deploy?.state === "queued" || !deploy?.deployWaitForLandings || deploy.deployWaitForLandings.includes(job.id)));
 }
 
 export function deployHold(jobs: Job[], exceptJobId?: string, admitted?: ReadonlySet<string>): BoardMessage {

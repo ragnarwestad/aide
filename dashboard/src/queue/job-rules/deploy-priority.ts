@@ -19,9 +19,12 @@ export function mayAdmit(entry: WaitingEntry, entries: WaitingEntry[], jobs: rea
   const index = entries.findIndex(candidate => candidate.id === entry.id);
   const boundary = entries.findIndex(candidate => candidate.operation === "deploy" &&
     jobs.some(job => job.id === candidate.jobId && job.state === "queued"));
-  if (boundary >= 0 && index > boundary) return false;
+  // A Merge already under way goes on to its repository past a queued
+  // deploy: the deploy waits for it, and holding it here would hold both.
+  const underWay = entry.id.startsWith("merge:") && jobs.some(job => job.id === entry.jobId && job.landing);
+  if (boundary >= 0 && index > boundary && !underWay) return false;
   if (entry.operation === "deploy" && jobs.some(job => job.id === entry.jobId && job.state === "queued")) {
-    if (jobs.some(job => job.landing && admitted.has(job.id))) return false;
+    if (jobs.some(job => job.landing)) return false;
     if (entries.slice(0, index).some(candidate => candidate.id.startsWith("merge:"))) return false;
   }
   return true;

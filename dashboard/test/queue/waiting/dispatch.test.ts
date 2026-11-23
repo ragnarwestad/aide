@@ -63,7 +63,7 @@ import { afterEach, beforeEach } from "bun:test";
 beforeEach(resetHarness);
 afterEach(cleanupHarness);
 
-test("a saved Deploy boundary controls actual merge admission and active multi-root completion (AC-4, AC-6)", async () => {
+test("a Merge under way passes a saved Deploy boundary, and Deploy waits for it to complete (AC-4, AC-6)", async () => {
   const store = new QueueStore({ defaults: DEFAULTS, resolve: () => ({ specFolders: ["a", "b"] }) });
   const add = (specFolder: string, steps: string[]) => { const r = store.enqueue({ project: "p", specFolder, steps }); if (!r.ok) throw Error(r.error); return r.job; };
   const landing = add("a", ["analyze"]);
@@ -77,8 +77,8 @@ test("a saved Deploy boundary controls actual merge admission and active multi-r
   const merge = dispatch.run(entry, roots, "one", () => new Promise<void>(resolve => { calls.push("first"); finish = resolve; }));
   const owner = store.waiting.open("edit", `job:${deploy.id}:0`);
   store.waiting.save(owner, owner.entries.map(e => e.id));
-  // Deploy precedes the not-yet-admitted merge, so the dispatcher must leave it pending.
-  expect(calls).toEqual([]);
+  // The merge is under way, so it goes to its repository past the Deploy saved ahead of it.
+  expect(calls).toEqual(["first"]);
   store.update(deploy.id, { state: "cancelled" });
   dispatch.drain();
   expect(calls).toEqual(["first"]);

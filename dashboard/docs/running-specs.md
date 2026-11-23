@@ -991,7 +991,8 @@ deploy took in: from the one the previous done deploy reached, or for a project'
 stood at before the fetch, to the one the fetch reached. Each shows its short sha, a link to the commit on GitHub when
 origin is there, and its subject; "No new commits" when there were none. Its cost is a dash. A new Deploy joins the end of the ordinary waiting queue. Its Queued n/N button lets the user move it ahead of
 waiting work and save that position. A merge already started finishes all its repositories before Deploy starts,
-even if it started after Deploy was queued. A merge still waiting for admission follows the saved order.
+even if it started after Deploy was queued and even while it waits for its repository: Deploy restarts the server,
+which would cut it short. The saved order decides only between Deploy and work not yet started.
 Once Deploy starts, new merges wait outside the repository lock until Deploy finishes, fails or is cancelled.
 Detached analysis and implementation runs can continue.
 Fetch and install share

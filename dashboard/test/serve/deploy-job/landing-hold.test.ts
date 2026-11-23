@@ -48,11 +48,11 @@ describe("a {doing} value", () => {
 });
 
 
-test("queued Deploy waits for actual admitted landings and ignores historical capture (AC-6)", () => {
+test("queued Deploy waits for every landing under way, admitted at its repository or not, and ignores historical capture (AC-6)", () => {
   const deploy = job({ id: "deploy", specFolder: "deploy", steps: ["deploy"], stepIndex: 0, state: "queued", deployWaitForLandings: ["first"] });
   const jobs = [deploy, job({ id: "first", landing: true }), job({ id: "later", landing: true })];
-  expect(deployWaitsFor(jobs, deploy.id, new Set(["later"])).map((j) => j.id)).toEqual(["later"]);
-  jobs[2]!.landing = false;
+  expect(deployWaitsFor(jobs, deploy.id, new Set(["later"])).map((j) => j.id)).toEqual(["first", "later"]);
+  for (const landing of jobs.slice(1)) landing.landing = false;
   expect(deployWaitsFor(jobs, deploy.id)).toEqual([]);
 });
 
