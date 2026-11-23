@@ -452,10 +452,23 @@
    phase lines' own margins above, which this replaces. */
 @media (max-width: 40rem) {
   table.speclist[data-list="jobs"] tr:is(.specstate, .subrow) > td[data-col="state"] { margin-left: auto; }
+  /* And the time ends at that edge, a few seconds as much as an hour. */
+  table.speclist[data-list="jobs"] tr:is(.specstate, .subrow, .groupline) > td[data-col="started"] { text-align: right; }
 }
 /* Where the phone leaves room, the line keeps a little after the time, so
    a long one ("12m 03s") still ends inside the card. At 360px the line is
    already full, and the room would push the time onto a line of its own. */
 @media (min-width: 25rem) and (max-width: 40rem) {
   table.speclist[data-list="jobs"] tr:is(.specstate, .subrow) { padding-right: var(--sp-1); }
+}
+
+/* The Jobs tab's Types and States give way to the "…" menu's rows a little
+   above a phone's width, where they and New group no longer fit on the
+   search line; the rest of the phone layout starts at 40rem as before. */
+@media (min-width: 40.0625rem) and (max-width: 47.5rem) {
+  #jobrows .specsearch { position: relative; }
+  #jobrows .specsearch > .menu.state { position: absolute; right: 0; top: 100%; }
+  #jobrows .specsearch > .menu.state > summary { display: none; }
+  body:has(#kind-filter) .menupanel > [data-jobs-filter],
+  body:has(#kind-filter) .menupanel > [data-opens="kind-filter"] { display: flex; }
 }
