@@ -69,6 +69,17 @@ describe("where a row stands on the tab: running or landing, queued, the rest; t
       .toEqual(["running", "queued", "waiting", "finished-new", "finished-old"]);
   });
 
+  test("queued rows follow the queue's own order, not the newest first", () => {
+    const places = [
+      ["third-made-first", jobPlace(job({ state: "queued", createdAt: T(1), queuePosition: { n: 3 } }))],
+      ["first-made-last", specPlace(group({ state: "queued", lead: { state: "queued", createdAt: T(9), queuePosition: { n: 1 } } }))],
+      ["second", jobPlace(job({ state: "queued", createdAt: T(5), queuePosition: { n: 2 } }))],
+      ["no-position", jobPlace(job({ state: "queued", createdAt: T(10) }))],
+    ] as const;
+    const ordered = [...places].sort((a, b) => byTabPlace(a[1], b[1])).map(([name]) => name);
+    expect(ordered).toEqual(["first-made-last", "second", "third-made-first", "no-position"]);
+  });
+
   test("running and landing specs come first, then the queued one, then the rest, newest first", () => {
     const places = [
       ["rest-t1", specPlace(group({ state: "not-started", createdAt: T(1) }))],

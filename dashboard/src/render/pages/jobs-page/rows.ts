@@ -33,6 +33,7 @@ export interface JobLike {
   landingError?: unknown;
   results?: readonly { terminalReason?: string }[];
   removedAt?: string;
+  queuePosition?: { n: number };
 }
 
 type TitleRow = { project: string; specFolder: string; steps: readonly string[]; stepIndex: number; deployCommit?: string; branch?: string; mergeTarget?: string };
@@ -64,11 +65,13 @@ const group = (job: JobLike): 0 | 1 | 2 | 3 => {
   return waitsForPerson(job) ? 2 : 3;
 };
 
-/** Where a row stands: its band (0 running or landing, 1 queued, 2 the rest)
- *  and when it last changed, in milliseconds. */
+/** Where a row stands: its band (0 running or landing, 1 queued, 2 waiting
+ *  for a person, 3 the rest), when it last changed, in milliseconds, and,
+ *  queued, its place in the queue's own order. */
 export interface TabPlace {
   band: 0 | 1 | 2 | 3;
   changedAt: number;
+  queued?: number;
 }
 
 /** The newest of a job's own stamps: made, started, finished. Not
@@ -82,6 +85,7 @@ export const jobPlace = (
   scheduleEntryExists?: (project: string, name: string) => boolean,
 ): TabPlace => {
   const band = group(job);
+  if (band === 1) return queuedPlace(lastStamp(job), job.queuePosition);
   if (band !== 2) return { band, changedAt: lastStamp(job) };
   const schedule = jobKind(job) === "schedule";
   const superseded = history.some((later) =>
@@ -97,16 +101,29 @@ export const jobPlace = (
  *  round, or, with no job, the day it was made. A spec git has not dated yet,
  *  with no job, was made moments ago: it is the newest, as the list's
  *  `sortGroups` treats it. */
-export const specPlace = (g: Pick<SpecGroup, "state" | "lead" | "createdAt">, jobs: readonly JobLike[] = []): TabPlace => ({
-  band: g.state === "running" ? 0 : g.state === "queued" ? 1 : ["archived", "closed"].includes(g.state) ? 3 : 2,
-  changedAt:
+export const specPlace = (g: Pick<SpecGroup, "state" | "lead" | "createdAt">, jobs: readonly JobLike[] = []): TabPlace => {
+  const changedAt =
     !g.lead && !g.createdAt && !jobs.length
       ? Number.MAX_SAFE_INTEGER
-      : Math.max(g.lead ? lastStamp(g.lead) : 0, ...jobs.map(lastStamp), Date.parse(g.createdAt ?? "") || 0),
-});
+      : Math.max(g.lead ? lastStamp(g.lead) : 0, ...jobs.map(lastStamp), Date.parse(g.createdAt ?? "") || 0);
+  if (g.state === "queued") return queuedPlace(changedAt, g.lead?.queuePosition);
+  return { band: g.state === "running" ? 0 : ["archived", "closed"].includes(g.state) ? 3 : 2, changedAt };
+};
 
-/** Running or landing first, then queued, then the rest; the newest change first in each. */
-export const byTabPlace = (a: TabPlace, b: TabPlace): number => a.band - b.band || b.changedAt - a.changedAt;
+/** A queued row's place: the queue's own position when it has one. */
+export const queuedPlace = (changedAt: number, position?: { n: number }): TabPlace =>
+  position ? { band: 1, changedAt, queued: position.n } : { band: 1, changedAt };
+
+/** Running or landing first, then queued in the order the queue starts them,
+ *  then the rest; the newest change first everywhere else. A queued row
+ *  without a position follows those with one. */
+export const byTabPlace = (a: TabPlace, b: TabPlace): number =>
+  a.band - b.band || byQueue(a, b) || b.changedAt - a.changedAt;
+
+const byQueue = (a: TabPlace, b: TabPlace): number =>
+  a.queued === undefined || b.queued === undefined
+    ? Number(a.queued === undefined) - Number(b.queued === undefined)
+    : a.queued - b.queued;
 
 /** Standalone job cards: every attempt, Merge attempts for one branch
  *  included, until Remove takes one off. Nothing leaves Jobs on its own. */

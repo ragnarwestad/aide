@@ -14,7 +14,7 @@ import { phaseSubRows } from "../specs-list/phase-rows.ts";
 import { groupArchiveAttempts } from "../specs-list/group-archive-projection.ts";
 import { specBusy } from "../specs-list/row-state.ts";
 import { activeDurationCell, costCell, createdLabel, phasePipKind } from "../specs-list/cell-helpers.ts";
-import { specPlace, type TabPlace } from "./rows.ts";
+import { queuedPlace, specPlace, type TabPlace } from "./rows.ts";
 import { columnGroup } from "../specs-list/filter-bar.ts";
 import { rowLabel } from "../../ui/components/spec-name.ts";
 import { t, type Language, type TranslationKey } from "../../../i18n";
@@ -101,10 +101,10 @@ export function executionGroupMemberPip(group: ExecutionGroup, folder: string, m
 export function executionGroupPlace(group: ExecutionGroup, rows: ExecutionGroupMemberRow[] = []): TabPlace {
   const activity = executionGroupActivity(group.state);
   const band = activity === "running" ? 0 : activity === "queued" ? 1 : group.state === "completed" ? 3 : 2;
-  const memberChanges = rows
-    .filter((row) => group.members.includes(row.group.specFolder) && row.group.project === group.project)
-    .map((row) => specPlace(row.group).changedAt);
-  return { band, changedAt: Math.max(Date.parse(group.startedAt ?? group.createdAt ?? "") || 0, ...memberChanges) };
+  const own = rows.filter((row) => group.members.includes(row.group.specFolder) && row.group.project === group.project);
+  const changedAt = Math.max(Date.parse(group.startedAt ?? group.createdAt ?? "") || 0, ...own.map((row) => specPlace(row.group).changedAt));
+  if (band === 1) return queuedPlace(changedAt, group.queuePosition ?? firstWaiting(own.map((row) => row.group.lead)));
+  return { band, changedAt };
 }
 
 /** `openFor`: the chosen state entries the card is shown for, which draw it open. */
