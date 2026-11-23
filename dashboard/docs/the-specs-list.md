@@ -42,8 +42,10 @@ icon before the spec's name and title, followed by one status line.
 On the Specs list that line is when the spec was created (the date and the time to the minute, what the Created sort
 orders by), its state and its actions. The list has four headings: Created, Specification, State and Actions. It sorts
 by Created, Specification, State and Actions. Actions sorts by the localized name of the first action the row offers.
-On the Running tab the line is the created stamp with the phase pips at its
-right, the state, the time and the cost; a phone shows the pips without the stamp. Under the row sit its notice lines, the `N not verified`
+On the Running tab the line is the Updated stamp — the newest time any of the row's jobs was made, started or finished,
+which is what the tab orders by — with the phase pips at its right, the state, the time and the cost. A phone from
+430px shows the stamp without its year (none on a card with six or seven pips below 470px); a narrower one shows the
+pips alone. Under the row sit its notice lines, the `N not verified`
 line among them when the spec has one. They belong to the shut row, so a reader sees what went wrong without opening
 it.
 

@@ -21,7 +21,7 @@ import {
   specPlace,
   specsStoodForByJobs,
   specRounds,
-  specJobCreatedAt,
+  jobsChangedAt,
 } from "../../../../src/render/pages/jobs-page/rows.ts";
 
 type J = Parameters<typeof jobsShown>[0][number];
@@ -422,17 +422,18 @@ test("schedule links name the configuration and the finished run's own report", 
   expect(scheduleJobLinks(job())).toBeUndefined();
 });
 
-test("a spec's Jobs date is its newest job creation, not its spec date or completion", () => {
+test("a spec's Jobs date is the newest stamp of its jobs, the one its row is ordered by", () => {
   const jobs = [job({ createdAt: T(2), finishedAt: T(9) }), job({ createdAt: T(7), startedAt: T(8) })];
-  expect(specJobCreatedAt(jobs)).toBe(T(7));
-  expect(specJobCreatedAt([...jobs].reverse())).toBe(T(7));
-  expect(specJobCreatedAt([])).toBeUndefined();
+  expect(Date.parse(jobsChangedAt(jobs)!)).toBe(Date.parse(T(9)));
+  expect(jobsChangedAt([...jobs].reverse())).toBe(jobsChangedAt(jobs));
+  expect(jobsChangedAt([])).toBeUndefined();
+  expect(specPlace({ state: "done", createdAt: jobsChangedAt(jobs) }, jobs).changedAt).toBe(Date.parse(jobsChangedAt(jobs)!));
   const rounds = specRounds([
     job({ createdAt: T(2), state: "done" }),
     job({ createdAt: T(5), steps: ["reopen"], state: "done", finishedAt: T(6) }),
     job({ createdAt: T(7), state: "done" }),
   ], T(1));
-  expect(rounds.map((round) => specJobCreatedAt(round.jobs))).toEqual([T(2), T(7)]);
+  expect(rounds.map((round) => Date.parse(jobsChangedAt(round.jobs)!))).toEqual([Date.parse(T(2)), Date.parse(T(7))]);
 });
 
 test("Jobs dates drive both the spec row and its position relative to Deploy, while Specs keeps its own date", () => {

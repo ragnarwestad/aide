@@ -4,7 +4,7 @@
 import { describe, expect, test } from "bun:test";
 import { jobRow, jobStepPipKind, type JobStep } from "../../../../src/render/pages/jobs-page/job-row.ts";
 import type { QueueRowView } from "../../../../src/render";
-import { createdLabel } from "../../../../src/render/pages/specs-list/cell-helpers.ts";
+import { stampHtml } from "../../../../src/render/pages/specs-list/cell-helpers.ts";
 
 const close = {
   id: "c1", project: "aide", specFolder: "01-x", steps: ["close"], stepIndex: 0, state: "failed",
@@ -61,9 +61,10 @@ describe("a job step's Cost cell", () => {
   });
 });
 
-describe("a job's created stamp", () => {
-  test("its row says when the job was made, as a spec's row says when the spec was", () => {
-    expect(draw()).toContain(createdLabel(close.createdAt));
+describe("a job's date", () => {
+  test("its row shows the time the Jobs tab orders it by", () => {
+    const at = Date.parse(close.createdAt) + 3_600_000;
+    expect(jobRow(close, { lang: "en", now: at, listPath: "/", filter: {}, changedAt: at })).toContain(stampHtml(new Date(at).toISOString()));
   });
 });
 

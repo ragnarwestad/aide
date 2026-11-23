@@ -141,6 +141,7 @@ export const en = {
   "list.colStateAlone": "State",
   "list.colActions": "Actions",
   "list.colCreated": "Created",
+  "list.colUpdated": "Updated",
   "list.colTime": "Time",
   "list.colCost": "Cost",
   "list.colTokens": "Tokens",

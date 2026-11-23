@@ -259,6 +259,13 @@ export function notLandedTitle(checkedAt: number | undefined, now: number): stri
  *  it: the date and the time to the minute, in the server's own time, the
  *  same in every language. What the Created sort orders by. Empty for a
  *  spec git could not date. */
+/** `createdLabel` as markup, its year in a span of its own, which a phone
+ *  leaves out where the line has room for the rest alone. */
+export function stampHtml(at: string | undefined): string {
+  const label = createdLabel(at);
+  return label ? `<span class="stampyear">${esc(label.slice(0, 5))}</span>${esc(label.slice(5))}` : "";
+}
+
 export function createdLabel(createdAt: string | undefined): string {
   const at = createdAt ? new Date(createdAt) : undefined;
   if (!at || Number.isNaN(at.getTime())) return "";

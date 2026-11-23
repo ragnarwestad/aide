@@ -247,10 +247,12 @@ export function scheduleJobLinks(row: JobLike): { settings: string; report?: str
   };
 }
 
-/** The most recently created job in this row's round, independent of when it ran or ended. */
-export function specJobCreatedAt(jobs: readonly Pick<JobLike, "createdAt">[]): string | undefined {
-  return jobs.reduce<string | undefined>((latest, job) =>
-    !latest || Date.parse(job.createdAt) > Date.parse(latest) ? job.createdAt : latest, undefined);
+/** When a spec's jobs last changed — the newest stamp any of them carries,
+ *  made, started or finished — which is what its row is ordered by and the
+ *  date the row shows. */
+export function jobsChangedAt(jobs: readonly Pick<JobLike, "createdAt" | "startedAt" | "finishedAt">[]): string | undefined {
+  const at = jobs.length ? Math.max(...jobs.map(lastStamp)) : 0;
+  return at > 0 ? new Date(at).toISOString() : undefined;
 }
 
 /** A visit starts with 100 cards; opened rows are explicit exceptions. */

@@ -17,6 +17,7 @@ import {
   archiveDateCell,
   costCell,
   createdLabel,
+  stampHtml,
   phasePips,
 } from "./cell-helpers.ts";
 import { foldControl, stateAction } from "./row-controls.ts";
@@ -241,7 +242,7 @@ export function specHeadRow(
     // is being run has come; a phone has room for the pips alone.
     `<td colspan="2">${opts.openSpec
       ? `<span class="muted small">${esc(createdLabel(g.createdAt))}</span>`
-      : `<span class="createdpips"><span class="muted small">${esc(createdLabel(g.createdAt))}</span>` +
+      : `<span class="createdpips"><span class="muted small">${stampHtml(g.createdAt)}</span>` +
         `<span class="pipslot">${phasePips(g.phases, g.done, lang)}</span>${openAction}</span>`}</td>` +
     // The badge says what is happening, or — once nothing is — the
     // resting state and what can happen next. No sentence

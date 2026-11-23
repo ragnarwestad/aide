@@ -188,3 +188,13 @@
     min-width: 100%; max-width: 100%; overflow: hidden; text-overflow: ellipsis;
   }
 }
+/* A wide enough phone has room for a Jobs card's date beside its pips,
+   without its year; narrower, the pips stand alone. */
+@media (min-width: 26.875rem) and (max-width: 40rem) {
+  table.speclist[data-list="jobs"] .createdpips > .muted { display: inline; white-space: nowrap; margin-right: auto; }
+  table.speclist[data-list="jobs"] .stampyear { display: none; }
+}
+/* Six or seven pips leave the date no room until the line is wider. */
+@media (min-width: 26.875rem) and (max-width: 29.3125rem) {
+  table.speclist[data-list="jobs"] .createdpips:has(.pip:nth-child(6)) > .muted { display: none; }
+}

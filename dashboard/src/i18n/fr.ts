@@ -140,6 +140,7 @@ export const fr: Record<TranslationKey, string> = {
   "list.colStateAlone": "État",
   "list.colActions": "Actions",
   "list.colCreated": "Créée",
+  "list.colUpdated": "Mis à jour",
   "list.colTime": "Temps",
   "list.colCost": "Coût",
   "list.colTokens": "Tokens",

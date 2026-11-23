@@ -3,7 +3,7 @@
 
 import { describe, expect, test } from "bun:test";
 import { renderSpecsRows } from "../../../../../src/render";
-import { createdLabel } from "../../../../../src/render/pages/specs-list/cell-helpers.ts";
+import { createdLabel, stampHtml } from "../../../../../src/render/pages/specs-list/cell-helpers.ts";
 
 describe("the created stamp", () => {
   test("is the date and the time to the minute, in local time", () => {
@@ -34,8 +34,9 @@ describe("the cell under a spec's title", () => {
     expect(draw(true)).toContain("2026-10-11 14:42");
   });
 
-  test("on the Running tab it holds the created stamp and the pips", () => {
-    expect(draw(false)).toContain("2026-10-11 14:42");
+  test("on the Running tab it holds the stamp, its year apart, and the pips", () => {
+    expect(stampHtml(createdAt)).toBe('<span class="stampyear">2026-</span>10-11 14:42');
+    expect(draw(false)).toContain(stampHtml(createdAt));
     expect(draw(false)).toContain('class="pipslot"');
   });
 });

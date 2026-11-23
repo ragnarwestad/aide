@@ -21,7 +21,7 @@ import { LIST_COLUMNS } from "../specs-list/row-shared.ts";
 import { jobsFilterBar, jobsHead } from "./filter-bar.ts";
 import { columnGroup, listTable } from "../specs-list/filter-bar.ts";
 import { jobRow } from "./job-row.ts";
-import { byTabPlace, jobPlace, jobRowKeys, jobRowKind, markedWithKind, specPlace, specRounds, specJobCreatedAt, specHasWork, specsStoodForByJobs, type TabPlace } from "./rows.ts";
+import { byTabPlace, jobPlace, jobRowKeys, jobRowKind, markedWithKind, specPlace, specRounds, jobsChangedAt, specHasWork, specsStoodForByJobs, type TabPlace } from "./rows.ts";
 import { jobFacts, jobsMatchingCount, jobsSearchMatch, jobsStateOpensGroups, jobsViewRows, type RowFacts } from "./view.ts";
 import { executionGroupActivity, type ExecutionGroup } from "../../../queue/execution-groups";
 import { executionGroupCard, executionGroupPlace } from "./execution-group-card.ts";
@@ -95,7 +95,8 @@ export function jobsEntries(v: JobsView, draws: Draws = () => true): { key: stri
     const members = specRows.filter((row) => group.project === row.group.project && group.members.includes(row.group.specFolder));
     const failed = members.find((row) => ["failed", "cancelled", "archived-unlanded"].includes(row.group.state));
     const key = `execution-group:${group.id}`;
-    const createdAt = specJobCreatedAt(members.flatMap((member) => member.jobs)) ?? group.createdAt;
+    const place = executionGroupPlace(group, members);
+    const createdAt = place.changedAt > 0 && place.changedAt < Number.MAX_SAFE_INTEGER ? new Date(place.changedAt).toISOString() : group.createdAt;
     // Each member's current row, by its key: an earlier round of a reopened
     // member is a row of its own, and is counted there.
     const current: RowFacts[] = group.members
@@ -122,19 +123,20 @@ export function jobsEntries(v: JobsView, draws: Draws = () => true): { key: stri
           list: v.list,
         })
         : "",
-      place: executionGroupPlace(group, members),
+      place,
       facts,
     };
   });
   const rowKeys = v.rowKeys ?? jobRowKeys(v.shown);
   const jobs = v.shown.map((job) => {
     const key = rowKeys.get(job.id)!;
+    const place = jobPlace(job, v.shown, v.scheduleEntryExists);
     return {
       key,
       html: draws(key)
-        ? markedWithKind(jobRow(job, { lang, now, filter: v.list.filter ?? {}, listPath: v.list.listPath ?? "/", steps: v.list.closeOrReopenSteps, pips: v.list.jobStepPips, commits: v.list.deployCommits, key }), jobRowKind(job))
+        ? markedWithKind(jobRow(job, { changedAt: place.changedAt, lang, now, filter: v.list.filter ?? {}, listPath: v.list.listPath ?? "/", steps: v.list.closeOrReopenSteps, pips: v.list.jobStepPips, commits: v.list.deployCommits, key }), jobRowKind(job))
         : "",
-      place: jobPlace(job, v.shown, v.scheduleEntryExists),
+      place,
       facts: jobFacts(job, now),
     };
   });
@@ -156,7 +158,7 @@ function roundSpecRows(v: JobsView, now: number, draws: Draws = () => true): Spe
   const roundOf = (key: string): QueueRowView[] => currentWorkRoundJobs(bySpec.get(key) ?? []);
   const list: SpecsPageOptions = {
     ...v.list,
-    jobCreatedAt: (project, folder) => specJobCreatedAt(roundOf(groupKey(project, folder))),
+    jobCreatedAt: (project, folder) => jobsChangedAt(roundOf(groupKey(project, folder))),
   };
   const rows: SpecRow[] = activeSpecRows(v.specJobs, list, now, v.specs, draws).map((row) => ({ ...row, jobs: roundOf(row.key) }));
   const drawn = new Set(rows.map((row) => row.key));
@@ -179,7 +181,7 @@ function roundSpecRows(v: JobsView, now: number, draws: Draws = () => true): Spe
     for (const round of specRounds(jobs, target.createdAt).slice(0, -1)) {
       const key = `${baseKey}@${encodeURIComponent(round.startedAt)}`;
       const open = (v.list.filter?.open ?? "").split(",").includes(key) ? baseKey : "";
-      const createdAt = specJobCreatedAt(round.jobs) ?? round.startedAt;
+      const createdAt = jobsChangedAt(round.jobs) ?? round.startedAt;
       const roundTarget = withSpecFacts(target, { createdAt });
       const built = specRowsOf(groupBySpec(round.jobs, [roundTarget], undefined, undefined, now, undefined, [], v.list.summary ?? !draws(key)), {
         ...v.list, targets: [roundTarget], archivedSpecs: [], filter: { ...v.list.filter, open },

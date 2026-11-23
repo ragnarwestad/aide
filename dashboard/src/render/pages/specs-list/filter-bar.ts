@@ -279,7 +279,7 @@ export const columnGroup = (specsList = false): string =>
 /** The five headings the list's table carries. Cost's heading holds both units; the reader's choice
  *  shows one. */
 const HEADINGS: { key: string; label: TranslationKey; cls?: string; attrs: string; labelHtml?: (lang: Language) => string; plain?: boolean }[] = [
-  { key: "created", label: "list.colCreated", attrs: ' colspan="2" data-col="created"' },
+  { key: "created", label: "list.colUpdated", attrs: ' colspan="2" data-col="created"' },
   { key: "spec", label: "list.colSpec", attrs: ' data-col="spec"' },
   { key: "state", label: "list.colStateAlone", attrs: ' data-col="state"' },
   { key: "started", label: "list.colTime", attrs: ' data-col="started"' },

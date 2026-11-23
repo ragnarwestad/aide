@@ -46,7 +46,7 @@ const TWO = "aide/02-two";
  *  row view was built for; `archive` the keys each read of the archive was cut
  *  to, `undefined` for a read of the whole archive. */
 function board(count?: number, mixed = false) {
-  const records = count ? Array.from({ length: count }, (_, i) => job({ id: `j${i}`, specFolder: mixed && i % 4 === 0 ? `schedule-${i}` : `${String(i).padStart(5, "0")}-item`, ...(!mixed ? { createdAt: new Date(Date.UTC(2026, 9, 1, 0, i)).toISOString() } : {}), ...(mixed ? { steps: [i % 4 === 0 ? "schedule" : "analyze"], state: i % 4 === 0 ? "failed" : "running" } : {}) })) : JOBS;
+  const records = count ? Array.from({ length: count }, (_, i) => job({ id: `j${i}`, specFolder: mixed && i % 4 === 0 ? `schedule-${i}` : `${String(i).padStart(5, "0")}-item`, ...(!mixed ? { createdAt: new Date(Date.UTC(2026, 9, 1, 0, i)).toISOString(), startedAt: new Date(Date.UTC(2026, 9, 1, 0, i)).toISOString(), finishedAt: new Date(Date.UTC(2026, 9, 1, 0, i, 30)).toISOString() } : {}), ...(mixed ? { steps: [i % 4 === 0 ? "schedule" : "analyze"], state: i % 4 === 0 ? "failed" : "running" } : {}) })) : JOBS;
   const dir = mkdtempSync(join(tmpdir(), "aide-one-row-reads-"));
   dirs.push(dir);
   writeFileSync(join(dir, "queue.json"), JSON.stringify(records));

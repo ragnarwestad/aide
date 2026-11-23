@@ -13,7 +13,7 @@ import { isArchivedRow } from "../specs-list";
 import { phaseSubRows } from "../specs-list/phase-rows.ts";
 import { groupArchiveAttempts } from "../specs-list/group-archive-projection.ts";
 import { specBusy } from "../specs-list/row-state.ts";
-import { activeDurationCell, costCell, createdLabel, phasePipKind } from "../specs-list/cell-helpers.ts";
+import { activeDurationCell, costCell, phasePipKind, stampHtml } from "../specs-list/cell-helpers.ts";
 import { queuedPlace, specPlace, type TabPlace } from "./rows.ts";
 import { columnGroup } from "../specs-list/filter-bar.ts";
 import { rowLabel } from "../../ui/components/spec-name.ts";
@@ -142,7 +142,7 @@ export function executionGroupCard(
   const controls = executionGroupControls(group, states);
   const name = group.displayName ?? group.name;
   const key = `${group.project}\n${group.name}`;
-  const created = createdLabel(group.createdAt);
+  const created = stampHtml(group.createdAt);
   const control = controls.action ? buttonForm({
     action: `/api/queue/groups/${encodeURIComponent(group.id)}/action`,
     hook: "actionform",
@@ -180,7 +180,7 @@ export function executionGroupCard(
   const head = `<tbody data-group-head><tr class="grouphead">` +
     `<td class="foldcell" rowspan="2" data-col="fold">${foldButton({ label: name, open, data: { "group-toggle": key } })}</td>` +
     `<td colspan="5"><div class="groupheadline"><div class="spec-name">${rowLabel({ project: group.project, kind: "group", name, lang: lang as Language })}</div>${menu}</div></td></tr>` +
-    `<tr class="groupline"><td colspan="2"><span class="createdpips"><span class="muted small">${esc(created)}</span>` +
+    `<tr class="groupline"><td colspan="2"><span class="createdpips"><span class="muted small">${created}</span>` +
     `<span class="pipslot">${memberPips}</span>` +
     // Its action, while the card is open, before the state, as a job's is.
     (control ? `<span class="actionslot" data-group-action${open ? "" : " hidden"}>${control}</span>` : "") + `</span></td>` +
