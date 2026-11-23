@@ -44,6 +44,12 @@ table.list > tbody > tr[hidden] { display: none; }
    and 8px above its bottom. A block with `vertical-align: middle` on the
    cell is centred in it. 40px is the target's own height. */
 table.list td.foldcell > .fold { display: block; width: 100%; height: 40px; line-height: 40px; margin: 0; }
+/* The target is 40px tall and reaches up beside the kind icon on a narrow
+   card, so its hover ground is drawn round the chevron alone, the 24px
+   square every other fold shows, and never over the icon. */
+table.list td.foldcell > .fold:hover { background: none; }
+table.list td.foldcell > .fold:hover svg { background: var(--surface-2); border-radius: var(--r-s);
+  box-shadow: 0 0 0 5px var(--surface-2); }
 /* The spec's own chevron is drawn larger than the phases' and the
    messages': it opens the whole spec, and is the one a reader hunts for. */
 table.list td.foldcell > .fold > svg { vertical-align: middle; width: 20px; height: 20px; }
