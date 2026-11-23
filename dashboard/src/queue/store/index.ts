@@ -27,7 +27,7 @@ import {
 import { gerund, landingStepIndex } from "../../format/gerund.ts";
 import { specReference } from "../../project/spec-folder.ts";
 
-import { loadJobs, writeJobs } from "./mirror.ts";
+import { JobsMirror } from "./mirror.ts";
 import { loadModelIds, recordModelId } from "./model-ids.ts";
 import { loadPendingModels, loadPendingSteps, pendingProvidersPath, savePendingTable } from "./pending-tables.ts";
 import { editTailModel, renamePendingModel, setPendingModel, writePendingModel, type PickContext } from "./picks.ts";
@@ -40,7 +40,8 @@ export class QueueStore {
   readonly waiting: WaitingQueue;
   private readonly jobs = new Map<string, Job>(); // insertion order = age order
   private readonly cap: number;
-  private readonly mirrorPath?: string;
+  /** The queue file; `storage.fault` says whether the latest change is on disk. */
+  readonly storage: JobsMirror;
   private readonly pendingModelsPath?: string;
   private readonly modelIdsPath?: string;
   private readonly pendingStepsPath?: string;
@@ -72,7 +73,7 @@ export class QueueStore {
   constructor(opts: QueueOptions) {
     this.executionGroups = new ExecutionGroupStore(opts.executionGroupsPath);
     this.cap = opts.cap ?? 1000;
-    this.mirrorPath = opts.mirrorPath;
+    this.storage = new JobsMirror(opts.mirrorPath, (line) => this.log(line));
     this.pendingModelsPath = opts.pendingModelsPath;
     this.pendingProvidersPath = pendingProvidersPath(opts.pendingModelsPath);
     this.modelIdsPath = opts.modelIdsPath;
@@ -85,7 +86,7 @@ export class QueueStore {
     // Before `load()`, which is not a change: nothing is listening yet
     // on the first construction, and a mirror read back at boot is the
     // store finding out what it already was.
-    loadJobs(this.mirrorPath, this.jobs);
+    this.storage.load(this.jobs);
     for (const [id, job] of this.jobs) if (job.state === "cancelled" && discardOnCancel(job)) this.jobs.delete(id);
     while (this.jobs.size > this.cap) this.jobs.delete(this.jobs.keys().next().value as string);
     // A running member decides the group's activity ahead of queued members.
@@ -451,7 +452,7 @@ export class QueueStore {
   }
 
   private mirror(): void {
-    writeJobs(this.mirrorPath, this.jobs.values());
+    this.storage.write(this.jobs.values());
   }
 
   private syncExecutionGroup(job: Job): void {

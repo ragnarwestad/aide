@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ExecutionGroupStore } from "../../../src/queue/execution-groups/index.ts";
 import { QueueStore } from "../../../src/queue/queue.ts";
+import { clearAllStorageFaults } from "../../../src/queue/store/storage-faults.ts";
 
 let dir: string;
 let path: string;
@@ -12,7 +13,10 @@ beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), "aide-execution-groups-"));
   path = join(dir, "execution-groups.json");
 });
-afterEach(() => rmSync(dir, { recursive: true, force: true }));
+afterEach(() => {
+  clearAllStorageFaults();
+  rmSync(dir, { recursive: true, force: true });
+});
 
 describe("ExecutionGroupStore", () => {
   test("prepares one durable identity with creation separate from members (AC-1, AC-2)", () => {
@@ -225,4 +229,68 @@ test("a user stop survives cancellation callbacks and reloads but clears when th
   restored.queueMember(group.id, "2-next");
   restored.stop(group.id);
   expect(restored.get(group.id)?.stoppedByUser).toBeUndefined();
+});
+
+describe("ExecutionGroupStore on a file it cannot use", () => {
+  const RELEASE = { project: "aide", name: "Release", members: ["1-first"], branch: "group/1-first" };
+
+  test("no file starts empty, as on a first start (AC-1)", () => {
+    const store = new ExecutionGroupStore(path);
+    expect(store.list()).toEqual([]);
+    expect(store.fault).toBeUndefined();
+  });
+
+  test("a file holding valid JSON that is not a list is reported, refuses changes and is left as it is (AC-2)", () => {
+    writeFileSync(path, '{"x":1}');
+    const store = new ExecutionGroupStore(path);
+    expect(store.fault).toMatchObject({ file: path, store: "groups", action: "read" });
+    expect(() => store.create(RELEASE)).toThrow(path);
+    expect(readFileSync(path, "utf-8")).toBe('{"x":1}');
+    expect(store.list()).toEqual([]);
+  });
+
+  test("an entry the store cannot read is kept beside the file before anything is written (AC-2)", () => {
+    const valid = { id: "kept", project: "aide", name: "Old", members: ["1-first"], branch: "group/1-first", state: "prepared", jobs: [], completedMembers: [] };
+    const broken = { id: "broken", project: "aide", state: "no-such-state" };
+    writeFileSync(path, JSON.stringify([valid, broken]));
+    const store = new ExecutionGroupStore(path, undefined, () => "group-2");
+    store.create({ ...RELEASE, name: "New" });
+    expect(store.list().map((group) => group.id).sort()).toEqual(["group-2", "kept"]);
+    expect(JSON.parse(readFileSync(`${path}.rejected.json`, "utf-8"))).toEqual([broken]);
+    expect(store.fault).toBeUndefined();
+  });
+
+  test("a failed write throws with the file and the reason and leaves the group as it was (AC-3)", () => {
+    const store = new ExecutionGroupStore(path, () => "2026-11-11T18:00:00.000Z", () => "group-1");
+    const made = store.create(RELEASE);
+    rmSync(path);
+    mkdirSync(path);
+    let message = "";
+    try {
+      store.update(made.id, { state: "running" });
+    } catch (error) {
+      message = (error as Error).message;
+    }
+    expect(message).toContain(path);
+    expect(store.fault).toMatchObject({ file: path, store: "groups", action: "write" });
+    expect(message).toContain(store.fault!.reason);
+    expect(store.get(made.id)).toEqual(made);
+  });
+
+  test("a write blocked by a directory at the temporary file's path throws with the file and records the fault (AC-3)", () => {
+    const store = new ExecutionGroupStore(path, () => "2026-11-11T18:00:00.000Z", () => "group-1");
+    const made = store.create(RELEASE);
+    mkdirSync(`${path}.tmp`);
+    expect(() => store.update(made.id, { state: "running" })).toThrow(path);
+    expect(store.fault).toMatchObject({ file: path, store: "groups", action: "write" });
+    expect(store.get(made.id)).toEqual(made);
+  });
+
+  test("a change reported as stored is read back after a restart (AC-4)", () => {
+    const store = new ExecutionGroupStore(path, () => "2026-11-11T18:00:00.000Z", () => "group-1");
+    const made = store.create(RELEASE);
+    const updated = store.update(made.id, { state: "stopped", error: "kept" });
+    expect(store.fault).toBeUndefined();
+    expect(new ExecutionGroupStore(path).get(made.id)).toEqual(updated);
+  });
 });

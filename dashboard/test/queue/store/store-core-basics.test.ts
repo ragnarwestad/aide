@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { rmSync, mkdtempSync, existsSync, readFileSync, writeFileSync } from "node:fs";
+import { rmSync, mkdirSync, mkdtempSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ERROR_REASONS } from "../../../src/job-states.ts";
 import { QueueStore, type QueueDefaults } from "../../../src/queue/queue.ts";
+import { clearAllStorageFaults } from "../../../src/queue/store/storage-faults.ts";
 
 const DEFAULTS: QueueDefaults = {
   // Per step: an implement is not an analyze, and one number for both
@@ -32,7 +33,10 @@ beforeEach(() => {
   mirrorPath = join(dir, "queue.json");
 });
 
-afterEach(() => rmSync(dir, { recursive: true, force: true }));
+afterEach(() => {
+  clearAllStorageFaults();
+  rmSync(dir, { recursive: true, force: true });
+});
 
 
 describe("QueueStore", () => {
@@ -105,17 +109,81 @@ describe("QueueStore", () => {
     expect(at1000).toBeLessThanOrEqual(at200 * 8 + 5);
   });
 
-  test("update persists and survives a restart", () => {
+  test("an update reported as stored survives a restart (AC-4)", () => {
     const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
     const r = store.enqueue(REQ);
     if (!r.ok) throw new Error("enqueue failed");
     store.update(r.job.id, { state: "failed" });
+    expect(store.storage.fault).toBeUndefined();
     expect(new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve }).get(r.job.id)?.state).toBe("failed");
   });
 
-  test("a corrupt mirror is survivable — the store starts empty", () => {
+  test("no queue file and no groups file start empty, as on a first start, and the first enqueue writes the file (AC-1)", () => {
+    const executionGroupsPath = join(dir, "execution-groups.json");
+    const store = new QueueStore({ mirrorPath, executionGroupsPath, defaults: DEFAULTS, resolve });
+    expect(store.list()).toEqual([]);
+    expect(store.executionGroups.list()).toEqual([]);
+    expect(store.storage.fault).toBeUndefined();
+    expect(store.executionGroups.fault).toBeUndefined();
+    expect(store.enqueue(REQ).ok).toBe(true);
+    expect(existsSync(mirrorPath)).toBe(true);
+  });
+
+  test("a queue file holding invalid data is reported and left as it is (AC-2)", () => {
     writeFileSync(mirrorPath, "{not json");
-    expect(new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve }).list()).toEqual([]);
+    const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
+    expect(store.list()).toEqual([]);
+    store.enqueue(REQ);
+    expect(readFileSync(mirrorPath, "utf-8")).toBe("{not json");
+    expect(store.storage.fault).toMatchObject({ file: mirrorPath, store: "queue", action: "read" });
+    expect(store.storage.fault?.reason).toBeTruthy();
+  });
+
+  test("a queue file holding valid JSON that is not a list is reported and left as it is (AC-2)", () => {
+    writeFileSync(mirrorPath, '{"x":1}');
+    const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
+    store.enqueue(REQ);
+    expect(readFileSync(mirrorPath, "utf-8")).toBe('{"x":1}');
+    expect(store.storage.fault).toMatchObject({ file: mirrorPath, action: "read" });
+  });
+
+  test("an entry the queue cannot read is kept beside the file before anything is written (AC-2)", () => {
+    const seed = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
+    const kept = seed.enqueue(REQ);
+    if (!kept.ok) throw new Error("enqueue failed");
+    const raw = JSON.parse(readFileSync(mirrorPath, "utf-8")) as Record<string, unknown>[];
+    const retired = { ...raw[0], id: "old-gated", state: "awaiting-approval" };
+    writeFileSync(mirrorPath, JSON.stringify([...raw, retired]));
+    const lines: string[] = [];
+    const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve, log: (line) => lines.push(line) });
+    const added = store.enqueue({ ...REQ, steps: ["implement"] });
+    if (!added.ok) throw new Error("enqueue failed");
+    expect(store.list().map((job) => job.id).sort()).toEqual([kept.job.id, added.job.id].sort());
+    expect(JSON.parse(readFileSync(`${mirrorPath}.rejected.json`, "utf-8"))).toEqual([retired]);
+    expect(lines.some((line) => line.includes(`${mirrorPath}.rejected.json`))).toBe(true);
+    expect(store.storage.fault).toBeUndefined();
+  });
+
+  test("a write blocked by a directory at the temporary file's path is still reported, not thrown (AC-3)", () => {
+    const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
+    mkdirSync(`${mirrorPath}.tmp`);
+    expect(store.enqueue(REQ).ok).toBe(true);
+    expect(store.storage.fault).toMatchObject({ file: mirrorPath, store: "queue", action: "write" });
+  });
+
+  test("a failed write is reported with the file and the reason, and cleared by the next write that succeeds (AC-3)", () => {
+    const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
+    mkdirSync(mirrorPath);
+    const first = store.enqueue(REQ);
+    if (!first.ok) throw new Error("enqueue failed");
+    expect(store.storage.fault).toMatchObject({ file: mirrorPath, store: "queue", action: "write" });
+    expect(store.storage.fault?.reason).toBeTruthy();
+    rmSync(mirrorPath, { recursive: true });
+    const second = store.enqueue({ ...REQ, steps: ["implement"] });
+    if (!second.ok) throw new Error("enqueue failed");
+    expect(store.storage.fault).toBeUndefined();
+    const onDisk = (JSON.parse(readFileSync(mirrorPath, "utf-8")) as { id: string }[]).map((job) => job.id);
+    expect(onDisk.sort()).toEqual([first.job.id, second.job.id].sort());
   });
 
   // Three jobs on this machine were posted with

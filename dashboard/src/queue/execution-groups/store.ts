@@ -2,6 +2,7 @@ import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { randomUUID } from "node:crypto";
 import { EXECUTION_GROUP_STATES, type ExecutionGroup, type PrepareExecutionGroup } from "./types.ts";
+import { clearStorageFault, isMissing, keepRejected, removeTemp, setStorageFault, storageReason, type StorageFault } from "../store/storage-faults.ts";
 
 interface LegacyJob {
   id: string;
@@ -30,7 +31,11 @@ function parse(value: unknown): ExecutionGroup | undefined {
 }
 
 export class ExecutionGroupStore {
-  private readonly groups = new Map<string, ExecutionGroup>();
+  private groups = new Map<string, ExecutionGroup>();
+  private current?: StorageFault;
+  /** Set when the file was there but could not be used: it is then never
+   *  written for the life of the process, so it stays as it was found. */
+  private locked = false;
 
   constructor(
     private readonly path?: string,
@@ -38,15 +43,35 @@ export class ExecutionGroupStore {
     private readonly id: () => string = randomUUID,
   ) {
     if (!path) return;
+    let raw: unknown;
     try {
-      const raw = JSON.parse(readFileSync(path, "utf-8"));
-      if (Array.isArray(raw)) for (const entry of raw) {
-        const group = parse(entry);
-        if (group) this.groups.set(group.id, group);
-      }
-    } catch {
-      // A missing or unreadable optional registry starts empty.
+      raw = JSON.parse(readFileSync(path, "utf-8"));
+    } catch (error) {
+      // A missing file is a first start; anything else is a file to keep.
+      if (!isMissing(error)) this.readFault(storageReason(error));
+      return;
     }
+    if (!Array.isArray(raw)) { this.readFault("not a JSON list"); return; }
+    const rejected = raw.filter((entry) => !parse(entry));
+    if (rejected.length > 0) {
+      try {
+        const kept = keepRejected(path, rejected);
+        console.error(`execution groups: ${rejected.length} group(s) in ${path} could not be read and are kept in ${kept}`);
+      } catch (error) {
+        this.readFault(`the entries it could not read were not kept: ${storageReason(error)}`);
+        return;
+      }
+    }
+    for (const entry of raw) {
+      const group = parse(entry);
+      if (group) this.groups.set(group.id, group);
+    }
+  }
+
+  /** Undefined while the latest change is on disk; otherwise the file,
+   *  whether reading or writing it failed, and the reason. */
+  get fault(): StorageFault | undefined {
+    return this.current ? { ...this.current } : undefined;
   }
 
   list(): ExecutionGroup[] { return [...this.groups.values()].map((group) => structuredClone(group)); }
@@ -60,8 +85,7 @@ export class ExecutionGroupStore {
   create(input: PrepareExecutionGroup): ExecutionGroup {
     if (this.findUnfinished(input.project, input.name)) throw new Error(`execution group ${input.name} already exists`);
     const group: ExecutionGroup = { ...input, members: [...input.members], id: this.id(), createdAt: this.now(), state: "prepared", completedMembers: [], jobs: [] };
-    this.groups.set(group.id, group);
-    this.write();
+    this.commit(group);
     return structuredClone(group);
   }
   prepare(input: PrepareExecutionGroup): ExecutionGroup {
@@ -87,16 +111,14 @@ export class ExecutionGroupStore {
         logs: job.results.map(({ step, sessionId, streamFile }) => ({ step, sessionId, streamFile })),
       })),
     };
-    this.groups.set(group.id, group);
-    this.write();
+    this.commit(group);
     return structuredClone(group);
   }
   update(id: string, patch: Partial<Omit<ExecutionGroup, "id" | "project">>): ExecutionGroup {
     const current = this.groups.get(id);
     if (!current) throw new Error(`no such execution group: ${id}`);
     const next = { ...current, ...structuredClone(patch), ...(patch.state && patch.state !== "stopped" ? { stoppedByUser: undefined } : {}), id: current.id, project: current.project };
-    this.groups.set(id, next);
-    this.write();
+    this.commit(next);
     return structuredClone(next);
   }
   start(id: string, at = this.now()): ExecutionGroup {
@@ -124,11 +146,32 @@ export class ExecutionGroupStore {
     const state = this.get(id)?.state;
     return state === "running" || state === "archiving" ? this.waitForAcceptance(id) : this.get(id)!;
   }
-  private write(): void {
-    if (!this.path) return;
-    mkdirSync(dirname(this.path), { recursive: true });
-    const temp = `${this.path}.tmp`;
-    writeFileSync(temp, `${JSON.stringify([...this.groups.values()], null, 2)}\n`);
-    renameSync(temp, this.path);
+  private readFault(reason: string): void {
+    this.current = { file: this.path!, store: "groups", action: "read", reason };
+    this.locked = true;
+    setStorageFault(this.current);
+  }
+  /** Writes the groups with `group` in them, and only then keeps the
+   *  change in memory: a change that did not reach the file throws with
+   *  the file and the reason, and leaves every group as it was. */
+  private commit(group: ExecutionGroup): void {
+    const next = new Map(this.groups).set(group.id, group);
+    if (this.path) {
+      if (this.locked) throw new Error(`${this.path} could not be read (${this.current!.reason}), so the change was not saved`);
+      const temp = `${this.path}.tmp`;
+      try {
+        mkdirSync(dirname(this.path), { recursive: true });
+        writeFileSync(temp, `${JSON.stringify([...next.values()], null, 2)}\n`);
+        renameSync(temp, this.path);
+      } catch (error) {
+        removeTemp(temp);
+        this.current = { file: this.path, store: "groups", action: "write", reason: storageReason(error) };
+        setStorageFault(this.current);
+        throw new Error(`${this.path} could not be saved (${this.current.reason}), so the change was not made`);
+      }
+      this.current = undefined;
+      clearStorageFault(this.path);
+    }
+    this.groups = next;
   }
 }

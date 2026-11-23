@@ -18,6 +18,7 @@ import { toolsMissingModels, toolsWithFaults } from "./tool-checks.ts";
 import { TOOL_TAB_LABELS } from "../pages/settings-page/tools.ts";
 import { currentScheduleFaults } from "./faults/schedule-faults.ts";
 import { scheduleSettingsPath } from "../pages/schedule-page/tabs.ts";
+import { storageFaults } from "../../queue/store/storage-faults.ts";
 
 /** Where deploy/install-after-merge.sh writes its log: macOS's own log
  *  directory, and beside the dashboard's state everywhere else. */
@@ -151,11 +152,22 @@ function deployFaultNotice(lang: Language): string {
   return rowMessage("failed", formatSentence(lang, fault) ?? "", { tag: "p", hook: "deploy-fault" });
 }
 
+/** A queue or groups file the board could not read or write: one line per
+ *  file, saying what the failure left behind, until a write succeeds. */
+function storageFaultNotices(lang: Language): string {
+  return storageFaults()
+    .map(({ file, store, action, reason }) => {
+      const key = action === "read" ? "shell.storageFaultRead" : store === "queue" ? "shell.storageFaultQueueWrite" : "shell.storageFaultGroupWrite";
+      return rowMessage("failed", t(lang, key, { file, reason }), { tag: "p", hook: "storage-fault" });
+    })
+    .join("");
+}
+
 export function headerNotices(lang: Language): string {
   const installBanner = lastInstallWarnings(lang)
     .map((warning) => rowMessage("waiting", warning, { tag: "p", hook: "install-warning" }))
     .join("");
   return (
-    installBanner + checkoutFaultNotices(lang) + toolFaultNotices(lang) + missingModelsNotices(lang) + scheduleFaultNotices(lang) + deployFaultNotice(lang)
+    installBanner + checkoutFaultNotices(lang) + toolFaultNotices(lang) + missingModelsNotices(lang) + scheduleFaultNotices(lang) + deployFaultNotice(lang) + storageFaultNotices(lang)
   );
 }
