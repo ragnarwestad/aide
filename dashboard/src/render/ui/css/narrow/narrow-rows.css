@@ -470,6 +470,9 @@
      phone's width, so a card does not change shape at 640px. */
   table.speclist[data-list="jobs"] tr.spechead > td { padding-top: var(--sp-3); }
   table.speclist[data-list="jobs"] tr.specstate { padding-bottom: var(--sp-3); }
+  /* A message under the state line brings its own box: the line leaves it
+     the same air as above a phone's width, not a card edge's. */
+  table.speclist[data-list="jobs"] tr.specstate:has(+ tr.specnotice) { padding-bottom: 0; }
 }
 /* The time keeps the card's own room at its right where the phone has it.
    Under 25rem a line is already full, and from 27.5rem, where the AI and
