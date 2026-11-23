@@ -1,0 +1,4 @@
+{
+  "_comment": "Folder names worktreeLinks may not name: a build WRITES into them, or a tool locks a cache in them — never a dependency cache a build only reads. A link is one symlink into the main checkout that every concurrent run shares, so two runs building through it overwrite each other's output. Compared with the LAST folder name of an entry, so `backend/build` is refused like `build`. One source, read by core/scripts/lib/run-spec/setup/arguments.sh (jq) and by dashboard/src/project/project-admin/manifest-io.ts (import).",
+  "deniedLinkNames": ["build", "target", "dist", ".gradle"]
+}

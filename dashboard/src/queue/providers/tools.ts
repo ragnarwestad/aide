@@ -1,22 +1,40 @@
 // The dashboard's three sets of tools and the names they go by, written once.
-// This module imports nothing, so any layer can read it at load time without
-// joining an import cycle; every type that takes a tool derives from a list here.
+// This module imports only the shared list of runnable tools, so any layer can
+// read it at load time without joining an import cycle; every type that takes
+// a tool derives from a list here.
+
+import runnableToolsData from "../../../../core/scripts/lib/runnable-tools.json" with { type: "json" };
 
 /** The tools a provider can be a login for. */
 export const PROVIDER_TOOLS = ["claude", "codex", "opencode"] as const;
 export type ProviderTool = (typeof PROVIDER_TOOLS)[number];
 
-/** The CLIs a step can run on, as `--tool` spells them. One list, read
+// The type checker needs the names as literals; the values come from the
+// shared file, and `checkRunnableTools` below holds the two equal.
+const RUNNABLE_TOOL_TYPES = [...PROVIDER_TOOLS, "fake-claude"] as const;
+export type RunnableTool = (typeof RUNNABLE_TOOL_TYPES)[number];
+const RESULT_TOOL_TYPES = [...RUNNABLE_TOOL_TYPES, "none"] as const;
+export type ResultTool = (typeof RESULT_TOOL_TYPES)[number];
+
+/** The CLIs a step can run on, as `--tool` spells them, from
+ *  `core/scripts/lib/runnable-tools.json`, the list the runner checks
+ *  `--tool` and the Review, Verify and plan-review tools against. Read
  *  wherever a tool name arrives as a string at runtime: the config
- *  file's `modelChoices`, and a result file's own `tool`. A hand-written
- *  copy of these names is how `opencode` reached the board as a type but
- *  not as a value - the type checker cannot see a string comparison. */
-export const RUNNABLE_TOOLS = [...PROVIDER_TOOLS, "fake-claude"] as const;
-export type RunnableTool = (typeof RUNNABLE_TOOLS)[number];
+ *  file's `modelChoices`, and a result file's own `tool`. */
+export const RUNNABLE_TOOLS = runnableToolsData.runnableTools as readonly RunnableTool[];
 
 /** What a step's result records it ran with: `none` is a create that ran no AI. */
-export const RESULT_TOOLS = [...RUNNABLE_TOOLS, "none"] as const;
-export type ResultTool = (typeof RESULT_TOOLS)[number];
+export const RESULT_TOOLS: readonly ResultTool[] = [...RUNNABLE_TOOLS, "none"];
+
+/** Throws when the shared file's list and the tools this module describes
+ *  differ, in a name or in order. */
+export function checkRunnableTools(fromFile: readonly string[], described: readonly string[]): void {
+  if (fromFile.length === described.length && fromFile.every((tool, i) => tool === described[i])) return;
+  throw new Error(
+    `core/scripts/lib/runnable-tools.json and the tools dashboard/src/queue/providers/tools.ts ` +
+      `describes disagree: file has ${JSON.stringify(fromFile)}, TOOLS has ${JSON.stringify(described)}`,
+  );
+}
 
 export type LoginFolderField = "configDir" | "shadowHome" | "codexHome";
 export interface ToolLogin { args: readonly string[]; folderVariable?: string; folderFields: readonly LoginFolderField[] }
@@ -32,6 +50,7 @@ export const TOOLS = {
   opencode: { name: "OpenCode", shortName: "OpenCode", family: "opencode", readers: { transcript: "opencode", login: "opencode", models: "opencode", usage: "opencode" }, login: { args: ["auth", "login"], folderFields: [] } },
   "fake-claude": { name: "Fake-Claude", shortName: "Fake-Claude", family: "claude", readers: { transcript: "claude" } },
 } as const satisfies { [T in RunnableTool]: T extends ProviderTool ? ProviderToolDescriptor : ToolDescriptor };
+checkRunnableTools(RUNNABLE_TOOLS, Object.keys(TOOLS));
 
 export const providerFamily = (tool: RunnableTool): ProviderTool => TOOLS[tool].family;
 export const asProviderTool = (value: unknown): ProviderTool | undefined =>

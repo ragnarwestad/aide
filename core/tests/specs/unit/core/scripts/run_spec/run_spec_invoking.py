@@ -15,8 +15,8 @@ def _standalone_runner_copy(runner, tmp_path, name="aide-run-spec-under-test"):
     """A working stand-in for `aide-run-spec`, in its own directory: the
     script itself, plus the files it reads relative to its own location
     (`_aide-spec-lib.sh`, `lib/workflow-steps.json`,
-    and `lib/effort-levels.json` too, without which every
-    command refuses)."""
+    `lib/effort-levels.json`, `lib/worktree-link-denylist.json` and
+    `lib/runnable-tools.json` too, without which every command refuses)."""
     copy = tmp_path / name
     copy.write_bytes(pathlib.Path(runner).read_bytes())
     copy.chmod(0o755)
@@ -42,6 +42,15 @@ def _standalone_runner_copy(runner, tmp_path, name="aide-run-spec-under-test"):
     # every command refuses just as it would with workflow-steps.json missing.
     (tmp_path / "lib" / "effort-levels.json").write_bytes(
         (pathlib.Path(runner).parent / "lib" / "effort-levels.json").read_bytes()
+    )
+    # worktree-link-denylist.json too: the denied link names, read the
+    # same way and refused for by name when missing.
+    (tmp_path / "lib" / "worktree-link-denylist.json").write_bytes(
+        (pathlib.Path(runner).parent / "lib" / "worktree-link-denylist.json").read_bytes()
+    )
+    # runnable-tools.json too: the tools --tool and the side tools may name.
+    (tmp_path / "lib" / "runnable-tools.json").write_bytes(
+        (pathlib.Path(runner).parent / "lib" / "runnable-tools.json").read_bytes()
     )
     # status-progress.sh too: sourced by the runner whenever a
     # 4-status.md exists — which, given the fixture, is every run.

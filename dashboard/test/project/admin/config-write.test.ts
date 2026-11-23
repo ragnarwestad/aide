@@ -9,7 +9,7 @@ import { tmpdir } from "node:os";
 import { afterEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { addProject } from "../../../src/project/project-admin";
+import { addProject, WORKTREE_LINK_DENYLIST } from "../../../src/project/project-admin";
 import { configValue, resolveWorktreeLinks } from "../../../src/project/discover";
 import { cloningGit } from "../../helpers/fake-git.ts";
 
@@ -124,5 +124,13 @@ describe("writing .aide/config", () => {
     expect(step.error).toContain("build");
     expect(step.error).toContain("build output");
     expect(existsSync(join(dir, ".aide", "config"))).toBe(false);
+  });
+});
+
+describe("the denied worktree-link names", () => {
+  test("are the list in the one file the runner reads too (AC-1)", () => {
+    const file = join(import.meta.dir, "../../../../core/scripts/lib/worktree-link-denylist.json");
+    const { deniedLinkNames } = JSON.parse(readFileSync(file, "utf8")) as { deniedLinkNames: string[] };
+    expect([...WORKTREE_LINK_DENYLIST]).toEqual(deniedLinkNames);
   });
 });

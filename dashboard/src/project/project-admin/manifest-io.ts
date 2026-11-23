@@ -6,6 +6,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute } from "node:path";
 import { stringify } from "yaml";
 import { PREVIEW_FROMS } from "../parse-manifest.ts";
+import denylistData from "../../../../core/scripts/lib/worktree-link-denylist.json" with { type: "json" };
 export { writeAideConfig } from "../aide-config.ts";
 
 /** A directory name, and nothing that could be read as a path. No
@@ -229,17 +230,9 @@ export function oneLine(value: string): string {
  *  specs root and the worktree links land in the same file, and a
  *  second copy of this rule would eventually preserve a comment the
  *  first one dropped. */
-/** Directory names a build WRITES into, or that a tool locks a cache in
- *  — never a dependency cache a build only reads. A link is
- *  one symlink into the main checkout that every concurrent run shares,
- *  so two runs building through it overwrite each other's output, and a
- *  tool that locks its own cache directory blocks or corrupts it. Kept
- *  as a plain array for the same reason WORKFLOW_STEPS and
- *  DEPENDENCY_GATED_STEPS are: `aide-run-spec` holds a second copy
- *  (WORKTREE_LINK_DENYLIST, a bash string) with no shared source
- *  between them, and
- *  test_the_two_copies_of_the_worktree_link_denylist_agree pins the two. */
-export const WORKTREE_LINK_DENYLIST = ["build", "target", "dist", ".gradle"] as const;
+/** The folder names worktreeLinks may not name, from the one file the
+ *  runner reads too — see its own comment for why they are denied. */
+export const WORKTREE_LINK_DENYLIST: readonly string[] = denylistData.deniedLinkNames;
 
 /** Why this worktree-links value cannot be used, or `null`.
  *
@@ -267,7 +260,7 @@ export function worktreeLinksError(value: string, key = "worktreeLinks"): string
     // same answer as a top-level one — and asked before existence, since
     // a denied directory usually does exist: anyone who has run the
     // build locally has one.
-    if ((WORKTREE_LINK_DENYLIST as readonly string[]).includes(entry.split("/").pop()!)) {
+    if (WORKTREE_LINK_DENYLIST.includes(entry.split("/").pop()!)) {
       return (
         `${key} names a build output, not a dependency cache: ${entry} — ` +
         `such a directory is generated per worktree and wants no link at all`

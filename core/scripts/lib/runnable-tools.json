@@ -1,0 +1,4 @@
+{
+  "_comment": "The tools a step, Review, Verify and plan-review can run on, as --tool spells them: one list, read by core/scripts/lib/run-spec/setup/arguments.sh (jq) and imported by dashboard/src/queue/providers/tools.ts, which checks it against the tools it describes. fake-claude is the scripted stand-in for Claude Code used by tests; it has no login. `none` is not a tool: a result names it for a create that ran no AI. Copilot is installed (core/scripts/lib/ai-tools/tools.txt) but no step runs on it.",
+  "runnableTools": ["claude", "codex", "opencode", "fake-claude"]
+}

@@ -7,6 +7,8 @@
 - [Not a pair: where a project's specs live](#not-a-pair-where-a-projects-specs-live)
 - [Not a pair: the workflow's own vocabulary](#not-a-pair-the-workflows-own-vocabulary)
 - [Not a pair: the effort levels](#not-a-pair-the-effort-levels)
+- [Not a pair: the denied worktree-link names](#not-a-pair-the-denied-worktree-link-names)
+- [Not a pair: the runnable tools](#not-a-pair-the-runnable-tools)
 - [Not a pair: spec-phase transitions](#not-a-pair-spec-phase-transitions)
 - [Not a pair: where aide installs for each AI](#not-a-pair-where-aide-installs-for-each-ai)
 
@@ -56,7 +58,6 @@ but the two copies still have to be edited by hand together.
 | Why a push failed — `auth`, `no-write`, `https-auth`, `github`, `network`, `refused`, `other`, `none` — with git's own line where it identifies the cause, and git's text behind the (?) in whole lines, without carriage returns | `git_error_json` and `git_error_detail` in `core/scripts/lib/git-error.sh` | `gitError` and `gitErrorDetail` in `dashboard/src/format/git-error.ts` | `core/tests/fixtures/git-errors.json`, read by `test_git_error.py` and `git-error.test.ts` |
 | Which port a server's log says was taken — Playwright's `… is already used` URL (its scheme's port when it names none), else the last `:<port>` on an `EADDRINUSE` or `bind: address already in use` line; none in a log where tests ran and failed | `test_start_failure` in `core/scripts/lib/run-spec/turn/test-start.sh` | `portInUse` in `dashboard/src/format/port-in-use.ts` | `core/tests/fixtures/port-in-use.json`, read by `test_aide_run_spec_test_start.py` and `port-in-use.test.ts` |
 | The result file's structured fields — `testsRed`, `testsNotStarted`, `timeLimit`, `providerError`, `scopeAnalyze`, `review` and `verify` — every key the runner writes is one the dashboard's parser has a case for | where each is built: `failing_tests_summary`, `recorder_failure` and `test_start_failure`, `model-turn/index.sh`, `provider_error_json`, `status-line.sh`, `side_json` in `side-turn.sh` | `testsRed`, `testsNotStarted`, `timeLimit` and `providerError` in `dashboard/src/queue/runner/types.ts`, `scopeAnalyzeChecks` in `messages/jobs/outcomes.ts`, `sideRun` in `queue/runner/side-run.ts` | `core/tests/fixtures/result-fields.json`, read by `run_spec_result_fields.py` in the runner's tests and `result-fields.test.ts`; `test_provider_error.py` compares `providerError`'s kinds with the bash side's source text |
-| The tools a step can run with — `claude`, `codex`, `opencode` and `fake-claude` | the `case "$tool"` in `core/scripts/lib/run-spec/setup/arguments.sh` | `TOOLS` in `dashboard/src/queue/providers/tools.ts`, from which `TOOL_NAMES` and `SHORT_TOOL_NAMES` are made | `dashboard/test/render/pages/specs-list/tools/tool-names.test.ts`, which reads the bash side's source text |
 | The `### Overlapping specs` record — newest round, one line per spec, the files in backticks, each path less `./` and a trailing line number                                                                                                       | `newest_round`, `section` and `record_json` in `core/scripts/aide-spec-overlap`                            | `overlappingSpecsIn` in `dashboard/src/project/overlapping-specs.ts`                                             | `dashboard/test/project/overlapping-specs.test.ts`, which runs both on one file                                                      |
 | The folder an implement's screenshots are kept in — beside the transcript, as `<job id>.<step>.screenshots`                                                                                                                                        | `screenshots_dir` in `run-spec/turn/screenshots.sh`                                                        | `screenshotsDir` in `src/queue/runner/run-log-path.ts`                                                           | `test/queue/runner/run-log-path.test.ts`, which reads `screenshots.sh` for the suffix                                                |
 | A top-level manifest scalar — read without a trailing comment (a `#` after a space or a tab) and, when quoted as a whole, without its quotes                                                                                                       | `aide_manifest_get` in `core/scripts/_aide-spec-lib.sh`                                                    | `parseManifest` in `dashboard/src/project/parse-manifest.ts`                                                     | `dashboard/test/project/parse-manifest.test.ts`, which runs both on the same lines                                                   |
@@ -148,6 +149,34 @@ turns on multi-agent workflow orchestration rather than naming a plain
 effort level. As with `workflow-steps.json`, `dashboard/src/queue/steps.ts`
 carries a runtime assertion that throws if its `EffortLevel` type ever
 disagrees with the shared file.
+
+## Not a pair: the denied worktree-link names
+
+**The folder names `worktreeLinks` may not name are also not a
+hand-paired pair.** `core/scripts/lib/worktree-link-denylist.json` is the
+one list both sides read — `aide-run-spec` with jq
+(`core/scripts/lib/run-spec/setup/arguments.sh`), the dashboard by import
+(`WORKTREE_LINK_DENYLIST` in
+`dashboard/src/project/project-admin/manifest-io.ts`). A runner that cannot
+read the file refuses to start and names it. Each side keeps its own check
+of an entry — `core/scripts/lib/run-spec/checkout/checkouts.sh` and
+`worktreeLinksError` — with the same sentences, and both compare the last
+folder name of the entry, so `backend/build` is refused like `build`.
+
+## Not a pair: the runnable tools
+
+**The tools a step, Review, Verify and plan-review can run on are also not
+a hand-paired pair.** `core/scripts/lib/runnable-tools.json` is the one
+list both sides read — `aide-run-spec` with jq
+(`core/scripts/lib/run-spec/setup/arguments.sh`), which refuses any other
+`--tool`, `--review-tool`, `--verify-tool` or `--plan-review-tool`, and the
+dashboard by import (`RUNNABLE_TOOLS` in
+`dashboard/src/queue/providers/tools.ts`). A runner that cannot read the
+file refuses to start and names it. The dashboard's `RunnableTool` type is
+a list of its own, and `checkRunnableTools` throws at load time when the
+file and the tools `TOOLS` describes differ in a name or in order.
+`fake-claude` is on the list with no login, `none` is a result's tool and
+not on it, and Copilot is installed but not on it.
 
 ## Not a pair: spec-phase transitions
 

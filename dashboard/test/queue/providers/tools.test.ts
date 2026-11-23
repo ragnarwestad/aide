@@ -7,12 +7,13 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { PROVIDER_TOOLS as providersExport } from "../../../src/queue/providers/index.ts";
 import {
-  PROVIDER_TOOLS, RESULT_TOOLS, RUNNABLE_TOOLS, SHORT_TOOL_NAMES, TOOLS, TOOL_NAMES, providerFamily,
+  PROVIDER_TOOLS, RESULT_TOOLS, RUNNABLE_TOOLS, SHORT_TOOL_NAMES, TOOLS, TOOL_NAMES, checkRunnableTools, providerFamily,
 } from "../../../src/queue/providers/tools.ts";
-import { RUNNABLE_TOOLS as stepsExport, asResultTool } from "../../../src/queue/steps.ts";
+import { RUNNABLE_TOOLS as stepsExport, asResultTool, asRunnableTool } from "../../../src/queue/steps.ts";
 import { SHORT_TOOL_NAMES as pickerShort, TOOL_NAMES as pickerNames } from "../../../src/render/pages/specs-list/model-resolve.ts";
 
 const SRC = join(import.meta.dir, "../../../src");
+const SHARED_FILE = join(import.meta.dir, "../../../../core/scripts/lib/runnable-tools.json");
 const T = "(claude|codex|opencode|fake-claude|none)";
 
 /** Every code line of every .ts file under src, as `file:line: text`, comments left out. */
@@ -58,6 +59,37 @@ describe("the tool lists", () => {
   test("no union of tool names is written out, nor a tool type widened by one (AC-2)", () => {
     const union = new RegExp(`"${T}"\\s*\\|\\s*"${T}"|[A-Za-z]Tool\\s*\\|\\s*"${T}"`);
     expect(codeLines().filter((l) => union.test(l.text)).map((l) => l.where)).toEqual([]);
+  });
+});
+
+describe("the runnable tools come from the shared file", () => {
+  test("the list is the file's, and a file that differs from the described tools stops the module (AC-1)", () => {
+    const fromFile = (JSON.parse(readFileSync(SHARED_FILE, "utf8")) as { runnableTools: string[] }).runnableTools;
+    expect([...RUNNABLE_TOOLS] as string[]).toEqual(fromFile);
+    const described = Object.keys(TOOLS);
+    expect(() => checkRunnableTools(described, described)).not.toThrow();
+    expect(() => checkRunnableTools(["claude", "codex", "fake-claude"], described)).toThrow(/runnable-tools\.json/);
+    expect(() => checkRunnableTools(["codex", "claude", "opencode", "fake-claude"], described)).toThrow(/runnable-tools\.json/);
+  });
+
+  test("an unknown tool is not runnable (AC-2)", () => {
+    expect(asRunnableTool("gemini")).toBeUndefined();
+    for (const tool of RUNNABLE_TOOLS) expect(asRunnableTool(tool)).toBe(tool);
+  });
+
+  test("fake-claude runs but is no provider login (AC-3)", () => {
+    expect(asRunnableTool("fake-claude")).toBe("fake-claude");
+    expect(PROVIDER_TOOLS as readonly string[]).not.toContain("fake-claude");
+    expect("login" in TOOLS["fake-claude"]).toBe(false);
+  });
+
+  test("none is a result's tool, never a runnable one (AC-4)", () => {
+    expect(asResultTool("none")).toBe("none");
+    expect(asRunnableTool("none")).toBeUndefined();
+  });
+
+  test("copilot is not runnable (AC-5)", () => {
+    expect(asRunnableTool("copilot")).toBeUndefined();
   });
 });
 

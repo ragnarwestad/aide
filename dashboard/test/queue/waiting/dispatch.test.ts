@@ -55,7 +55,13 @@ test("work admitted before acquisition finishes, but the next repository segment
 
 import { QueueStore } from "../../../src/queue/queue.ts";
 import { dispatchFor } from "../../../src/queue/waiting/dispatch.ts";
-import { makeRunner, DEFAULTS } from "../runner/runner-fixtures.ts";
+import { makeRunner, DEFAULTS, resetHarness, cleanupHarness } from "../runner/runner-fixtures.ts";
+import { afterEach, beforeEach } from "bun:test";
+
+// The runner fixtures read module-level state (clock, spawns, folder); set it
+// here so these tests do not depend on another file in the same process.
+beforeEach(resetHarness);
+afterEach(cleanupHarness);
 
 test("a saved Deploy boundary controls actual merge admission and active multi-root completion (AC-4, AC-6)", async () => {
   const store = new QueueStore({ defaults: DEFAULTS, resolve: () => ({ specFolders: ["a", "b"] }) });

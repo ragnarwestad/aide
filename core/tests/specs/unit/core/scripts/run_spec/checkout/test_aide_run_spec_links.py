@@ -12,7 +12,7 @@ import time
 import pytest
 from ...conftest import READ_SPECS, git, init_repo, run
 from ..run_spec_fakes import linking_claude, probing_claude, writing_claude
-from ..run_spec_invoking import BRANCH
+from ..run_spec_invoking import BRANCH, _standalone_runner_copy
 from ..run_spec_project_state import BASH_UNTESTABLE, PRECEDENCE, READINESS_FIXTURE, READINESS_SCENARIOS, configure_links
 from ..run_spec_results import RESULT_OK
 
@@ -35,7 +35,7 @@ def test_a_worktree_base_inside_the_specs_repo_is_refused(runner, workspace, fak
     assert str(workspace["specs"]) in out["error"]
 
 @pytest.mark.parametrize("entry", ["/etc", "../escape", "deps/../../escape"])
-def test_a_link_that_escapes_the_root_is_refused(runner, workspace, fake_claude, entry):
+def test_a_link_that_escapes_the_root_is_refused_ac_4(runner, workspace, fake_claude, entry):
     claude = fake_claude("exit 1")
     # worktreeLinks is read from the manifest alone: a
     # `.aide/config` value would never be read at all.
@@ -50,7 +50,7 @@ def test_a_link_that_escapes_the_root_is_refused(runner, workspace, fake_claude,
     assert not fake_claude.calls.exists()
 
 @pytest.mark.parametrize("entry", ["build", "target", "dist", ".gradle", "backend/build"])
-def test_a_link_naming_a_build_output_is_refused(runner, workspace, fake_claude, entry):
+def test_a_link_naming_a_build_output_is_refused_ac_2(runner, workspace, fake_claude, entry):
     claude = fake_claude("exit 1")
     (workspace["project"] / entry).mkdir(parents=True)
     (workspace["project"] / ".aide" / "project.yaml").write_text(
@@ -64,7 +64,7 @@ def test_a_link_naming_a_build_output_is_refused(runner, workspace, fake_claude,
     assert "build output" in out["error"], out
     assert not fake_claude.calls.exists(), "the refusal must precede the money"
 
-def test_the_dependency_caches_a_build_only_reads_are_not_refused(runner, workspace, fake_claude):
+def test_the_dependency_caches_a_build_only_reads_are_not_refused_ac_3(runner, workspace, fake_claude):
     """This repo's own setting, unaffected by the denylist."""
     claude = fake_claude("exit 0")
     (workspace["project"] / ".venv").mkdir()
@@ -77,24 +77,59 @@ def test_the_dependency_caches_a_build_only_reads_are_not_refused(runner, worksp
     rc, out, _ = run(runner, workspace, claude)
     assert rc == 0, out
 
-def test_the_two_copies_of_the_worktree_link_denylist_agree(workspace_root, run_spec_source):
-    import re
-
-    bash = run_spec_source
-    m = re.search(r'^WORKTREE_LINK_DENYLIST="([^"]*)"', bash, re.M)
-    assert m, "aide-run-spec no longer declares WORKTREE_LINK_DENYLIST as a plain string"
-    from_bash = set(m.group(1).split())
-
-    ts = (workspace_root / "dashboard" / "src" / "project" / "project-admin" / "manifest-io.ts").read_text()
-    m = re.search(r"export const WORKTREE_LINK_DENYLIST = \[(.*?)\] as const;", ts, re.S)
-    assert m, "manifest-io.ts no longer declares WORKTREE_LINK_DENYLIST as a literal array"
-    from_ts = set(re.findall(r'"([^"]+)"', m.group(1)))
-
-    assert from_bash == from_ts, (
-        "the script and the dashboard disagree about which worktree links name "
-        f"a build output: only in the script {sorted(from_bash - from_ts)}, "
-        f"only in the dashboard {sorted(from_ts - from_bash)}"
+@pytest.mark.parametrize("entry", ["builder", "build/cache"])
+def test_only_the_last_folder_name_of_a_link_is_compared_with_the_denied_names_ac_2(
+    runner, workspace, fake_claude, entry
+):
+    """`builder` only contains a denied name, and `build/cache` only
+    passes through one: neither is a build output."""
+    claude = fake_claude("exit 0")
+    (workspace["project"] / entry).mkdir(parents=True)
+    (workspace["project"] / ".aide" / "project.yaml").write_text(
+        f"AIDE_TEST_CMD: true\nworktreeLinks: {entry}\n"
     )
+    git(workspace["project"], "add", "-f", ".aide/project.yaml")
+    git(workspace["project"], "commit", "-q", "-m", "a link that only resembles a build output")
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+
+
+def test_a_name_added_to_the_shared_denylist_file_is_refused_by_the_runner_ac_1(
+    runner, workspace, fake_claude, tmp_path
+):
+    """The runner reads the denied names from lib/worktree-link-denylist.json,
+    so one edit there is all a new name takes."""
+    copy = _standalone_runner_copy(runner, tmp_path)
+    (tmp_path / "lib" / "worktree-link-denylist.json").write_text(
+        json.dumps({"deniedLinkNames": ["build", "target", "dist", ".gradle", "out"]})
+    )
+    claude = fake_claude("exit 1")
+    (workspace["project"] / "out").mkdir()
+    (workspace["project"] / ".aide" / "project.yaml").write_text(
+        "AIDE_TEST_CMD: true\nworktreeLinks: out\n"
+    )
+    git(workspace["project"], "add", "-f", ".aide/project.yaml")
+    git(workspace["project"], "commit", "-q", "-m", "a link into a newly denied folder")
+    rc, out, _ = run(runner, workspace, claude, runner_path=copy)
+    assert rc == 2, out
+    assert "out" in out["error"], out
+    assert "build output" in out["error"], out
+    assert not fake_claude.calls.exists(), "the refusal must precede the money"
+
+
+def test_a_runner_without_the_shared_denylist_file_refuses_naming_it_ac_1(
+    runner, workspace, fake_claude, tmp_path
+):
+    """No list to check against is a refusal by name, never a run that
+    links whatever the project asks for."""
+    copy = _standalone_runner_copy(runner, tmp_path)
+    (tmp_path / "lib" / "worktree-link-denylist.json").unlink(missing_ok=True)
+    claude = fake_claude("exit 1")
+    rc, out, _ = run(runner, workspace, claude, runner_path=copy)
+    assert rc == 2, out
+    assert out["terminalReason"] == "refused"
+    assert "worktree-link-denylist.json" in out["error"], out
+    assert not fake_claude.calls.exists(), "the refusal must precede the money"
 
 def test_a_link_naming_a_path_that_is_not_there_is_refused(runner, workspace, fake_claude):
     """One rule, two places that have to agree about it: the dashboard's

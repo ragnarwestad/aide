@@ -35,15 +35,32 @@ _effort_levels_file="$SCRIPT_DIR/lib/effort-levels.json"
 EFFORT_LEVELS="$(jq -r '.effortLevels | join(" ")' "$_effort_levels_file" 2>/dev/null)"
 [ -n "$EFFORT_LEVELS" ] \
   || early_refusal "{\"ok\":false,\"exitCode\":2,\"terminalReason\":\"refused\",\"error\":\"could not read effortLevels from $_effort_levels_file\"}"
-# Directory names a build WRITES into, or that a tool locks a cache in —
-# never a dependency cache a build only reads. A link is one
-# symlink into the main checkout that every concurrent run shares, so two
-# runs building through it overwrite each other's output. Third list of
-# the same shape as the two above: the dashboard holds the second copy
-# (WORKTREE_LINK_DENYLIST in dashboard/src/project-admin.ts) with no
-# shared source, and
-# test_the_two_copies_of_the_worktree_link_denylist_agree pins them.
-WORKTREE_LINK_DENYLIST="build target dist .gradle"
+# The folder names worktreeLinks may not name: one file, read here and
+# imported by the dashboard — see its own comment for why they are denied.
+_worktree_link_denylist_file="$SCRIPT_DIR/lib/worktree-link-denylist.json"
+[ -f "$_worktree_link_denylist_file" ] \
+  || early_refusal "{\"ok\":false,\"exitCode\":2,\"terminalReason\":\"refused\",\"error\":\"the shared worktree-link denylist is missing: $_worktree_link_denylist_file\"}"
+WORKTREE_LINK_DENYLIST="$(jq -r '.deniedLinkNames | join(" ")' "$_worktree_link_denylist_file" 2>/dev/null)"
+[ -n "$WORKTREE_LINK_DENYLIST" ] \
+  || early_refusal "{\"ok\":false,\"exitCode\":2,\"terminalReason\":\"refused\",\"error\":\"could not read deniedLinkNames from $_worktree_link_denylist_file\"}"
+# The tools a step, Review, Verify and plan-review can run on: one file,
+# read here and imported by the dashboard — see its own comment.
+_runnable_tools_file="$SCRIPT_DIR/lib/runnable-tools.json"
+[ -f "$_runnable_tools_file" ] \
+  || early_refusal "{\"ok\":false,\"exitCode\":2,\"terminalReason\":\"refused\",\"error\":\"the shared runnable-tools file is missing: $_runnable_tools_file\"}"
+RUNNABLE_TOOLS="$(jq -r '.runnableTools | join(" ")' "$_runnable_tools_file" 2>/dev/null)"
+[ -n "$RUNNABLE_TOOLS" ] \
+  || early_refusal "{\"ok\":false,\"exitCode\":2,\"terminalReason\":\"refused\",\"error\":\"could not read runnableTools from $_runnable_tools_file\"}"
+# The same names as a refusal lists them: "claude, codex, opencode or fake-claude".
+RUNNABLE_TOOLS_LISTED="$(jq -r '.runnableTools | if length > 1 then (.[:-1] | join(", ")) + " or " + .[-1] else .[0] end' "$_runnable_tools_file")"
+
+# is_runnable_tool <name> — whole-word match against RUNNABLE_TOOLS, so
+# neither "" nor "claude codex" passes.
+is_runnable_tool() {
+  local t
+  for t in $RUNNABLE_TOOLS; do [ "$t" = "$1" ] && return 0; done
+  return 1
+}
 
 # The limits of a short analysis (analyze's Step 3), set here and nowhere
 # else: the prompt states them to the skill (setup/invocation.sh) and
@@ -361,10 +378,7 @@ esac
 # named rather than hidden behind AIDE_CLAUDE_BIN alone so a project
 # testing the machinery says so on its rows, and so a run can refuse
 # when nothing is there to stand in.
-case "$tool" in
-  claude|codex|opencode|fake-claude) ;;
-  *) refuse "invalid --tool: $tool (claude, codex, opencode or fake-claude)" ;;
-esac
+is_runnable_tool "$tool" || refuse "invalid --tool: $tool ($RUNNABLE_TOOLS_LISTED)"
 
 if [ -n "$bin_arg" ] && [ "$tool" = "fake-claude" ]; then
   refuse "--bin is for a real tool, not fake-claude: the stand-in comes from AIDE_CLAUDE_BIN"
@@ -379,10 +393,8 @@ if [ -n "$autocompact" ]; then
 fi
 
 for side_tool in "$review_tool" "$verify_tool" "$plan_review_tool"; do
-  case "$side_tool" in
-    ""|claude|codex|opencode|fake-claude) ;;
-    *) refuse "invalid Review or Verify tool: $side_tool (claude, codex, opencode or fake-claude)" ;;
-  esac
+  [ -z "$side_tool" ] || is_runnable_tool "$side_tool" \
+    || refuse "invalid Review or Verify tool: $side_tool ($RUNNABLE_TOOLS_LISTED)"
 done
 
 if [ -n "$effort" ]; then

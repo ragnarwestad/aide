@@ -538,3 +538,79 @@ def test_the_default_branch_is_compared_on_origin_when_origin_has_it(tmp_path):
     git("clone", "-q", str(origin), "clone", cwd=tmp_path)
     assert _default_ref(tmp_path / "clone") == "origin/main"
     assert _default_ref(origin) == "main"
+
+
+# The tools a step, Review, Verify and plan-review can run on: one list,
+# lib/runnable-tools.json, read by the runner and imported by the dashboard.
+_SIDE_TOOL_FLAGS = ("review_tool", "verify_tool", "plan_review_tool")
+
+
+def _runner_with_runnable_tools(runner, tmp_path, tools):
+    """A lone runner copy whose runnable-tools.json lists `tools`, or has
+    no such file at all when `tools` is None."""
+    from ..run_spec_invoking import _standalone_runner_copy
+    copy = _standalone_runner_copy(runner, tmp_path)
+    shared = tmp_path / "lib" / "runnable-tools.json"
+    if tools is None:
+        shared.unlink(missing_ok=True)
+    else:
+        shared.write_text(json.dumps({"runnableTools": tools}))
+    return copy
+
+
+def test_a_tool_left_out_of_the_shared_file_is_refused_for_the_step_and_every_side_tool_ac_1(runner, workspace, fake_claude, tmp_path):
+    copy = _runner_with_runnable_tools(runner, tmp_path, ["claude", "codex", "fake-claude"])
+    claude = fake_claude("exit 1")
+    rc, out, _ = run(runner, workspace, claude, runner_path=copy, tool="opencode")
+    assert rc == 2, out
+    assert out["error"].startswith("invalid --tool: opencode (claude, codex or fake-claude)"), out
+    for flag in _SIDE_TOOL_FLAGS:
+        rc, out, _ = run(runner, workspace, claude, runner_path=copy, **{flag: "opencode"})
+        assert rc == 2, (flag, out)
+        assert out["error"].startswith("invalid Review or Verify tool: opencode"), (flag, out)
+    assert not fake_claude.calls.exists(), "the refusal must precede the money"
+
+
+def test_runner_refuses_when_the_runnable_tools_file_is_missing_ac_1(runner, workspace, fake_claude, tmp_path):
+    copy = _runner_with_runnable_tools(runner, tmp_path, None)
+    claude = fake_claude("exit 1")
+    rc, out, _ = run(runner, workspace, claude, runner_path=copy)
+    assert rc == 2, out
+    assert out["terminalReason"] == "refused"
+    assert "runnable-tools.json" in out["error"], out
+    assert not fake_claude.calls.exists(), "the refusal must precede the money"
+
+
+def test_an_unknown_tool_is_refused_naming_the_runnable_ones_ac_2(runner, workspace, fake_claude):
+    claude = fake_claude("exit 1")
+    rc, out, _ = run(runner, workspace, claude, tool="gemini")
+    assert rc == 2, out
+    assert out["error"].startswith("invalid --tool: gemini (claude, codex, opencode or fake-claude)"), out
+    rc, out, _ = run(runner, workspace, claude, review_tool="gemini")
+    assert rc == 2, out
+    assert out["error"].startswith(
+        "invalid Review or Verify tool: gemini (claude, codex, opencode or fake-claude)"), out
+    assert not fake_claude.calls.exists()
+
+
+def test_fake_claude_still_runs_as_the_stand_in_ac_3(runner, workspace, fake_claude):
+    claude = fake_claude(f"cat > /dev/null; echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, tool="fake-claude")
+    assert rc == 0, out
+    assert out["tool"] == "fake-claude"
+
+
+def test_none_is_not_a_tool_a_step_can_run_on_ac_4(runner, workspace, fake_claude):
+    claude = fake_claude("exit 1")
+    rc, out, _ = run(runner, workspace, claude, tool="none")
+    assert rc == 2, out
+    assert out["error"].startswith("invalid --tool: none"), out
+
+
+def test_copilot_is_installed_but_not_a_tool_a_step_can_run_on_ac_5(runner, workspace, fake_claude):
+    installed = (pathlib.Path(runner).parent / "lib" / "ai-tools" / "tools.txt").read_text()
+    assert "copilot" in installed.split()
+    claude = fake_claude("exit 1")
+    rc, out, _ = run(runner, workspace, claude, tool="copilot")
+    assert rc == 2, out
+    assert out["error"].startswith("invalid --tool: copilot"), out
