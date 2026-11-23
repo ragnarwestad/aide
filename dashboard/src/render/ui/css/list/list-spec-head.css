@@ -82,7 +82,7 @@ table.list tr.specstate > td { padding-top: var(--sp-2); }
 .spec-name .kindicon svg { height: 16px; width: 16px; }
 .spec-name .kindicon[data-tab="projects"] { color: var(--tab-projects); }
 .spec-name .kindicon[data-kind="spec"] { color: var(--kind-spec); }
-.spec-name .kindicon[data-kind="land"],
+.spec-name .kindicon[data-kind="land"] { color: var(--kind-land); }
 .spec-name .kindicon[data-kind="deploy"] { color: var(--kind-deploy); }
 .spec-name .kindicon[data-kind="schedule"] { color: var(--kind-schedule); }
 .spec-name .kindicon[data-kind="cleanup"] { color: var(--kind-cleanup); }

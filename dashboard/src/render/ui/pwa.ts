@@ -33,7 +33,7 @@ import { rasterizeIcon, rasterizeMark } from "./icon-png.ts";
  *  custom property. `test/pwa.test.ts` pins them to those tokens, so a
  *  palette change that forgets this file fails there rather than
  *  turning up as a seam across the top of the installed app. */
-export const THEME_COLORS = { light: "#EEEEF0", dark: "#18181B" };
+export const THEME_COLORS = { light: "#EFECE5", dark: "#1F1712" };
 const ICON_GROUND = "#EFECE5";
 
 /** The icons the manifest names. One SVG per purpose, which `"sizes":

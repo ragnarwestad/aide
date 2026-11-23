@@ -3,9 +3,9 @@ import { TOKENS_CSS } from "../../../../src/render/ui/css";
 import { THEMES } from "../../../../src/render/ui/css/themes.ts";
 
 test("all six themes declare light and dark colour pairs (AC-3, AC-7, AC-8, AC-14)", () => {
-  expect(THEMES).toEqual(["default", "maroon", "grove", "ocean", "ember", "iris"]);
+  expect(THEMES).toEqual(["ember", "mono", "maroon", "grove", "ocean", "iris"]);
   for (const theme of THEMES) {
-    const selector = theme === "default" ? `:root, [data-palette="default"]` : `[data-palette="${theme}"]`;
+    const selector = theme === "ember" ? `:root, [data-palette="ember"]` : `[data-palette="${theme}"]`;
     const start = TOKENS_CSS.indexOf(`${selector} {`);
     const block = start < 0 ? "" : TOKENS_CSS.slice(start, TOKENS_CSS.indexOf("}", start));
     for (const token of ["accent", "accent-strong", "accent-soft", "logo", "bg", "surface", "surface-2"])

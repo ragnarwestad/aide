@@ -464,7 +464,7 @@ export const nb: Record<TranslationKey, string> = {
   "tab.notifications": "Varsler",
   "tab.appearance": "Utseende",
   "settings.appearance.themes": "Temaer",
-  "settings.appearance.theme.default": "Standard",
+  "settings.appearance.theme.mono": "Svart-hvitt",
   "settings.appearance.theme.maroon": "Maroon",
   "settings.appearance.theme.grove": "Grove",
   "settings.appearance.theme.ocean": "Ocean",

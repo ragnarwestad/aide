@@ -13,7 +13,7 @@
   --warn: #B45309; --warn-soft: #F8EDD6; --warn-ground: #F8EDD6;
   --danger: #DC2626; --danger-soft: #F1DDD7; --danger-ground: #F1DDD7;
   --pdf: #D0342C;
-  --kind-spec: #7C3AED; --kind-deploy: #0F766E; --kind-schedule: #BE1A78; --kind-cleanup: #4D7C0F; --kind-group: #A21CAF;
+  --kind-spec: #7C3AED; --kind-deploy: #0F766E; --kind-land: #9A6B3F; --kind-schedule: #BE1A78; --kind-cleanup: #4D7C0F; --kind-group: #A21CAF;
   --tab-jobs: #0369A1; --tab-projects: #2563EB;
   --initials-1: #DBEAFE; --initials-2: #DCFCE7; --initials-3: #FEF3C7; --initials-4: #FCE7F3; --initials-5: #EDE9FE; --initials-6: #CCFBF1;
   --mark-openai: #000000; --mark-opencode: #211E1E; --mark-opencode-inner: #CFCECD;
@@ -43,7 +43,15 @@
   --sans: system-ui, -apple-system, "IBM Plex Sans", sans-serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, "IBM Plex Mono", monospace;
 }
-:root, [data-palette="default"] {
+:root, [data-palette="ember"] {
+/* tokens:start */
+  --accent-l: #A8331A; --accent-strong-l: #8C2B16; --accent-soft-l: #F8E4DD; --logo-l: #A8331A;
+  --bg-l: #EFECE5; --surface-l: #FBFAF7; --surface-2-l: #F4F4F5;
+  --accent-d: #DA5A34; --accent-strong-d: #F0663F; --accent-soft-d: #3A2620; --logo-d: #DA5A34;
+  --bg-d: #1F1712; --surface-d: #2A1F19; --surface-2-d: #342720;
+/* tokens:end */
+}
+[data-palette="mono"] {
 /* tokens:start */
   --accent-l: #27272A; --accent-strong-l: #09090B; --accent-soft-l: #E4E4E7; --logo-l: #A8331A;
   --bg-l: #EEEEF0; --surface-l: #FFFFFF; --surface-2-l: #F4F4F5;
@@ -56,7 +64,7 @@
   --accent-l: #9D174D; --accent-strong-l: #831843; --accent-soft-l: #FCE7F3; --logo-l: #9D174D;
   --bg-l: #F4ECEF; --surface-l: #FDF9FA; --surface-2-l: #F7EEF2;
   --accent-d: #F472B6; --accent-strong-d: #F9A8D4; --accent-soft-d: #3B1F2E; --logo-d: #F472B6;
-  --bg-d: #1A1518; --surface-d: #241C21; --surface-2-d: #2E242A;
+  --bg-d: #22141B; --surface-d: #2D1B24; --surface-2-d: #37222D;
 /* tokens:end */
 }
 [data-palette="grove"] {
@@ -64,7 +72,7 @@
   --accent-l: #3A6B35; --accent-strong-l: #2C5229; --accent-soft-l: #E3EEDF; --logo-l: #3A6B35;
   --bg-l: #ECEFE8; --surface-l: #FAFBF8; --surface-2-l: #F1F4EE;
   --accent-d: #7BC47F; --accent-strong-d: #9AD49D; --accent-soft-d: #1F3021; --logo-d: #7BC47F;
-  --bg-d: #151A16; --surface-d: #1D231E; --surface-2-d: #262D27;
+  --bg-d: #121D15; --surface-d: #1A281D; --surface-2-d: #233226;
 /* tokens:end */
 }
 [data-palette="ocean"] {
@@ -72,15 +80,7 @@
   --accent-l: #1F5F8B; --accent-strong-l: #174A6D; --accent-soft-l: #DCEBF5; --logo-l: #1F5F8B;
   --bg-l: #E9EEF2; --surface-l: #F8FAFC; --surface-2-l: #EEF3F7;
   --accent-d: #5AA9E6; --accent-strong-d: #84C0EE; --accent-soft-d: #1A2C3B; --logo-d: #5AA9E6;
-  --bg-d: #14191E; --surface-d: #1B2229; --surface-2-d: #232B33;
-/* tokens:end */
-}
-[data-palette="ember"] {
-/* tokens:start */
-  --accent-l: #A8331A; --accent-strong-l: #8C2B16; --accent-soft-l: #F8E4DD; --logo-l: #A8331A;
-  --bg-l: #EFECE5; --surface-l: #FBFAF7; --surface-2-l: #F4F4F5;
-  --accent-d: #DA5A34; --accent-strong-d: #F0663F; --accent-soft-d: #3A2620; --logo-d: #DA5A34;
-  --bg-d: #16181C; --surface-d: #1F2226; --surface-2-d: #272B30;
+  --bg-d: #0F1C27; --surface-d: #172734; --surface-2-d: #20313F;
 /* tokens:end */
 }
 [data-palette="iris"] {
@@ -88,7 +88,7 @@
   --accent-l: #6D28D9; --accent-strong-l: #5B21B6; --accent-soft-l: #EDE9FE; --logo-l: #6D28D9;
   --bg-l: #EEECF4; --surface-l: #FBFAFE; --surface-2-l: #F3F1F9;
   --accent-d: #A78BFA; --accent-strong-d: #C4B5FD; --accent-soft-d: #2A2342; --logo-d: #A78BFA;
-  --bg-d: #17161D; --surface-d: #1F1D27; --surface-2-d: #282632;
+  --bg-d: #1A1529; --surface-d: #231D36; --surface-2-d: #2C2541;
 /* tokens:end */
 }
 /* Dark is the same ramp read from the other end: a dark surface takes a
@@ -132,7 +132,7 @@
   --warn: #E0A84A; --warn-soft: #3A2F1C; --warn-ground: #2E2D29;
   --danger: #EB7878; --danger-soft: #3D211B; --danger-ground: #2F292D;
   --pdf: #E0473C;
-  --kind-spec: #A78BFA; --kind-deploy: #2DD4C6; --kind-schedule: #F472B6; --kind-cleanup: #A3E635; --kind-group: #E879F9;
+  --kind-spec: #A78BFA; --kind-deploy: #2DD4C6; --kind-land: #D2A06E; --kind-schedule: #F472B6; --kind-cleanup: #A3E635; --kind-group: #E879F9;
   --tab-jobs: #38BDF8; --tab-projects: #7AA2F7;
   --initials-1: #1E3A5F; --initials-2: #1E3B2A; --initials-3: #3D3117; --initials-4: #3F1D2E; --initials-5: #2E2650; --initials-6: #134E4A;
   --mark-openai: #FFFFFF; --mark-opencode: #F1ECEC; --mark-opencode-inner: #4B4646;
@@ -164,7 +164,7 @@
   --warn: #E0A84A; --warn-soft: #3A2F1C; --warn-ground: #2E2D29;
   --danger: #EB7878; --danger-soft: #3D211B; --danger-ground: #2F292D;
   --pdf: #E0473C;
-  --kind-spec: #A78BFA; --kind-deploy: #2DD4C6; --kind-schedule: #F472B6; --kind-cleanup: #A3E635; --kind-group: #E879F9;
+  --kind-spec: #A78BFA; --kind-deploy: #2DD4C6; --kind-land: #D2A06E; --kind-schedule: #F472B6; --kind-cleanup: #A3E635; --kind-group: #E879F9;
   --tab-jobs: #38BDF8; --tab-projects: #7AA2F7;
   --initials-1: #1E3A5F; --initials-2: #1E3B2A; --initials-3: #3D3117; --initials-4: #3F1D2E; --initials-5: #2E2650; --initials-6: #134E4A;
   --mark-openai: #FFFFFF; --mark-opencode: #F1ECEC; --mark-opencode-inner: #4B4646;
@@ -188,7 +188,7 @@
   --warn: #B45309; --warn-soft: #F8EDD6; --warn-ground: #F8EDD6;
   --danger: #DC2626; --danger-soft: #F1DDD7; --danger-ground: #F1DDD7;
   --pdf: #D0342C;
-  --kind-spec: #7C3AED; --kind-deploy: #0F766E; --kind-schedule: #BE1A78; --kind-cleanup: #4D7C0F; --kind-group: #A21CAF;
+  --kind-spec: #7C3AED; --kind-deploy: #0F766E; --kind-land: #9A6B3F; --kind-schedule: #BE1A78; --kind-cleanup: #4D7C0F; --kind-group: #A21CAF;
   --tab-jobs: #0369A1; --tab-projects: #2563EB;
   --initials-1: #DBEAFE; --initials-2: #DCFCE7; --initials-3: #FEF3C7; --initials-4: #FCE7F3; --initials-5: #EDE9FE; --initials-6: #CCFBF1;
   --mark-openai: #000000; --mark-opencode: #211E1E; --mark-opencode-inner: #CFCECD;

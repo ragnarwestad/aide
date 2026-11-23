@@ -469,7 +469,7 @@ export const en = {
   "tab.notifications": "Notifications",
   "tab.appearance": "Appearance",
   "settings.appearance.themes": "Themes",
-  "settings.appearance.theme.default": "Default",
+  "settings.appearance.theme.mono": "Black & White",
   "settings.appearance.theme.maroon": "Maroon",
   "settings.appearance.theme.grove": "Grove",
   "settings.appearance.theme.ocean": "Ocean",

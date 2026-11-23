@@ -7,6 +7,6 @@ test("Appearance offers colour schemes and all six themes (AC-1, AC-2, AC-3)", (
   });
   expect([...html.matchAll(/<input[^>]+data-theme-choice="([^"]+)"/g)].map((m) => m[1])).toEqual(["light", "dark", "auto"]);
   expect([...html.matchAll(/<input[^>]+value="([^"]+)"[^>]+data-palette-choice/g)].map((m) => m[1])).toEqual([
-    "default", "maroon", "grove", "ocean", "ember", "iris",
+    "ember", "mono", "maroon", "grove", "ocean", "iris",
   ]);
 });

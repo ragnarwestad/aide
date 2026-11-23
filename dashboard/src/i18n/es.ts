@@ -461,7 +461,7 @@ export const es: Record<TranslationKey, string> = {
   "tab.notifications": "Notificaciones",
   "tab.appearance": "Apariencia",
   "settings.appearance.themes": "Temas",
-  "settings.appearance.theme.default": "Predeterminado",
+  "settings.appearance.theme.mono": "Blanco y negro",
   "settings.appearance.theme.maroon": "Maroon",
   "settings.appearance.theme.grove": "Grove",
   "settings.appearance.theme.ocean": "Ocean",

@@ -39,8 +39,9 @@ or dark side of the chosen theme:
 - `:root[data-theme="light"]`.
 
 One block per theme sets the light and dark pairs for accent, logo, background and the two surfaces. The themes are
-Default, Maroon, Grove, Ocean, Ember and Iris. Themes never set text, links or the done, failed, held-back and running
-state colours. Default is neutral grey; Ember carries the board's original orange and copper colours.
+Ember, Black & White, Maroon, Grove, Ocean and Iris. Themes never set text, links or the done, failed, held-back and
+running state colours. Ember is the default and carries the board's orange and copper colours; Black & White is
+neutral grey. In dark mode each coloured theme tints its background and surfaces clearly towards its own hue.
 
 Every rule in the other sixteen files uses `var(--…)`; none of them may contain a literal. The full set — and the type and space scales a font size or a gap has to come
 from — is `tokens.css` itself; the names below are the ones a reader of the palette needs first.
@@ -134,9 +135,9 @@ and is drawn by the stylesheet from `data-icon`, so a caller never picks one. At
 alone, since the state column there is sized for the word.
 
 `kindIcon()` uses the shared drawings in `components/icons.ts`: a sheet of paper for a spec, an arrow leaving a tray
-for a deploy, a calendar for a scheduled job, a broom for cleanup and a stack for an execution group. These shapes are
+for a deploy, a forked branch for a merge, a calendar for a scheduled job, a broom for cleanup and a stack for an execution group. These shapes are
 separate from the badge shapes. Each kind icon takes its kind's colour from `data-kind`: `--kind-spec`, `--kind-deploy`,
-`--kind-schedule`, `--kind-cleanup` and `--kind-group`, set for both themes and never a state colour. Only the icon
+`--kind-land`, `--kind-schedule`, `--kind-cleanup` and `--kind-group`, set for both themes and never a state colour. Only the icon
 takes it; the row's name, badges and pips keep their own colours. On Jobs and the Specs list the kind icon stands after
 the colon, before the row's name, inside the name's link where the name is one (`rowLabel()`).
 
@@ -322,8 +323,9 @@ the browser (`localStorage`), not on the server. An explicit pick sets
 attribute-selector specificity (0-2-0 beats 0-1-0) regardless of source order. Auto needs no rule at all — no attribute
 set falls straight through to the existing OS-driven CSS.
 
-Settings → Appearance also offers Default, Maroon, Grove, Ocean, Ember and Iris. That choice is stored separately in
-the browser and sets `data-palette` on `<html>`; Default is the absence of the attribute. Each theme supplies light
+Settings → Appearance also offers Ember, Black & White, Maroon, Grove, Ocean and Iris. That choice is stored separately
+in the browser and sets `data-palette` on `<html>`; Ember, the default, is the absence of the attribute, and a choice
+stored as `default` reads as Black & White (`mono`). Each theme supplies light
 and dark pairs, so changing the color scheme keeps the chosen theme.
 
 Applying the stored choice before first paint (no flash) needs a script that runs before body content, on every page, so `src/render/ui/shell.ts`'s
