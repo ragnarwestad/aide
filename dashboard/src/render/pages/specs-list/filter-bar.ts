@@ -42,7 +42,7 @@ export function queueHref(f: SpecsFilter, patch: SpecsFilter): string {
  *  draws them. */
 export function queuePath(f: SpecsFilter, patch: SpecsFilter = {}, path = "/specs"): string {
   const merged = { ...f, ...patch };
-  if (["q", "project", "state", "kind", "sort", "dir"].some((key) => Object.prototype.hasOwnProperty.call(patch, key) && (patch as Record<string, unknown>)[key] !== (f as Record<string, unknown>)[key])) {
+  if (["q", "state", "kind", "sort", "dir"].some((key) => Object.prototype.hasOwnProperty.call(patch, key) && (patch as Record<string, unknown>)[key] !== (f as Record<string, unknown>)[key])) {
     for (const key of ["limit", "boundary", "windowQuery", "windowLoaded", "grow"] as const) delete merged[key];
   }
   const q = Object.entries(merged)
@@ -107,15 +107,13 @@ export function filterBar(groups: SpecGroup[], f: SpecsFilter, opts: SpecsPageOp
   // no `states`, and would add every unbuilt archived key to it.
   const uncountedNotVerified = searching ? 0 : (opts.notVerified ?? []).filter((k) => !built.has(k)).length;
   const state = stateDropdown(f, counted, { archived: uncountedArchived, closed: uncountedClosed, notVerified: uncountedNotVerified }, lang);
-  // A dropdown, not a chip per project: a chip row grows with the board.
-  const project = projectDropdown(f, opts.createProjects ?? [], (p) => queueHref(f, { project: p }), lang);
   return searchForm(
     {
       action: "/specs",
       hidden: FILTER_KEYS.filter((k) => k !== "q" && f[k]).map((k) => [k, f[k]!]),
       q: f.q ?? "",
       clearHref: queueHref(f, { q: "" }),
-      after: state + project + resultCount(shown) + newSpecLink(opts, lang),
+      after: state + resultCount(shown) + newSpecLink(opts, lang),
     },
     lang,
   );
@@ -163,27 +161,6 @@ function stateDropdown(
       // at all produces — the one thing that would tell the two apart.
       href: queueHref(f, { state: toggledState(STATE_FILTERS, ticked, s.key) }),
     })),
-  });
-}
-
-/** The Project filter: All projects, then one entry per project in the order
- *  given, the pinned ones first. One project at a time, so it has no None.
- *  Not drawn for fewer than two projects unless one is chosen, and a chosen
- *  project the list leaves out (a hidden one) keeps its entry at the end, so
- *  All projects can always clear a choice. `hrefFor` answers an escaped link,
- *  and is asked with "" for All projects. */
-export function projectDropdown(f: SpecsFilter, projects: readonly string[], hrefFor: (project: string) => string, lang: Language): string {
-  if (f.project && !projects.includes(f.project)) projects = [...projects, f.project];
-  if (projects.length < 2 && !f.project) return "";
-  const label = t(lang, "list.projectLabel");
-  return menuDropdown({
-    filter: "project",
-    ariaLabel: label,
-    triggerLabel: label,
-    options: [
-      { key: "all", label: t(lang, "list.allProjects"), on: !f.project, href: hrefFor("") },
-      ...projects.map((p) => ({ key: p, label: p, on: f.project === p, href: hrefFor(p) })),
-    ],
   });
 }
 

@@ -78,7 +78,7 @@ export async function jobsPage(
   const rowOptions = specRowOptions(ctx, url, langResult.lang);
   const unchanged = listSnapshot(ctx, jobs);
   // The Project filter travels in the address alone, never in the view's cookie.
-  const filter = { ...rowOptions.filter, ...choice.view, project: url.searchParams.get("project") ?? undefined, open: openWithCreated(rowOptions.filter?.open, url.searchParams.get("created"), jobs) };
+  const filter = { ...rowOptions.filter, ...choice.view, open: openWithCreated(rowOptions.filter?.open, url.searchParams.get("created"), jobs) };
   const summaryArchive = cut ? [] : ctx.archivedSpecSummaries?.() ?? [];
   const scheduleEntryExists = (project: string, name: string) => ctx.scheduleStore.list(project).some((entry) => entry.name === name);
   const waiting = ctx.queue.waiting.snapshot().entries;

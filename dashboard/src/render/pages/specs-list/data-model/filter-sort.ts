@@ -235,7 +235,6 @@ export function applyFilter<T extends FilterFacts>(groups: T[], f: SpecsFilter):
   return groups.filter(
     (g) =>
       entries.some((entry) => matchesStateFilter(entry, g)) &&
-      (!f.project || g.project === f.project) &&
       matchesSearch(g, f),
   );
 }

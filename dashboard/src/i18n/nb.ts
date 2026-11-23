@@ -109,8 +109,6 @@ export const nb: Record<TranslationKey, string> = {
   "shell.testRound": "runden",
 
   "list.statesLabel": "Tilstand",
-  "list.projectLabel": "Prosjekt",
-  "list.allProjects": "Alle prosjekter",
   "list.state.none": "Ingen",
   "list.state.all": "Alle",
   "list.state.active": "Aktive",

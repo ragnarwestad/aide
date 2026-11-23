@@ -667,41 +667,6 @@ describe("the Jobs tab's view: its address, its cookie and its sentence for no r
     expect(html).toContain(`>${t("de", "list.statesLabel")}<`); expect(html).toContain(`>${t("de", "jobs.typesLabel")}<`);
   });
 
-  describe("a project key", () => {
-    const reportOther = job({ ...report, id: "reporto", project: "other", createdAt: "2026-10-08T10:02:00Z" });
-    const withOther = () => scheduled([job({ id: "run81" }), report, reportOther]);
-    const rowIds = (html: string): string[] => [...html.matchAll(/<tr class="spechead\b[^>]*?\bid="([^"]+)"/g)].map((m) => m[1]!);
-
-    test("with one project on the board and none chosen, the filter bar holds only the state and type dropdowns (AC-1)", async () => {
-      const { base } = withOther();
-      const html = await rowsOf(base, "");
-      expect(html.match(/data-filter="/g)).toHaveLength(2);
-      expect(html).toContain('data-filter="state"');
-      expect(html).toContain('data-filter="kind"');
-      expect(html).not.toContain('data-filter="project"');
-    });
-
-    test("an address that carries one keeps only that project's rows (AC-2)", async () => {
-      const { base } = withOther();
-      const without = rowIds(await rowsOf(base, "state=all"));
-      expect(without).toContain("spec-other/schedule-report@reporto");
-      expect(rowIds(await rowsOf(base, "state=all&project=other"))).toEqual(["spec-other/schedule-report@reporto"]);
-    });
-
-    test("every link and the search form the tab builds from its view carry it on (AC-2)", async () => {
-      const { base } = withOther();
-      const html = await rowsOf(base, "state=all&project=aide&sort=cost&q=report");
-      const form = html.match(/<form class="specsearch"[\s\S]*?<\/form>/)?.[0] ?? "";
-      expect(form).toContain('name="sort"');
-      expect(form).toContain('name="project" value="aide"');
-      // The Project filter's own entries choose a project, All projects none.
-      const outsideFilter = html.replace(/<details class="menu state" id="project-filter"[\s\S]*?<\/details>/, "");
-      const hrefs = [...outsideFilter.matchAll(/href="([^"]*)"/g)].map((m) => m[1]!.replaceAll("&amp;", "&")).filter((h) => h.startsWith("/?"));
-      expect(hrefs).not.toHaveLength(0);
-      expect(hrefs.filter((h) => new URL(h, "http://x").searchParams.get("project") !== "aide")).toEqual([]);
-    });
-  });
-
   test("a bare /?rows=1 brings back the view the cookie remembers", async () => {
     const { base } = withBoth();
     const first = await fetch(`${base}/?q=report`);

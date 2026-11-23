@@ -64,16 +64,10 @@ const choice = async (base: string): Promise<string[]> =>
   [...(await page(base, "/new")).querySelectorAll('select[name="project"] option')]
     .map((o) => o.getAttribute("value")!).filter(Boolean);
 
-/** The projects a Project filter offers, after its All entry. */
-const filtered = async (base: string, path: string): Promise<string[]> =>
-  [...(await page(base, path)).querySelectorAll("#project-filter .menupanel a")].slice(1).map((a) => a.textContent!.trim());
-
 /** Every list where a project is chosen, as the board draws them now. */
 const lists = async (base: string) => ({
   picker: await picker(base, "aide"),
   choice: await choice(base),
-  specs: await filtered(base, "/specs"),
-  jobs: await filtered(base, "/"),
 });
 
 describe("POST /projects/<name>/hide", () => {
@@ -117,15 +111,15 @@ describe("a hidden project on the board", () => {
     expect(show?.closest("dialog")).toBeNull();
   });
 
-  test("is left out of the picker, the New spec form and both Project filters, and Show lists it again (AC-3, AC-9)", async () => {
+  test("is left out of the picker and the New spec form, and Show lists it again (AC-3, AC-9)", async () => {
     const { base } = board();
     const all = ["aide", "beta", "gamma"];
-    expect(await lists(base)).toEqual({ picker: all, choice: all, specs: all, jobs: all });
+    expect(await lists(base)).toEqual({ picker: all, choice: all });
     await hide(base, "beta", "on");
     const without = ["aide", "gamma"];
-    expect(await lists(base)).toEqual({ picker: without, choice: without, specs: without, jobs: without });
+    expect(await lists(base)).toEqual({ picker: without, choice: without });
     await hide(base, "beta", "off");
-    expect(await lists(base)).toEqual({ picker: all, choice: all, specs: all, jobs: all });
+    expect(await lists(base)).toEqual({ picker: all, choice: all });
   });
 
   test("its own page still opens and names it, while its picker leaves it out (AC-3)", async () => {

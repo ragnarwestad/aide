@@ -79,10 +79,6 @@ describe("the state and the search narrow the rows as the Specs list's do", () =
     expect(view(tab, { q: "queue" })).toEqual(["run81"]);
     expect(view(tab, { state: "queued", q: "night" })).toEqual(["nightly"]);
   });
-
-  test("a project in the filter leaves the state counts as they are, as on the Specs list", () => {
-    expect(jobsStateOptions(factsOf(tab), { project: "aide" })).toEqual(jobsStateOptions(factsOf(tab), {}));
-  });
 });
 
 describe("kind choices narrow rows independently of state", () => {
@@ -434,23 +430,3 @@ test("Queued filter uses the same automatic wait decision as the row (AC-7)", ()
   expect(jobsStateOptions([auto.facts, manual.facts], {}).find(o => o.key === "queued")?.count).toBe(1);
 });
 
-describe("the Project filter", () => {
-  test("keeps one project's rows and counts only them; with no project, all are kept (AC-2)", () => {
-    expect(view(tab, { project: "other" })).toEqual(["report-other"]);
-    expect(jobsMatchingCount(tab, { project: "other" })).toBe(1);
-    expect(view(tab, {}).length).toBe(4);
-    expect(jobsMatchingCount(tab, {})).toBeGreaterThan(1);
-  });
-
-  test("keeps a group with a member of the project, and counts that member alone (AC-2)", () => {
-    const member = (folder: string, project: string): RowFacts =>
-      spec(folder, { specFolder: folder, state: "queued", project }).facts;
-    const release = spec("release", {
-      specFolder: "release", state: "queued", itemCount: 2,
-      members: [member("01-a", "aide"), member("01-b", "other")],
-    });
-    expect(view([release], { project: "other" })).toEqual(["release"]);
-    expect(jobsMatchingCount([release], { project: "other" })).toBe(1);
-    expect(view([release], { project: "nosuch" })).toEqual([]);
-  });
-});

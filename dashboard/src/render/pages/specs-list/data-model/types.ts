@@ -159,7 +159,6 @@ export interface SpecsFilter {
   windowLoaded?: string;
   grow?: string;
   state?: string;
-  project?: string;
   sort?: string;
   dir?: string;
   /** A plain search term, matched against the three fields
@@ -186,7 +185,7 @@ export interface SpecsFilter {
 
 /** How the list is cut and ordered: the keys of the address the list
  *  is read from. */
-export const FILTER_KEYS = ["state", "project", "sort", "dir", "open", "checks", "phases", "q"] as const;
+export const FILTER_KEYS = ["state", "sort", "dir", "open", "checks", "phases", "q"] as const;
 
 export { RUN_STEPS, PHASE_LINES, type Phase } from "./phase.ts";
 

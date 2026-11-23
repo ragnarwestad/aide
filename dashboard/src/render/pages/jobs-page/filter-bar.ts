@@ -7,7 +7,7 @@ import { t, type Language } from "../../../i18n";
 import { askButton } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { SORTS, SORT_DEFAULT_DIR, stateFilterLabel } from "../specs-list/data-model";
-import { menuDropdown, projectDropdown, resultCount, searchForm, sortHead } from "../specs-list/filter-bar.ts";
+import { menuDropdown, resultCount, searchForm, sortHead } from "../specs-list/filter-bar.ts";
 import { NEW_GROUP_DIALOG } from "./execution-group-editor.ts";
 import {
   jobsSortPatch,
@@ -22,7 +22,7 @@ import {
 
 /** The keys that travel on as hidden fields of the search form, so a search
  *  keeps the filter, the column and the folds the reader had. */
-const KEPT = ["project", "sort", "dir", "open", "checks", "phases"] as const;
+const KEPT = ["sort", "dir", "open", "checks", "phases"] as const;
 const KIND_LABELS = {
   spec: "jobs.filterKindSpec",
   deploy: "jobs.filterKindDeploy",
@@ -32,10 +32,10 @@ const KIND_LABELS = {
   group: "jobs.filterKindGroup",
 } as const;
 
-/** The search box with the type, state and project dropdowns after its help,
- *  and New group after them. `projects` is the Project filter's list, in its order;
- *  New group is off while no project has two specs to group (`groupable`). */
-export function jobsFilterBar(facts: RowFacts[], f: JobsFilter, lang: Language, shownCount = facts.length, projects: readonly string[] = [], groupable = true): string {
+/** The search box with the type and state dropdowns after its help, and New
+ *  group after them. New group is off while no project has two specs to
+ *  group (`groupable`). */
+export function jobsFilterBar(facts: RowFacts[], f: JobsFilter, lang: Language, shownCount = facts.length, groupable = true): string {
   const stateOptions = jobsStateOptions(facts, f);
   const kindOptions = jobsKindOptions(facts, f);
   const state = menuDropdown({
@@ -70,7 +70,7 @@ export function jobsFilterBar(facts: RowFacts[], f: JobsFilter, lang: Language, 
       hidden: [["state", jobsStateValue(f.state)], ["kind", jobsKindValue(f.kind)], ...KEPT.filter((k) => f[k]).map((k): [string, string] => [k, f[k]!])],
       q: f.q ?? "",
       clearHref: esc(jobsViewPath(f, { q: "" })),
-      after: kind + state + projectDropdown(f, projects, (p) => esc(jobsViewPath(f, { project: p })), lang) + resultCount(shownCount) + askButton({ label: t(lang, "list.groupCreate"), dialogId: NEW_GROUP_DIALOG, variant: "primary", disabled: !groupable, title: groupable ? undefined : t(lang, "list.groupNoneToGroup") }),
+      after: kind + state + resultCount(shownCount) + askButton({ label: t(lang, "list.groupCreate"), dialogId: NEW_GROUP_DIALOG, variant: "primary", disabled: !groupable, title: groupable ? undefined : t(lang, "list.groupNoneToGroup") }),
     },
     lang,
   );

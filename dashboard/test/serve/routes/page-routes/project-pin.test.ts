@@ -44,10 +44,6 @@ async function page(base: string, path: string): Promise<Document> {
 const listed = async (base: string): Promise<string[]> =>
   [...(await page(base, "/projects")).querySelectorAll(".cardrow[data-project]")].map((r) => r.getAttribute("data-project")!);
 
-/** The projects a Project filter offers, after its All entry. */
-const filtered = async (base: string, path: string): Promise<string[]> =>
-  [...(await page(base, path)).querySelectorAll("#project-filter .menupanel a")].slice(1).map((a) => a.textContent!.trim());
-
 describe("POST /projects/<name>/pin", () => {
   test("pinning puts the project first on the Projects list, and unpinning puts it back (AC-2, AC-4)", async () => {
     const { base, dir } = board();
@@ -96,7 +92,7 @@ describe("a pinned project in the board's lists", () => {
     expect((await pinSwitch("aide"))?.getAttribute("aria-checked")).toBe("false");
   });
 
-  test("comes first in the picker, the New spec form and the Project filters on Specs and Jobs (AC-2)", async () => {
+  test("comes first in the picker and the New spec form (AC-2)", async () => {
     const { base } = board();
     await pin(base, "gamma", "on");
     const picker = [...(await page(base, "/projects/aide?tab=config")).querySelectorAll(".projectpicker .menupanel a > span:last-child")]
@@ -105,7 +101,5 @@ describe("a pinned project in the board's lists", () => {
     const choice = [...(await page(base, "/new")).querySelectorAll('select[name="project"] option')]
       .map((o) => o.getAttribute("value")).filter(Boolean);
     expect(choice).toEqual(["gamma", "aide", "beta"]);
-    expect(await filtered(base, "/specs")).toEqual(["gamma", "aide", "beta"]);
-    expect(await filtered(base, "/")).toEqual(["gamma", "aide", "beta"]);
   });
 });

@@ -393,9 +393,8 @@ its own folder for the project, beside its checkouts (`icon.json`, and the file 
 ### Pinning a project
 
 The **Pin** switch on a project's Config tab puts the project first in every list where a project is chosen: the
-Projects list, the picker at the top of a project's page, the project choice on the New spec form, and the Project
-filter on the Jobs and Specs pages. Pinned projects keep the usual order among themselves, and so do the rest;
-turning Pin off puts the project back in its usual place.
+Projects list, the picker at the top of a project's page and the project choice on the New spec form. Pinned projects
+keep the usual order among themselves, and so do the rest; turning Pin off puts the project back in its usual place.
 
 Pin is a setting of the board, not of the project: it is kept as a `pinned` file in the board's own folder for the
 project, beside its checkouts, and never committed to either repository. A project removed and added again keeps its
@@ -406,9 +405,9 @@ pin, as it keeps a chosen icon.
 **Hide** on a project's Config tab puts a project aside without removing it. It asks first, in a dialog; **Show** takes
 its place on a hidden project and puts it back at once, without asking.
 
-- A hidden project is left out of the picker at the top of a project's page (its own page included), the project
-  choice on the New spec form and the Project filter on the Jobs and Specs pages. The Projects list shows it in a
-  folded **Hidden** group under the other projects, closed until opened.
+- A hidden project is left out of the picker at the top of a project's page (its own page included) and the project
+  choice on the New spec form. The Projects list shows it in a folded **Hidden** group under the other projects,
+  closed until opened.
 - Its specs, jobs and history stay where they are: its own page and its spec pages still open, and its
   rows stay on Jobs and Specs.
 - No new job is queued for it, of any kind: a Run, a Deploy, a New spec, a schedule entry's fire and a step a finished

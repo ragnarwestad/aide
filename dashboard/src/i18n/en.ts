@@ -110,8 +110,6 @@ export const en = {
   "shell.testRound": "round",
 
   "list.statesLabel": "States",
-  "list.projectLabel": "Project",
-  "list.allProjects": "All projects",
   "list.state.none": "None",
   "list.state.all": "All",
   "list.state.active": "Active",

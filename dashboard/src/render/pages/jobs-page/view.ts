@@ -93,8 +93,6 @@ export type RowFacts = Pick<
 /** What the state entries match and count for a row: a group's member specs, any other row itself. */
 const stateRows = (row: RowFacts): RowFacts[] => row.members ?? [row];
 
-/** Whether a row is the chosen project's: a group is when one of its members is. */
-const ofProject = (row: RowFacts, f: SpecsFilter): boolean => !f.project || stateRows(row).some((r) => r.project === f.project);
 
 /** When a job that is not going ended, in milliseconds; NaN when the queue
  *  recorded no end. */
@@ -151,8 +149,7 @@ export function jobsViewRows<E extends { facts: RowFacts; place: TabPlace }>(ent
   const searched = inOrder.map((e) => e.facts).filter((facts) => jobsSearchMatch(facts, f).matches);
   const kept = searched.filter((facts) =>
     (choosesAll(f.state) || stateRows(facts).some((row) => tabFilters.some((entry) => matchesStateFilter(entry, row)))) &&
-    kinds.some((entry) => entry.key === "all" || entry.key === rowKind(facts)) &&
-    ofProject(facts, f)
+    kinds.some((entry) => entry.key === "all" || entry.key === rowKind(facts))
   );
   const shown = sortGroups(kept, f);
   return shown.map((facts) => byFacts.get(facts)!);
@@ -165,7 +162,6 @@ export function jobsMatchingCount<E extends { facts: RowFacts; place: TabPlace }
   for (const { facts } of jobsViewRows(entries, f)) {
     for (const row of stateRows(facts)) {
       if (!states.some((state) => matchesStateFilter(state, row))) continue;
-      if (f.project && row.project !== f.project) continue;
       if (!matchesSearch(facts, f) && !matchesSearch(row, f)) continue;
       keys.add(row.lead?.id ?? `${row.project}/${row.specFolder}`);
     }

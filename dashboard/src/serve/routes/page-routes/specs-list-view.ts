@@ -120,7 +120,6 @@ export async function specsListParts(
     filter: {
       ...base.filter,
       state: chosenState,
-      project: url.searchParams.get("project") ?? undefined,
       sort: chosenSort.sort,
       dir: chosenSort.dir,
       // The search term, a query-string citizen like the

@@ -262,7 +262,7 @@ export function renderJobsRows(v: JobsView): string {
   const editor = newGroupEditor(v, lang);
   return (
     notices + editor.html +
-    jobsFilterBar(all.map((e) => e.facts), f, lang, jobsMatchingCount(all, f), v.list.createProjects, editor.groupable) +
+    jobsFilterBar(all.map((e) => e.facts), f, lang, jobsMatchingCount(all, f), editor.groupable) +
     listTable({ tableAttrs: ' data-list="jobs"', head: jobsHead(f, lang), columns: columnGroup(), boxAttrs: windowAttributes(window), body, after: more })
   );
 }
