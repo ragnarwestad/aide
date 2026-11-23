@@ -110,7 +110,7 @@ function fakeAsk() {
 }
 
 describe("submitProgress from inside the ask", () => {
-  test("posts for JSON, covers the page with the dialog's word, and goes to the Running page with the job's row open", async () => {
+  test("posts for JSON, covers the page with the dialog's word, and goes to the Running page scrolled to the job's shut row", async () => {
     const requests = stubPost(200, { ok: true, job: { id: "j1", project: "aide", specFolder: "150-x", steps: ["reopen"], stepIndex: 0 } });
     const a = fakeAsk();
     a.ask.open = true;
@@ -120,7 +120,7 @@ describe("submitProgress from inside the ask", () => {
     expect(event.defaultPrevented).toBe(true);
     expect(a.ask.open).toBe(false);
     expect(requests[0]!.headers.accept).toBe("application/json");
-    expect(io.gone).toEqual(["/?open=aide/150-x:reopen@j1"]);
+    expect(io.gone).toEqual(["/#spec-aide/150-x:reopen@j1"]);
     // The cover stays until the Running page is in place.
     expect(io.covers).toEqual(["Deploying…"]);
   });

@@ -76,14 +76,14 @@ describe("Close asks in a dialog", () => {
     expect(await dialog(page).isVisible()).toBe(false);
   });
 
-  // The Running page follows the job from there, on the job's own open row.
-  test("an accepted post goes to the Running page with the job's row open", async () => {
+  // The Running page follows the job from there, scrolled to the job's own row.
+  test("an accepted post goes to the Running page scrolled to the job's shut row", async () => {
     const page = await open(ACCEPTED);
     await close(page).click();
     await dialog(page).locator("textarea").fill("It will not work.");
     await dialog(page).getByRole("button", { name: "OK" }).click();
     await page.waitForURL((url) => url.pathname === "/");
-    expect(new URL(page.url()).searchParams.get("open")).toBe(`aide/${LIVE}:close@j1`);
+    expect(new URL(page.url()).hash).toBe(`#spec-aide/${LIVE}:close@j1`);
   });
 
   test("Cancel closes the box on every press", async () => {

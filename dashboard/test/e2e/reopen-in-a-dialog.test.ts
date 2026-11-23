@@ -88,12 +88,12 @@ describe("Reopen asks in a dialog from the spec in its row", () => {
     }
   });
 
-  test("an accepted post goes to the Running page with the job's row open", async () => {
+  test("an accepted post goes to the Running page scrolled to the job's shut row", async () => {
     const { page } = await open(SPEC);
     await ask(page);
     await dialog(page).getByRole("button", { name: "OK" }).click();
     await page.waitForURL((url) => url.pathname === "/");
-    expect(new URL(page.url()).searchParams.get("open")).toBe(`aide/${STAMPED}:reopen@j1`);
+    expect(new URL(page.url()).hash).toBe(`#spec-aide/${STAMPED}:reopen@j1`);
   });
 
   test("a refusal is written in the dialog, which stays, and a second OK posts again", async () => {

@@ -1,6 +1,7 @@
 import { bindListWindow, acceptListWindow } from "../list-window";
 import { holdListAnchor } from "../list-window/anchor.ts";
 import { openPhaseAttemptLogs, reopenPhaseAttemptLogs } from "./phase-attempt-logs.ts";
+import { addedRowKeys, showAddedRow } from "./added-rows.ts";
 // Redrawing #jobrows from the server's own answer — only the specs
 // whose rows actually differ, and never a row a press is mid-click on
 
@@ -420,12 +421,14 @@ export async function swapRows(onAccepted?: () => void): Promise<void> {
     restore();
     reopenMenu();
     reopenPhaseAttemptLogs([body], openPhaseLogs);
+    const added = addedRowKeys(lastRows, next);
     lastRows = next;
     const wrap = body.querySelector(".tablewrap") as HTMLElement | null;
     if (wrap) wrap.scrollTop = scrolled;
     restoreAnchor();
     acceptListWindow(body);
     redrawn(body, open);
+    showAddedRow(body, added);
     onAccepted?.();
   } catch {
     // offline, server restarting, tailnet hiccup: try again next tick

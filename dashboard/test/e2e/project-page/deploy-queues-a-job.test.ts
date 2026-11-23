@@ -1,5 +1,5 @@
 // The board's own Deploy asks first, and OK queues a job and goes to the
-// Running tab with the job's row open. Only a browser presses the button,
+// Running tab at the job's row, shut. Only a browser presses the button,
 // clicks OK in the dialog and follows the page to the Running tab.
 //
 // The fetch is held, so the job is still in flight when the page lands: a
@@ -54,14 +54,15 @@ afterAll(async () => {
 });
 
 describe("Deploy on the board's own project page", () => {
-  test("OK queues the job and the page lands on the Running tab with the job's row open", async () => {
+  test("OK queues the job and the page lands on the Running tab at the job's row, which opens on its five steps", async () => {
     const page = await browser.newPage();
     await page.goto(`${base}/projects/aide?tab=deploy&live=0`);
     await page.getByRole("button", { name: "Deploy", exact: true }).click();
     await page.locator("dialog[open]").getByRole("button", { name: "OK" }).click();
-    await page.waitForURL((u) => u.pathname === "/" && (u.searchParams.get("open") ?? "").startsWith("aide/deploy:deploy@"), { timeout: 10_000 });
+    await page.waitForURL((u) => u.pathname === "/" && u.hash.startsWith("#spec-aide/deploy:deploy@"), { timeout: 10_000 });
     const row = page.locator('tr[id^="spec-aide/deploy:deploy@"]');
     await row.waitFor({ state: "visible", timeout: 5000 });
+    await row.locator('a[data-fold="open"]').click();
     await page.locator('tr.subrow[data-step="Step 1 of 5"]').waitFor({ state: "visible", timeout: 5000 });
     expect(await page.locator("tr.subrow[data-step]").count()).toBe(5);
     await page.goto(`${base}/projects/aide?tab=deploy&live=0`);

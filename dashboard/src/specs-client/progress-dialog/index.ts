@@ -53,7 +53,7 @@ export function coverWhile(dialog: HTMLDialogElement, io: ProgressIo = browserIo
 }
 
 /** Close's, Reopen's and Deploy's OK. Once the queue has the job the page
- *  goes to the Running page with the job's row open. */
+ *  goes to the Running page with the job's row shut, scrolled to it. */
 export async function submitProgress(form: HTMLFormElement, event: Event, io: ProgressIo = browserIo): Promise<void> {
   if (event.defaultPrevented) return;
   event.preventDefault();
@@ -65,7 +65,7 @@ export async function submitProgress(form: HTMLFormElement, event: Event, io: Pr
     (answer) => {
       const job = answer?.job;
       const step = job?.steps?.[job.stepIndex ?? 0];
-      io.go(job?.project && job.specFolder && step ? `/?open=${job.project}/${job.specFolder}:${step}@${job.id}` : "/");
+      io.go(job?.project && job.specFolder && step ? `/#spec-${job.project}/${job.specFolder}:${step}@${job.id}` : "/");
     },
     (why) => hold.release(why),
   );
