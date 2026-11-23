@@ -109,6 +109,14 @@ const stroke = (body: string): string =>
   `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" ` +
   `stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
 
+/** The Jobs and Specs filters' own icons, beside their words and in place
+ *  of them where the search line is short: four boxes for Types, a list
+ *  with one item marked for States. */
+export const FILTER_ICONS = {
+  kind: stroke('<rect x="2.5" y="2.5" width="4.5" height="4.5" rx="1"></rect><rect x="9" y="2.5" width="4.5" height="4.5" rx="1"></rect><rect x="2.5" y="9" width="4.5" height="4.5" rx="1"></rect><rect x="9" y="9" width="4.5" height="4.5" rx="1"></rect>'),
+  state: stroke('<circle cx="4" cy="4" r="1.5"></circle><path d="M7.5 4h6"></path><circle cx="4" cy="8" r="1.5" fill="currentColor"></circle><path d="M7.5 8h6"></path><circle cx="4" cy="12" r="1.5"></circle><path d="M7.5 12h6"></path>'),
+} as const;
+
 export const KIND_ICONS: Record<RowKind, string> = {
   spec: stroke('<path d="M4 2.5h5l3 3V13.5H4zM9 2.5v3h3"></path>'),
   land: stroke('<circle cx="4" cy="3" r="1.5"></circle><circle cx="12" cy="3" r="1.5"></circle><circle cx="8" cy="13" r="1.5"></circle><path d="M4 4.5v1c0 3 4 2 4 5.5M12 4.5v1c0 3-4 2-4 5.5"></path>'),

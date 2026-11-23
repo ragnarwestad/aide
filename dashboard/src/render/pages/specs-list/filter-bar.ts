@@ -4,7 +4,7 @@
 // draws the rows themselves.
 
 import { NEW_SPEC_ROUTE } from "../projects-page";
-import { btn, btnLink, helpPopover, ICON_CHEVRON, ICON_SEARCH } from "../../ui/components";
+import { btn, btnLink, FILTER_ICONS, helpPopover, ICON_CHEVRON, ICON_SEARCH } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { t, type Language, type TranslationKey } from "../../../i18n";
 import {
@@ -147,6 +147,7 @@ function stateDropdown(
   });
   return menuDropdown({
     filter: "state",
+    icon: "state",
     none: { label: t(lang, "list.state.none"), href: queueHref(f, { state: "none" }) },
     ariaLabel: t(lang, "list.statesLabel"),
     triggerLabel: t(lang, "list.statesLabel"),
@@ -184,7 +185,7 @@ export function resultCount(n: number): string {
 /** A filter dropdown of checkbox links, its button named by `triggerLabel`
  *  whatever is ticked. `filter` names the control for the page script and
  *  the tests. `none`, where given, stands beside the first option. */
-export function menuDropdown(o: { filter: string; ariaLabel: string; options: MenuOption[]; triggerLabel: string; none?: Pick<MenuOption, "label" | "href"> }): string {
+export function menuDropdown(o: { filter: string; ariaLabel: string; options: MenuOption[]; triggerLabel: string; none?: Pick<MenuOption, "label" | "href">; icon?: keyof typeof FILTER_ICONS }): string {
   const [all, ...choices] = o.options;
   const option = (opt: MenuOption) =>
     (opt.heading ? `<strong>${esc(opt.heading)}</strong>` : "") +
@@ -196,7 +197,8 @@ export function menuDropdown(o: { filter: string; ariaLabel: string; options: Me
   const widths = `<span aria-hidden="true">${visible}</span>`;
   return (
     `<details class="menu state" id="${o.filter}-filter" data-filter="${o.filter}"${all?.on ? "" : " data-filter-active"}>` +
-    `<summary aria-label="${o.ariaLabel}">` +
+    `<summary aria-label="${o.ariaLabel}" title="${o.ariaLabel}">` +
+    (o.icon ? `<span class="filtericon">${FILTER_ICONS[o.icon]}</span>` : "") +
     `<span class="menuwidth"><span>${visible}</span>${widths}</span>${ICON_CHEVRON}</summary>` +
     `<div class="menupanel" role="group" aria-label="${o.ariaLabel}">${options}</div>` +
     `</details>`

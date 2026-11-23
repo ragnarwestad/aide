@@ -479,13 +479,15 @@
   table.speclist.groupcard > tbody > tr.groupline:not(.spechead, .specstate, .subrow) { padding-right: calc(var(--sp-3) - 2px); }
 }
 
-/* The Jobs tab's Types and States give way to the "…" menu's rows a little
-   above a phone's width, where they and New group no longer fit on the
-   search line; the rest of the phone layout starts at 40rem as before. */
+/* Where the Jobs tab's search line is short, Types and States are their
+   icons alone, drawn as the header's own icon triggers: no frame, no arrow
+   and no dot, the icon in the accent colour on its soft ground while its
+   filter is on. */
 @media (min-width: 40.0625rem) and (max-width: 47.5rem) {
-  #jobrows .specsearch { position: relative; }
-  #jobrows .specsearch > .menu.state { position: absolute; right: 0; top: 100%; }
-  #jobrows .specsearch > .menu.state > summary { display: none; }
-  body:has(#kind-filter) .menupanel > [data-jobs-filter],
-  body:has(#kind-filter) .menupanel > [data-opens="kind-filter"] { display: flex; }
+  #jobrows .specsearch > .menu.state > summary { width: 32px; height: 32px; padding: 0; border: 0; background: none; }
+  #jobrows .specsearch > .menu.state > summary:hover { background: var(--surface-2); color: var(--text); }
+  #jobrows .specsearch > .menu.state > summary::before,
+  #jobrows .specsearch > .menu.state > summary > :is(.menuwidth, svg) { display: none; }
+  #jobrows .specsearch > .menu.state > summary .filtericon > svg { width: 18px; height: 18px; }
+  #jobrows .specsearch > .menu.state[data-filter-active] > summary { color: var(--accent); background: var(--accent-soft); }
 }

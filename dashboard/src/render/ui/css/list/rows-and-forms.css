@@ -252,6 +252,8 @@ td form { margin: 0; display: inline-block; }
 body:has(#state-filter[data-filter-active]) .menupanel > [data-opens="state-filter"],
 body:has(#kind-filter[data-filter-active]) .menupanel > [data-opens="kind-filter"] {
   --filter-mark: var(--accent); }
+.menu.state .filtericon { display: inline-flex; }
+.menu.state .filtericon > svg { width: 14px; height: 14px; }
 .menu.state .menuwidth { display: inline-grid; position: relative; }
 .menu.state .menuwidth > span { grid-area: 1 / 1; white-space: nowrap; }
 .menu.state .menuwidth > [aria-hidden] { visibility: hidden; }
