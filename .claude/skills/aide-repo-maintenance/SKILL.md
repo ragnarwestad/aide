@@ -34,7 +34,7 @@ changing the spec structure — not for ordinary spec work in this repo.
 `markdown-linting` are skills, not rules,** in `core/skills/`, and `spec-structure` is a rule for Claude Code and a
 GENERATED skill for Codex/Copilot. The reason is a byte budget: Codex
 appends at most `project_doc_max_bytes` of AGENTS.md — 32768 by default —
-and drops the rest silently. `test_core_scripts.py::TestBuildAgentsMd::test_output_fits_codex_read_window`
+and drops the rest silently. `test_generated_files.py::TestBuildAgentsMd::test_output_fits_codex_read_window`
 is what says so now. A new rule in `core/rules/` spends that budget; a
 new skill in `core/skills/` does not.
 
@@ -42,13 +42,13 @@ Two consequences worth knowing before editing anything here:
 
 - `core/skills/spec-structure/SKILL.md` is generated. Edit
   `core/rules/spec-structure.md` and re-run the build script — never the
-  skill directly; `test_core_scripts.py::TestSpecStructureSkillIsGenerated`
+  skill directly; `test_generated_files.py::TestSpecStructureSkillIsGenerated`
   compares the two bodies byte for byte.
 - `core/implementations/claude-code/install.sh` excludes `spec-structure/`
-  from its skill rsync by name, so it reaches Codex/Copilot only. That
-  exclusion is why `test_core_skills.py::TestUninstallListsEverySkill`
-  carries a one-name exception, and it is the third hand-paired list in
-  this repo after `WORKFLOW_STEPS` and `DEPENDENCY_GATED_STEPS`.
+  from its skill install by name, so it reaches Codex/Copilot only. The
+  uninstaller removes only what the install recorded in its manifest
+  (`test_core_skills.py::TestUninstallReadsTheManifest`), so the
+  exclusion needs no second list there.
 
 ## Changing the spec structure
 
@@ -80,4 +80,5 @@ These MUST always mirror each other. When changing one, update the other.
 
 Shared scripts (`core/scripts/` → `~/.local/bin/`) are handled by
 `core/scripts/_install-bin.sh` — change the script list *there*, not in each installer.
-`install-all.sh` / `uninstall-all.sh` (repo root) run all three in sequence.
+`install-all.sh` / `uninstall-all.sh` (repo root) run the installer of every tool listed in
+`core/scripts/lib/ai-tools/tools.txt`, in sequence.

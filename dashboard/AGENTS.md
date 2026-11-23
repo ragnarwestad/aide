@@ -174,6 +174,20 @@ look like pairs but share one source.
   as an exported function (`BASH_FUNC_<name>%%`) instead of a file, and a
   stub that must be a file is written once per test file, not per test.
 
+## When a session's own change has taken the board down
+
+Every session change reaches main through Merge, and the user presses
+Deploy, with one exception: a change from this session that has stopped
+the serving board itself, so that neither a Merge nor the Deploy button
+can run. Then the fix goes straight to main and is pushed, and the
+session starts the Deploy itself with
+`POST /api/queue/projects/aide/deploy` (port 8788, the Bearer token in
+`~/.aide/dashboard/queue-token`), and checks that the pages load. A
+Deploy joins the back of the queue; with jobs waiting ahead of it, it is
+moved first through the queue editor (`POST /api/queue/waiting/open`,
+then `save`). Red tests, a refused Merge or a long queue are not this
+case.
+
 ## Code health
 
 The repository's rules for file length, folder size, splitting a module

@@ -79,8 +79,7 @@ Følg prosjektets stil (Steg 0.3). Bruk eksisterende test som mal.
 ### Steg 4 — Dekning
 - Har prosjektet en coverage-kommando, kjør den. Vis før/etter + antall nye tester.
 
-**Stopp og be om bekreftelse:** etter at testene er skrevet (før kjøring) og etter kjøring
-(før commit) — i tråd med brukerens testing-disiplin.
+Testene kjøres så snart de er skrevet. Commit og push gjøres bare når brukeren har bedt om det.
 
 ## Prinsipper
 

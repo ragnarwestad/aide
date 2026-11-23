@@ -10,7 +10,7 @@ description: >-
   "finn duplisert logikk", "sjekk filstørrelser", before a refactor, when
   agents keep missing a place a change has to touch.
   Do NOT use for: making the changes (each spec goes through aide-analyze and
-  aide-implement), reviewing a diff (use code-review), exploring an idea
+  aide-implement), reviewing a diff, exploring an idea
   (use aide-explore).
 argument-hint: "[optional area or concern to focus on]"
 effort: high

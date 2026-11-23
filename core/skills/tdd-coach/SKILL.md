@@ -2,8 +2,8 @@
 name: tdd-coach
 description: >-
   Test-Driven Development methodology.
-  Use when: implementing new functionality, refactoring existing code, ensuring high test coverage.
-  Do NOT use for: task analysis and planning (use task-workflow-assistant), codebase exploration without implementation
+  Use when: implementing new functionality, refactoring existing code.
+  Do NOT use for: task analysis and planning (use task-workflow-assistant), codebase exploration without implementation, adding missing tests to existing code without changing its behaviour (use unit-tests)
 effort: high
 ---
 

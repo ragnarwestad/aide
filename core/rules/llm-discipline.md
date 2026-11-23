@@ -76,9 +76,9 @@ works TODAY — never a chronicle of how it got there.**
 
 ## See also
 
-Two related Karpathy principles already have their own coverage here — use
-them rather than duplicating:
+Related principles covered elsewhere, or stated here once:
 
-- **Simplicity first** (minimal code, no speculative abstraction) — the `/code-review` skill
+- **Simplicity first** — choose the smallest change that solves the problem asked for, with no
+  speculative abstraction
 - **Goal-driven execution** (verifiable success criteria, RED → GREEN → REFACTOR) — `testing.md` and `/tdd-coach`
 - **Never hand-write a spec's files** — the `spec-structure` rule/skill, "Templates"

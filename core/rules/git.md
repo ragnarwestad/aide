@@ -91,8 +91,13 @@ why, with the context a reader needs.
 
 ## Pushing and push status
 
-Push only when the current request itself explicitly asks for it — a past "and push" isn't a
-standing instruction for later requests. The user pushes from the IDE.
+Push only when the user has asked for it in the conversation. One go-ahead is enough: once the user
+has said "commit and push" (or "put it on the board", "merge it"), later finished work of the same
+kind in that conversation is committed, pushed and sent on as it is done, without asking again. An
+agreed clean-up job is finished the same way, its commit and push included. Work with red tests or
+an open question stays where it is, and the user is told. An action of a new kind — deleting data,
+touching another repository, starting specs on a board — is still asked about. The user pushes
+from the IDE otherwise.
 
 **Session code changes in a project with an Aide board reach the default branch through Merge.**
 A request to merge or push to main authorizes this sequence:

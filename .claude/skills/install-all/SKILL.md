@@ -1,7 +1,7 @@
 ---
 name: install-all
 description: >-
-  Install Aide for all AI tools (Claude Code, Copilot, Codex).
+  Install Aide for all AI tools (Claude Code, Copilot, Codex, OpenCode).
   Runs install-all.sh, which calls each core/implementations/<ai>/install.sh.
   Use when: installing or updating Aide for all tools, having
   changed skills or rules and wanting to reinstall.
@@ -26,6 +26,7 @@ self-contained and sets up:
 - **Claude Code:** skills, agents, rules → `~/.claude/`, LSP plugins
 - **Copilot:** `AGENTS.md` → `~/.copilot/`, keybindings
 - **Codex:** custom instructions, MCP servers
+- **OpenCode:** `AGENTS.md` as its global instructions; it reads the skills the others install
 
 The shared scripts are copied by each installer — deliberately, so `core/implementations/<ai>/install.sh`
 alone provides everything that AI needs.

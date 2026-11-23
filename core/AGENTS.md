@@ -81,8 +81,11 @@ restarting at `a` under every point. The user's reply may then be nothing but a 
 
 - What has been done, what was committed, or any other status — with one exception: commits not
   yet pushed. Run `git log origin/main..main --oneline` in the same reply, and when it lists any,
-  end the list with a point saying they are ready to push (and to Deploy, when they change what a
-  server runs), so finished work is not forgotten
+  end the list with a point saying they are ready to push, so finished work is not forgotten. In a
+  board-backed session that ends with the branch pushed and `aide merge`, not with Deploy
+- What is done or followed on the board: a Deploy after a Merge, a Merge waiting in the queue,
+  jobs that are running, or a branch the user has asked to hold until he says so. The board is
+  where the user follows those
 - Whether the working tree is clean, tests are green, or the build passes
 - Backlog headings without content ("see docs/SPEC.md") — write out the actual points
 - Preamble, summary or closing remarks around the list
@@ -242,8 +245,13 @@ why, with the context a reader needs.
 
 ## Pushing and push status
 
-Push only when the current request itself explicitly asks for it — a past "and push" isn't a
-standing instruction for later requests. The user pushes from the IDE.
+Push only when the user has asked for it in the conversation. One go-ahead is enough: once the user
+has said "commit and push" (or "put it on the board", "merge it"), later finished work of the same
+kind in that conversation is committed, pushed and sent on as it is done, without asking again. An
+agreed clean-up job is finished the same way, its commit and push included. Work with red tests or
+an open question stays where it is, and the user is told. An action of a new kind — deleting data,
+touching another repository, starting specs on a board — is still asked about. The user pushes
+from the IDE otherwise.
 
 **Session code changes in a project with an Aide board reach the default branch through Merge.**
 A request to merge or push to main authorizes this sequence:
@@ -356,10 +364,10 @@ works TODAY — never a chronicle of how it got there.**
 
 ## See also
 
-Two related Karpathy principles already have their own coverage here — use
-them rather than duplicating:
+Related principles covered elsewhere, or stated here once:
 
-- **Simplicity first** (minimal code, no speculative abstraction) — the `/code-review` skill
+- **Simplicity first** — choose the smallest change that solves the problem asked for, with no
+  speculative abstraction
 - **Goal-driven execution** (verifiable success criteria, RED → GREEN → REFACTOR) — `testing.md` and `/tdd-coach`
 - **Never hand-write a spec's files** — the `spec-structure` rule/skill, "Templates"
 

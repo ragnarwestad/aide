@@ -71,8 +71,11 @@ restarting at `a` under every point. The user's reply may then be nothing but a 
 
 - What has been done, what was committed, or any other status — with one exception: commits not
   yet pushed. Run `git log origin/main..main --oneline` in the same reply, and when it lists any,
-  end the list with a point saying they are ready to push (and to Deploy, when they change what a
-  server runs), so finished work is not forgotten
+  end the list with a point saying they are ready to push, so finished work is not forgotten. In a
+  board-backed session that ends with the branch pushed and `aide merge`, not with Deploy
+- What is done or followed on the board: a Deploy after a Merge, a Merge waiting in the queue,
+  jobs that are running, or a branch the user has asked to hold until he says so. The board is
+  where the user follows those
 - Whether the working tree is clean, tests are green, or the build passes
 - Backlog headings without content ("see docs/SPEC.md") — write out the actual points
 - Preamble, summary or closing remarks around the list
