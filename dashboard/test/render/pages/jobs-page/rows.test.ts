@@ -444,11 +444,10 @@ test("Jobs dates drive both the spec row and its position relative to Deploy, wh
   expect(onJobs!.group.createdAt).toBe(T(7));
   expect(onSpecs!.group.createdAt).toBe(T(1));
   const deploy = job({ specFolder: "deploy", steps: ["deploy"], createdAt: T(6), state: "done" });
-  const place = { band: 2 as const, changedAt: 0 };
   expect(jobsViewRows([
-    { key: "deploy", facts: jobFacts(deploy as never, Date.parse(T(8))), place },
-    { key: "807", facts: onJobs!.group, place },
-  ], { sort: "created", dir: "desc" }).map((row) => row.key)).toEqual(["807", "deploy"]);
+    { key: "deploy", facts: jobFacts(deploy as never, Date.parse(T(8))), place: jobPlace(deploy as never) },
+    { key: "807", facts: onJobs!.group, place: specPlace(onJobs!.group) },
+  ], {}).map((row) => row.key)).toEqual(["807", "deploy"]);
 });
 
 

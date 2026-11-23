@@ -310,6 +310,8 @@ export function sortHead(
     specLabel: TranslationKey;
     /** The Specs list: job status is reached through its Jobs links. */
     specsList?: boolean;
+    /** Headings only, no sort links: a list kept in an order of its own. */
+    plain?: boolean;
   },
   lang: Language = "en",
 ): string {
@@ -372,7 +374,11 @@ export function sortHead(
     `<thead><tr>` +
     (o.specsList ? SPEC_HEADINGS : HEADINGS).map((h) => {
       const label = h.key === "spec" ? o.specLabel : h.label;
-      if (h.plain) return `<th${h.attrs}>${esc(t(lang, label))}</th>`;
+      if (h.plain || o.plain) {
+        const text = h.labelHtml?.(lang) ?? esc(t(lang, label));
+        const action = h.key === "spec" && !o.specsList ? `<span class="colaction">${esc(t(lang, "list.colAction"))}</span>` : "";
+        return `<th class="${h.cls ?? ""}"${h.attrs}>${text}${action}</th>`;
+      }
       const cell = th(h.key, t(lang, label), h.cls ?? "", h.labelHtml?.(lang), h.attrs);
       // An open job's button stands at the right end of this column, just
       // before the state, so the column heads it there too.

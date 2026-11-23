@@ -6,11 +6,10 @@
 import { t, type Language } from "../../../i18n";
 import { askButton } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
-import { SORTS, SORT_DEFAULT_DIR, stateFilterLabel } from "../specs-list/data-model";
+import { stateFilterLabel } from "../specs-list/data-model";
 import { menuDropdown, resultCount, searchForm, sortHead } from "../specs-list/filter-bar.ts";
 import { NEW_GROUP_DIALOG } from "./execution-group-editor.ts";
 import {
-  jobsSortPatch,
   jobsKindOptions,
   jobsKindValue,
   jobsStateValue,
@@ -78,17 +77,9 @@ export function jobsFilterBar(facts: RowFacts[], f: JobsFilter, lang: Language, 
   );
 }
 
-/** The table head: every heading sorts, Created is marked by default,
- *  and the second is headed Title. */
-export function jobsHead(f: JobsFilter, lang: Language): string {
-  const sort = SORTS.includes(f.sort ?? "") ? f.sort : "created";
-  const dir = f.dir === "asc" || f.dir === "desc" ? f.dir : SORT_DEFAULT_DIR[sort ?? "created"]!;
-  return sortHead(
-    {
-      now: { sort, dir },
-      href: (key) => esc(jobsViewPath(f, jobsSortPatch(f, key))),
-      specLabel: "jobs.colTitle",
-    },
-    lang,
-  );
+/** The table head: plain headings, since the tab keeps its own order —
+ *  running, the queue in its order, then the newest change — and the
+ *  second is headed Title. */
+export function jobsHead(_f: JobsFilter, lang: Language): string {
+  return sortHead({ now: { dir: "desc" }, href: () => "", specLabel: "jobs.colTitle", plain: true }, lang);
 }

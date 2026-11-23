@@ -36,11 +36,12 @@ test("sorting opens the loading dialog and blocks links until the list answers",
   const page = await browser.newPage();
   const release = Promise.withResolvers<void>();
   try {
-    await page.goto(`${base}/?live=0`);
-    const specs = page.locator('a[href="/specs"]:visible').first();
-    const box = (await specs.boundingBox())!;
+    // The Specs list sorts in place; the Jobs tab keeps its own order and has no sort links.
+    await page.goto(`${base}/specs?live=0`);
+    const jobs = page.locator('a[href="/"]:not(.brand):visible').first();
+    const box = (await jobs.boundingBox())!;
     let navigations = 0;
-    await page.route((url) => url.pathname === "/specs", (route) => {
+    await page.route((url) => url.pathname === "/" && !url.searchParams.has("rows"), (route) => {
       navigations++;
       return route.continue();
     });
@@ -57,8 +58,8 @@ test("sorting opens the loading dialog and blocks links until the list answers",
     expect(await cover.isVisible()).toBe(true);
     release.resolve();
     await cover.waitFor({ state: "hidden" });
-    await specs.click();
-    await page.waitForURL((url) => url.pathname === "/specs");
+    await jobs.click();
+    await page.waitForURL((url) => url.pathname === "/");
     expect(navigations).toBeGreaterThan(0);
   } finally {
     release.resolve();

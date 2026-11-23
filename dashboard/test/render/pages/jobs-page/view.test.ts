@@ -11,7 +11,6 @@ import {
   jobsKindFilters,
   jobsKindOptions,
   jobsKindValue,
-  jobsSortPatch,
   jobsStateFilters,
   jobsStateValue,
   jobsStateOptions,
@@ -110,7 +109,7 @@ describe("kind choices narrow rows independently of state", () => {
   });
 
   test("Close and Reopen count as Specs while execution groups count as Groups (AC-5)", () => {
-    expect(view(kinds, { kind: "spec" })).toEqual(["run81", "close", "reopen"]);
+    expect(view(kinds, { kind: "spec" })).toEqual(["run81", "reopen", "close"]);
     expect(view(kinds, { kind: "group" })).toEqual(["group"]);
   });
 
@@ -360,46 +359,18 @@ describe("a scheduled job is matched on its title and its project", () => {
   });
 });
 
-describe("the columns sort as the Specs list's do, newest created first by default", () => {
-  test("missing or invalid sort uses creation time across states and row kinds", () => {
+describe("the rows keep the tab's own order", () => {
+  test("running first, then the queue, then the newest change, whatever column the address names", () => {
     const newest = jobEntry("newest", { state: "done", createdAt: T(9) });
     const shuffled = [waiting, newest, nightly, failedReport, running];
-    const expected = ["newest", "run81", "nightly", "report-other", "idle83"];
+    const expected = ["run81", "nightly", "report-other", "idle83", "newest"];
     expect(view(shuffled, {})).toEqual(expected);
-    expect(view(shuffled, { sort: "no-such-column" })).toEqual(expected);
-  });
-
-  test("a column the view names orders rows of both kinds, in the column's direction", () => {
-    const priced = [
-      spec("cheap", { specFolder: "90-cheap", state: "failed", spentUsd: 0.1 }),
-      spec("dear", { specFolder: "91-dear", state: "failed", spentUsd: 9 }),
-      jobEntry("job", { state: "failed", spentUsd: 3 }),
-    ];
-    expect(view(priced, { sort: "cost" })).toEqual(["dear", "job", "cheap"]);
-    expect(view(priced, { sort: "cost", dir: "asc" })).toEqual(["cheap", "job", "dear"]);
-  });
-
-  test("the time column orders by the figure each row's Time cell shows, longest first", () => {
-    const rows = [
-      spec("short-spec", { specFolder: "90-a", state: "failed", totalDurationMs: 1000 }),
-      jobEntry("long-job", { state: "failed", startedAt: T(2), finishedAt: T(2, 12) }),
-      spec("mid-spec", { specFolder: "91-b", state: "failed", totalDurationMs: 60_000 }),
-    ];
-    expect(view(rows, { sort: "started" })).toEqual(["long-job", "mid-spec", "short-spec"]);
-  });
-
-  test("a press on a heading sorts by it, a second turns it round, a third returns to newest created first", () => {
-    expect(jobsSortPatch({}, "created")).toEqual({ sort: "created", dir: "asc" });
-    expect(jobsSortPatch({}, "cost")).toEqual({ sort: "cost", dir: "" });
-    expect(jobsSortPatch({ sort: "cost" }, "cost")).toEqual({ sort: "cost", dir: "asc" });
-    expect(jobsSortPatch({ sort: "cost", dir: "asc" }, "cost")).toEqual({ sort: "", dir: "" });
-    expect(jobsSortPatch({ sort: "state" }, "state")).toEqual({ sort: "state", dir: "desc" });
-    expect(jobsSortPatch({ sort: "state", dir: "desc" }, "state")).toEqual({ sort: "", dir: "" });
-    expect(jobsSortPatch({ sort: "cost" }, "state")).toEqual({ sort: "state", dir: "" });
+    expect(view(shuffled, { sort: "cost" })).toEqual(expected);
+    expect(view(shuffled, { sort: "created", dir: "asc" })).toEqual(expected);
   });
 
   test("a view link leads to the Jobs tab, always names its state entry, and drops what the patch empties", () => {
-    expect(jobsViewPath({ sort: "cost", dir: "asc" }, jobsSortPatch({ sort: "cost", dir: "asc" }, "cost"))).toBe("/?state=all&kind=all");
+    expect(jobsViewPath({ sort: "cost", dir: "asc" }, { sort: "", dir: "" })).toBe("/?state=all&kind=all");
     const link = new URL(`http://x${jobsViewPath({ state: "failed", q: "nightly" }, { sort: "cost" })}`);
     expect(link.pathname).toBe("/");
     expect(Object.fromEntries(link.searchParams)).toEqual({ state: "failed", kind: "all", q: "nightly", sort: "cost" });

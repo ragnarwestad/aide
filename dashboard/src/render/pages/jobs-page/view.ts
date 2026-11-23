@@ -7,12 +7,9 @@
 import { jobPresentation } from "../../ui/job-state/presentation.ts";
 import { inFlight, type QueueRowView } from "../../ui/job-state";
 import {
-  SORTS,
-  SORT_DEFAULT_DIR,
   chosenStates,
   matchesSearch,
   matchesStateFilter,
-  sortGroups,
   toggledState,
   type SpecGroup,
   type SpecsFilter,
@@ -140,7 +137,7 @@ export const jobsSearchMatch = (row: RowFacts, f: SpecsFilter): { matches: boole
 /** The rows the view shows, in its order: the search cuts them as
  *  `applyFilter` does, and a state entry keeps a row one of whose state rows
  *  it matches (All keeps every row); a column the view names orders them
- *  as `sortGroups` does; with none, newest created first. */
+ *  stay in the tab's own order (`byTabPlace`). */
 export function jobsViewRows<E extends { facts: RowFacts; place: TabPlace }>(entries: E[], f: JobsFilter): E[] {
   const inOrder = [...entries].sort((a, b) => byTabPlace(a.place, b.place));
   const byFacts = new Map(inOrder.map((e) => [e.facts, e]));
@@ -151,8 +148,7 @@ export function jobsViewRows<E extends { facts: RowFacts; place: TabPlace }>(ent
     (choosesAll(f.state) || stateRows(facts).some((row) => tabFilters.some((entry) => matchesStateFilter(entry, row)))) &&
     kinds.some((entry) => entry.key === "all" || entry.key === rowKind(facts))
   );
-  const shown = sortGroups(kept, f);
-  return shown.map((facts) => byFacts.get(facts)!);
+  return kept.map((facts) => byFacts.get(facts)!);
 }
 
 /** Count matching work inside groups, deduplicating a shared job. */
@@ -192,17 +188,6 @@ export function jobsKindOptions(facts: RowFacts[], f: JobsFilter): { key: JobsKi
     on: chosen[0]?.key === "all" || chosen.some((entry) => entry.key === key),
     kind: toggledState(kindEntries, chosen, key),
   }));
-}
-
-/** Where a heading's link goes: a column not sorted by goes to its first
- *  direction; the sorted one in its first direction turns round; turned round,
- *  back to newest created first. */
-export function jobsSortPatch(f: JobsFilter, key: string): { sort: string; dir: string } {
-  const first = SORT_DEFAULT_DIR[key]!;
-  if ((SORTS.includes(f.sort ?? "") ? f.sort : "created") !== key) return { sort: key, dir: "" };
-  const dir = f.dir === "asc" || f.dir === "desc" ? f.dir : first;
-  if (dir !== first) return { sort: "", dir: "" };
-  return { sort: key, dir: first === "asc" ? "desc" : "asc" };
 }
 
 /** A view link on the Jobs tab: always to `/`, always naming its state entry,
