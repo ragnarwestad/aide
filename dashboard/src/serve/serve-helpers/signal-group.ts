@@ -38,3 +38,17 @@ export function signalProcess(pid: unknown, signal: NodeJS.Signals = "SIGTERM"):
     return false;
   }
 }
+
+/** Whether the group `pid` leads may still hold a process: signal 0,
+ *  which delivers nothing. Only ESRCH says the group is gone; any other
+ *  refusal (EPERM) means something is there. `false` for a pid that is
+ *  not a real process id, which is never asked. */
+export function groupAlive(pid: unknown): boolean {
+  if (!isSignallablePid(pid)) return false;
+  try {
+    process.kill(-pid, 0);
+    return true;
+  } catch (e) {
+    return (e as { code?: unknown }).code !== "ESRCH";
+  }
+}

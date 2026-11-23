@@ -7,7 +7,7 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { isSignallablePid, signalGroup, signalProcess } from "../../src/serve/serve-helpers/signal-group.ts";
+import { groupAlive, isSignallablePid, signalGroup, signalProcess } from "../../src/serve/serve-helpers/signal-group.ts";
 
 let calls: { pid: number; signal: unknown }[];
 let killSpy: ReturnType<typeof spyOn>;
@@ -46,6 +46,30 @@ describe("signalGroup", () => {
       throw new Error("ESRCH");
     }) as typeof process.kill);
     expect(signalGroup(4242)).toBe(false);
+  });
+});
+
+describe("groupAlive", () => {
+  const refuse = (code: string) =>
+    killSpy.mockImplementation((() => {
+      throw Object.assign(new Error(code), { code });
+    }) as typeof process.kill);
+
+  test("asks the whole group with signal 0, which delivers nothing (AC-1)", () => {
+    expect(groupAlive(4242)).toBe(true);
+    expect(calls).toEqual([{ pid: -4242, signal: 0 }]);
+  });
+
+  test("only ESRCH says the group is gone; EPERM means something is still there (AC-1)", () => {
+    refuse("ESRCH");
+    expect(groupAlive(4242)).toBe(false);
+    refuse("EPERM");
+    expect(groupAlive(4242)).toBe(true);
+  });
+
+  test("a pid below 2, or no pid at all, is never asked and reads as gone (AC-4)", () => {
+    for (const pid of [1, 0, -1, 1.5, Number.NaN, undefined, null, "4242"]) expect(groupAlive(pid)).toBe(false);
+    expect(calls).toEqual([]);
   });
 });
 

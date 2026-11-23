@@ -28,6 +28,8 @@ import { groupBranchForJob } from "../queue/execution-groups";
 import { runnerArgv, DEFAULT_QUEUE_CONCURRENCY, logRefusal } from "./serve-helpers";
 import { analysisSessionToResume, archiveFailureContext, launchProviders, previousAttemptContext, stepTool } from "./serve-helpers/runner-argv.ts";
 import { openRunLog } from "../queue/runner/run-log-path.ts";
+import { noteStartedGroup } from "../queue/job-rules/started-groups.ts";
+import { isSignallablePid } from "./serve-helpers/signal-group.ts";
 import { enqueueRequest, followOnRequest } from "../queue/request/index.ts";
 import { moveGroupOn } from "../queue/execution-groups/move-on.ts";
 import { specsLiveInside } from "./land-branch/handed-to-merge.ts";
@@ -302,6 +304,7 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
         stdio: ["ignore", "ignore", openRunLog(streamFile)],
       });
       proc.unref();
+      if (isSignallablePid(proc.pid)) noteStartedGroup(job.project, proc.pid);
       return { pid: proc.pid, pgid: proc.pid };
       } };
     },

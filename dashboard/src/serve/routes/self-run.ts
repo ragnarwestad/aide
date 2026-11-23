@@ -17,7 +17,7 @@
 // Not scoped to a project/specFolder, like `self-stop.ts`: a test board
 // serves exactly one project, the round's own.
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { signalGroup } from "../serve-helpers/signal-group.ts";
+import { groupAlive, isSignallablePid, signalGroup } from "../serve-helpers/signal-group.ts";
 import { basename, join } from "node:path";
 import { getBoardInfo, isRoundBoard } from "../../render/ui/board-info.ts";
 import { configSpecsPath } from "../../project/discover/config.ts";
@@ -26,6 +26,8 @@ import { json } from "../serve-helpers";
 import { inFlight, writing } from "../../queue/queue.ts";
 import type { Job } from "../../queue/queue.ts";
 import { endStep } from "../../queue/runner/step-result.ts";
+import { unfinishedWork, waitUntilEnded, type WaitSeams } from "../../queue/job-rules/work-ended.ts";
+import { liveStartedGroups, noteStartedGroup } from "../../queue/job-rules/started-groups.ts";
 import { isProvisionalKey } from "../../project/spec-names.ts";
 import { CATCH_UP_LOCK_WAIT_MS, withCheckoutLock } from "../../git/checkout-lock/index.ts";
 
@@ -188,7 +190,7 @@ async function runRound(ctx: RoutesContext): Promise<void> {
     // repository (no round does this) the code reset already covers it.
     const specs = configSpecsPath(code) ?? join(code, "specs");
     const ownRepo = (await ctx.specsRoot(specs)) !== (await ctx.specsRoot(code));
-    await cancelLiveJobs(ctx, project);
+    await cancelLiveJobs(ctx.queue, project);
     ctx.queue.dropProject(project);
     // The last round's failed create is a message on the Specs list until
     // it is dismissed; the round makes a new one each time.
@@ -215,26 +217,32 @@ async function runRound(ctx: RoutesContext): Promise<void> {
 }
 
 /** Every job the project still holds is ended the way the Cancel button
- *  ends one — the transition, then SIGTERM to the process group — and
- *  the round waits for the runner to let go of them before the repos
- *  are touched under a run's feet. */
-async function cancelLiveJobs(ctx: RoutesContext, project: string): Promise<void> {
-  for (const job of ctx.queue.list()) {
+ *  ends one, and the round waits until no landing runs and every group
+ *  the project's steps started has exited, an earlier press's included,
+ *  before the repos are touched. A wait that runs out throws. */
+export async function cancelLiveJobs(
+  queue: Pick<RoutesContext["queue"], "list" | "transition">, project: string, seams: WaitSeams = {},
+): Promise<void> {
+  for (const job of queue.list()) {
     if (job.project !== project) continue;
     if (job.state !== "queued" && job.state !== "running") continue;
-    const result = endStep(ctx.queue, job.id, "cancel", {
-      finishedAt: new Date().toISOString(),
-      error: undefined,
-      errorReason: undefined,
-    });
-    if (result.ok) signalGroup(job.pgid);
+    const pgid = job.pgid; // the step's end clears it from the record
+    const ended = { finishedAt: new Date().toISOString(), error: undefined, errorReason: undefined };
+    const result = endStep(queue, job.id, "cancel", ended);
+    if (!result.ok) continue;
+    signalGroup(pgid);
+    // Kept whether or not the signal went: a refusal is no proof of exit.
+    if (isSignallablePid(pgid)) noteStartedGroup(project, pgid);
   }
-  const until = Date.now() + 30_000;
-  while (Date.now() < until) {
-    const busy = ctx.queue.list().some((j) => j.project === project && writing(j));
-    if (!busy) return;
-    await new Promise((r) => setTimeout(r, 250));
-  }
+  const left = () => stillGoing(queue.list(), project, seams.alive ?? groupAlive, writing);
+  await waitUntilEnded(left, seams.limitMs ?? 30_000, "the cancelled work");
+}
+
+/** The project's jobs `busy` says are still going, and every process
+ *  group its steps started (or a job still carries) that is alive. */
+function stillGoing(jobs: Job[], project: string, alive: (pgid: number) => boolean, busy: typeof writing): string[] {
+  for (const j of jobs) if (j.project === project && isSignallablePid(j.pgid)) noteStartedGroup(project, j.pgid);
+  return unfinishedWork(jobs, project, liveStartedGroups(project, alive), () => true, busy);
 }
 
 /** What the round's git needs of the routes' context. */
@@ -328,27 +336,25 @@ export async function resetRepo(ctx: RoundGit, dir: string, base: string | null,
  *  origin while the queue works, so a spec's state (read from the
  *  checkout a person looks at) catches up with what a landing pushed —
  *  a dependency on an archived spec is answered from there. Until no
- *  job of the project is live. */
-async function followUntilDrained(ctx: RoutesContext, project: string, dirs: string[]): Promise<void> {
-  const live = (): boolean =>
-    ctx.queue.list().some(
-      (j) =>
-        j.project === project &&
-        inFlight(j),
-    );
-  const deadline = Date.now() + 30 * 60_000;
-  while (live() && Date.now() < deadline) {
-    await new Promise((r) => setTimeout(r, 5000));
+ *  job of the project is in flight and every process group its steps
+ *  started has exited; a wait that runs out throws, naming what is still going. */
+export async function followUntilDrained(
+  ctx: Pick<RoutesContext, "queue" | "gitRun" | "invalidateScan">, project: string, dirs: string[], seams: WaitSeams = {},
+): Promise<void> {
+  const left = () => stillGoing(ctx.queue.list(), project, seams.alive ?? groupAlive, inFlight);
+  try {
+    const between = () => pullDisplay(ctx, dirs);
+    await waitUntilEnded(left, seams.limitMs ?? 30 * 60_000, "the round's work", { pollMs: seams.pollMs ?? 5000, between });
+  } finally {
     await pullDisplay(ctx, dirs);
+    ctx.invalidateScan();
   }
-  await pullDisplay(ctx, dirs);
-  ctx.invalidateScan();
 }
 
 /** A fast-forward of the checkouts a person looks at, each under its
  *  lock; a checkout that cannot fast-forward, or whose lock stays held,
  *  is left as it is — the next pull may. */
-async function pullDisplay(ctx: RoutesContext, dirs: string[]): Promise<void> {
+async function pullDisplay(ctx: RoundGit, dirs: string[]): Promise<void> {
   for (const dir of dirs) {
     await withCheckoutLock(dir, () => ctx.gitRun(dir, ["pull", "-q", "--ff-only"], 30_000), {
       waitMs: CATCH_UP_LOCK_WAIT_MS,

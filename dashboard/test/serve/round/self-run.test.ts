@@ -8,13 +8,22 @@
 // through a real runner, which no unit test should start. What is
 // proven is everything before the fixtures go in — the reset — and
 // that the route then reports the round as queued.
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { execFileSync } from "node:child_process";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
+import { execFileSync, spawn } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { queueHarness } from "../../helpers/queue-server.ts";
-import { resetRepo, resetRoundState, settledCreateFolder } from "../../../src/serve/routes/self-run.ts";
+import {
+  cancelLiveJobs,
+  followUntilDrained,
+  resetRepo,
+  resetRoundState,
+  settledCreateFolder,
+} from "../../../src/serve/routes/self-run.ts";
+import { QueueStore, type QueueDefaults } from "../../../src/queue/queue.ts";
+import { groupAlive, signalGroup } from "../../../src/serve/serve-helpers/signal-group.ts";
+import { clearStartedGroups, noteStartedGroup } from "../../../src/queue/job-rules/started-groups.ts";
 import { heldLock, watchLock } from "../../helpers/held-lock.ts";
 
 const auth = { headers: { accept: "application/json" } };
@@ -326,5 +335,171 @@ describe("the round's reset and the checkout's lock", () => {
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
+  });
+});
+
+// The round's two waits: before the reset, for the work it cancelled to
+// end; before `done`, for the round's own work to end. Each throws when
+// its time runs out, and `runRound` turns the throw into `failed`.
+const DEFAULTS: QueueDefaults = {
+  timeoutSec: { default: 1200 },
+  permissionMode: { default: "acceptEdits" },
+  model: { default: "sonnet" },
+};
+const PROJECT = "aide-test";
+afterEach(clearStartedGroups);
+
+/** A store holding one job of the round's project, started with `patch`. */
+function storeWithRunningJob(patch: { pgid?: number; landing?: boolean } = {}): { store: QueueStore; id: string } {
+  const store = new QueueStore({
+    defaults: DEFAULTS,
+    resolve: (project) => (project === PROJECT ? { specFolders: ["01-add-the-first-fact"] } : null),
+  });
+  const made = store.enqueue({ project: PROJECT, specFolder: "01-add-the-first-fact", steps: ["implement"] });
+  if (!made.ok) throw new Error(made.error);
+  const id = made.job.id;
+  store.transition(id, "start", { startedAt: new Date().toISOString(), pgid: patch.pgid, pid: patch.pgid });
+  if (patch.landing) store.update(id, { landing: true });
+  return { store, id };
+}
+
+/** Whether `promise` has settled after `ms`. */
+async function settledWithin(promise: Promise<unknown>, ms: number): Promise<boolean> {
+  let settled = false;
+  promise.then(
+    () => (settled = true),
+    () => (settled = true),
+  );
+  await new Promise((r) => setTimeout(r, ms));
+  return settled;
+}
+
+describe("cancelLiveJobs, with a real process group", () => {
+  let leader: number | undefined;
+  afterEach(() => {
+    if (leader) signalGroup(leader, "SIGKILL");
+    leader = undefined;
+  });
+
+  test("waits until the cancelled job's group has exited, and keeps the job meanwhile (AC-1)", async () => {
+    // A step that takes about a second to let go after its SIGTERM.
+    const child = spawn("bash", ["-c", "trap 'sleep 1; exit 0' TERM; while :; do sleep 0.05; done"], {
+      detached: true,
+      stdio: "ignore",
+    });
+    leader = child.pid!;
+    await new Promise((r) => setTimeout(r, 200)); // the trap is set
+    const { store, id } = storeWithRunningJob({ pgid: leader });
+
+    const wait = cancelLiveJobs(store, PROJECT, { limitMs: 10_000 });
+    expect(await settledWithin(wait, 400)).toBe(false);
+    expect(store.get(id)?.state).toBe("cancelled");
+    await wait;
+    expect(groupAlive(leader)).toBe(false);
+  });
+});
+
+describe("cancelLiveJobs and followUntilDrained, with made-up groups", () => {
+  // These records carry pids no process here owns: nothing may reach a
+  // real kill.
+  let kills: unknown[];
+  let killSpy: ReturnType<typeof spyOn>;
+  beforeEach(() => {
+    kills = [];
+    killSpy = spyOn(process, "kill").mockImplementation(((pid: number) => {
+      kills.push(pid);
+      throw Object.assign(new Error("EPERM"), { code: "EPERM" });
+    }) as typeof process.kill);
+  });
+  afterEach(() => killSpy.mockRestore());
+
+  const ctxOf = (store: QueueStore) => {
+    let scans = 0;
+    return {
+      ctx: {
+        queue: store,
+        gitRun: async () => ({ code: 0, stdout: "", stderr: "" }),
+        invalidateScan: () => {
+          scans += 1;
+        },
+      },
+      scans: () => scans,
+    };
+  };
+
+  test("a group whose SIGTERM could not be sent is still waited on (AC-1)", async () => {
+    const { store } = storeWithRunningJob({ pgid: 4242 });
+    const alive = new Set([4242]);
+    const wait = cancelLiveJobs(store, PROJECT, { limitMs: 5000, alive: (g) => alive.has(g) });
+    expect(await settledWithin(wait, 400)).toBe(false);
+    expect(kills).toEqual([-4242]);
+    alive.delete(4242);
+    await wait;
+  });
+
+  test("a press after a cancel wait ran out still waits on the group the first press cancelled (AC-1, AC-2)", async () => {
+    const { store, id } = storeWithRunningJob({ pgid: 4242 });
+    const alive = new Set([4242]);
+    const seams = { limitMs: 200, alive: (g: number) => alive.has(g) };
+    await expect(cancelLiveJobs(store, PROJECT, seams)).rejects.toThrow(/process group 4242$/);
+    expect(store.get(id)).toMatchObject({ state: "cancelled", pgid: undefined });
+    await expect(cancelLiveJobs(store, PROJECT, seams)).rejects.toThrow(/process group 4242$/);
+    alive.delete(4242);
+    await cancelLiveJobs(store, PROJECT, seams);
+  });
+
+  test("the round's wait follows a group whose step started and ended between two polls (AC-3)", async () => {
+    const { store, id } = storeWithRunningJob();
+    store.transition(id, "step-succeeded-last");
+    noteStartedGroup(PROJECT, 4243); // what the server's spawn records
+    const { ctx } = ctxOf(store);
+    await expect(followUntilDrained(ctx, PROJECT, [], { limitMs: 200, pollMs: 50, alive: (g) => g === 4243 })).rejects.toThrow(
+      /^the round's work had not ended after .* seconds: process group 4243$/,
+    );
+  });
+
+  test("a landing still going when the cancel wait runs out rejects, naming the job, and keeps it (AC-2)", async () => {
+    const { store, id } = storeWithRunningJob({ landing: true });
+    await expect(cancelLiveJobs(store, PROJECT, { limitMs: 300, alive: () => false })).rejects.toThrow(
+      /^the cancelled work had not ended after .* seconds: 01-add-the-first-fact \(landing\)$/,
+    );
+    expect(store.get(id)).toBeDefined();
+  });
+
+  test("resolves at once when nothing of the project is live (AC-4)", async () => {
+    const { store, id } = storeWithRunningJob();
+    store.transition(id, "step-succeeded-last");
+    expect(await settledWithin(cancelLiveJobs(store, PROJECT, { limitMs: 5000, alive: () => true }), 100)).toBe(true);
+  });
+
+  test("the round's wait rejects when a job is still running at its end (AC-3)", async () => {
+    const { store } = storeWithRunningJob();
+    const { ctx, scans } = ctxOf(store);
+    await expect(followUntilDrained(ctx, PROJECT, [], { limitMs: 300, pollMs: 50, alive: () => false })).rejects.toThrow(
+      /^the round's work had not ended after .* seconds: 01-add-the-first-fact \(running\)$/,
+    );
+    expect(scans()).toBe(1);
+  });
+
+  test("the round's wait rejects when a finished job's group, seen earlier, is still alive (AC-3)", async () => {
+    const { store, id } = storeWithRunningJob({ pgid: 4242 });
+    const { ctx } = ctxOf(store);
+    setTimeout(() => store.transition(id, "step-succeeded-last", { pgid: undefined, pid: undefined }), 100);
+    await expect(followUntilDrained(ctx, PROJECT, [], { limitMs: 400, pollMs: 50, alive: (g) => g === 4242 })).rejects.toThrow(
+      /^the round's work had not ended after .* seconds: process group 4242$/,
+    );
+    expect(store.get(id)?.state).toBe("done");
+  });
+
+  test("the round's wait resolves once every job and group has ended (AC-4)", async () => {
+    const { store, id } = storeWithRunningJob({ pgid: 4242 });
+    const { ctx, scans } = ctxOf(store);
+    const alive = new Set([4242]);
+    setTimeout(() => {
+      store.transition(id, "step-succeeded-last", { pgid: undefined, pid: undefined });
+      alive.delete(4242);
+    }, 100);
+    await followUntilDrained(ctx, PROJECT, [], { limitMs: 5000, pollMs: 50, alive: (g) => alive.has(g) });
+    expect(scans()).toBe(1);
   });
 });

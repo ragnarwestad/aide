@@ -7,6 +7,7 @@ import { availableParallelism, tmpdir } from "node:os";
 import { join } from "node:path";
 import { DEFAULT_QUEUE_CONCURRENCY, isQueueConcurrency, parseQueueConcurrency, processSettings } from "../../../src/serve/serve-helpers";
 import { createQueueRunner, type RunnerSetupContext } from "../../../src/serve/runner-setup.ts";
+import { liveStartedGroups } from "../../../src/queue/job-rules/started-groups.ts";
 import { JOB, specHead, setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness(undefined, IMPLEMENTED);
@@ -105,6 +106,8 @@ describe("the queue config decides how many run at once", () => {
         await new Promise((r) => setTimeout(r, 200));
       }
       expect(running.length).toBe(3);
+      // Each spawned step's group is kept for the test round's waits.
+      expect(liveStartedGroups("aide", () => true).length).toBeGreaterThanOrEqual(3);
     } finally {
       writeFileSync(go, "");
     }
