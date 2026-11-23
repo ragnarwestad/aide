@@ -109,12 +109,18 @@ const stroke = (body: string): string =>
   `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" ` +
   `stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
 
+/** A Lucide icon (ISC) at its own 24-unit grid, stroked to match the
+ *  weight of the 16-unit icons above at the same size. */
+const lucide = (body: string): string =>
+  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" ` +
+  `stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
+
 /** The Jobs and Specs filters' own icons, beside their words and in place
- *  of them where the search line is short: four boxes for Types, a list
- *  with one item marked for States. */
+ *  of them where the search line is short: Lucide's funnel for Types and
+ *  its list-filter (three shortening lines) for States. */
 export const FILTER_ICONS = {
-  kind: stroke('<rect x="2.5" y="2.5" width="4.5" height="4.5" rx="1"></rect><rect x="9" y="2.5" width="4.5" height="4.5" rx="1"></rect><rect x="2.5" y="9" width="4.5" height="4.5" rx="1"></rect><rect x="9" y="9" width="4.5" height="4.5" rx="1"></rect>'),
-  state: stroke('<circle cx="4" cy="4" r="1.5"></circle><path d="M7.5 4h6"></path><circle cx="4" cy="8" r="1.5" fill="currentColor"></circle><path d="M7.5 8h6"></path><circle cx="4" cy="12" r="1.5"></circle><path d="M7.5 12h6"></path>'),
+  kind: lucide('<path d="M10 20a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341L21.74 4.67A1 1 0 0 0 21 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14z"></path>'),
+  state: lucide('<path d="M3 6h18"></path><path d="M7 12h10"></path><path d="M10 18h4"></path>'),
 } as const;
 
 export const KIND_ICONS: Record<RowKind, string> = {
