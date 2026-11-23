@@ -82,11 +82,13 @@ export function landingStep(r: { steps: readonly string[]; stepIndex: number; st
 }
 
 /** Current operation, using the same wait decision as the phase and filter. */
-export function specStateChip(r: QueueRowView, lang: Language, resting: RestingState = {}): string {
+/** `editQueue` makes a queue position the button that opens the queue
+ *  editor: on the Jobs tab, never on the Specs list. */
+export function specStateChip(r: QueueRowView, lang: Language, resting: RestingState = {}, editQueue = false): string {
   const shown = jobPresentation(r);
   if (shown.waiting?.id) {
     const pos = shown.waiting;
-    return queueBadge(lang, pos.id!, pos.n, pos.total, pos.reason, r.state === "queued" && r.steps[r.stepIndex] === "deploy");
+    return queueBadge(lang, pos.id!, pos.n, pos.total, pos.reason, editQueue);
   }
   if (["queued", "needs-action", "testing", "merging"].includes(shown.state)) {
     const pos = shown.waiting;

@@ -184,7 +184,7 @@ export function executionGroupCard(
     `<span class="pipslot">${memberPips}</span>` +
     // Its action, while the card is open, before the state, as a job's is.
     (control ? `<span class="actionslot" data-group-action${open ? "" : " hidden"}>${control}</span>` : "") + `</span></td>` +
-    `<td data-col="state"><span class="badgeslot" data-group-state>${(() => { const pos = group.queuePosition ?? firstWaiting([archiveJob, ...members.map(member => member.group.lead)]); return pos?.id ? queueBadge(lang as Language, pos.id, pos.n, pos.total, pos.reason) : badge(groupProviderLimitWait(group, members.map((member) => member.group)) ? "waiting" : groupBadgeVariant(executionGroupDisplayState(group, archiveJob), group.stoppedByUser), executionGroupStateLabel(group, members, lang as Language, archiveJob)); })()}</span>` +
+    `<td data-col="state"><span class="badgeslot" data-group-state>${(() => { const pos = group.queuePosition ?? firstWaiting([archiveJob, ...members.map(member => member.group.lead)]); return pos?.id ? queueBadge(lang as Language, pos.id, pos.n, pos.total, pos.reason, true) : badge(groupProviderLimitWait(group, members.map((member) => member.group)) ? "waiting" : groupBadgeVariant(executionGroupDisplayState(group, archiveJob), group.stoppedByUser), executionGroupStateLabel(group, members, lang as Language, archiveJob)); })()}</span>` +
     `</td>` +
     `<td data-col="started">${activeDurationCell({ totalDurationMs, totalDurationSince } as SpecGroup)}</td>` +
     `<td class="num" data-col="cost">${costCell(spentUsd, spentTokens, "–", costSettled)}</td></tr>` +

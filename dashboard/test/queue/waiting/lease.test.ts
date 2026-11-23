@@ -75,22 +75,23 @@ test("a failed opening releases admission immediately", () => {
 });
 
 
-test("only the selected Deploy can cross predecessors; successors and arrivals remain behind it (AC-3, AC-4)", () => {
+test("only the selected job moves, up or down past the waiting work; others keep their order and arrivals stay behind it (AC-3, AC-4)", () => {
   const q = new WaitingQueue({});
   q.reconcile([entry("a"), entry("x"), entry("b"), entry("c")]);
   const owner = q.open("editor", "b");
   expect(() => q.save(owner, ["x", "a", "b", "c"])).toThrow();
-  expect(() => q.save(owner, ["a", "x", "c", "b"])).toThrow();
   q.reconcile([entry("a"), entry("b"), entry("c"), entry("new")]);
   const refreshed = q.renew(owner);
-  expect(() => q.save({ ...refreshed, snapshotIds: refreshed.entries.map(e => e.id) }, ["a", "c", "b", "new"])).toThrow();
-  q.save({ ...refreshed, snapshotIds: refreshed.entries.map(e => e.id) }, ["b", "a", "c", "new"]);
-  expect(q.snapshot().entries.map(e => e.id)).toEqual(["b", "a", "c", "new"]);
+  const issued = { ...refreshed, snapshotIds: refreshed.entries.map(e => e.id) };
+  expect(() => q.save(issued, ["a", "c", "new", "b"])).toThrow();
+  q.save(issued, ["a", "c", "b", "new"]);
+  expect(q.snapshot().entries.map(e => e.id)).toEqual(["a", "c", "b", "new"]);
 });
-test("opening refuses non-Deploy and removed targets without pausing admission (AC-7)", () => {
+test("any waiting job opens the editor, a removed one does not and leaves admission running (AC-7)", () => {
   const q = new WaitingQueue({}); q.reconcile([entry("a"), entry("b")]);
-  expect(() => q.open("spec", "a")).toThrow();
   expect(() => q.open("gone", "missing")).toThrow();
+  expect(q.paused).toBe(false);
+  q.cancel(q.open("spec", "a"));
   expect(q.paused).toBe(false);
   const owner = q.open("deploy", "b");
   expect(() => q.open("deploy", "a")).toThrow();

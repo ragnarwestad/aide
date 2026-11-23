@@ -129,7 +129,7 @@ Answered by `src/serve/routes/job-actions.ts`, `src/serve/routes/job-detail.ts`,
 
 | Route                                         | Kind   | Takes                                              | Answers                                                                     | Made for  |
 | --------------------------------------------- | ------ | -------------------------------------------------- | --------------------------------------------------------------------------- | --------- |
-| `POST /api/queue/waiting/open`                | action | requestId, waiting Deploy entryId                  | owner, targetId, openingIds, full queue, dialog; 409 if occupied            | interface |
+| `POST /api/queue/waiting/open`                | action | requestId, waiting entryId                       | owner, targetId, openingIds, full queue, dialog; 409 if occupied            | interface |
 | `POST /api/queue/waiting/renew`               | action | owner token, generation and revision               | renewed owner snapshot; 409 if ownership expired                            | interface |
 | `POST /api/queue/waiting/snapshot`            | action | owner token, generation and revision               | current entries; no lease renewal                                           | interface |
 | `POST /api/queue/waiting/save`                | action | owner, issued snapshotIds, reordered ids           | save only selected Deploy ahead of its opening position; release on success | interface |

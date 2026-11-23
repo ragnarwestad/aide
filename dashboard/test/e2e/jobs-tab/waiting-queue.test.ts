@@ -18,7 +18,7 @@ afterEach(async () => { await page.close(); harness.cleanup(); });
 afterAll(async () => { await browser.close(); });
 const dialog = () => page.getByRole("dialog", { name: "Waiting queue", exact: true });
 async function open() {
-  await page.getByRole("button", { name: /Queued [12]\/2/, exact: true }).first().click();
+  await page.getByRole("button", { name: "Queued 2/2", exact: true }).click();
   await dialog().waitFor({ state: "visible" });
 }
 async function savedOrder(): Promise<string[]> {
@@ -109,6 +109,16 @@ test("live arrivals preserve a reordered draft and ownership loss disables Save 
   await page.route("**/api/queue/waiting/snapshot", route => route.fulfill({ status: 409, contentType: "application/json", body: JSON.stringify({ error: "ownership lost" }) }));
   await page.waitForFunction(() => document.querySelector<HTMLButtonElement>('#waiting-editor-form-save')?.disabled === true);
   expect(await dialog().getByRole("button", { name: "Save", exact: true }).isDisabled()).toBe(true);
+});
+
+test("a queued spec's badge on Jobs opens the editor, and it moves behind the Deploy", async () => {
+  await page.getByRole("button", { name: "Queued 1/2", exact: true }).click();
+  await dialog().waitFor({ state: "visible" });
+  expect(await page.evaluate(() => (document.activeElement as HTMLElement)?.dataset.waitingId)).toBe("job:a:0");
+  await dialog().getByRole("button", { name: "Move down", exact: true }).click();
+  await dialog().getByRole("button", { name: "Save", exact: true }).click();
+  await dialog().waitFor({ state: "detached" });
+  expect(await savedOrder()).toEqual(["b", "a"]);
 });
 
 test("the Specs page keeps Spec queue badges passive (AC-7)", async () => {

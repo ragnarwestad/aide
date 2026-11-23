@@ -605,7 +605,7 @@ resolves outside the project root is dropped when the file is read, and a malfor
 
 ## How many run at once
 
-Press the Queued n/N button on a waiting Deploy to edit the full waiting queue. Only that Deploy can move: drag by its handle or use Move up and Move down, then Save. It can move ahead of waiting work or back to its opening position before Save. Other jobs keep their order and show their queue position and reason without opening editing. Cancel or Escape leaves the saved order unchanged. New work appears at the end; completed or cancelled work disappears. A step a provider's usage limit stopped stays in the queue until it starts again, unless its spec has had a newer job for that step: the board never starts such a step again.
+Press the Queued n/N button on any waiting job on the Jobs tab to edit the full waiting queue. Only that job can move: drag by its handle or use Move up and Move down, then Save. It can move up or down past the work that was waiting when the editor opened, but not behind work that arrived since. Other jobs keep their order and show their queue position and reason. Cancel or Escape leaves the saved order unchanged. New work appears at the end; completed or cancelled work disappears. A step a provider's usage limit stopped stays in the queue until it starts again, unless its spec has had a newer job for that step: the board never starts such a step again.
 
 Only the next selected step gets a queue position, after its preceding work has finished, including review and any required merge. It joins behind the work already waiting. Later selected steps and later group members have no reserved position or editor row. A phase with no recorded attempt shows the existing dash; earlier attempts keep their status.
 

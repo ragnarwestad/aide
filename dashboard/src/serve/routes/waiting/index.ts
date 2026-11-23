@@ -18,7 +18,7 @@ export async function handleWaitingRoutes(ctx: RoutesContext, req: Request, path
     const q = ctx.queue.waiting;
     if (match[1] === "open") {
       if (typeof raw.requestId !== "string") return json({ error: "An opening request id is required" }, 400);
-      if (typeof raw.entryId !== "string") return json({ error: "A waiting Deploy entry id is required" }, 400);
+      if (typeof raw.entryId !== "string") return json({ error: "A waiting entry id is required" }, 400);
       const owner = q.open(raw.requestId, raw.entryId);
       const { lang } = languageChoice(new URL(req.url), req);
       return json({ ...owner, html: queueEditor(lang) });

@@ -300,7 +300,7 @@ export function firstActionLabel(g: SpecGroup, opts: SpecsPageOptions): string {
 
 /** Jobs shows the active job or the progress of a settled spec. */
 export function headStateBadge(g: SpecGroup, lang: Language, onSpecs = false): string {
-  if (g.lead?.queuePosition?.id) return specStateChip(g.lead, lang);
+  if (g.lead?.queuePosition?.id) return specStateChip(g.lead, lang, {}, !onSpecs);
   if (!onSpecs && waitingForGroup(g)) return badge("waiting", t(lang, "list.state.waiting"));
   if (!onSpecs) {
     const state = jobState(g);
@@ -309,7 +309,7 @@ export function headStateBadge(g: SpecGroup, lang: Language, onSpecs = false): s
       return badge("ready", t(lang, `list.state.${state}`));
     }
     if (state === "done" && isArchivedRow(g) && !(g.lead && inFlight(g.lead))) return badge("done", t(lang, "list.done"));
-    if (g.lead && state === g.lead.state) return specStateChip(g.lead, lang);
+    if (g.lead && state === g.lead.state) return specStateChip(g.lead, lang, {}, true);
     if (state === "failed") return badge("refused", t(lang, "list.state.failed"));
   }
   const state = specState(onSpecs ? g : { ...g, executionGroupActive: false });

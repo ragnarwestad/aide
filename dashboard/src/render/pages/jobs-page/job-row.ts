@@ -176,7 +176,7 @@ export function jobRow(row: QueueRowView, o: JobRowOptions): string {
     // state, so the two share one line.
     `<tr class="specstate"><td colspan="2"><span class="createdpips"><span class="muted small">${esc(createdLabel(row.createdAt))}</span>${stepPips(row, o)}` +
     `${shown ? `<span class="actionslot">${shown}</span>` : ""}</span></td>` +
-    `<td data-col="state"><span class="badgeslot">${specStateChip(row, lang)}</span></td>` +
+    `<td data-col="state"><span class="badgeslot">${specStateChip(row, lang, {}, true)}</span></td>` +
     `<td data-col="started">${timeCell(row, o.now)}</td>` +
     `<td class="num" data-col="cost">${costCell(row.spentUsd, row.spentTokens, "–")}</td></tr>` +
     (open ? stepLines(row, o) + commitLines(row, o) : "") +

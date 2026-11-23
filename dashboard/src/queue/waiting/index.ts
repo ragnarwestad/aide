@@ -88,7 +88,7 @@ export class WaitingQueue {
     if (this.paused && this.lease!.request !== request) throw new Error("The queue is being edited in another tab. Try again when it closes.");
     const snapshot = this.snapshot();
     const target = snapshot.entries.find(entry => entry.id === targetId);
-    if (!target || target.operation !== "deploy" || !target.jobId || target.id.startsWith("deploy:")) throw new Error("Only a waiting Deploy can be edited");
+    if (!target || !target.jobId || target.id.startsWith("deploy:")) throw new Error("Only a waiting job can be edited");
     if (this.lease && this.lease.targetId !== targetId) throw new Error("The editing target cannot change");
     if (!this.lease) {
       this.lease = { targetId, openingIds: snapshot.entries.map(entry => entry.id), request, token: crypto.randomUUID(), expiresAt: this.now() + TTL, issued: new Map() };
@@ -115,7 +115,7 @@ export class WaitingQueue {
       throw new Error("Save must contain each entry from the issued snapshot exactly once");
     }
     if (!this.entries.has(this.lease!.targetId) || !legalMove(issued, ids, this.lease!.targetId, this.lease!.openingIds)) {
-      throw new Error("Only the selected waiting Deploy may move ahead of its opening position");
+      throw new Error("Only the selected job may move, and not behind work that arrived after the queue was opened");
     }
     const present = new Set(this.entries.keys());
     const visible = [...ids.filter(id => present.has(id)), ...this.order.filter(id => present.has(id) && !issued.includes(id))];

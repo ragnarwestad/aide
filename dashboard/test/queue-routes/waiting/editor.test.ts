@@ -38,10 +38,11 @@ test("acceptance-held groups have no queue row while real waiting work remains e
 });
 
 
-test("only a waiting Deploy can open editing (AC-7)", async () => {
+test("any waiting job opens editing; a missing entry does not (AC-7)", async () => {
   const { base } = start();
   const added = await (await fetch(`${base}/api/queue`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(JOB) })).json();
-  for (const entryId of [undefined, "missing", `job:${added.job.id}:0`]) {
+  for (const entryId of [undefined, "missing"]) {
     expect((await post(base, "open", { requestId: "invalid", entryId })).status).toBe(400);
   }
+  expect((await post(base, "open", { requestId: "spec", entryId: `job:${added.job.id}:0` })).status).toBe(200);
 });
