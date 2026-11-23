@@ -8,6 +8,7 @@
   - [YouTube channels](#youtube-channels)
 - [Notation](#notation)
 - [News log](#news-log)
+  - [2026-11-23](#2026-11-23)
   - [2026-11-22](#2026-11-22)
   - [2026-11-21](#2026-11-21)
   - [2026-11-20](#2026-11-20)
@@ -163,6 +164,57 @@ Relevance markers in each review's `Relevance for aide` section:
 ---
 
 ## News log
+
+### 2026-11-23
+
+Review period: 2026-11-22 to 2026-11-23. All 16 source addresses, 28 watched pages and 14 YouTube channels fetched.
+Fresh X failed with HTTP Error 503: Service Unavailable; complete=false, zero posts collected or retained.
+Six videos listed; three selected and all three caption files read. No channel or caption fetch failed.
+One watched page changed: a repository counter only, with no changed recommendation.
+
+**Claude Code (review period):**
+
+| Date      | Version | News                                                                                                                                                                        | Source                                   |
+|-----------|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------|
+| Nov 22–23 | —       | No release since Nov 22. Blog and articles latest Nov 17; news listing latest Nov 20. The Nov 23 page date is not the publication date of its featured model announcements. | [Source](https://www.anthropic.com/news) |
+
+**GitHub Copilot CLI (review period):**
+
+| Date                | Version                  | News                                                                                                    | Source                                                                  |
+|---------------------|--------------------------|---------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------|
+| Nov 22              | v1.0.115-7 (pre-release) | Fixes --ui-server attachment to resumed sessions and npm startup cancellation leaving the CLI running.  | [Source](https://github.com/github/copilot-cli/releases/tag/v1.0.115-7) |
+| Nov 22–23 (checked) | —                        | No in-period changelog article. Publication metadata of displayed blog articles checked: newest Nov 12. | [Source](https://github.blog/ai-and-ml/github-copilot/)                 |
+
+**OpenAI Codex CLI (review period):**
+
+| Date      | Version | News                                                                                             | Source                                             |
+|-----------|---------|--------------------------------------------------------------------------------------------------|----------------------------------------------------|
+| Nov 22–23 | —       | No release since Nov 22. Learn changelog and developer blog latest Nov 20; no in-period article. | [Source](https://learn.chatgpt.com/docs/changelog) |
+
+**OpenCode (review period):**
+
+| Date      | Version | News                                                                                                           | Source                                  |
+|-----------|---------|----------------------------------------------------------------------------------------------------------------|-----------------------------------------|
+| Nov 22–23 | —       | No release since Nov 22. Public changelog still leads with the previously reviewed GPT-6.2 prompt-caching fix. | [Source](https://opencode.ai/changelog) |
+
+**Across tools (review period):**
+
+| Date                | Version      | News                                                                                                                                                                                                                                              | Source                                                       |
+|---------------------|--------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------|
+| Nov 22              | video        | Armin Ronacher: prioritize maintainability and human understanding; give a concise explanation before verification; durable agents should suspend and resume. Personal session statistics are not a general benchmark.                            | [Source](https://www.youtube.com/watch?v=JNexz3Tbiu8)        |
+| Nov 22              | video        | Aditi Mewada: coordinate competing actions with deterministic conflict checks, base versions and leases; escalate equal-priority conflicts. Personal presentation, not an Apple policy. Survey percentages not independently verified or adopted. | [Source](https://www.youtube.com/watch?v=xDnheQC5GIg)        |
+| Nov 22              | video        | Dmitry Petrov: reuse results with dependencies and schema, then check freshness and request semantics. S3 demo timings and private benchmark error rates are not verified general claims.                                                         | [Source](https://www.youtube.com/watch?v=0o93aKBvuYQ)        |
+| Nov 23 (changed)    | watched page | agents.md changes only an Airflow repository counter, 4827 to 4828. No changed recommendation.                                                                                                                                                    | [Source](https://agents.md)                                  |
+| Nov 22–23 (checked) | —            | Artificial Analysis harness comparison remains Coming soon; chart values unavailable in fetched HTML. Fowler latest listed article Nov 12; Cookbooks latest commit Nov 20, no in-period recipe change.                                            | [Source](https://artificialanalysis.ai/agents/coding-agents) |
+
+**Relevance for aide:**
+
+- ⭐ Ronacher: add an explanation of the chosen solution, trade-offs and remaining checks before VERIFY in core/scripts/lib/steps/aide-implement/SKILL.md. It currently reports GREEN briefly and gives its full summary after VERIFY. Keep existing test requirements. [Source](https://www.youtube.com/watch?v=JNexz3Tbiu8).
+- ✅ Mewada: deterministic coordination and fresh state bear on the runner and dashboard checkout locks and Merge. Existing shared locks and merge catch-up already implement the central principle; no new locking defect established. [Source](https://www.youtube.com/watch?v=xDnheQC5GIg).
+- ✅ Petrov: provenance and freshness checks bear on reused analysis and replay results. Existing instructions to inspect real code and fetch fresh git state agree with the principle; no S3 integration or model ranking follows from this talk. [Source](https://www.youtube.com/watch?v=0o93aKBvuYQ).
+- ℹ X MyAI unavailable: HTTP Error 503: Service Unavailable; complete=false. No posts read; zero collected and retained. [Source](https://api.fxtwitter.com/2/search).
+
+---
 
 ### 2026-11-22
 
