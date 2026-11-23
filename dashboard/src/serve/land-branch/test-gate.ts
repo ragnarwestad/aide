@@ -16,6 +16,7 @@ import { LANDING_RETRIES } from "../../git/branch-merge/index.ts";
 import type { Sentence } from "../../messages/types.ts";
 import type { RepairRequest } from "./repair/index.ts";
 import type { Job } from "../../queue/queue.ts";
+import { redSuites, rerunAfterRepair, suiteEnv, type RedSuites } from "./suite-rerun.ts";
 
 export { LANDING_GATE_TEMP_PREFIX } from "./worktree-setup.ts";
 
@@ -79,9 +80,13 @@ export interface GateVerdict {
   /** Every test the merge itself failed, on `landing.testsRedOnMerge` and
    *  `landing.testsRedOnMergeToo` alone: the next implement is handed them. */
   failedTests?: Job["landingFailedTests"];
+  /** A red run's suites, for the attempt after a repair. */
+  red?: RedSuites;
 }
 
 export interface GateOpts {
+  /** What the attempt before a repair found red (`createLandingGate`). */
+  red?: RedSuites;
   scriptDir?: string;
   repair?: (request: RepairRequest) => Promise<boolean>;
   queueMirrorPath?: string;
@@ -112,7 +117,7 @@ export async function runProjectSuiteBeforePush(
     const verdict = await runSuiteIn(tree.dir, root, job, branch, opts, setup);
     if (!verdict.ok && opts.repair && await opts.repair({ root: tree.dir, job, branch, verdict })) {
       stepLogLine(job, "test repairs saved on the source branch — rebuilding against current main");
-      return { ok: false, repaired: true };
+      return { ok: false, repaired: true, red: verdict.red };
     }
     return verdict;
   } finally {
@@ -302,18 +307,23 @@ async function runSuiteIn(
     }
     return { ok: true };
   }
+  const mainRef = await defaultBranchRef(liveRoot);
+  const mainSha = mainRef ? (await runScript(["git", ...NO_GIT_HOOKS, "rev-parse", mainRef], liveRoot, 30_000)).stdout.trim() : "";
+  const testedHead = (await runScript(["git", ...NO_GIT_HOOKS, "rev-parse", "HEAD"], root, 30_000)).stdout.trim();
+  const again = rerunAfterRepair(opts.red, mainSha);
   const scratch = mkdtempSync(join(tmpdir(), "aide-landing-gate-"));
+  const report = join(scratch, "suites.jsonl");
   try {
     mkdirSync(join(scratch, job.specFolder), { recursive: true });
     const argv = [recorder, "--project-dir", root, "--specs-root", scratch, "--folder", job.specFolder];
     for (const c of commands) argv.push("--cmd", c);
-    const runOnce = async (label: string, runRoot = root) => {
+    const runOnce = async (label: string, runRoot = root, env: Record<string, string> = suiteEnv(report)) => {
       const progress = join(scratch, `progress${label.replace(/\W+/g, "-")}`);
       writeFileSync(progress, "");
       const follow = followProgress(job, progress, label === " (retry)" ? " on the merge (retry)" : label || " on the merge");
       const runArgv = [...argv];
       runArgv[2] = runRoot;
-      const out = await runScript([...runArgv, "--progress-file", progress], runRoot, LANDING_GATE_TIMEOUT_MS, job.id, opts.queueMirrorPath ? { AIDE_QUEUE_MIRROR: opts.queueMirrorPath } : undefined).finally(follow.stop);
+      const out = await runScript([...runArgv, "--progress-file", progress], runRoot, LANDING_GATE_TIMEOUT_MS, job.id, { ...env, ...(opts.queueMirrorPath ? { AIDE_QUEUE_MIRROR: opts.queueMirrorPath } : {}) }).finally(follow.stop);
       keepStepOutput(job, `${out.stdout}${out.stderr}`);
       // The run's own output, kept where the archive step used to keep
       // it, under the same header a reader already knows.
@@ -325,10 +335,12 @@ async function runSuiteIn(
       }
       return out;
     };
-    stepLogLine(job, `the landing runs the project's tests on the merge (${commands.length} command(s))`);
     const button = opts.button;
-    let gate = await runOnce("");
+    if (again) stepLogLine(job, `the landing runs again the suites that were red (${again.red.join(", ")}), and those the repair's own changes need`);
+    else stepLogLine(job, `the landing runs the project's tests on the merge (${commands.length} command(s))`);
+    let gate = await runOnce("", root, suiteEnv(report, again?.red, again?.testedHead));
     const firstResult = recordedFailures(gate.stdout);
+    const red = redSuites(report);
     // A caller without repair gets the whole command again (`LANDING_RETRIES.gateReruns`):
     // a test that lost to a busy host passes the second time, and a real
     // failure fails twice. A run that timed out is not retried — a second
@@ -353,7 +365,8 @@ async function runSuiteIn(
     }
     if (gate.code !== 0) stepLogLine(job, "the landing runs the same tests on main alone, without this spec");
     if (gate.code !== 0) {
-      const main = await resultOnDefaultBranch(liveRoot, runOnce, setup);
+      if (red?.length) stepLogLine(job, `on main alone, only the suites that were red: ${red.join(", ")}`);
+      const main = await resultOnDefaultBranch(liveRoot, (label, runRoot) => runOnce(label, runRoot, suiteEnv(report, red)), setup);
       // One sentence on the row: the tests that failed when the output
       // named them, and what the two runs on the merge say about them —
       // the same tests twice is the merge's doing; different ones point at
@@ -395,6 +408,7 @@ async function runSuiteIn(
       const repeated = lastTests.map((test, index) => ({ test, file: lastResult.files[index] ?? "", error: lastResult.errors[index] ?? "" })).filter(({ test }) => firstSet.has(test));
       if (repeated.length) {
         return {
+          red: red?.length ? { red, testedHead, mainSha } : undefined,
           ok: false,
           error: (() => { const tests = namedTests({ tests: repeated.map(({ test }) => test), errors: repeated.map(({ error }) => error) }); return { key: "landing.testsRedOnMerge", values: { count: repeated.length, branch, button }, lists: { tests } }; })(),
           detail,

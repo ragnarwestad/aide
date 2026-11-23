@@ -245,6 +245,14 @@ commands the change calls for and runs them through `aide-record-test-run`.
   run once more, the run on main, and a run it skipped. Progress lines say whether they come from the merge, its retry
   or main alone. Every run keeps its complete output beside the step log and stops following its progress when it ends.
 
+**A project that names its suites has only the red ones run again.** The gate hands every run a file in
+`AIDE_TEST_SUITES_REPORT`; a test command that writes one JSON line per suite to it (`{"suite": "dashboard", "ok":
+false}`) runs all its suites to the end, red or not, and asks for a subset by `AIDE_TEST_ONLY_SUITES`
+(`src/serve/land-branch/suite-rerun.ts`). The run on main alone then runs only the suites that were red. After a repair,
+with main where it was, the next attempt runs the red suites again, with `AIDE_TEST_ALSO_CHANGED_SINCE` set to the commit
+they were red on, so the command adds the suites the repair's own changes need; with main moved, it runs whole. A
+command that writes no report runs whole every time. Aide's own command is `scripts/testing/changed.py`.
+
 **A run the step already made is not made again.** An `implement` that ended green reports `testedGreen` on its
 result: the tree, hashed by `aide_tree_hash` with the worktree links left out, and the commands. When the merge is
 about to run exactly those commands on exactly that tree, it runs nothing and the gate log says so. Another tree or

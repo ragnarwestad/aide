@@ -21,6 +21,8 @@ export function repairLanding(run: (request: RepairRequest) => Promise<boolean>)
 
 export function createLandingGate(queue: QueueStore, scriptDir?: string, queueMirrorPath?: string) {
   const repairs = new Map<string, ReturnType<typeof repairLanding>>();
+  // What the attempt before a repair found red, for the attempt after it.
+  const reds = new Map<string, GateVerdict["red"]>();
   return async (root: string, job: Job, branch: string, button: string) => {
     const policy = landingPolicy(job.steps[job.stepIndex]);
     const gatedJob = policy.sharesGreenResults ? greenResultsForLand(job, queue.list()) : job;
@@ -30,11 +32,13 @@ export function createLandingGate(queue: QueueStore, scriptDir?: string, queueMi
       repairs.set(job.id, repair);
     }
     try {
-      const verdict = await runProjectSuiteBeforePush(root, gatedJob, branch, { scriptDir, queueMirrorPath, button, repair });
-      if (!verdict.repaired) repairs.delete(job.id);
+      const verdict = await runProjectSuiteBeforePush(root, gatedJob, branch, { scriptDir, queueMirrorPath, button, repair, red: reds.get(job.id) });
+      if (verdict.repaired) reds.set(job.id, verdict.red);
+      else { repairs.delete(job.id); reds.delete(job.id); }
       return verdict;
     } catch (error) {
       repairs.delete(job.id);
+      reds.delete(job.id);
       throw error;
     }
   };

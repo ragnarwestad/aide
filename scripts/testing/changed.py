@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Run the suites covering a change; unknown paths keep the full gate."""
 import ast
+import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -11,12 +13,41 @@ RESULT_FIELDS_HELPER = "run_spec_result_fields"
 STEP_OUTCOME = "dashboard/src/queue/runner/types.ts"
 
 
-def commands_for(paths):
+# Each suite by name, in the order a run takes them. The landing asks for
+# suites by these names (AIDE_TEST_ONLY_SUITES) and reads which were red
+# from the report this writes (AIDE_TEST_SUITES_REPORT).
+SUITES = {
+    "docs": "scripts/check-docs",
+    "contracts": CONTRACT_CHECK,
+    "python": "scripts/test-python",
+    "dashboard": "cd dashboard && make test",
+    "e2e": "cd dashboard && make test-e2e",
+}
+FULL = ["python", "dashboard", "e2e"]
+
+
+def suites_for(paths):
+    """The suites a change needs; unknown paths need the full run."""
     if paths and all(path.endswith(".md") for path in paths):
-        return ["scripts/check-docs"]
+        return ["docs"]
     if paths and all(path.startswith("dashboard/") or path.endswith(".md") for path in paths):
-        return [CONTRACT_CHECK, "cd dashboard && make test && make test-e2e"]
-    return None
+        return ["contracts", "dashboard", "e2e"]
+    return list(FULL)
+
+
+def suites_after_repair(paths):
+    """What a repair's own changes need run again, beside the suites that were red:
+    a dashboard test file is read by its own suite alone."""
+    if paths and all(path.startswith("dashboard/test/e2e/") for path in paths):
+        return ["e2e"]
+    if paths and all(path.startswith("dashboard/test/") for path in paths):
+        return ["dashboard", "e2e"] if any(path.startswith("dashboard/test/e2e/") for path in paths) else ["dashboard"]
+    return suites_for(paths)
+
+
+def commands_for(paths):
+    suites = suites_for(paths)
+    return None if suites == FULL else [SUITES[name] for name in suites]
 
 
 def _uses_result_fields_helper(tree):
@@ -85,26 +116,46 @@ def contract_tests(root):
                   if is_contract_test(p.read_text(), fixtures, fields))
 
 
+def _changed_since(base):
+    diff = subprocess.run(["git", "diff", "--name-only", "-z", base], capture_output=True, text=True)
+    new = subprocess.run(["git", "ls-files", "--others", "--exclude-standard", "-z"], capture_output=True, text=True)
+    if diff.returncode or new.returncode:
+        return None
+    return [p for p in diff.stdout.split("\0") if p] + [p for p in new.stdout.split("\0") if p and not p.startswith(".aide/")]
+
+
+def selected_suites(paths, env):
+    """The suites to run: those the change needs, unless the landing names some.
+    After a repair it names the red ones, and the commit it tested: what the
+    repair changed since then is run as well."""
+    only = [name for name in env.get("AIDE_TEST_ONLY_SUITES", "").split(",") if name in SUITES]
+    if not only:
+        return suites_for(paths)
+    since = env.get("AIDE_TEST_ALSO_CHANGED_SINCE", "")
+    extra = []
+    if since:
+        changed = _changed_since(since)
+        extra = list(FULL) if changed is None else suites_after_repair(changed)
+    wanted = set(only) | set(extra)
+    return [name for name in SUITES if name in wanted]
+
+
 def main():
     if sys.argv[1] == "--contracts":
         files = contract_tests(".")
         return subprocess.run([".venv/bin/pytest", "-q", *files]).returncode if files else subprocess.run(["scripts/test-python"]).returncode
     base = subprocess.run(["git", "merge-base", "HEAD", sys.argv[1]], capture_output=True, text=True)
-    paths = []
-    if base.returncode == 0:
-        diff = subprocess.run(["git", "diff", "--name-only", "-z", base.stdout.strip()], capture_output=True, text=True)
-        new = subprocess.run(["git", "ls-files", "--others", "--exclude-standard", "-z"], capture_output=True, text=True)
-        if diff.returncode == 0 and new.returncode == 0:
-            paths = [p for p in diff.stdout.split("\0") if p] + [p for p in new.stdout.split("\0") if p and not p.startswith(".aide/")]
-    commands = commands_for(paths)
-    if commands is None:
-        commands = ["scripts/test-python && cd dashboard && make test && make test-e2e"]
-    for command in commands:
-        result = subprocess.run(["/bin/bash", "-c", command])
-        if result.returncode:
-            return result.returncode
-    return 0
-
+    paths = (_changed_since(base.stdout.strip()) or []) if base.returncode == 0 else []
+    report = os.environ.get("AIDE_TEST_SUITES_REPORT", "")
+    failed = 0
+    # Every suite runs, red or not, so the report says which of them were red.
+    for name in selected_suites(paths, os.environ):
+        code = subprocess.run(["/bin/bash", "-c", SUITES[name]]).returncode
+        if report:
+            with open(report, "a") as out:
+                out.write(json.dumps({"suite": name, "ok": code == 0}) + "\n")
+        failed = failed or code
+    return failed
 
 if __name__ == "__main__":
     sys.exit(main())

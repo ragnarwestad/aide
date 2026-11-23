@@ -8,10 +8,26 @@ spec.loader.exec_module(module)
 
 
 def test_dashboard_change_does_not_run_python_but_keeps_contract_checks():
-    commands = module.commands_for(["dashboard/src/queue/test-workers.ts"])
-    assert "scripts/test-python" not in commands
-    assert "cd dashboard && make test && make test-e2e" in commands
-    assert module.CONTRACT_CHECK in commands
+    assert module.suites_for(["dashboard/src/queue/test-workers.ts"]) == ["contracts", "dashboard", "e2e"]
+
+
+def test_the_landing_names_the_suites_to_run_again():
+    env = {"AIDE_TEST_ONLY_SUITES": "dashboard"}
+    assert module.selected_suites(["core/scripts/aide-run-spec"], env) == ["dashboard"]
+    assert module.selected_suites(["core/scripts/aide-run-spec"], {}) == ["python", "dashboard", "e2e"]
+
+
+def test_after_a_repair_its_own_changes_choose_what_runs_beside_the_red_suites(monkeypatch):
+    env = {"AIDE_TEST_ONLY_SUITES": "dashboard", "AIDE_TEST_ALSO_CHANGED_SINCE": "abc"}
+    for changed, expected in [
+        (["dashboard/test/serve/x.test.ts"], ["dashboard"]),
+        (["dashboard/test/e2e/x.test.ts"], ["dashboard", "e2e"]),
+        (["dashboard/src/serve/x.ts"], ["contracts", "dashboard", "e2e"]),
+        (["core/scripts/aide-run-spec"], ["python", "dashboard", "e2e"]),
+        (None, ["python", "dashboard", "e2e"]),
+    ]:
+        monkeypatch.setattr(module, "_changed_since", lambda base, changed=changed: changed)
+        assert module.selected_suites([], env) == expected
 
 
 def test_core_change_and_unknown_paths_keep_full_suite():
