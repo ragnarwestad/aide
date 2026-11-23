@@ -72,7 +72,7 @@ export function jobsFilterBar(facts: RowFacts[], f: JobsFilter, lang: Language, 
       hidden: [["state", jobsStateValue(f.state)], ["kind", jobsKindValue(f.kind)], ...KEPT.filter((k) => f[k]).map((k): [string, string] => [k, f[k]!])],
       q: f.q ?? "",
       clearHref: esc(jobsViewPath(f, { q: "" })),
-      after: kind + state + resultCount(shownCount) + askButton({ label: t(lang, "list.groupCreate"), dialogId: NEW_GROUP_DIALOG, variant: "primary", disabled: !groupable, title: groupable ? undefined : t(lang, "list.groupNoneToGroup") }),
+      after: kind + state + resultCount(shownCount) + askButton({ label: t(lang, "list.groupCreate"), shortLabel: t(lang, "list.newShort"), dialogId: NEW_GROUP_DIALOG, variant: "primary", disabled: !groupable, title: groupable ? undefined : t(lang, "list.groupNoneToGroup") }),
     },
     lang,
   );

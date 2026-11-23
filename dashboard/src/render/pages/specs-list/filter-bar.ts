@@ -58,8 +58,11 @@ export function queuePath(f: SpecsFilter, patch: SpecsFilter = {}, path = "/spec
 // what it looked in. It is inside `#jobrows`, so it shuts again on the
 // five-second refresh, and fine for that: nothing here is being typed
 // into.
+/** The search help's id: the phone's "…" menu opens it by this. */
+export const SEARCH_HELP = "search-help";
+
 function runsHelp(lang: Language): string {
-  return helpPopover(t(lang, "list.searchHelpTitle"), t(lang, "list.searchHelpBody"));
+  return helpPopover(t(lang, "list.searchHelpTitle"), t(lang, "list.searchHelpBody"), SEARCH_HELP);
 }
 
 export function filterBar(groups: SpecGroup[], f: SpecsFilter, opts: SpecsPageOptions, shown: number): string {
@@ -252,7 +255,7 @@ export function searchForm(
     // field is a control that does nothing.
     `<span class="searchfield">` +
     `<span class="icon-search" aria-hidden="true">${ICON_SEARCH}</span>` +
-    `<input class="archive-q" type="search" name="q" value="${esc(q)}" ` +
+    `<input class="archive-q" type="search" name="q" enterkeyhint="search" value="${esc(q)}" ` +
     `placeholder="${capitalizeFirst(t(lang, "list.searchPlaceholder"))}" aria-label="${t(lang, "list.searchAriaLabel")}">` +
     (q
       ? `<a class="searchclear" data-nav href="${o.clearHref}" ` +
@@ -260,7 +263,7 @@ export function searchForm(
       : "") +
     `</span>` +
     keep +
-    btn({ label: t(lang, "list.search") }) +
+    btn({ label: t(lang, "list.search"), data: { "search-submit": "" } }) +
     runsHelp(lang) +
     o.after +
     `</form>\n`
@@ -417,7 +420,7 @@ export function sortableHead(f: SpecsFilter, lang: Language = "en", specsList = 
 // It is named as the page it leads to is, in the reader's language.
 export function newSpecLink(opts: Pick<SpecsPageOptions, "createProjects">, lang: Language): string {
   if ((opts.createProjects ?? []).length === 0) return "";
-  return btnLink({ href: NEW_SPEC_ROUTE, label: t(lang, "newSpec.pageTitle"), variant: "primary" });
+  return btnLink({ href: NEW_SPEC_ROUTE, label: t(lang, "newSpec.pageTitle"), shortLabel: t(lang, "list.newShort"), variant: "primary" });
 }
 
 

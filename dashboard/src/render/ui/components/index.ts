@@ -183,9 +183,9 @@ export function switchControl(o: {
  *  `body` is trusted, developer-authored HTML, the same convention every
  *  other component here follows (`rowMessage`, `field`) — never reader
  *  input. */
-export function helpPopover(what: string, body: string): string {
+export function helpPopover(what: string, body: string, id?: string): string {
   return (
-    `<details class="intro"><summary title="${esc(what)}" aria-label="${esc(what)}">?</summary>` +
+    `<details class="intro"${id ? ` id="${esc(id)}"` : ""}><summary title="${esc(what)}" aria-label="${esc(what)}">?</summary>` +
     `<p>${body}</p></details>`
   );
 }

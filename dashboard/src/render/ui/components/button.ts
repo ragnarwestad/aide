@@ -21,6 +21,9 @@ export type BtnVariant = "" | "primary" | "ok" | "danger" | "busy";
 export interface BtnOptions {
   badge?: BadgeVariant;
   label: string;
+  /** A shorter word the label gives way to where the search line is
+   *  short; the full label stays the button's name. */
+  shortLabel?: string;
   /** Trusted inline SVG drawn before the escaped label. */
   icon?: string;
   variant?: BtnVariant;
@@ -67,13 +70,18 @@ export function btn(o: BtnOptions): string {
     dataAttrs(o.data) +
     (o.pending ? ` data-pending="${esc(capitalizeFirst(o.pending))}"` : "") +
     (o.title ? ` title="${esc(o.title)}"` : "") +
-    (o.ariaLabel ? ` aria-label="${esc(o.ariaLabel)}"` : "") +
+    (o.ariaLabel ?? (o.shortLabel ? o.label : undefined) ? ` aria-label="${esc(o.ariaLabel ?? o.label)}"` : "") +
     (o.disabled ? " disabled" : "");
   // The spinner sits INSIDE the button, before the label, so a busy
   // control reads as busy without a second element beside it.
   const spin = o.variant === "busy" ? SPINNER : "";
-  return `<button ${attrs}>${spin}${o.icon ?? ""}${esc(o.label)}</button>`;
+  return `<button ${attrs}>${spin}${o.icon ?? ""}${labelWords(o.label, o.shortLabel)}</button>`;
 }
+
+/** A label, and the shorter word it gives way to where there is a
+ *  `shortLabel`: both drawn, the stylesheet showing one. */
+const labelWords = (label: string, short?: string): string =>
+  short ? `<span class="longlabel">${esc(label)}</span><span class="shortlabel">${esc(short)}</span>` : esc(label);
 
 /** Each key written as ` data-<key>="<value>"`, the value escaped. */
 export const dataAttrs = (data: Record<string, string> = {}): string =>
@@ -144,9 +152,11 @@ export function btnLink(o: {
   /** A class a script or a layout rule selects on. */
   hook?: string;
   data?: Record<string, string>;
+  shortLabel?: string;
 }): string {
   const cls = ["btn", o.variant || "", o.small ? "small" : "", o.hook ?? ""].filter(Boolean).join(" ");
-  return `<a class="${cls}" href="${esc(o.href)}"${dataAttrs(o.data)}>${esc(o.label)}</a>`;
+  const name = o.shortLabel ? ` aria-label="${esc(o.label)}"` : "";
+  return `<a class="${cls}" href="${esc(o.href)}"${name}${dataAttrs(o.data)}>${labelWords(o.label, o.shortLabel)}</a>`;
 }
 
 /** The Save/Cancel pair every `.specform` carries, on the

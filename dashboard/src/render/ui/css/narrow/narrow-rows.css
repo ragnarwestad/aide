@@ -201,15 +201,12 @@
      on a phone, the picked box above the pick list. */
   .depends-pair { flex-direction: column; }
 
-  /* The search field crowds "Search" and "New spec" onto their own
-     line at phone width: 26rem does not fit beside two
-     buttons under 40rem. Narrow it enough that all three share one
-     line at rest, and let it reclaim the row on focus - "New spec" is
-     what gives, per the description, never "Search". */
+  /* The search line is one line at phone width: the field takes what the
+     filters, the count and New leave it, and the whole line while it is
+     being typed in, when Search takes their place. */
   .specsearch { flex-wrap: nowrap; }
-  .searchfield { width: 7rem; flex: 0 1 7rem; min-width: 0; }
+  .searchfield { width: auto; flex: 1 1 7rem; min-width: 0; }
   .searchfield:focus-within { flex: 1 1 auto; width: auto; }
-  .specsearch:has(.searchfield:focus-within) .btn.primary { display: none; }
 
   /* The desktop-only extra margin above must not reach
      phone width — the row already runs `nowrap` on a tight budget here. */
@@ -236,20 +233,27 @@
   /* The controls' row holds its width on one line, so "…" stays at the
      header's right end; the board line is what gives way. */
   header > .row:not(.boardline) { flex: none; flex-wrap: nowrap; position: relative; }
-  /* Usage's and the filter's triggers give way to the "…" menu's Filter
-     and Usage rows. Each <details> stays, since its panel is what opens:
-     taken out of its row's flow and pinned to the row's bottom right, its
-     panel opens under the header's controls and under the search line. */
+  /* Usage's and the search help's triggers give way to the "…" menu's
+     rows. Each <details> stays, since its panel is what opens: taken out of
+     its row's flow and pinned to the row's bottom right, its panel opens
+     under the header's controls and under the search line. */
   header #usage-dialog { position: absolute; right: 0; top: 100%; }
   header #usage-dialog > summary { display: none; }
-  .specsearch > .menu.state { position: absolute; right: 0; top: 100%; }
-  .specsearch > .menu.state > summary { display: none; }
+  .specsearch { position: relative; }
+  .specsearch > #search-help { position: absolute; right: 0; top: 100%; }
+  .specsearch > #search-help > summary { display: none; }
   .menupanel > [data-opens="usage-dialog"],
-  body:has(#state-filter):not(:has(#kind-filter)) .menupanel > [data-single-filter],
-  body:has(#kind-filter) .menupanel > [data-jobs-filter],
-  body:has(#kind-filter) .menupanel > [data-opens="kind-filter"] { display: flex; }
+  body:has(#search-help) .menupanel > [data-opens="search-help"] { display: flex; }
   /* The list starts the board's standard margin below the search line. */
-  #jobrows .specsearch { position: relative; margin-bottom: var(--sp-3); }
+  #jobrows .specsearch { margin-bottom: var(--sp-3); }
+  /* New says only "New", and Search shows while the field is being typed
+     in, in place of the filters, the count and New. The phone's keyboard
+     has its own Search key. */
+  .specsearch .longlabel { display: none; }
+  .specsearch .shortlabel { display: inline; }
+  .specsearch > [data-search-submit] { display: none; }
+  .specsearch:has(.archive-q:focus) > [data-search-submit] { display: inline-flex; }
+  .specsearch:has(.archive-q:focus) > :is(.menu.state, .counts, .btn.primary) { display: none; }
 }
 
 /* The acceptance criteria unfolded on a row, at a phone's
@@ -479,15 +483,14 @@
   table.speclist.groupcard > tbody > tr.groupline:not(.spechead, .specstate, .subrow) { padding-right: calc(var(--sp-3) - 2px); }
 }
 
-/* Where the Jobs tab's search line is short, Types and States are their
-   icons alone, drawn as the header's own icon triggers: no frame, no arrow
-   and no dot, the icon in the accent colour on its soft ground while its
-   filter is on. */
-@media (min-width: 40.0625rem) and (max-width: 47.5rem) {
-  #jobrows .specsearch > .menu.state > summary { width: 32px; height: 32px; padding: 0; border: 0; background: none; }
-  #jobrows .specsearch > .menu.state > summary:hover { background: var(--surface-2); color: var(--text); }
-  #jobrows .specsearch > .menu.state > summary::before,
-  #jobrows .specsearch > .menu.state > summary > :is(.menuwidth, svg) { display: none; }
-  #jobrows .specsearch > .menu.state > summary .filtericon > svg { width: 18px; height: 18px; }
-  #jobrows .specsearch > .menu.state[data-filter-active] > summary { color: var(--accent); background: var(--accent-soft); }
+/* Where the search line is short, the filters are their icons alone,
+   drawn as the header's own icon triggers: no frame, no arrow and no dot,
+   the icon in the accent colour on its soft ground while its filter is on. */
+@media (max-width: 47.5rem) {
+  .specsearch > .menu.state > summary { width: 32px; height: 32px; padding: 0; border: 0; background: none; }
+  .specsearch > .menu.state > summary:hover { background: var(--surface-2); color: var(--text); }
+  .specsearch > .menu.state > summary::before,
+  .specsearch > .menu.state > summary > :is(.menuwidth, svg) { display: none; }
+  .specsearch > .menu.state > summary .filtericon > svg { width: 18px; height: 18px; }
+  .specsearch > .menu.state[data-filter-active] > summary { color: var(--accent); background: var(--accent-soft); }
 }

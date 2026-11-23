@@ -243,13 +243,11 @@ function pageHeader(lang: Language, currentUrl: string, tabs = ""): string {
     // The trigger is a QUIET icon — no border, no button chrome; a round
     // hover flat is all (PaceUp's header menu is the reference).
     headerMenu({ label: t(lang, "shell.more"), icon: ICON_MORE,
-      // Filter and Usage stand in for the filter's and Usage's own
-      // triggers, which a phone's stylesheet hides (narrow-rows.css); the
-      // menu script opens the `<details>` each names.
+      // The search help and Usage stand in for their own triggers, which a
+      // phone's stylesheet hides (narrow-rows.css); the menu script opens
+      // the `<details>` each names.
       content: `${boardRow(lang)}${menuSettingRows(lang, currentUrl)}` +
-        `<button type="button" data-opens="state-filter" data-single-filter>${t(lang, "shell.filter")}</button>` +
-        `<button type="button" data-opens="state-filter" data-jobs-filter>${t(lang, "list.statesLabel")}</button>` +
-        `<button type="button" data-opens="kind-filter">${t(lang, "jobs.typesLabel")}</button>` +
+        `<button type="button" data-opens="search-help">${t(lang, "list.searchHelpTitle")}</button>` +
         `<button type="button" data-opens="usage-dialog">${t(lang, "shell.usage")}</button>` +
         `<a href="/settings">${t(lang, "shell.settings")}</a>` +
         `<a href="/test-servers">${t(lang, "shell.testServers")}</a>` +

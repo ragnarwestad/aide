@@ -103,9 +103,11 @@ export function askButton(o: {
   disabled?: boolean;
   title?: string;
   data?: Record<string, string>;
+  shortLabel?: string;
 }): string {
   return btn({
     label: o.label,
+    shortLabel: o.shortLabel,
     type: "button",
     variant: o.variant,
     ariaLabel: o.ariaLabel,

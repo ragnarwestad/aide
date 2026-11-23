@@ -301,3 +301,11 @@ export function bindOneLineFields(form: HTMLFormElement): () => void {
   }
   return () => {};
 }
+
+/** On a phone the search line's Search button shows only while the field
+ *  is being typed in. A press on it would take the focus from the field,
+ *  and the button would go before its click arrived, so the press keeps
+ *  the focus where it is and the click submits the form. */
+export function keepSearchFocus(event: Event): void {
+  if ((event.target as Element | null)?.closest?.("[data-search-submit]")) event.preventDefault();
+}

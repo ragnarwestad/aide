@@ -74,25 +74,27 @@ test("the … menu's Usage row opens the Usage panel at phone width (AC-2)", asy
   expect(await page.locator(MORE_MENU).evaluate((el) => (el as HTMLDetailsElement).open)).toBe(false);
 });
 
-test("the … menu has separate States and Types rows on Jobs and one count outside it (AC-1, AC-6, AC-7)", async () => {
+test("on Jobs the filters stay on the phone's search line, outside the … menu, with one count (AC-1, AC-6, AC-7)", async () => {
   await openMore(PHONE);
   const more = page.locator(MORE_MENU);
   const count = page.locator("[data-result-count]");
-  expect(await more.getByRole("button", { name: "States", exact: true }).count()).toBe(1);
-  expect(await more.getByRole("button", { name: "Types", exact: true }).count()).toBe(1);
+  expect(await more.locator('[data-opens$="-filter"]').count()).toBe(0);
   expect(await more.locator("[data-result-count]").count()).toBe(0);
   expect(await count.count()).toBe(1);
+  await page.locator(`${MORE_MENU} > summary`).click();
 
-  await more.getByRole("button", { name: "States", exact: true }).click();
+  await page.locator('.specsearch details.menu[data-filter="state"] > summary').click();
   expect(await page.locator('details.menu[data-filter="state"]').evaluate((el) => (el as HTMLDetailsElement).open)).toBe(true);
-  await openMore(PHONE);
-  await page.locator(MORE_MENU).getByRole("button", { name: "Types", exact: true }).click();
+  await page.locator('.specsearch details.menu[data-filter="kind"] > summary').click();
   expect(await page.locator('details.menu[data-filter="kind"]').evaluate((el) => (el as HTMLDetailsElement).open)).toBe(true);
 });
 
-test("the … menu keeps one Filter row on Specs at phone width", async () => {
+test("on Specs the Filter opens from the phone's search line, and the … menu opens the search help", async () => {
   await openMore(PHONE, "/specs?live=0");
-  await page.locator(MORE_MENU).getByRole("button", { name: "Filter", exact: true }).click();
+  await page.locator(MORE_MENU).getByRole("button", { name: "What the search reads", exact: true }).click();
+  expect(await page.locator("#search-help").evaluate((el) => (el as HTMLDetailsElement).open)).toBe(true);
+
+  await page.locator('.specsearch details.menu[data-filter="state"] > summary').click();
   const filter = page.locator('details.menu[data-filter="state"]');
   expect(await filter.evaluate((el) => (el as HTMLDetailsElement).open)).toBe(true);
   await filter.locator(".menupanel a").first().waitFor({ state: "visible" });

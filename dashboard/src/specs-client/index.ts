@@ -27,6 +27,7 @@ import { dismissCheckoutWarning } from "./page-mount/notices.ts";
 // the page swap for every page drawn in place.
 
 import { openAsk } from "./ask.ts";
+import { keepSearchFocus } from "./forms.ts";
 import { formatElapsed } from "./elapsed.ts";
 import { bindLimits } from "./limits";
 import { onVisibility } from "./live.ts";
@@ -54,6 +55,7 @@ bindWaitingEditor();
 // stand-in document may have no body.
 document.body?.addEventListener("click", openAsk as EventListener);
 document.body?.addEventListener("click", dismissCheckoutWarning);
+document.body?.addEventListener("pointerdown", keepSearchFocus);
 document.body?.addEventListener("submit", ((event: Event) => {
   const target = event.target as Element | null;
   const progress = target?.closest?.("form[data-progress]") as HTMLFormElement | null;
