@@ -2,6 +2,7 @@ import { expect, test } from "bun:test";
 import {
   activeGroupForSpec,
   executionGroupControls,
+  executionGroupFinished,
   groupBlocksIndividualRun,
   groupMemberSteps,
   groupReservesSpec,
@@ -20,6 +21,13 @@ test("group controls keep one cell action and put Edit in the menu (AC-1, AC-2, 
 
 test("a completed group puts Remove only in the menu (AC-10, AC-11)", () => {
   expect(executionGroupControls({ state: "completed" }, [member({ implemented: true })])).toMatchObject({ action: undefined, menu: ["remove"] });
+});
+
+test("a stopped group whose specs are all archived is finished: Remove only in the menu", () => {
+  expect(executionGroupControls({ state: "stopped" }, [member({ implemented: true, archived: true }), member({ implemented: true, archived: true })]))
+    .toMatchObject({ action: undefined, menu: ["remove"], disabledMenu: [] });
+  expect(executionGroupFinished({ state: "stopped" }, [member({ archived: true }), member({ archived: false })])).toBe(false);
+  expect(executionGroupFinished({ state: "stopped" }, [])).toBe(false);
 });
 
 test("a member starts on the steps ticked on its row: Analyze not ticked does not run", () => {

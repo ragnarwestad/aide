@@ -24,7 +24,7 @@ import { jobRow } from "./job-row.ts";
 import { byTabPlace, jobPlace, jobRowKeys, jobRowKind, markedWithKind, specPlace, specRounds, jobsChangedAt, specHasWork, specsStoodForByJobs, type TabPlace } from "./rows.ts";
 import { jobFacts, jobsMatchingCount, jobsSearchMatch, jobsStateOpensGroups, jobsViewRows, type RowFacts } from "./view.ts";
 import { executionGroupActivity, type ExecutionGroup } from "../../../queue/execution-groups";
-import { executionGroupCard, executionGroupPlace } from "./execution-group-card.ts";
+import { executionGroupAsShown, executionGroupCard, executionGroupPlace } from "./execution-group-card.ts";
 import { groupBranch } from "../../../project/spec-names.ts";
 import { withSpecFacts } from "../../../project/spec-facts.ts";
 import { eligibleGroupMembers, groupableProjects, lockedGroupMembers } from "../../../queue/execution-groups/eligibility.ts";
@@ -107,7 +107,7 @@ export function jobsEntries(v: JobsView, draws: Draws = () => true): { key: stri
       .filter((member): member is SpecGroup => !!member);
     const facts = {
       project: group.project, specFolder: group.name,
-      state: executionGroupRowState(group, !!failed),
+      state: executionGroupRowState(executionGroupAsShown(group, members), !!failed),
       title: group.displayName ?? group.name, createdAt, itemCount: group.members.length,
       members: current,
     } as RowFacts;

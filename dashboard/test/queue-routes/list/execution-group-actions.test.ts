@@ -26,11 +26,20 @@ test("a completed group's one action is Remove (AC-1)", () => {
   expect(executionGroupAction({ state: "completed" }, [])).toBe("remove");
 });
 
-test("no state but completed answers Remove (AC-2)", () => {
+test("no state but completed answers Remove while a spec is left to archive (AC-2)", () => {
   for (const state of ["prepared", "queued", "running", "stopped", "waiting-acceptance", "archiving"] as const) {
     expect(executionGroupAction({ state }, [member(), member()])).not.toBe("remove");
     expect(executionGroupAction({ state }, [member({ implemented: true })])).not.toBe("remove");
-    expect(executionGroupAction({ state }, [member({ implemented: true, archived: true })])).not.toBe("remove");
+  }
+});
+
+test("a group with every spec archived answers Remove only once it is idle", () => {
+  const archived = [member({ implemented: true, archived: true })];
+  for (const state of ["queued", "running", "archiving"] as const) {
+    expect(executionGroupAction({ state }, archived)).not.toBe("remove");
+  }
+  for (const state of ["prepared", "stopped", "waiting-acceptance"] as const) {
+    expect(executionGroupAction({ state }, archived)).toBe("remove");
   }
 });
 

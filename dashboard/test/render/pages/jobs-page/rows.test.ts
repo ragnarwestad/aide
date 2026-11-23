@@ -57,6 +57,12 @@ describe("where a row stands on the tab: running or landing, queued, the rest; t
     expect(specPlace(finished).changedAt).toBe(ms(1));
   });
 
+  test("a finished spec with no job and no date stands last, an unfinished one first", () => {
+    expect(specPlace(group({ state: "archived" })).changedAt).toBe(0);
+    expect(specPlace(group({ state: "closed" })).changedAt).toBe(0);
+    expect(specPlace(group({ state: "not-started" })).changedAt).toBe(Number.MAX_SAFE_INTEGER);
+  });
+
   test("uses four bands with finished work last and newest first in each (AC-4)", () => {
     const ordered = [
       ["finished-old", { band: 3, changedAt: ms(1) }],

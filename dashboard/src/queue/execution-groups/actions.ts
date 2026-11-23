@@ -50,8 +50,8 @@ export function executionGroupAction(
   group: Pick<ExecutionGroup, "state"> & Partial<Pick<ExecutionGroup, "stoppedByUser">>,
   members: readonly ExecutionGroupMemberState[],
 ): ExecutionGroupAction | undefined {
-  if (group.state === "completed") return "remove";
-  if (members.length === 0 || members.every((member) => member.archived)) return undefined;
+  if (executionGroupFinished(group, members)) return "remove";
+  if (members.length === 0) return undefined;
   if (executionGroupActivity(group.state) !== "idle" ||
     (!group.stoppedByUser && members.some((member) => member.automaticWaiting))) return "stop";
   if (members.every((member) => member.implemented)) {
@@ -59,6 +59,16 @@ export function executionGroupAction(
   }
   if (group.state === "prepared" || group.state === "stopped" || group.state === "waiting-acceptance") return "start";
   return undefined;
+}
+
+/** A group is finished when it completed, or when it is idle and every spec in
+ *  it is archived: nothing is left for it to do, whatever state it stopped in. */
+export function executionGroupFinished(
+  group: Pick<ExecutionGroup, "state">,
+  members: readonly Pick<ExecutionGroupMemberState, "archived">[],
+): boolean {
+  return group.state === "completed" ||
+    (executionGroupActivity(group.state) === "idle" && members.length > 0 && members.every((member) => member.archived));
 }
 
 export function canRemoveExecutionGroup(group: Pick<ExecutionGroup, "state">, busy = false): boolean {
@@ -77,7 +87,7 @@ export function executionGroupControls(
 ): { action: Exclude<ExecutionGroupAction, "remove"> | undefined; menu: ExecutionGroupMenuAction[]; disabledMenu: ExecutionGroupMenuAction[] } {
   const decided = executionGroupAction(group, members);
   const busy = members.some((member) => member.busy);
-  const menu: ExecutionGroupMenuAction[] = group.state === "completed" ? ["remove"] : ["edit", "remove"];
+  const menu: ExecutionGroupMenuAction[] = executionGroupFinished(group, members) ? ["remove"] : ["edit", "remove"];
   return {
     action: decided === "remove" ? undefined : decided,
     menu,

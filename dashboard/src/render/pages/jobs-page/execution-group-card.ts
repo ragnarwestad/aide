@@ -5,7 +5,7 @@ import { automaticProviderWait, inFlight } from "../../../queue/job-rules/activi
 import { currentStep } from "../../ui/job-state";
 import { specNumber } from "../../../project/spec-folder.ts";
 import type { ExecutionGroup } from "../../../queue/execution-groups";
-import { executionGroupActivity, executionGroupControls } from "../../../queue/execution-groups";
+import { executionGroupActivity, executionGroupControls, executionGroupFinished } from "../../../queue/execution-groups";
 import { esc } from "../../ui/html.ts";
 import { badge, buttonForm, foldButton, headerMenu, pips, progressDialog, stepLabel, type BadgeVariant, type PipKind } from "../../ui/components";
 import type { SpecGroup, SpecTarget, SpecsPageOptions } from "../specs-list";
@@ -49,7 +49,14 @@ export function executionGroupDisplayState(group: ExecutionGroup, archiveJob?: Q
   return group.state === "archiving" && archiveJob?.state === "queued" && !archiveJob.landing ? "queued" : group.state;
 }
 
-export function executionGroupStateLabel(group: ExecutionGroup, members: readonly ExecutionGroupMemberRow[], lang: Language, archiveJob?: QueueRowView): string {
+/** The group as the card shows it: one whose specs are all archived reads completed. */
+export const executionGroupAsShown = (group: ExecutionGroup, rows: readonly ExecutionGroupMemberRow[]): ExecutionGroup => {
+  const own = rows.filter((row) => group.members.includes(row.group.specFolder) && row.group.project === group.project);
+  return executionGroupFinished(group, own.map((row) => ({ archived: isArchivedRow(row.group) }))) ? { ...group, state: "completed" } : group;
+};
+
+export function executionGroupStateLabel(shownGroup: ExecutionGroup, members: readonly ExecutionGroupMemberRow[], lang: Language, archiveJob?: QueueRowView): string {
+  const group = executionGroupAsShown(shownGroup, members);
   if (group.queuePosition) return t(lang, "list.stateQueuedPosition", { n: group.queuePosition.n, total: group.queuePosition.total });
   if (groupProviderLimitWait(group, members.map((member) => member.group))) return t(lang, "list.state.waiting");
   const lead = (group.state === "archiving" ? archiveJob : undefined) ?? members.find((member) => member.group.specFolder === group.currentMember)?.group.lead;
@@ -98,7 +105,8 @@ export function executionGroupMemberPip(group: ExecutionGroup, folder: string, m
   return { kind: memberPipKind(member, group.completedMembers.includes(folder), job), title: folder, label: memberPipLabel(folder, job, lang) };
 }
 
-export function executionGroupPlace(group: ExecutionGroup, rows: ExecutionGroupMemberRow[] = []): TabPlace {
+export function executionGroupPlace(shownGroup: ExecutionGroup, rows: ExecutionGroupMemberRow[] = []): TabPlace {
+  const group = executionGroupAsShown(shownGroup, rows);
   const activity = executionGroupActivity(group.state);
   const band = activity === "running" ? 0 : activity === "queued" ? 1 : group.state === "completed" ? 3 : 2;
   const own = rows.filter((row) => group.members.includes(row.group.specFolder) && row.group.project === group.project);
@@ -184,13 +192,13 @@ export function executionGroupCard(
     `<span class="pipslot">${memberPips}</span>` +
     // Its action, while the card is open, before the state, as a job's is.
     (control ? `<span class="actionslot" data-group-action${open ? "" : " hidden"}>${control}</span>` : "") + `</span></td>` +
-    `<td data-col="state"><span class="badgeslot" data-group-state>${(() => { const pos = group.queuePosition ?? firstWaiting([archiveJob, ...members.map(member => member.group.lead)]); return pos?.id ? queueBadge(lang as Language, pos.id, pos.n, pos.total, pos.reason, true) : badge(groupProviderLimitWait(group, members.map((member) => member.group)) ? "waiting" : groupBadgeVariant(executionGroupDisplayState(group, archiveJob), group.stoppedByUser), executionGroupStateLabel(group, members, lang as Language, archiveJob)); })()}</span>` +
+    `<td data-col="state"><span class="badgeslot" data-group-state>${(() => { const pos = group.queuePosition ?? firstWaiting([archiveJob, ...members.map(member => member.group.lead)]); return pos?.id ? queueBadge(lang as Language, pos.id, pos.n, pos.total, pos.reason, true) : badge(groupProviderLimitWait(group, members.map((member) => member.group)) ? "waiting" : groupBadgeVariant(executionGroupDisplayState(executionGroupAsShown(group, members), archiveJob), group.stoppedByUser), executionGroupStateLabel(group, members, lang as Language, archiveJob)); })()}</span>` +
     `</td>` +
     `<td data-col="started">${activeDurationCell({ totalDurationMs, totalDurationSince } as SpecGroup)}</td>` +
     `<td class="num" data-col="cost">${costCell(spentUsd, spentTokens, "–", costSettled)}</td></tr>` +
     // What the group waits for, outside the body the fold hides.
     executionGroupWaitRows(group, states, lang as Language) +
-    executionGroupStopRows(group, members.map((member) => member.group), lang as Language, archiveJob) +
+    executionGroupStopRows(executionGroupAsShown(group, members), members.map((member) => member.group), lang as Language, archiveJob) +
     `</tbody>`;
   const archiveBase = members[0]?.group;
   const archiveModel = archiveChoice?.stepModels?.archive ?? (typeof archiveChoice?.model === "string" ? archiveChoice.model : undefined) ?? group.archiveModel;

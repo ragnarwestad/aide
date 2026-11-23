@@ -939,7 +939,7 @@ The same notice covers failed and cancelled member jobs, and a failed Archive me
 group still reads Archiving. A recovered group without a current member uses its saved jobs to identify the member,
 but only while that job is still the spec's current one.
 Completed groups stay on Jobs with their archived specs, logs and pull-request marks available, until
-Remove takes the card off.
+Remove takes the card off. A stopped group whose specs are all archived reads as completed: Done, with Remove.
 
 An ordinary spec has one Jobs row for each round. The first round starts on the day the spec was made, and every later
 round starts when Reopen finished. Earlier rows stay when the spec is reopened, archived or closed. Each round has its

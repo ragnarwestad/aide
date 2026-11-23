@@ -100,11 +100,12 @@ export const jobPlace = (
  *  its change is the newest stamp of its lead job and of the jobs of its
  *  round, or, with no job, the day it was made. A spec git has not dated yet,
  *  with no job, was made moments ago: it is the newest, as the list's
- *  `sortGroups` treats it. */
+ *  `sortGroups` treats it — unless it is archived or closed, when it is
+ *  old work and stands last. */
 export const specPlace = (g: Pick<SpecGroup, "state" | "lead" | "createdAt">, jobs: readonly JobLike[] = []): TabPlace => {
   const changedAt =
     !g.lead && !g.createdAt && !jobs.length
-      ? Number.MAX_SAFE_INTEGER
+      ? ["archived", "closed"].includes(g.state) ? 0 : Number.MAX_SAFE_INTEGER
       : Math.max(g.lead ? lastStamp(g.lead) : 0, ...jobs.map(lastStamp), Date.parse(g.createdAt ?? "") || 0);
   if (g.state === "queued") return queuedPlace(changedAt, g.lead?.queuePosition);
   return { band: g.state === "running" ? 0 : ["archived", "closed"].includes(g.state) ? 3 : 2, changedAt };

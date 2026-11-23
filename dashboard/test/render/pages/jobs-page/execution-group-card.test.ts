@@ -100,6 +100,13 @@ test("a completed group is placed with finished work (AC-3, AC-4)", () => {
   expect(executionGroupPlace(group("completed"))).toEqual({ band: 3, changedAt: Date.parse("2026-11-11T12:00:00.000Z") });
 });
 
+test("a stopped group whose specs are all archived stands with finished work and reads Done", () => {
+  const archived = (folder: string) => member(folder, "<tr></tr>", { state: "archived" });
+  const stopped = { ...group("stopped"), completedMembers: ["2-second", "1-first"] };
+  expect(executionGroupPlace(stopped, [archived("2-second"), archived("1-first")]).band).toBe(3);
+  expect(executionGroupStateLabel(stopped, [archived("2-second"), archived("1-first")], "en")).toBe(t("en", "list.done"));
+});
+
 test("a completed group is counted under Done rather than Stopped (AC-3, AC-5)", () => {
   expect(executionGroupRowState(group("completed"), false)).toBe("done");
 });
