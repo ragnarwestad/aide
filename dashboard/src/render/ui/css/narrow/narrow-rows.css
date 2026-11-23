@@ -455,11 +455,28 @@
   /* And the time ends at that edge, a few seconds as much as an hour. */
   table.speclist[data-list="jobs"] tr:is(.specstate, .subrow, .groupline) > td[data-col="started"] { text-align: right; }
 }
-/* Where the phone leaves room, the line keeps a little after the time, so
-   a long one ("12m 03s") still ends inside the card. At 360px the line is
-   already full, and the room would push the time onto a line of its own. */
-@media (min-width: 25rem) and (max-width: 40rem) {
+/* A card's pips stand beside its state, as they do above a phone's width:
+   the pips' cell takes the room the line leaves rather than a fixed share
+   of it. */
+@media (max-width: 40rem) {
+  table.speclist[data-list="jobs"] tr.specstate > td:first-child,
+  table.speclist.groupcard[data-list="jobs"] tr.specstate > td:first-child { flex: 1 1 auto; min-width: 0; }
+  table.speclist[data-list="jobs"] tr:is(.specstate, .groupline) .createdpips { justify-content: flex-end; }
+  /* The title and the state line keep the spacing they have above a
+     phone's width, so a card does not change shape at 640px. */
+  table.speclist[data-list="jobs"] tr.spechead > td { padding-top: var(--sp-3); }
+  table.speclist[data-list="jobs"] tr.specstate { padding-bottom: var(--sp-3); }
+}
+/* The time keeps the card's own room at its right where the phone has it.
+   Under 25rem a line is already full, and from 27.5rem, where the AI and
+   model button widens, a phase line has no room to spare until 29.5rem.
+   The group's line ends with the others. */
+@media (min-width: 25rem) and (max-width: 27.4375rem) {
   table.speclist[data-list="jobs"] tr:is(.specstate, .subrow) { padding-right: var(--sp-1); }
+}
+@media (min-width: 29.5625rem) and (max-width: 40rem) {
+  table.speclist[data-list="jobs"] tr:is(.specstate, .subrow) { padding-right: var(--sp-3); }
+  table.speclist.groupcard > tbody > tr.groupline:not(.spechead, .specstate, .subrow) { padding-right: calc(var(--sp-3) - 2px); }
 }
 
 /* The Jobs tab's Types and States give way to the "…" menu's rows a little
