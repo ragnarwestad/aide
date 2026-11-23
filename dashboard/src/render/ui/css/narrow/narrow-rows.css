@@ -32,12 +32,6 @@
      a two-character duration under a four-character one otherwise looks
      misplaced rather than merely short. */
   table.list tr.subrow > td[data-col="started"] { text-align: center; }
-  /* Time and cost follow the button, on the same left edge as
-     everything else on this line. They stood at the line's RIGHT edge
-     until the pips came in beside the name (2026-09-07): with the name,
-     the pips, the badge and the button all reading down one left edge,
-     an auto margin left the last two figures alone out at the far side
-     with the row's free space between. */
   /* The spec's summed Time follows the state, in the same fixed,
      left-aligned box as each phase line's Time, so the total stands in
      the column of the times under it. Cost stays off the phone. */
@@ -451,4 +445,18 @@
   table.list.phasechoices tr.subrow .modelcell > .row { display: flex; flex-wrap: nowrap; }
   table.list.phasechoices tr.subrow .aimodel { display: flex; flex-direction: column; gap: var(--sp-1); flex: 1; order: 0; }
   table.list.phasechoices tr.subrow .modelcell > .row > .phase[data-phase] { order: 0; flex: none; }
+}
+
+/* On the Jobs tab every card's state and time stand at the line's right
+   edge at every phone width: a job's, a spec's, a group's and each phase
+   line's, so they share one column however wide the phone is. After the
+   phase lines' own margins above, which this replaces. */
+@media (max-width: 40rem) {
+  table.speclist[data-list="jobs"] tr:is(.specstate, .subrow) > td[data-col="state"] { margin-left: auto; }
+}
+/* Where the phone leaves room, the line keeps a little after the time, so
+   a long one ("12m 03s") still ends inside the card. At 360px the line is
+   already full, and the room would push the time onto a line of its own. */
+@media (min-width: 25rem) and (max-width: 40rem) {
+  table.speclist[data-list="jobs"] tr:is(.specstate, .subrow) { padding-right: var(--sp-1); }
 }

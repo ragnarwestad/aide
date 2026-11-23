@@ -63,11 +63,9 @@ table.speclist.groupcard > tbody > tr.grouphead > td.foldcell {
   table.speclist.groupcard > tbody > tr.grouphead > td.foldcell > .fold { width: 20px; }
   table.speclist.groupcard > tbody > tr.grouphead > td:nth-child(2) { grid-column: 2 / -1; }
   table.speclist.groupcard > tbody > tr.groupline > td[data-col="state"] :is(.badgeslot, .badge) { width: 100%; box-sizing: border-box; }
-  /* The group's Archive line has no acceptance tick and stands on the
-     card's ground, outside a member's edge, so its state and time move
-     right by what a member's state line gives them, to line up with it. */
-  table.speclist.groupcard > tbody[data-group-members] > tr[data-group-archive] > td[data-col="state"] {
-    margin-left: calc(var(--tick-w) + var(--sp-2) - 2 * var(--sp-1) - 1px); }
+  table.speclist.groupcard > tbody > tr.groupline > td[data-col="started"] { font-size: var(--fs-s); }
+  /* Its state and time end where a job card's do. */
+  table.speclist.groupcard > tbody > tr.groupline:not(.spechead, .specstate, .subrow) { padding-right: 0; }
   table.speclist.groupcard tr.specstate > td:first-child {
     flex-basis: calc(var(--sp-3) + var(--fold-w) + var(--phase-w) + var(--aimodel-w) + var(--tick-w)
       + 2 * var(--sp-2) - 2 * var(--sp-1) - 2px); }
