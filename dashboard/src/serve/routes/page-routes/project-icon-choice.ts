@@ -11,7 +11,7 @@ import {
   writeChosenGlyph,
 } from "../../../project/project-icon/index.ts";
 import { DEFAULT_DASHBOARD_CHECKOUT_ROOT } from "../../../git/dashboard-checkout.ts";
-import { bodyToObject, readBounded } from "../../serve-helpers/http.ts";
+import { readObjectBody } from "../../serve-helpers/http.ts";
 import type { RoutesContext } from "..";
 
 /** The largest body the route reads: a 512 KB file as base64, every
@@ -43,14 +43,8 @@ export async function chooseProjectIcon(ctx: RoutesContext, req: Request, name: 
   const answer = (error: string | null) =>
     ctx.answerProjectChange("project-icon", name, [error ? { step: "icon", ok: false, error } : { step: "icon", ok: true }]);
   if (!ctx.opts.projectRoot || !ctx.allowed.has(name)) return answer(`"${name}" is not a project this dashboard knows`);
-  const body = await readBounded(req, ICON_BODY_CAP);
-  // The body was never read, so the file's own size is not known.
-  if ("refusal" in body) return answer("The file is larger than 512 KB.");
-  let form: unknown;
-  try {
-    form = bodyToObject(body.text, "application/x-www-form-urlencoded");
-  } catch {
-    form = null;
-  }
-  return answer(choose(checkoutBase(ctx), name, (form ?? {}) as Record<string, unknown>));
+  const sent = await readObjectBody(req, { cap: ICON_BODY_CAP, form: true });
+  // Over the cap the body was never read, so the file's own size is not known.
+  if ("refusal" in sent) return answer(sent.refusal.status === 413 ? "The file is larger than 512 KB." : "No file was picked.");
+  return answer(choose(checkoutBase(ctx), name, sent.body));
 }

@@ -20,7 +20,7 @@ import {
   choiceModel, choiceOf, MODELS_ADD_ROUTE, MODELS_REMOVE_ROUTE, sameModel, TOOL_TAB_LABELS, type ToolModels,
 } from "../../render";
 import { isClaudeFamily, lastModels } from "../tool-models";
-import { json, parseBody } from "../serve-helpers";
+import { json, readObjectBody } from "../serve-helpers";
 import type { RoutesContext } from "./";
 import { saveQueueSettings } from "./settings-save/index.ts";
 
@@ -140,7 +140,7 @@ export async function handleSettingsModelsRoutes(
 ): Promise<Response | null> {
   if (path !== MODELS_ADD_ROUTE && path !== MODELS_REMOVE_ROUTE) return null;
   if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
-  const asked = await parseBody(req);
-  if (asked instanceof Response) return asked;
-  return path === MODELS_ADD_ROUTE ? addModel(ctx, asked) : removeModel(ctx, asked);
+  const sent = await readObjectBody(req);
+  if ("refusal" in sent) return sent.refusal;
+  return path === MODELS_ADD_ROUTE ? addModel(ctx, sent.body) : removeModel(ctx, sent.body);
 }

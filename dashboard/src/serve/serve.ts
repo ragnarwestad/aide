@@ -13,7 +13,7 @@ import { translationMergeArgs } from "./land-branch/run-script.ts";
 // `createServer` is a staged assembly, not one long body: each of the
 // setup/*.ts files it calls builds one cluster of wiring that used to
 // sit inline here, and `state.ts` holds the handful of mutable `let`s
-// (`scan`, `unlanded`, `prOpen`, `warming`, `notifySoon`, plus `server`
+// (`scan`, `unlanded`, `prOpen`, `notifySoon`, plus `server`
 // and `runner` themselves) that cross those stage boundaries. The
 // stages run in dependency order — project resolution before the
 // queue, schedules before land, land before the runner, everything
@@ -36,7 +36,6 @@ import { DEFAULT_BIND_HOST, isLoopbackBind, isQueuePath } from "./queue-guard.ts
 import { answerProjectChange, persistAllowlist as persistAllowlistImpl, type ProjectActionsContext } from "./project-actions.ts";
 import { createServerState } from "./state.ts";
 import { setupWatch } from "./setup/watch.ts";
-import { makeSettle } from "./serve-helpers/settle.ts";
 import { setupPush } from "./setup/push.ts";
 import { createScheduleStore } from "../queue/schedule-store.ts";
 import { setupProjectResolution } from "./setup/project-resolution.ts";
@@ -462,7 +461,7 @@ export function createServer(opts: ServerOptions) {
      *  board is already tracked, without spawning a real round to get
      *  there) that nothing else exposes. */
     testServersStore: () => testServerStore,
-    settle: makeSettle(state, schedules.refreshSpecCaches),
+    settle: schedules.settleSpecCaches,
     // `server.stop` resolves once the last connection is closed. Nothing
     // here waits for that — the caller is shutting down — so the promise
     // is dropped on purpose rather than by accident.

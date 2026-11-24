@@ -17,7 +17,7 @@ import { freeShortName, shortNameError, shortNameHolder, withShortNames } from "
 import { TOOL_NAMES } from "../../../queue/providers/tools.ts";
 import { readProviderStatus } from "../../providers/status.ts";
 import { readsUsage, readUsage, usageReader } from "../../providers/usage-kept.ts";
-import { json, parseBody } from "../../serve-helpers";
+import { json, readObjectBody } from "../../serve-helpers";
 import { prepareShadowHome } from "../../providers/shadow-home.ts";
 import type { RoutesContext } from "../";
 import { saveQueueSettings } from "../settings-save/index.ts";
@@ -250,8 +250,9 @@ export async function handleProviderSettingsRoutes(
   }
   if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
   if (!ctx.opts.queueConfigFile) return refuse("this server has no queue config file");
-  const asked = await parseBody(req);
-  if (asked instanceof Response) return asked;
+  const sent = await readObjectBody(req);
+  if ("refusal" in sent) return sent.refusal;
+  const asked = sent.body;
   if (path === PROVIDERS_ADD_ROUTE) return addProvider(ctx, asked);
   if (path === PROVIDERS_EDIT_ROUTE) return editProvider(ctx, asked);
   if (path === PROVIDERS_SWITCH_ROUTE) return switchProvider(ctx, asked);

@@ -16,7 +16,7 @@ export {
 } from "./config.ts";
 
 export {
-  json, refusal, readBounded, parseBody, cookieValue, sortCookieName, sortChoice,
+  json, refusal, readBounded, readObjectBody, cookieValue, sortCookieName, sortChoice,
   stateCookieName, stateChoice, jobsViewCookieName, jobsViewChoice, LANG_COOKIE, languageChoice, bodyToObject,
 } from "./http.ts";
 

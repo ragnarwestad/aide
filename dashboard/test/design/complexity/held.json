@@ -241,8 +241,8 @@
     "src/serve/schedules/blocked.ts::blockedDependencies": {
       "lines": 88
     },
-    "src/serve/schedules/index.ts::refreshSpecCaches": {
-      "lines": 87
+    "src/serve/schedules/index.ts::sweepSpecCaches": {
+      "lines": 77
     },
     "src/serve/serve.ts::createServer": {
       "lines": 436

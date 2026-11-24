@@ -32,6 +32,7 @@ import {
   readSpecProgress,
   rereadSpec as rereadSpecImpl,
   refreshSpecCaches as refreshSpecCachesImpl,
+  settleSpecCaches as settleSpecCachesImpl,
   refreshSchedules as refreshSchedulesImpl,
   tickRunner as tickRunnerImpl,
   type ScheduleContext,
@@ -154,10 +155,6 @@ export function setupSchedules(opts: ScheduleSetupOptions, state: ServerState, i
     },
     allowed,
     ensureCheckout,
-    getWarming: () => state.warming,
-    setWarming: (v) => {
-      state.warming = v;
-    },
     queue,
     specRoots,
     readRunner: () => state.runner,
@@ -219,6 +216,9 @@ export function setupSchedules(opts: ScheduleSetupOptions, state: ServerState, i
   }
   function refreshSpecCaches() {
     return refreshSpecCachesImpl(scheduleCtx);
+  }
+  function settleSpecCaches() {
+    return settleSpecCachesImpl(scheduleCtx);
   }
   function refreshSchedules() {
     return refreshSchedulesImpl(scheduleCtx);
@@ -304,7 +304,7 @@ export function setupSchedules(opts: ScheduleSetupOptions, state: ServerState, i
 
   return {
     mergeLock, freshness, workflowHistory, specCreatedAt, specFileCommits, branchFileSteps,
-    warmSpec, rereadSpec, rereadProject, forgetSpec, specProgress, refreshSpecCaches, tickRunner,
+    warmSpec, rereadSpec, rereadProject, forgetSpec, specProgress, refreshSpecCaches, settleSpecCaches, tickRunner,
     specsScanned: specsMark.scanned, whenSpecsScanned: specsMark.whenScanned,
     timers: [driftTimer, specCacheTimer, scheduleTimer, branchPreviewTimer, cleanupTimer, usageTimer],
   };

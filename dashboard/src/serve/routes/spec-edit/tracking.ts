@@ -16,7 +16,7 @@ import { inFlight } from "../../../queue/queue.ts";
 import { EDITABLE_SPEC_FILE, STATUS_SPEC_FILE } from "../../../render";
 import { workRoundJobs } from "../../spec-views/work-round.ts";
 import {
-  ARCHIVED_REFUSAL, MAX_SAVE_BODY, bodyToObject, editMessage, json, logRefusal, readBounded, refusal,
+  ARCHIVED_REFUSAL, MAX_SAVE_BODY, editMessage, json, logRefusal, readObjectBody, refusal,
   resolveDependencyFolder,
 } from "../../serve-helpers";
 
@@ -91,14 +91,9 @@ export async function trackingRoutes(
     return json({ error: reason, spec }, 409);
   }
 
-  const sent = await readBounded(req, MAX_SAVE_BODY);
+  const sent = await readObjectBody(req, { cap: MAX_SAVE_BODY });
   if ("refusal" in sent) return sent.refusal;
-  let body: Record<string, unknown> = {};
-  try {
-    if (sent.text) body = bodyToObject(sent.text, req.headers.get("content-type")) as Record<string, unknown>;
-  } catch {
-    return json({ error: "malformed body" }, 400);
-  }
+  const body = sent.body;
 
   if (currentText === null) {
     return refuse(`${EDITABLE_SPEC_FILE} could not be read — nothing was saved`);

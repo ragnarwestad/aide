@@ -79,7 +79,6 @@ export interface ServerState {
    *  (`refreshBranchPreviews`); the row reads it. */
   branchPreviews: Map<string, string>;
   notifySoon: ReturnType<typeof setTimeout> | null;
-  warming: boolean;
   /** Filled once `Bun.serve()` has run. A getter closing over this is
    *  never evaluated before then — `spawn` is only ever called later,
    *  from the polling `runner.tick()` timer. */
@@ -140,7 +139,7 @@ export function createServerState(): ServerState {
   setPendingRestartNotice([]);
   setDeployFaultNotice(null);
   const state: ServerState = {
-    scan: null, unlanded: [], prOpen: [], pullRequests: new Map(), branchPreviews: new Map(), notifySoon: null, warming: false, server: null, runner: null,
+    scan: null, unlanded: [], prOpen: [], pullRequests: new Map(), branchPreviews: new Map(), notifySoon: null, server: null, runner: null,
     servingSha: null, servingRepoRoot: null, pendingRestart: null, stopped: false, deployFault: null,
     deployFailures: new Map(),
   };

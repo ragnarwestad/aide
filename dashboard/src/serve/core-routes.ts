@@ -6,7 +6,7 @@ import type { AideRunStore } from "../queue/aide-run-store.ts";
 import { parseAideRun } from "../queue/aide-run-store.ts";
 import { STARTED_AT } from "./state.ts";
 import {
-  json, readBounded, servePwaAsset, serveSpecEditorAsset, SPEC_EDITOR_ASSET_PATH,
+  json, readObjectBody, servePwaAsset, serveSpecEditorAsset, SPEC_EDITOR_ASSET_PATH,
   serveSpecViewerAsset, SPEC_VIEWER_ASSET_PATH,
 } from "./serve-helpers";
 import { languageChoice } from "./serve-helpers/http.ts";
@@ -30,15 +30,9 @@ export async function handleCore(
 ): Promise<Response> {
   if (path === "/api/aide-run") {
     if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
-    const body = await readBounded(req);
-    if ("refusal" in body) return body.refusal;
-    let raw: unknown;
-    try {
-      raw = JSON.parse(body.text);
-    } catch {
-      return json({ error: "malformed json" }, 400);
-    }
-    const parsed = parseAideRun(raw);
+    const sent = await readObjectBody(req);
+    if ("refusal" in sent) return sent.refusal;
+    const parsed = parseAideRun(sent.body);
     if (!parsed.ok) return json({ error: parsed.error }, 400);
     const stored = ctx.store.put(parsed.run, new Date().toISOString());
     // The second source a row reads. Cost, subagent count and

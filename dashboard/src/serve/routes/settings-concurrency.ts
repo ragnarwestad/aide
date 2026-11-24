@@ -6,7 +6,7 @@
 // per project with a queued job, which would hold the Save press, and
 // the runner's own timer ticks anyway.
 import {
-  QUEUE_CONCURRENCY_MAX, QUEUE_CONCURRENCY_MIN, bodyToObject, isQueueConcurrency, json, readBounded,
+  QUEUE_CONCURRENCY_MAX, QUEUE_CONCURRENCY_MIN, isQueueConcurrency, json, readObjectBody,
 } from "../serve-helpers";
 import type { RoutesContext } from "./";
 import { saveQueueSettings } from "./settings-save/index.ts";
@@ -20,15 +20,12 @@ export async function handleSettingsConcurrencyRoute(
 ): Promise<Response | null> {
   if (path !== SETTINGS_CONCURRENCY_ROUTE) return null;
   if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
-  const body = await readBounded(req);
-  if ("refusal" in body) return body.refusal;
-  let raw: unknown;
-  try { raw = bodyToObject(body.text, req.headers.get("content-type")); }
-  catch { return json({ error: "malformed body" }, 400); }
+  const sent = await readObjectBody(req);
+  if ("refusal" in sent) return sent.refusal;
   const refuse = (error: string) => json({ error }, 400);
   if (!ctx.opts.queueConfigFile) return refuse("this server has no queue config file");
   if (!ctx.runner) return refuse("this server runs no queue");
-  const asked = (raw as Record<string, unknown> | null)?.concurrency;
+  const asked = sent.body.concurrency;
   if (!isQueueConcurrency(asked)) {
     return refuse(
       `How many steps may run at once must be a whole number from ${QUEUE_CONCURRENCY_MIN} to ${QUEUE_CONCURRENCY_MAX}`,

@@ -4,7 +4,7 @@
 // folded into run-controls.ts, so that file stays the size its own
 // header comment already notes a 2026-09-04 split at. Has no fallback
 // page behind it: the dialog's page script reads the answer.
-import { bodyToObject, json, logRefusal, readBounded } from "../../serve-helpers";
+import { json, logRefusal, readObjectBody } from "../../serve-helpers";
 
 import { inFlight } from "../../../queue/queue.ts";
 import type { RoutesContext } from "..";
@@ -20,14 +20,9 @@ export async function closeControlRoutes(
   if (closePost) {
     if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
     const [, project, specFolder] = closePost;
-    const sent = await readBounded(req);
+    const sent = await readObjectBody(req);
     if ("refusal" in sent) return sent.refusal;
-    let body: Record<string, unknown> = {};
-    try {
-      if (sent.text) body = bodyToObject(sent.text, req.headers.get("content-type")) as Record<string, unknown>;
-    } catch {
-      return json({ error: "malformed body" }, 400);
-    }
+    const body = sent.body;
     const refuseClose = (error: string): Response => json({ error }, 400);
     // A reason is the one thing this form requires — trimmed, so
     // whitespace alone reads exactly as empty does.

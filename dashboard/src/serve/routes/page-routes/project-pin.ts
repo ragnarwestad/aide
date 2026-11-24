@@ -3,7 +3,7 @@
 // in, or committed to, the project's repository. A refusal changes nothing.
 
 import { isPinned, pinnedFirst, pinnedOf, setPinned } from "../../../project/project-admin/pinned.ts";
-import { bodyToObject } from "../../serve-helpers/http.ts";
+import { readObjectBody } from "../../serve-helpers/http.ts";
 import { checkoutBase } from "./project-icon-choice.ts";
 import { hiddenProjects } from "./project-hide.ts";
 import type { RoutesContext } from "..";
@@ -22,11 +22,8 @@ export const projectChoices = (ctx: RoutesContext): string[] => {
 };
 
 async function pinnedValue(req: Request): Promise<unknown> {
-  try {
-    return (bodyToObject(await req.text(), "application/x-www-form-urlencoded") as Record<string, unknown> | null)?.pinned;
-  } catch {
-    return undefined;
-  }
+  const sent = await readObjectBody(req, { cap: Number.POSITIVE_INFINITY, form: true });
+  return "refusal" in sent ? undefined : sent.body.pinned;
 }
 
 export async function projectPinRoute(ctx: RoutesContext, req: Request, path: string): Promise<Response | null> {

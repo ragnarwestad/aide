@@ -26,7 +26,7 @@ import {
 import { parseSpecStateText } from "../../../project/parse-spec-state.ts";
 import { STATE_FILE } from "../../../project/spec-names.ts";
 import { STATUS_SPEC_FILE } from "../../../render";
-import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, bodyToObject, json, logRefusal, readBounded, refusal, tickMessage } from "../../serve-helpers";
+import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, json, logRefusal, readObjectBody, refusal, tickMessage } from "../../serve-helpers";
 import { writing } from "../../../queue/queue.ts";
 import { stateRelPath } from "./shared.ts";
 
@@ -82,14 +82,9 @@ export async function checkRoutes(
       logRefusal("tick", `${project}/${specFolder}`, reason);
       return refuse(reason);
     }
-    const sent = await readBounded(req, MAX_SAVE_BODY);
+    const sent = await readObjectBody(req, { cap: MAX_SAVE_BODY });
     if ("refusal" in sent) return sent.refusal;
-    let body: Record<string, unknown> = {};
-    try {
-      if (sent.text) body = bodyToObject(sent.text, req.headers.get("content-type")) as Record<string, unknown>;
-    } catch {
-      return json({ error: "malformed body" }, 400);
-    }
+    const body = sent.body;
     // `bodyToObject` wraps a lone value in an array for the New-spec
     // form's chip set, exactly as it does for `dependsOn`, so both
     // shapes are taken apart the same way.

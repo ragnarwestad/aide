@@ -1,7 +1,7 @@
 import { LS_REMOTE_NO_MATCH, lsRemoteBranch } from "../../../git/branch-status.ts";
 import { enqueueRequest } from "../../../queue/request/index.ts";
 import { inFlight, jobKind, LAND_KEY } from "../../../queue/queue.ts";
-import { json, logRefusal, parseBody } from "../../serve-helpers";
+import { json, logRefusal, readObjectBody } from "../../serve-helpers";
 import type { RoutesContext } from "../";
 
 const LAND_ROUTE = /^\/api\/queue\/projects\/([^/]+)\/land$/;
@@ -13,9 +13,9 @@ async function queueLand(ctx: RoutesContext, req: Request, project: string): Pro
     return json({ ok: false, error }, 400);
   };
   if (!ctx.opts.projectRoot || !ctx.allowed.has(project)) return refuse(`"${project}" is not a project this dashboard knows`);
-  const body = await parseBody(req);
-  if (body instanceof Response) return body;
-  const branch = body.branch;
+  const sent = await readObjectBody(req);
+  if ("refusal" in sent) return sent.refusal;
+  const branch = sent.body.branch;
   if (typeof branch !== "string" || !SAFE_BRANCH.test(branch)) return refuse("Merge needs a safe branch name");
   const root = ctx.machineryProjectDir(project);
   const base = await ctx.branchStatus.defaultBranch(root);

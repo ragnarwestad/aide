@@ -10,7 +10,7 @@ import { readStatusFromBranch, resolveOpenBranchTarget, writeStatusToBranch } fr
 import { lastCommitOf } from "../../../git/description-freshness.ts";
 import { chooseApproachIn, specFileText } from "../../../project/discover";
 import { parseApproaches, pendingChoice, withChosenApproach } from "../../../project/approach-choice.ts";
-import { ARCHIVED_REFUSAL, bodyToObject, editMessage, json, logRefusal, readBounded, refusal } from "../../serve-helpers";
+import { ARCHIVED_REFUSAL, editMessage, json, logRefusal, readObjectBody, refusal } from "../../serve-helpers";
 import { writing } from "../../../queue/queue.ts";
 import { endStep } from "../../../queue/runner/step-result.ts";
 import { enqueueRequest, followOnRequest } from "../../../queue/request/index.ts";
@@ -38,14 +38,9 @@ export async function approachRoutes(ctx: RoutesContext, req: Request, path: str
   const ours = ctx.queue.list().filter((job) => job.project === project && job.specFolder === specFolder);
   if (ours.some(writing)) return refuse("another job for this spec is still running — nothing was saved");
 
-  const sent = await readBounded(req);
+  const sent = await readObjectBody(req);
   if ("refusal" in sent) return sent.refusal;
-  let body: Record<string, unknown> = {};
-  try {
-    if (sent.text) body = bodyToObject(sent.text, req.headers.get("content-type")) as Record<string, unknown>;
-  } catch {
-    return json({ error: "malformed body" }, 400);
-  }
+  const body = sent.body;
   const letter = typeof body.approach === "string" ? body.approach : "";
   if (!/^[A-Z]$/.test(letter)) return json({ error: "no approach was chosen — nothing was saved", spec }, 400);
 

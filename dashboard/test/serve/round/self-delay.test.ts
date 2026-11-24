@@ -2,7 +2,7 @@
 // waits before each step, in the file the round names, and refuses
 // anything but a choice — or any board the round did not start.
 import { afterEach, beforeEach, expect, test } from "bun:test";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { queueHarness } from "../../helpers/queue-server.ts";
@@ -55,4 +55,17 @@ test("a press from another site is refused like every other queue route", async 
   const { base } = harness.start({ extra: { testBoardSpec: "aide-wt-run" } });
   const res = await fetch(`${base}/api/self-run/delay`, { method: "POST", headers: { origin: "https://evil.example" } });
   expect(res.status).toBe(403);
+});
+
+test("a JSON body that is not an object answers the reader's 400 and writes nothing (AC-1)", async () => {
+  const { base } = harness.start({ extra: { testBoardSpec: "aide-wt-run" } });
+  for (const text of ["null", "[]", "{not json"]) {
+    const res = await fetch(`${base}/api/self-run/delay`, {
+      method: "POST",
+      headers: { accept: "application/json", "content-type": "application/json" },
+      body: text,
+    });
+    expect(res.status).toBe(400);
+  }
+  expect(existsSync(join(dir, "delay"))).toBe(false);
 });

@@ -10,7 +10,7 @@ import { createScheduleEntry, deleteScheduleEntry, setScheduleEnabled, updateSch
 import { nextFireTime, scheduleRequest } from "../../queue/schedule.ts";
 import { enqueueRequest } from "../../queue/request/index.ts";
 import { providerModelError } from "../../queue/providers/parse.ts";
-import { bodyToObject, json, logRefusal, readBounded, refusal } from "../serve-helpers";
+import { json, logRefusal, readObjectBody, refusal } from "../serve-helpers";
 import type { RoutesContext } from "./";
 import { projectScheduleTab, renamedBack, scheduleBackPath } from "./page-routes/schedule-edit-page.ts";
 
@@ -30,17 +30,6 @@ function pairRefusal(ctx: RoutesContext, provider: string | undefined, model: st
   if (!provider || !model.trim() || !ctx.queue.defaults.providers?.[provider]) return null;
   const refused = providerModelError(ctx.queue.defaults, provider, model.trim());
   return refused ? refusal({ error: refused.error, solution: refused.solution }) : null;
-}
-
-async function readJsonBody(req: Request): Promise<{ body: Record<string, unknown> } | { refusal: Response }> {
-  const sent = await readBounded(req);
-  if ("refusal" in sent) return sent;
-  try {
-    const body = sent.text ? (bodyToObject(sent.text, req.headers.get("content-type")) as Record<string, unknown>) : {};
-    return { body };
-  } catch {
-    return { refusal: json({ error: "malformed body" }, 400) };
-  }
 }
 
 export async function handleScheduleAdminRoutes(
@@ -67,7 +56,7 @@ export async function handleScheduleAdminRoutes(
     const project = decodeURIComponent(enabledPost[1]!);
     const name = decodeURIComponent(enabledPost[2]!);
     if (!ctx.allowed.has(project)) return json({ error: `"${project}" is not a project this dashboard knows` }, 400);
-    const sent = await readJsonBody(req);
+    const sent = await readObjectBody(req);
     if ("refusal" in sent) return sent.refusal;
     const body = sent.body;
     // No `confirm` field required, unlike the spec page's own Reset
@@ -85,10 +74,9 @@ export async function handleScheduleAdminRoutes(
     const project = decodeURIComponent(runPost[1]!);
     const name = decodeURIComponent(runPost[2]!);
     if (!ctx.allowed.has(project)) return json({ error: `"${project}" is not a project this dashboard knows` }, 400);
-    const sent = await readJsonBody(req);
+    const sent = await readObjectBody(req);
     if ("refusal" in sent) return sent.refusal;
     const body = sent.body;
-    if (!body || typeof body !== "object" || Array.isArray(body)) return json({ error: "malformed body" }, 400);
     const entry = ctx.scheduleStore.list(project).find((e) => e.name === name);
     if (!entry) return json({ error: "the scheduled job no longer exists" }, 400);
     if (body.sourceJobId !== undefined) {
@@ -125,7 +113,7 @@ export async function handleScheduleAdminRoutes(
     const project = decodeURIComponent(deletePost[1]!);
     const name = decodeURIComponent(deletePost[2]!);
     if (!ctx.allowed.has(project)) return json({ error: `"${project}" is not a project this dashboard knows` }, 400);
-    const sent = await readJsonBody(req);
+    const sent = await readObjectBody(req);
     if ("refusal" in sent) return sent.refusal;
     // No typed confirmation (2026-09-08): the dialog asks the question
     // in a sentence, and the press is the answer.
@@ -140,7 +128,7 @@ export async function handleScheduleAdminRoutes(
     const project = decodeURIComponent(editPost[1]!);
     const name = decodeURIComponent(editPost[2]!);
     if (!ctx.allowed.has(project)) return json({ error: `"${project}" is not a project this dashboard knows` }, 400);
-    const sent = await readJsonBody(req);
+    const sent = await readObjectBody(req);
     if ("refusal" in sent) return sent.refusal;
     const body = sent.body;
     const current = ctx.scheduleStore.list(project).find((entry) => entry.name === name);
@@ -167,7 +155,7 @@ export async function handleScheduleAdminRoutes(
   // in this file already runs, checked before any read or write.
   if (path === "/api/queue/schedule") {
     if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
-    const sent = await readJsonBody(req);
+    const sent = await readObjectBody(req);
     if ("refusal" in sent) return sent.refusal;
     const body = sent.body;
     const project = str(body.project);

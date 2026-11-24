@@ -285,7 +285,6 @@ describe("refreshSpecCaches tells an open tab when its answer changes", () => {
       }
       return { code: 1, stdout: "" };
     };
-    let warming = false;
     let notifyCount = 0;
     const ctx: ScheduleContext = {
       projectRoot: undefined,
@@ -303,10 +302,6 @@ describe("refreshSpecCaches tells an open tab when its answer changes", () => {
       invalidateScan: () => {},
       allowed: new Set(),
       ensureCheckout: async () => undefined,
-      getWarming: () => warming,
-      setWarming: (v) => {
-        warming = v;
-      },
       queue: {} as unknown as QueueStore,
       specRoots: () => ["/fake/root/aide"],
       readRunner: () => null,
@@ -355,7 +350,6 @@ describe("refreshSpecCaches tells an open tab when its answer changes", () => {
       }
       return { code: 1, stdout: "" };
     };
-    let warming = false;
     let notifyCount = 0;
     const ctx: ScheduleContext = {
       projectRoot: undefined,
@@ -374,10 +368,6 @@ describe("refreshSpecCaches tells an open tab when its answer changes", () => {
       invalidateScan: () => {},
       allowed: new Set(),
       ensureCheckout: async () => undefined,
-      getWarming: () => warming,
-      setWarming: (v) => {
-        warming = v;
-      },
       queue: {} as unknown as QueueStore,
       specRoots: (project) => [`/fake/root/${project}`],
       readRunner: () => null,
@@ -417,7 +407,6 @@ describe("the code checkout's branches are asked for a live spec", () => {
       }
       return { code: 1, stdout: "" };
     };
-    let warming = false;
     const ctx: ScheduleContext = {
       projectRoot: undefined,
       machineryProjectDir: () => CODE,
@@ -434,10 +423,6 @@ describe("the code checkout's branches are asked for a live spec", () => {
       invalidateScan: () => {},
       allowed: new Set(),
       ensureCheckout: async () => undefined,
-      getWarming: () => warming,
-      setWarming: (v) => {
-        warming = v;
-      },
       queue: {} as unknown as QueueStore,
       specRoots: () => [CODE, SPECS],
       readRunner: () => null,
@@ -489,7 +474,6 @@ describe("refreshSpecCaches asks whether an open archived branch is merged", () 
       if (args[0] === "fetch") return { code: 0, stdout: "" };
       return { code: 1, stdout: "" };
     };
-    let warming = false;
     let notifyCount = 0;
     const branchStatus = new BranchStatusChecker({ run, ttlMs: 0 });
     const ctx: ScheduleContext = {
@@ -509,10 +493,6 @@ describe("refreshSpecCaches asks whether an open archived branch is merged", () 
       invalidateScan: () => {},
       allowed: new Set(),
       ensureCheckout: async () => undefined,
-      getWarming: () => warming,
-      setWarming: (v) => {
-        warming = v;
-      },
       queue: {} as unknown as QueueStore,
       specRoots: () => [ROOT],
       readRunner: () => null,
@@ -572,7 +552,6 @@ describe("refreshSpecCaches asks GitHub whether an archived spec's pull request 
       return { code: gh.code, stdout: gh.stdout };
     };
     const pullRequests = new Map<string, PullRequestAnswer>();
-    let warming = false;
     let notifyCount = 0;
     const ctx: ScheduleContext = {
       projectRoot: undefined,
@@ -590,10 +569,6 @@ describe("refreshSpecCaches asks GitHub whether an archived spec's pull request 
       invalidateScan: () => {},
       allowed: new Set(),
       ensureCheckout: async () => undefined,
-      getWarming: () => warming,
-      setWarming: (v) => {
-        warming = v;
-      },
       queue: {} as unknown as QueueStore,
       specRoots: () => [CODE],
       readRunner: () => null,
@@ -668,7 +643,6 @@ describe("the first sweep that read every listed spec sets the board's mark", ()
     historySucceeded = true,
   ) {
     const events: string[] = [];
-    let warming = false;
     let notified = 0;
     const mark = firstSweepMark(() => { notified += 1; });
     const none = async () => null;
@@ -688,8 +662,6 @@ describe("the first sweep that read every listed spec sets the board's mark", ()
       invalidateScan: () => {},
       allowed: new Set(["aide"]),
       ensureCheckout: async () => { events.push("checkout"); return undefined; },
-      getWarming: () => warming,
-      setWarming: (v) => { warming = v; },
       queue: {} as unknown as QueueStore,
       specRoots: () => [],
       readRunner: () => null,

@@ -15,7 +15,7 @@ import { providerKeyFrom, providerModelError } from "../../queue/providers/parse
 import { addProject, assessProjectReadiness, commitManifestEdits, detectRemoteTestCommand, projectNameError, removeProject, updateProjectSettings, type SaveManifest } from "../../project/project-admin";
 import { SETTINGS_STEPS } from "../../render";
 import { PICK_PARTS, PLAN_REVIEW, planReviewToSave } from "../../queue/providers/side-tools.ts";
-import { MAX_CREATE_BODY, bodyToObject, json, readBounded, refusal } from "../serve-helpers";
+import { MAX_CREATE_BODY, bodyToObject, json, readBounded, readObjectBody, refusal } from "../serve-helpers";
 import type { RoutesContext } from "./";
 import { saveQueueSettings } from "./settings-save/index.ts";
 import { enqueueRequest } from "../../queue/request/index.ts";
@@ -40,15 +40,9 @@ export async function handleQueueAdminRoutes(
   }
   if (path === "/api/queue/create") {
     if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
-    const body = await readBounded(req, MAX_CREATE_BODY);
-    if ("refusal" in body) return body.refusal;
-    let raw: unknown;
-    try {
-      raw = bodyToObject(body.text, req.headers.get("content-type"));
-    } catch {
-      return json({ error: "malformed body" }, 400);
-    }
-    const result = parseCreateRequest(raw, {
+    const sent = await readObjectBody(req, { cap: MAX_CREATE_BODY });
+    if ("refusal" in sent) return sent.refusal;
+    const result = parseCreateRequest(sent.body, {
       allow: (project) => ctx.allowed.has(project),
       resolve: (project) => ({
         specFolders: ctx.targets().filter((target) => target.project === project).map((target) => target.specFolder),
@@ -69,13 +63,10 @@ export async function handleQueueAdminRoutes(
 
   if (path === "/api/queue/settings") {
     if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
-    const body = await readBounded(req);
-    if ("refusal" in body) return body.refusal;
-    let raw: unknown;
-    try { raw = bodyToObject(body.text, req.headers.get("content-type")); }
-    catch { return json({ error: "malformed body" }, 400); }
-    const asked = raw as Record<string, unknown> | null;
-    const models = asked?.model;
+    const sent = await readObjectBody(req);
+    if ("refusal" in sent) return sent.refusal;
+    const asked = sent.body;
+    const models = asked.model;
     const refuse = (error: string) => json({ error }, 400);
     if (!ctx.opts.queueConfigFile) return refuse("this server has no queue config file");
     if (!models || typeof models !== "object" || Array.isArray(models)) return refuse("model defaults are missing");
@@ -109,7 +100,7 @@ export async function handleQueueAdminRoutes(
     // The provider each phase runs on, posted as `provider.<step>` beside
     // the model; a save that posts none leaves the defaults' providers as
     // they are. Each must be configured and run the model saved with it.
-    const providers = asked?.provider;
+    const providers = asked.provider;
     const nextProvider: Record<string, string | null> = {};
     if (providers !== undefined && (providers === null || typeof providers !== "object" || Array.isArray(providers))) {
       return refuse("provider defaults are malformed");
@@ -156,7 +147,7 @@ export async function handleQueueAdminRoutes(
       return v;
     };
 
-    const askedTimeout = asked?.timeoutSec;
+    const askedTimeout = asked.timeoutSec;
     if (!askedTimeout || typeof askedTimeout !== "object" || Array.isArray(askedTimeout)) {
       return refuse("timeoutSec is missing");
     }
@@ -180,15 +171,9 @@ export async function handleQueueAdminRoutes(
 
   if (path === "/api/queue/projects") {
     if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
-    const body = await readBounded(req);
-    if ("refusal" in body) return body.refusal;
-    let raw: unknown;
-    try {
-      raw = bodyToObject(body.text, req.headers.get("content-type"));
-    } catch {
-      return json({ error: "malformed body" }, 400);
-    }
-    const asked = (raw ?? {}) as Record<string, unknown>;
+    const sent = await readObjectBody(req);
+    if ("refusal" in sent) return sent.refusal;
+    const asked = sent.body;
     const text = (v: unknown): string | undefined =>
       typeof v === "string" && v.trim() ? v.trim() : undefined;
     const rawName = typeof asked.name === "string" ? asked.name : "";
@@ -287,15 +272,9 @@ export async function handleQueueAdminRoutes(
   // another site's page and make this server clone an address of its choosing.
   if (path === "/api/queue/projects/test-command") {
     if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
-    const body = await readBounded(req);
-    if ("refusal" in body) return body.refusal;
-    let raw: unknown;
-    try {
-      raw = bodyToObject(body.text, req.headers.get("content-type"));
-    } catch {
-      return json({ error: "malformed body" }, 400);
-    }
-    const gitUrl = (raw as Record<string, unknown> | null)?.gitUrl;
+    const sent = await readObjectBody(req);
+    if ("refusal" in sent) return sent.refusal;
+    const gitUrl = sent.body.gitUrl;
     return json({ ok: true, testCmd: typeof gitUrl === "string" ? await detectRemoteTestCommand(ctx.gitRun, gitUrl) : null });
   }
 
@@ -303,14 +282,8 @@ export async function handleQueueAdminRoutes(
   if (settingsPost) {
     if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
     const name = decodeURIComponent(settingsPost[1]!);
-    const body = await readBounded(req);
-    if ("refusal" in body) return body.refusal;
-    let raw: unknown;
-    try {
-      raw = bodyToObject(body.text, req.headers.get("content-type"));
-    } catch {
-      return json({ error: "malformed body" }, 400);
-    }
+    const sent = await readObjectBody(req);
+    if ("refusal" in sent) return sent.refusal;
     if (!ctx.opts.projectRoot || !ctx.allowed.has(name)) {
       return ctx.answerProjectChange(
         "project-settings",
@@ -318,7 +291,7 @@ export async function handleQueueAdminRoutes(
         [{ step: "name", ok: false, error: `"${name}" is not a project this dashboard knows` }],
       );
     }
-    const asked = (raw ?? {}) as Record<string, unknown>;
+    const asked = sent.body;
     const str = (v: unknown): string => (typeof v === "string" ? v : "");
     // The manifest keys are committed and pushed in the checkout the
     // settings are read from and written to, the moment they are saved —

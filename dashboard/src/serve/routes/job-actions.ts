@@ -15,7 +15,7 @@ import { inFlight, jobKind, type Job } from "../../queue/queue.ts";
 import { endStep } from "../../queue/runner/step-result.ts";
 import { cancelCleanupJob } from "../process-cleanup/job.ts";
 import { getErrorMessage } from "../../messages/shared/written.ts";
-import { bodyToObject, json, logRefusal, readBounded, refusal } from "../serve-helpers";
+import { json, logRefusal, readBounded, readObjectBody, refusal } from "../serve-helpers";
 import type { RoutesContext } from "./";
 import { specReference } from "../../project/spec-folder.ts";
 import { workflowArc } from "../../workflow-steps.ts";
@@ -62,14 +62,14 @@ export async function handleJobActionRoutes(
   const groupAction = path.match(/^\/api\/queue\/groups\/([^/]+)\/action$/);
   if (groupAction) {
     if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
-    const sent = await readBounded(req);
+    const sent = await readObjectBody(req);
     if ("refusal" in sent) return sent.refusal;
     let memberSteps: Record<string, string[]> = {};
     let askedAction: ExecutionGroupAction | undefined;
     let askedModel: string | undefined;
     let askedProvider: string | undefined;
     try {
-      const body = sent.text ? bodyToObject(sent.text, req.headers.get("content-type")) as Record<string, unknown> : {};
+      const body = sent.body;
       memberSteps = readGroupPhaseChoices(body.memberSteps);
       if (body.action === "start" || body.action === "stop" || body.action === "archive" || body.action === "remove") askedAction = body.action;
       if (typeof body.model === "string" && body.model) askedModel = body.model;
@@ -187,16 +187,10 @@ export async function handleJobActionRoutes(
       return json({ generatedAt: new Date().toISOString(), jobs: ctx.queue.list() });
     }
     if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
-    const body = await readBounded(req);
-    if ("refusal" in body) return body.refusal;
-    let raw: unknown;
-    try {
-      raw = bodyToObject(body.text, req.headers.get("content-type"));
-    } catch {
-      return json({ error: "malformed body" }, 400);
-    }
-    const askedFor = raw as Record<string, unknown> | null;
-    if (typeof askedFor?.project === "string" && typeof askedFor?.specFolder === "string" &&
+    const sent = await readObjectBody(req);
+    if ("refusal" in sent) return sent.refusal;
+    const askedFor = sent.body;
+    if (typeof askedFor.project === "string" && typeof askedFor.specFolder === "string" &&
       groupBlocksIndividualRun(ctx.queue, askedFor.project, askedFor.specFolder)) {
       const spec = `${askedFor.project}/${askedFor.specFolder}`;
       const error = "this spec belongs to an active group — start or stop it from the group";
@@ -213,9 +207,9 @@ export async function handleJobActionRoutes(
     // resolver plumbing. A spec with no state file yet reads as
     // `created`, which the table refuses nothing forward-legal from.
     if (
-      typeof askedFor?.project === "string" &&
-      typeof askedFor?.specFolder === "string" &&
-      Array.isArray(askedFor?.steps)
+      typeof askedFor.project === "string" &&
+      typeof askedFor.specFolder === "string" &&
+      Array.isArray(askedFor.steps)
     ) {
       const dir = ctx.specDir(askedFor.project, askedFor.specFolder);
       if (dir) {
@@ -303,9 +297,9 @@ export async function handleJobActionRoutes(
 
     const selected = (value: unknown): string[] =>
       (Array.isArray(value) ? value : value === undefined ? [] : [value]).map(String);
-    const peers = selected(askedFor?.member);
+    const peers = selected(askedFor.member);
     let createdGroup: ExecutionGroup | undefined;
-    if (peers.length && typeof askedFor?.project === "string" && typeof askedFor?.specFolder === "string") {
+    if (peers.length && typeof askedFor.project === "string" && typeof askedFor.specFolder === "string") {
       const groupName = typeof askedFor.groupName === "string" ? askedFor.groupName.trim() : "";
       if (!groupName) return json({ error: "group name is required" }, 400);
       const steps = selected(askedFor.steps).filter((step) => step !== "archive");
@@ -331,7 +325,7 @@ export async function handleJobActionRoutes(
       askedFor.executionGroupId = made.group.id;
       askedFor.specFolder = made.group.members[0]!;
     }
-    const result = enqueueRequest(ctx.queue, raw, "manual");
+    const result = enqueueRequest(ctx.queue, askedFor, "manual");
     // The row's own Run form is the one HTTP route a reader's
     // phase-checkbox tick actually reaches after create, so it is the
     // ordinary-run counterpart to `enqueueCreate()`'s own seeding
@@ -342,7 +336,7 @@ export async function handleJobActionRoutes(
       ctx.queue.setPendingSteps(result.job.project, result.job.specFolder, result.job.steps.filter((s) => s !== "create"));
       if (createdGroup) {
         ctx.queue.executionGroups.queueMember(createdGroup.id, result.job.specFolder);
-        for (const pick of groupRowPicks(askedFor ?? {}, result.job)) {
+        for (const pick of groupRowPicks(askedFor, result.job)) {
           for (const folder of createdGroup.members) {
             const saved = ctx.queue.setPendingModel(createdGroup.project, folder, pick.part, pick.model, pick.provider);
             if (!saved.ok) logRefusal("model", `${createdGroup.project}/${folder}`, saved.error);
@@ -355,10 +349,9 @@ export async function handleJobActionRoutes(
       // `parseJobRequest` already requires, so this adds no trust
       // surface. It is never rendered as text either: the page only
       // compares it against a row's own key.
-      const asked = raw as Record<string, unknown> | null;
       const spec =
-        typeof asked?.project === "string" && typeof asked?.specFolder === "string"
-          ? `${asked.project}/${asked.specFolder}`
+        typeof askedFor.project === "string" && typeof askedFor.specFolder === "string"
+          ? `${askedFor.project}/${askedFor.specFolder}`
           : undefined;
       logRefusal("run", spec, result.error);
       // `spec` for the same reason merge's answer carries it: the page
@@ -416,14 +409,9 @@ export async function handleJobActionRoutes(
     const [, id] = tailEdit;
     const job = ctx.queue.get(id!);
     if (!job) return json({ error: "no such job" }, 404);
-    const sent = await readBounded(req);
+    const sent = await readObjectBody(req);
     if ("refusal" in sent) return sent.refusal;
-    let body: Record<string, unknown> = {};
-    try {
-      if (sent.text) body = bodyToObject(sent.text, req.headers.get("content-type")) as Record<string, unknown>;
-    } catch {
-      return json({ error: "malformed body" }, 400);
-    }
+    const body = sent.body;
     const step = typeof body.step === "string" ? body.step : "";
     // A form sends the tick as text, an API caller as a boolean. Both
     // say the same thing, and the box's own state is what they say:
@@ -450,14 +438,9 @@ export async function handleJobActionRoutes(
     const [, id] = tailModelEdit;
     const job = ctx.queue.get(id!);
     if (!job) return json({ error: "no such job" }, 404);
-    const sent = await readBounded(req);
+    const sent = await readObjectBody(req);
     if ("refusal" in sent) return sent.refusal;
-    let body: Record<string, unknown> = {};
-    try {
-      if (sent.text) body = bodyToObject(sent.text, req.headers.get("content-type")) as Record<string, unknown>;
-    } catch {
-      return json({ error: "malformed body" }, 400);
-    }
+    const body = sent.body;
     const step = typeof body.step === "string" ? body.step : "";
     const model = typeof body.model === "string" ? body.model : "";
     const spec = `${job.project}/${job.specFolder}`;

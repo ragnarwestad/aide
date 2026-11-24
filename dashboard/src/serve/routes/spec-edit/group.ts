@@ -7,7 +7,7 @@ import { DESCRIPTION_FILE, groupBranch } from "../../../project/spec-names.ts";
 import { canEditExecutionGroup, canRemoveExecutionGroup } from "../../../queue/execution-groups/actions.ts";
 import { inFlight } from "../../../queue/job-rules/activity.ts";
 import { lockedGroupMembers, validateExecutionGroupEdit, validateExecutionGroupRequest } from "../../../queue/execution-groups";
-import { bodyToObject, editMessage, json, readBounded } from "../../serve-helpers";
+import { editMessage, json, readObjectBody } from "../../serve-helpers";
 import { executionGroupForAction } from "./execution-group-action.ts";
 import { continueOnceSpecsScanned } from "./group-continue.ts";
 import type { RoutesContext } from "..";
@@ -65,11 +65,9 @@ export async function handleSpecGroupRoute(ctx: RoutesContext, req: Request, pat
   }
   if (path !== "/api/queue/groups") return null;
   if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
-  const sent = await readBounded(req);
+  const sent = await readObjectBody(req);
   if ("refusal" in sent) return sent.refusal;
-  let body: Record<string, unknown>;
-  try { body = bodyToObject(sent.text, req.headers.get("content-type")) as Record<string, unknown>; }
-  catch { return json({ error: "malformed body" }, 400); }
+  const body = sent.body;
   const project = String(body.project ?? "");
   const name = String(body.name ?? "").trim();
   if (!project || !name) return json({ error: "project and name are required" }, 400);
@@ -78,11 +76,9 @@ export async function handleSpecGroupRoute(ctx: RoutesContext, req: Request, pat
 }
 
 export async function editGroup(ctx: RoutesContext, req: Request, rawId: string): Promise<Response> {
-  const sent = await readBounded(req);
+  const sent = await readObjectBody(req);
   if ("refusal" in sent) return sent.refusal;
-  let body: Record<string, unknown>;
-  try { body = bodyToObject(sent.text, req.headers.get("content-type")) as Record<string, unknown>; }
-  catch { return json({ error: "malformed body" }, 400); }
+  const body = sent.body;
   let id: string;
   try { id = decodeURIComponent(rawId); } catch { return json({ error: "invalid group" }, 400); }
   const name = String(body.name ?? "").trim();

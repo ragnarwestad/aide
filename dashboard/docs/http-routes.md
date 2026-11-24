@@ -54,7 +54,9 @@ whatever `Accept` says: `{ ok: true, … }`, or `{ error }` with 400 (409 for a 
 refused while a job of the spec is running or merge; tracking is refused while one is queued, running or merge;
 404 for an unknown job). The page script reads that answer and
 writes a refusal into the page; no answer carries a message in an address. A body over the cap gets 413
-`{ error: "payload too large" }`, whatever the route. The wrong method on a known path gets 405
+`{ error: "payload too large" }`, whatever the route. A body a route reads fields from must be a JSON object or a
+form: an empty body reads as no fields, a syntax error answers 400 `malformed body`, and `null`, a list or a single
+value answers 400 `the request body is not an object` before the route changes anything. The wrong method on a known path gets 405
 `method not allowed`, and an unknown project or spec gets a plain-text 404 before the route
 reads anything. A project that was added, changed or removed answers 400 when any step of that change
 failed, rather than 200 with `ok: false`. Two presses are navigations and answer a page:

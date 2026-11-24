@@ -10,7 +10,7 @@ import { getErrorMessage } from "../../../messages/shared/written.ts";
 import { DESCRIPTION_MAX, descriptionPart } from "../../../project/description-bound.ts";
 import { criteriaChecksIn, dependsOnIn, specFileText, withDependsOnLine } from "../../../project/discover";
 import { EDITABLE_SPEC_FILE, FILE_TABS, STATUS_SPEC_FILE, documentTabScript, listViewIn, renderSpecDetail, renderSpecGroupRows, renderSpecPageFailedRest, renderSpecsPageHead, renderSpecsPageRest, resolveSpecTab, specTabPath } from "../../../render";
-import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, SPEC_EDITOR_ASSET_PATH, SPEC_VIEWER_ASSET_PATH, bodyToObject, editMessage, json, logRefusal, readBounded, streamedPage } from "../../serve-helpers";
+import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, SPEC_EDITOR_ASSET_PATH, SPEC_VIEWER_ASSET_PATH, editMessage, json, logRefusal, readObjectBody, streamedPage } from "../../serve-helpers";
 import { listHeaders, oneRowKey, specsListParts, specsRowsAnswer } from "../page-routes/specs-list-view.ts";
 
 import type { Language } from "../../../i18n";
@@ -217,14 +217,9 @@ export async function specPageRoutes(
       logRefusal("save", `${project}/${specFolder}`, ARCHIVED_REFUSAL);
       return json({ error: ARCHIVED_REFUSAL }, 400);
     }
-    const sent = await readBounded(req, MAX_SAVE_BODY);
+    const sent = await readObjectBody(req, { cap: MAX_SAVE_BODY });
     if ("refusal" in sent) return sent.refusal;
-    let body: Record<string, unknown> = {};
-    try {
-      if (sent.text) body = bodyToObject(sent.text, req.headers.get("content-type")) as Record<string, unknown>;
-    } catch {
-      return json({ error: "malformed body" }, 400);
-    }
+    const body = sent.body;
     // The file comes in with the request now; a request that
     // predates this field (only Description's own form ever posted
     // here) defaults to it, so nothing already posting to `/save`

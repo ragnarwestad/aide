@@ -8,7 +8,7 @@ import { listedModelName } from "../../../queue/model-name.ts";
 import { providerKeyFrom, providerModelError } from "../../../queue/providers/parse.ts";
 import { PICK_PARTS } from "../../../queue/providers/side-tools.ts";
 import { SETTINGS_STEPS } from "../../../render";
-import { bodyToObject, json, readBounded } from "../../serve-helpers";
+import { json, readObjectBody } from "../../serve-helpers";
 import type { RoutesContext } from "../index.ts";
 import { saveQueueSettings } from "./index.ts";
 
@@ -26,15 +26,12 @@ export async function handleProjectModelsRoute(ctx: RoutesContext, req: Request,
   if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
   const refuse = (error: string) => json({ error }, 400);
   const name = decodeURIComponent(match[1]!);
-  const body = await readBounded(req);
-  if ("refusal" in body) return body.refusal;
-  let raw: unknown;
-  try { raw = bodyToObject(body.text, req.headers.get("content-type")); }
-  catch { return refuse("malformed body"); }
+  const sent = await readObjectBody(req);
+  if ("refusal" in sent) return sent.refusal;
   if (!ctx.opts.queueConfigFile) return refuse("this server has no queue config file");
   if (!ctx.allowed.has(name)) return refuse(`unknown project: ${name}`);
 
-  const asked = (raw ?? {}) as Record<string, unknown>;
+  const asked = sent.body;
   const models = table(asked.model);
   const providers = table(asked.provider);
   if (!models) return refuse("model choices are malformed");

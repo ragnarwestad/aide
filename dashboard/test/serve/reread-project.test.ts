@@ -44,7 +44,6 @@ function context() {
   const branchFiles = new BranchFileStepsChecker({ run, ttlMs: WINDOW_MS });
   let told = 0;
   let scansDropped = 0;
-  let warming = false;
   const ctx: ScheduleContext = {
     projectRoot: undefined,
     machineryProjectDir: (p) => `/code/${p}`,
@@ -63,10 +62,6 @@ function context() {
     },
     allowed: new Set(),
     ensureCheckout: async () => undefined,
-    getWarming: () => warming,
-    setWarming: (v) => {
-      warming = v;
-    },
     queue: {} as unknown as QueueStore,
     specRoots: () => [],
     readRunner: () => null,

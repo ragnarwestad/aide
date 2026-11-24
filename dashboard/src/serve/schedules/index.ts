@@ -48,10 +48,10 @@ export { readSpecProgress, specProgressOf, type SpecProgress, type SpecProgressC
 /** Everything the schedules read off `createServer`'s closure, bundled
  *  the same way the earlier extractions' contexts are. `readScan` is
  *  the narrow slice of `scan` this file actually reads — never the
- *  whole shape — and `getWarming`/`setWarming` stand in for the
- *  `warming` `let`: a module-level flag here would be shared across
- *  every `createServer()` instance in one process, which `bun test`
- *  runs many of.
+ *  whole shape. State a schedule keeps between calls lives on this
+ *  context, never at module level: a module-level flag would be shared
+ *  across every `createServer()` instance in one process, which
+ *  `bun test` runs many of.
  *
  *  `readWorkflowHistory`/`readFreshness`/`readSpecCreatedAt`/
  *  `readSpecFileCommits`/`readRunner` are getters rather than values
@@ -82,8 +82,6 @@ export interface ScheduleContext {
   allowed: Set<string>;
   scheduleStore: ScheduleStore;
   ensureCheckout: (project: string) => Promise<DashboardCheckout | undefined>;
-  getWarming: () => boolean;
-  setWarming: (v: boolean) => void;
   queue: QueueStore;
   specRoots: (project: string) => string[];
   readRunner: () => Runner | null;
@@ -94,6 +92,9 @@ export interface ScheduleContext {
    *  and holding the fire window and reason last logged. Created on first
    *  use by `refreshSchedules`. */
   refusedFires?: Map<string, string>;
+  /** The spec-cache refresh running now, if any. Set and cleared by
+   *  `refreshSpecCaches` alone. */
+  specCacheRefresh?: Promise<void>;
   /** Checks again whether the tools waiting jobs will run on are usable. */
   recheckTools?: (tools: CheckableTool[]) => Promise<void>;
   checkoutEnsurer: CheckoutEnsurer;
@@ -247,92 +248,117 @@ export function forgetSpec(ctx: ScheduleContext, dir: string, specFolder: string
  *  A spec that leaves `targets()` — archived, or removed — simply
  *  stops being walked; its last cached answer is left where it is
  *  and nothing asks about it again. */
-export async function refreshSpecCaches(ctx: ScheduleContext): Promise<void> {
+export function refreshSpecCaches(ctx: ScheduleContext): Promise<void> {
   // The tick does strictly more work than `refreshDrift`, so the
   // single-flight guard is explicit rather than implied: two ticks
   // running at once would double the in-flight subprocess and network
-  // count on a machine that also runs the jobs.
-  if (ctx.getWarming()) return;
-  ctx.setWarming(true);
-  try {
-    // Until the first sweep has read the specs, the board's own checkouts are
-    // asked for first: the list names each spec by the path it is read from,
-    // and a project without its checkout is listed from another root.
-    const firstSweep = !!ctx.markSpecsScanned && !ctx.specsScanned?.();
-    if (firstSweep) {
-      await Promise.all([...ctx.allowed].map((project) => ctx.ensureCheckout(project)));
-      ctx.invalidateScan();
-    }
-    const live = ctx.targets();
-    const scan = ctx.readScan();
-    const archivedKeys = scan?.archived ?? [];
-    const roots = new Set<string>();
-    // A live spec's code checkout too: the specs list offers a test server only for a branch origin holds there.
-    for (const t of live) for (const root of ctx.specRoots(t.project)) roots.add(root);
-    // Every archived dir. There is no write-time stamp
-    // for Created to short-circuit against, so this is the whole archive
-    // on the first sweep that reaches it. `createdAtForArchived`'s
-    // own long-lived cache (a day, once resolved) is what keeps that
-    // bounded on every sweep after.
-    const createdAtTargets: { dir: string; folder: string }[] = [];
-    for (const key of archivedKeys) {
-      const cut = key.indexOf("/");
-      for (const root of ctx.specRoots(key.slice(0, cut))) roots.add(root);
-      const dir = scan?.dirs.get(key);
-      if (!dir) continue;
-      createdAtTargets.push({ dir, folder: key.slice(cut + 1) });
-    }
-    // Before the sweep, so a change made DURING it is compared against
-    // what a reader's last page load actually saw — the same reason
-    // `scheduleNotify` (`sse-watchers.ts`) invalidates before it
-    // notifies.
-    const before = new Map([...roots].map((root) => [root, ctx.branchStatus.peekOpenSpecBranches(root).open]));
-    await Promise.all([
-      // Each call try/catches internally and degrades to null or to
-      // nothing-known, so one unreachable origin never takes the
-      // others with it.
-      ...[...roots].map((root) => ctx.branchStatus.openSpecBranches(root)),
-      ...createdAtTargets.map((t) => ctx.readSpecCreatedAt().createdAtForArchived(t.dir, t.folder)),
-      ...live.map((t) => warmSpec(ctx, t)),
-      // And the checkout the LIST is read from. Every other
-      // caller of `ensureCheckout` is a project that has something
-      // going on — a job queued (`tickRunner`), a spec page
-      // open, a Save. A project with none of that had its checkout
-      // fetched once at boot and never again, so a spec pushed from
-      // another machine would have sat unlisted for as long as the
-      // server ran rather than until the next poll.
-      //
-      // Here rather than in the routes, for the same reason as
-      // everything else in this function: a render reads what the
-      // schedule last found, and never waits on git itself.
-      // `ensureCheckout` deduplicates per project and fails open, so a
-      // project whose origin is unreachable costs one complaint, once.
-      ...[...ctx.allowed].map((project) => ctx.ensureCheckout(project)),
-    ]);
-    if (firstSweep) {
-      // "Read" is asked: each read above catches its own error. A list that
-      // changed meanwhile leaves the mark to the next sweep.
-      ctx.invalidateScan();
-      const read = new Set(live.map((t) => t.dir));
-      const history = ctx.readWorkflowHistory();
-      if (ctx.targets().every((t) =>
-        !t.dir || (read.has(t.dir) && history.readSucceeded(t.dir, t.specFolder, t.reopenedAfter)))) {
-        ctx.markSpecsScanned!();
-      }
-    }
-    const gitMoved = await refreshMergedAnswers(ctx, archivedKeys);
-    const mergedMoved = (await refreshPullRequestAnswers(ctx, archivedKeys)) || gitMoved;
-    // Only a root whose answer MOVED tells anyone, and only
-    // once per tick, however many roots moved — a tick that finds
-    // nothing new stays silent, exactly as it does
-    // for every other reason a page might redraw.
-    const moved = [...roots].some(
-      (root) => !sameOpenSet(before.get(root) ?? null, ctx.branchStatus.peekOpenSpecBranches(root).open),
-    );
-    if (moved || mergedMoved) ctx.notifyQueueChanged();
-  } finally {
-    ctx.setWarming(false);
+  // count on a machine that also runs the jobs. The slot is set before
+  // anything else can run, and cleared before the stored promise
+  // settles, so a waiter woken by it finds the slot empty.
+  if (ctx.specCacheRefresh) return Promise.resolve();
+  const run = sweepSpecCaches(ctx).finally(() => {
+    ctx.specCacheRefresh = undefined;
+  });
+  ctx.specCacheRefresh = run;
+  return run;
+}
+
+/** A read of the spec caches that reflects what is on disk now — for a
+ *  test that has just written a spec's files and wants the page to agree
+ *  with them.
+ *
+ *  A row joins what git says about a spec with what the spec's own files
+ *  claim, and the two are refreshed by different clocks: the git side by
+ *  `refreshSpecCaches` on its own timer, the file side by a disk scan the
+ *  specs-root watcher drops 300 ms after a change. A caller that writes and
+ *  asks immediately can land between the two and read one side stale.
+ *
+ *  Waiting for the running refresh is not decoration: `refreshSpecCaches`
+ *  returns at once while one is in flight, so calling it blind would settle
+ *  nothing. Nothing awaits between the loop ending and the call, so no
+ *  timer tick can start in between. */
+export async function settleSpecCaches(ctx: ScheduleContext): Promise<void> {
+  while (ctx.specCacheRefresh) await ctx.specCacheRefresh.catch(() => {});
+  ctx.invalidateScan();
+  await refreshSpecCaches(ctx);
+}
+
+async function sweepSpecCaches(ctx: ScheduleContext): Promise<void> {
+  // Until the first sweep has read the specs, the board's own checkouts are
+  // asked for first: the list names each spec by the path it is read from,
+  // and a project without its checkout is listed from another root.
+  const firstSweep = !!ctx.markSpecsScanned && !ctx.specsScanned?.();
+  if (firstSweep) {
+    await Promise.all([...ctx.allowed].map((project) => ctx.ensureCheckout(project)));
+    ctx.invalidateScan();
   }
+  const live = ctx.targets();
+  const scan = ctx.readScan();
+  const archivedKeys = scan?.archived ?? [];
+  const roots = new Set<string>();
+  // A live spec's code checkout too: the specs list offers a test server only for a branch origin holds there.
+  for (const t of live) for (const root of ctx.specRoots(t.project)) roots.add(root);
+  // Every archived dir. There is no write-time stamp
+  // for Created to short-circuit against, so this is the whole archive
+  // on the first sweep that reaches it. `createdAtForArchived`'s
+  // own long-lived cache (a day, once resolved) is what keeps that
+  // bounded on every sweep after.
+  const createdAtTargets: { dir: string; folder: string }[] = [];
+  for (const key of archivedKeys) {
+    const cut = key.indexOf("/");
+    for (const root of ctx.specRoots(key.slice(0, cut))) roots.add(root);
+    const dir = scan?.dirs.get(key);
+    if (!dir) continue;
+    createdAtTargets.push({ dir, folder: key.slice(cut + 1) });
+  }
+  // Before the sweep, so a change made DURING it is compared against
+  // what a reader's last page load actually saw — the same reason
+  // `scheduleNotify` (`sse-watchers.ts`) invalidates before it
+  // notifies.
+  const before = new Map([...roots].map((root) => [root, ctx.branchStatus.peekOpenSpecBranches(root).open]));
+  await Promise.all([
+    // Each call try/catches internally and degrades to null or to
+    // nothing-known, so one unreachable origin never takes the
+    // others with it.
+    ...[...roots].map((root) => ctx.branchStatus.openSpecBranches(root)),
+    ...createdAtTargets.map((t) => ctx.readSpecCreatedAt().createdAtForArchived(t.dir, t.folder)),
+    ...live.map((t) => warmSpec(ctx, t)),
+    // And the checkout the LIST is read from. Every other
+    // caller of `ensureCheckout` is a project that has something
+    // going on — a job queued (`tickRunner`), a spec page
+    // open, a Save. A project with none of that had its checkout
+    // fetched once at boot and never again, so a spec pushed from
+    // another machine would have sat unlisted for as long as the
+    // server ran rather than until the next poll.
+    //
+    // Here rather than in the routes, for the same reason as
+    // everything else in this function: a render reads what the
+    // schedule last found, and never waits on git itself.
+    // `ensureCheckout` deduplicates per project and fails open, so a
+    // project whose origin is unreachable costs one complaint, once.
+    ...[...ctx.allowed].map((project) => ctx.ensureCheckout(project)),
+  ]);
+  if (firstSweep) {
+    // "Read" is asked: each read above catches its own error. A list that
+    // changed meanwhile leaves the mark to the next sweep.
+    ctx.invalidateScan();
+    const read = new Set(live.map((t) => t.dir));
+    const history = ctx.readWorkflowHistory();
+    if (ctx.targets().every((t) =>
+      !t.dir || (read.has(t.dir) && history.readSucceeded(t.dir, t.specFolder, t.reopenedAfter)))) {
+      ctx.markSpecsScanned!();
+    }
+  }
+  const gitMoved = await refreshMergedAnswers(ctx, archivedKeys);
+  const mergedMoved = (await refreshPullRequestAnswers(ctx, archivedKeys)) || gitMoved;
+  // Only a root whose answer MOVED tells anyone, and only
+  // once per tick, however many roots moved — a tick that finds
+  // nothing new stays silent, exactly as it does
+  // for every other reason a page might redraw.
+  const moved = [...roots].some(
+    (root) => !sameOpenSet(before.get(root) ?? null, ctx.branchStatus.peekOpenSpecBranches(root).open),
+  );
+  if (moved || mergedMoved) ctx.notifyQueueChanged();
 }
 
 /** Whether each archived spec whose branch a root still holds is merged

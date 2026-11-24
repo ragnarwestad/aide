@@ -96,3 +96,26 @@ describe("POST /api/push/unsubscribe", () => {
     expect((await post(s.base, "/api/push/unsubscribe", {})).status).toBe(400);
   });
 });
+
+describe("a push body that is not an object, or too large", () => {
+  test.each([["/api/push/subscribe"], ["/api/push/unsubscribe"]])(
+    "%s answers the reader's 400 to null and [] and stores nothing (AC-1)",
+    async (path) => {
+      const s = served();
+      for (const text of ["null", "[]"]) {
+        const res = await post(s.base, path, text);
+        expect(res.status).toBe(400);
+        expect(((await res.json()) as { error: string }).error).toBe("the request body is not an object");
+      }
+      expect(existsSync(s.subscriptionsPath)).toBe(false);
+    },
+  );
+
+  test("a body over 8 KiB answers 413 and stores nothing (AC-3)", async () => {
+    const s = served();
+    const body = await subscribeBody();
+    const res = await post(s.base, "/api/push/subscribe", { ...body, pad: "x".repeat(8 * 1024) });
+    expect(res.status).toBe(413);
+    expect(existsSync(s.subscriptionsPath)).toBe(false);
+  });
+});

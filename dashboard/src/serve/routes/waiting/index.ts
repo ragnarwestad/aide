@@ -1,4 +1,4 @@
-import { MAX_SAVE_BODY, bodyToObject, json, readBounded, languageChoice } from "../../serve-helpers";
+import { MAX_SAVE_BODY, json, readObjectBody, languageChoice } from "../../serve-helpers";
 import type { RoutesContext } from "../index.ts";
 import type { Credential } from "../../../queue/waiting";
 import { queueEditor } from "../../../render/ui/components/queue-editor";
@@ -9,13 +9,9 @@ export async function handleWaitingRoutes(ctx: RoutesContext, req: Request, path
   if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
   // A save names every waiting job twice, by ids that carry the spec's
   // full folder name, so a long queue is larger than an action post.
-  const body = await readBounded(req, MAX_SAVE_BODY);
-  if ("refusal" in body) return body.refusal;
-  let raw: Record<string, unknown>;
-  try {
-    raw = bodyToObject(body.text, req.headers.get("content-type")) as Record<string, unknown>;
-    if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw new Error();
-  } catch { return json({ error: "Malformed queue request" }, 400); }
+  const sent = await readObjectBody(req, { cap: MAX_SAVE_BODY });
+  if ("refusal" in sent) return sent.refusal;
+  const raw = sent.body;
   try {
     const q = ctx.queue.waiting;
     if (match[1] === "open") {

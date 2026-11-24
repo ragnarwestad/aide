@@ -3,7 +3,7 @@
 // in, or committed to, the project's repository. A refusal changes nothing.
 
 import { hiddenOf, isHidden, setHidden } from "../../../project/project-admin/hidden.ts";
-import { bodyToObject } from "../../serve-helpers/http.ts";
+import { readObjectBody } from "../../serve-helpers/http.ts";
 import { checkoutBase } from "./project-icon-choice.ts";
 import type { RoutesContext } from "..";
 
@@ -14,11 +14,8 @@ export const hiddenProjects = (ctx: RoutesContext): Set<string> => hiddenOf(chec
 export const projectHidden = (ctx: RoutesContext, name: string): boolean => isHidden(checkoutBase(ctx), name);
 
 async function hiddenValue(req: Request): Promise<unknown> {
-  try {
-    return (bodyToObject(await req.text(), "application/x-www-form-urlencoded") as Record<string, unknown> | null)?.hidden;
-  } catch {
-    return undefined;
-  }
+  const sent = await readObjectBody(req, { cap: Number.POSITIVE_INFINITY, form: true });
+  return "refusal" in sent ? undefined : sent.body.hidden;
 }
 
 export async function projectHideRoute(ctx: RoutesContext, req: Request, path: string): Promise<Response | null> {

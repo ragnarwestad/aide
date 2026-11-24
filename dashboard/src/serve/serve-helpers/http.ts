@@ -280,14 +280,30 @@ export function bodyToObject(text: string, contentType: string | null): unknown 
   return JSON.parse(text) as unknown;
 }
 
-export async function parseBody(req: Request): Promise<Record<string, unknown> | Response> {
-  const body = await readBounded(req);
-  if ("refusal" in body) return body.refusal;
+/** The one reader for a route that expects an object in its body, by
+ *  the same rule for every such route: over `cap` is a 413, an empty body
+ *  is no fields, a syntax error is a 400, and anything that parses to
+ *  something other than a plain object is a 400 too — answered before
+ *  the route reads a field or changes anything. `form` reads the body
+ *  as a form whatever its content type says. */
+export async function readObjectBody(
+  req: Request,
+  { cap = MAX_BODY, form = false }: { cap?: number; form?: boolean } = {},
+): Promise<{ body: Record<string, unknown> } | { refusal: Response }> {
+  const sent = await readBounded(req, cap);
+  if ("refusal" in sent) return sent;
+  if (!sent.text) return { body: {} };
+  const type = form ? "application/x-www-form-urlencoded" : req.headers.get("content-type");
+  let raw: unknown;
   try {
-    return (bodyToObject(body.text, req.headers.get("content-type")) ?? {}) as Record<string, unknown>;
+    raw = bodyToObject(sent.text, type);
   } catch {
-    return json({ error: "malformed body" }, 400);
+    return { refusal: json({ error: "malformed body" }, 400) };
   }
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+    return { refusal: json({ error: "the request body is not an object" }, 400) };
+  }
+  return { body: raw as Record<string, unknown> };
 }
 
 export const trimmedText = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
