@@ -276,7 +276,7 @@ In Tracking info, on every run, write `- **Grade:** LOW` (or `MEDIUM`,
 as `references/spec-files.md` gives it — and the rest of this step does not
 apply to it. A full analysis writes everything
 `references/implementation-plan.md` gives: Scope, Approaches, Behavior
-delta, Parts, Risk analysis, Acceptance criteria, the test command, Where
+delta, Decisions costly to change, Parts, Risk analysis, Acceptance criteria, the test command, Where
 the tests sit and the TDD tasks. Read it before writing a full
 `3-solution.md`.
 

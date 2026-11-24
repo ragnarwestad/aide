@@ -6,6 +6,7 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { basename, join } from "node:path";
+import { tsFilesUnder } from "./source-files.ts";
 
 /** Every file under `dir`, whatever its extension — `tsFilesUnder` below
  *  sees only `.ts`, and what this guard looks for is the file nobody
@@ -19,14 +20,6 @@ function allFilesUnder(dir: string): string[] {
 
 function filesUnder(dir: string, suffix: string): string[] {
   return allFilesUnder(dir).filter((file) => file.endsWith(suffix));
-}
-
-function tsFilesUnder(dir: string): string[] {
-  return readdirSync(dir).flatMap((name) => {
-    const full = join(dir, name);
-    if (statSync(full).isDirectory()) return tsFilesUnder(full);
-    return name.endsWith(".ts") ? [full] : [];
-  });
 }
 
 function lineCount(file: string): number {

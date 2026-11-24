@@ -284,6 +284,34 @@ that has its own name, not an arbitrary half.
   `dashboard/AGENTS.md`, "Code health", has what is particular to the
   dashboard.
 
+**Inside a file, three more checks, for source and test files alike:**
+
+- **Function length: at most 60 lines,** header to last line. Past a
+  screenful a function nearly always does more than one job.
+- **Nesting depth: at most 4 control blocks** (`if`, `for`, `while`,
+  `try`, `with`, `case`/`switch`, `match`) inside one function; `elif`,
+  `else` and `catch` sit at their `if`'s or `try`'s level. A fifth level
+  means a reader holds five conditions at once, and an early return or a
+  helper always brings it back.
+- **Repeated block: no 8 consecutive lines repeated,** in the same file or
+  another of the same language. Below 8, repeats are mostly idiom
+  (imports, argument parsing, guard lines); at 8 what repeats is a copied
+  block. Blank lines, comments and lines that only close a block do not
+  count.
+
+A function or file already over a threshold is held in a `held.json` at
+the level measured, and fails only when it gets worse; better or equal
+passes, so lower or remove its entry when you improve it. A repeated
+block counts in every file it appears in, so a new copy fails both the
+file it came from and the one it went to: move it into one shared
+helper. Anything over a threshold with no entry fails.
+
+- `core/tests/specs/unit/core/validation/code_health/` checks Python and
+  bash: everything outside `dashboard/` and the bash scripts inside it.
+- `dashboard/test/design/complexity/` checks the dashboard's TypeScript,
+  under `src/` and `test/`. A `describe(` callback only groups tests, so
+  its own length is not measured.
+
 ## Adding new functionality
 
 Adding a skill, updating a shared rule, or changing the spec structure

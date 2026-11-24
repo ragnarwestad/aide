@@ -43,6 +43,18 @@ def test_analyze_plan_and_review_share_the_parts_lines():
         assert form in review, f"the plan review does not check {form!r}"
 
 
+@pytest.mark.validation
+def test_analyze_plan_and_review_share_the_costly_decisions_lines_AC_4():
+    """The plan step writes the decisions subsection the plan review
+    checks, in the same heading and line forms."""
+    analyze = CORE_STEPS_DIR / "aide-analyze"
+    skill = (analyze / "references" / "implementation-plan.md").read_text(encoding="utf-8")
+    review = (analyze / "references" / "plan-review.md").read_text(encoding="utf-8")
+    for form in ("### Decisions costly to change", "costly to change:", "cheap to change:", "None —"):
+        assert form in skill, f"the plan step does not write {form!r}"
+        assert form in review, f"the plan review does not check {form!r}"
+
+
 def ears_patterns(path):
     """Read whole pattern spans with whitespace collapsed and case preserved."""
     text = path.read_text(encoding="utf-8")

@@ -1,0 +1,91 @@
+{
+  "functions": {
+    "core/scripts/_aide-spec-lib.sh::aide_write_placeholder_files": {
+      "lines": 178
+    },
+    "core/scripts/lib/create-spec/create.sh::aide_create_spec_create": {
+      "lines": 229
+    },
+    "core/scripts/lib/run-spec/publish/publish.sh::commit_and_push_roots": {
+      "lines": 177,
+      "depth": 5
+    },
+    "core/scripts/lib/run-spec/publish/publish.sh::push_with_retry": {
+      "lines": 78
+    },
+    "core/scripts/lib/run-spec/record/records.sh::completed_steps_for": {
+      "lines": 116
+    },
+    "core/scripts/lib/run-spec/turn/model-turn/index.sh::run_model_turn": {
+      "lines": 472
+    },
+    "core/scripts/lib/run-spec/turn/spec-paths.sh::repoint_specs_path": {
+      "lines": 68
+    },
+    "core/scripts/lib/spec-transitions.sh::rebuild_acceptance_rows": {
+      "lines": 70
+    },
+    "core/tests/specs/unit/core/scripts/run_spec/checkout/test_aide_run_spec_locks.py::test_a_run_killed_with_sigterm_while_holding_the_lock_releases_it": {
+      "lines": 81
+    },
+    "core/tests/specs/unit/core/scripts/run_spec/checkout/test_aide_run_spec_locks.py::test_two_runs_against_the_same_project_for_different_specs_do_not_race": {
+      "lines": 147
+    },
+    "core/tests/specs/unit/core/scripts/run_spec/checkout/test_aide_run_spec_locks.py::test_two_runs_on_the_same_repos_do_not_see_each_other": {
+      "lines": 74
+    },
+    "core/tests/specs/unit/core/scripts/run_spec/run_spec_invoking.py::_standalone_runner_copy": {
+      "lines": 72
+    },
+    "core/tests/specs/unit/core/validation/rules/test_core_skills.py::decode_scalar": {
+      "depth": 5
+    },
+    "core/tests/specs/unit/core/validation/rules/test_core_skills.py::resource_candidates": {
+      "lines": 61
+    },
+    "core/tests/specs/unit/core/validation/test_no_spec_names_in_code.py::scan_script": {
+      "lines": 100,
+      "depth": 5
+    }
+  },
+  "duplicates": {
+    "core/implementations/claude-code/uninstall.sh": 2,
+    "core/implementations/codex/uninstall.sh": 2,
+    "core/scripts/aide-archive-spec": 17,
+    "core/scripts/aide-close-spec": 17,
+    "core/scripts/aide-create-spec": 1,
+    "core/scripts/aide-generate-html": 13,
+    "core/scripts/aide-generate-pdf": 13,
+    "core/scripts/aide-install-spec-hook": 2,
+    "core/scripts/aide-pull-specs": 2,
+    "core/scripts/aide-reopen-spec": 5,
+    "core/scripts/aide-reset-spec": 5,
+    "core/scripts/aide-write-spec": 4,
+    "core/tests/specs/unit/core/scripts/conftest.py": 4,
+    "core/tests/specs/unit/core/scripts/run_spec/checkout/test_aide_run_spec_branches.py": 23,
+    "core/tests/specs/unit/core/scripts/run_spec/checkout/test_aide_run_spec_links.py": 2,
+    "core/tests/specs/unit/core/scripts/run_spec/checkout/test_aide_run_spec_locks.py": 4,
+    "core/tests/specs/unit/core/scripts/run_spec/checkout/test_aide_run_spec_time_limit_and_cancel.py": 35,
+    "core/tests/specs/unit/core/scripts/run_spec/checkout/test_aide_run_spec_worktrees.py": 4,
+    "core/tests/specs/unit/core/scripts/run_spec/record/test_aide_run_spec_claims.py": 6,
+    "core/tests/specs/unit/core/scripts/run_spec/record/test_aide_run_spec_no_progress.py": 1,
+    "core/tests/specs/unit/core/scripts/run_spec/record/test_aide_run_spec_phase_record.py": 10,
+    "core/tests/specs/unit/core/scripts/run_spec/record/test_aide_run_spec_records.py": 1,
+    "core/tests/specs/unit/core/scripts/run_spec/record/test_aide_run_spec_scope.py": 10,
+    "core/tests/specs/unit/core/scripts/run_spec/run_spec_fakes.py": 9,
+    "core/tests/specs/unit/core/scripts/run_spec/run_spec_status_files.py": 3,
+    "core/tests/specs/unit/core/scripts/run_spec/setup/test_aide_run_spec_dependencies.py": 2,
+    "core/tests/specs/unit/core/scripts/run_spec/setup/test_aide_run_spec_tools.py": 2,
+    "core/tests/specs/unit/core/scripts/spec/test_aide_archive_spec.py": 37,
+    "core/tests/specs/unit/core/scripts/spec/test_aide_close_spec.py": 37,
+    "core/tests/specs/unit/core/scripts/test_aide_ac_prefix.py": 9,
+    "core/tests/specs/unit/core/scripts/test_aide_record_test_run.py": 2,
+    "core/tests/specs/unit/core/scripts/test_aide_resolve_test_cmd.py": 9,
+    "core/tests/specs/unit/core/validation/installer/test_core_scripts.py": 2,
+    "core/tests/specs/unit/core/validation/installer/test_declared_tools.py": 6,
+    "core/tests/specs/unit/core/validation/installer/test_generated_files.py": 4,
+    "core/tests/specs/unit/implementations/codex/test_install_skills.py": 2,
+    "core/tests/specs/unit/implementations/copilot/test_install_skills.py": 2,
+    "core/tests/specs/unit/validation/news/test_watch_pages.py": 2
+  }
+}

@@ -111,6 +111,17 @@ questions, with file:line references into the spec:
    id from 1-description.md (when present) appear in at least one
    acceptance criterion? A missing id is a must-fix.
 
+   **The decisions costly to change**, at every level: check the
+   `### Decisions costly to change` subsection under Recommended
+   solution against what the plan decides. Each of these is a must-fix,
+   given with the file:line that shows it: no such subsection; a
+   decision of a costly kind (a data or file format, a public command or
+   its flags, an HTTP route, the layout of stored state, a name other
+   code or other specs read) written `cheap to change:`, or not written
+   at all; a `costly to change:` line without the alternatives it
+   weighed or the reason for its choice; a `None —` line on a plan that
+   does make such a decision.
+
    **The approach marks**, when the spec asks to choose the approach:
    every approach lead ends `(recommended)`, `(real alternative)` or
    `(considered and rejected)`, and exactly one is `(recommended)`. A

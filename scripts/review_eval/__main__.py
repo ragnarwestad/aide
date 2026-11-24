@@ -54,34 +54,26 @@ HERE = Path(__file__).resolve().parent
 SCRIPTS = HERE.parents[1] / "core" / "scripts"
 HEADLESS = ("(This run is headless: no one is at a keyboard and no question can be answered. Never stop to ask for "
             "confirmation — decide, or write down what you would have asked, and finish.)")
+ANSWER_AND_FINDINGS = """{{"1": "<id>", "2": "new"}}
+
+<known>
+{known}
+</known>
+
+<new>
+{new}
+</new>
+"""
 MATCH_PROMPT = """A code review of one commit reported the findings under <new>. The findings under <known> were reported
 on the same commit earlier, each with an id. For each new finding, say which known finding describes the same defect:
 the same wrong behaviour, even when the wording, the line or the example differs. A new finding that describes no
 known one is "new". Answer with one JSON object and nothing else, mapping each new finding's number to an id or "new":
-{{"1": "<id>", "2": "new"}}
-
-<known>
-{known}
-</known>
-
-<new>
-{new}
-</new>
-"""
+""" + ANSWER_AND_FINDINGS
 PLANTED_MATCH_PROMPT = """A code review of one commit reported the findings under <new>. The commit is known to have the defect
 under <known>, with its id. For each new finding, say whether it describes that defect: the same wrong behaviour, even
 when the wording, the line or the example differs. A new finding that does not is "new". Answer with one JSON object
 and nothing else, mapping each new finding's number to the id or "new":
-{{"1": "<id>", "2": "new"}}
-
-<known>
-{known}
-</known>
-
-<new>
-{new}
-</new>
-"""
+""" + ANSWER_AND_FINDINGS
 
 
 def git(repo, *args):

@@ -201,6 +201,10 @@ is particular to the dashboard:
   message catalogues grow with every new string. Files
   already over the limit are held at their recorded length in the test's
   `OVER_LINE_LIMIT`.
+- Function length, nesting depth and repeated blocks in the TypeScript
+  are checked in `test/design/complexity/`, with what is held at its
+  level in `held.json` there. The bash scripts under `dashboard/` are
+  checked with the rest of the repository's bash, from `core/tests/`.
 - A test moved into a subfolder gains one `../` in its own imports.
 - No `<name>-e` twin sits beside a file under `src/` or `test/`. macOS
   `sed -i -e ...` reads `-e` as the backup suffix and leaves the original

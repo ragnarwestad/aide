@@ -93,6 +93,10 @@ Read the section the step at hand needs.
   **Approach C: [Name] (considered and rejected).** [one-line description]
   ```
 
+- Decisions costly to change: one line per decision the plan makes,
+  `costly to change:` with the alternatives weighed and the reason for
+  the choice, or `cheap to change:` in one line; the single
+  `None — [why]` when it makes none
 - Parts: one line per part the change needs that it does not have yet,
   `Reused:` or `New, because`, or the single `None — [why]` when it needs
   none

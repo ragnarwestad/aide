@@ -5,6 +5,7 @@
 - [Scope](#scope)
 - [Approaches](#approaches)
 - [Behavior delta](#behavior-delta)
+- [Decisions costly to change](#decisions-costly-to-change)
 - [Parts](#parts)
 - [Risk analysis](#risk-analysis)
 - [Acceptance criteria](#acceptance-criteria)
@@ -38,6 +39,24 @@ the spec does not ask, only the recommended lead carries a mark. Never write or 
 **Behavior delta:** state what the chosen solution ADDS / MODIFIES / REMOVES
 in behavior, relative to how the system works today — not just which files
 change (those are listed under Scope).
+
+## Decisions costly to change
+
+**Decisions costly to change:** a `### Decisions costly to change`
+subsection under Recommended solution, before Parts, with one line for
+every decision the chosen approach makes:
+
+    - **<decision>** — costly to change: <why>. Weighed: <the alternatives>. Chose <which> because <reason>.
+    - **<decision>** — cheap to change: <one line>.
+
+A decision is costly to change when undoing it later means touching
+stored data, other projects, or everything written against it: a data or
+file format, a public command or its flags, an HTTP route, the layout of
+stored state, a name other code or other specs read. Such a decision gets
+the alternatives it weighed and the reason for its choice, so the effort
+goes where a wrong choice costs the most; a cheap one gets one line. A
+plan that makes no decision of its own writes the one line
+`- None — <why>`.
 
 ## Parts
 
