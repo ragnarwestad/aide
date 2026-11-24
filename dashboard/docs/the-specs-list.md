@@ -694,7 +694,8 @@ The page's own browser code does one thing to the controls: it keeps the reader 
   one submit listener on `body` hands its OK on: the question closes and the page's loading cover shows "Reopening…"
   or "Closing…" (`coverWhile()`, `specs-client/progress-dialog/`), the form is posted, and once it is accepted the
   page goes to the Running tab scrolled to the job's own row, shut (`/#spec-<project>/<spec>:<step>@<job>`). Any new
-  row a live redraw adds to the Jobs list is scrolled into sight the same way, unless it is already. Deploy and Remove
+  row a live redraw adds to the Jobs list is scrolled into sight the same way, unless it is already, and is then
+  tinted in the theme's accent colour, fading out over five seconds, so the reader sees which row moved the page. Deploy and Remove
   project do the same with "Deploying…" and "Removing…". A refused post lifts the cover and opens the question again,
   with the reason in the dialog's own line and whatever was typed or ticked. While a Reopen dialog is open on the list, the live
   redraw waits, so the rows do not take it away.

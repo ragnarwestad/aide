@@ -45,7 +45,9 @@ without showing a remembered page first.
 Changing the sort, a filter or the search on Jobs or Specs opens the Loading dialog until the list request settles.
 
 Loading more Jobs or Specs and receiving live changes keep the loaded range, expanded groups, open rows and held
-spec detail. The first visible row keeps its place when preceding rows change. New work is reconciled with the
+spec detail. At the top of the page the list stays at the top. Further down, the first visible row keeps its place
+when preceding rows change; a row the sort moves elsewhere is not followed, and the next visible row that kept its
+order is held instead. New work is reconciled with the
 current list through its last loaded identity, so insertions do not duplicate or skip matching rows. Answers from
 an older search, page or action are ignored. Opening a spec and switching its tabs keep the loaded range too.
 
