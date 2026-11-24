@@ -16,14 +16,18 @@ STEP_OUTCOME = "dashboard/src/queue/runner/types.ts"
 # Each suite by name, in the order a run takes them. The landing asks for
 # suites by these names (AIDE_TEST_ONLY_SUITES) and reads which were red
 # from the report this writes (AIDE_TEST_SUITES_REPORT).
+# The runner's tests are most of pytest's time, so they are a suite of their
+# own: a red test elsewhere in pytest does not run them again.
+RUNNER_TESTS = "core/tests/specs/unit/core/scripts"
 SUITES = {
     "docs": "scripts/check-docs",
     "contracts": CONTRACT_CHECK,
-    "python": "scripts/test-python",
+    "python": f"scripts/test-python --ignore={RUNNER_TESTS}",
+    "runner": f"scripts/test-python {RUNNER_TESTS}",
     "dashboard": "cd dashboard && make test",
     "e2e": "cd dashboard && make test-e2e",
 }
-FULL = ["python", "dashboard", "e2e"]
+FULL = ["python", "runner", "dashboard", "e2e"]
 
 
 def suites_for(paths):

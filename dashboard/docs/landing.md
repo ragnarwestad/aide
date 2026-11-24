@@ -251,7 +251,9 @@ false}`) runs all its suites to the end, red or not, and asks for a subset by `A
 (`src/serve/land-branch/suite-rerun.ts`). The run on main alone then runs only the suites that were red. After a repair,
 with main where it was, the next attempt runs the red suites again, with `AIDE_TEST_ALSO_CHANGED_SINCE` set to the commit
 they were red on, so the command adds the suites the repair's own changes need; with main moved, it runs whole. A
-command that writes no report runs whole every time. Aide's own command is `scripts/testing/changed.py`.
+command that writes no report runs whole every time. Aide's own command is `scripts/testing/changed.py`; its suites,
+by the names `AIDE_TEST_ONLY_SUITES` takes, are docs, contracts, python, runner (the runner script's pytest tests,
+which take most of pytest's time), dashboard and e2e.
 
 **A run the step already made is not made again.** An `implement` that ended green reports `testedGreen` on its
 result: the tree, hashed by `aide_tree_hash` with the worktree links left out, and the commands. When the merge is

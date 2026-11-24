@@ -14,7 +14,7 @@ def test_dashboard_change_does_not_run_python_but_keeps_contract_checks():
 def test_the_landing_names_the_suites_to_run_again():
     env = {"AIDE_TEST_ONLY_SUITES": "dashboard"}
     assert module.selected_suites(["core/scripts/aide-run-spec"], env) == ["dashboard"]
-    assert module.selected_suites(["core/scripts/aide-run-spec"], {}) == ["python", "dashboard", "e2e"]
+    assert module.selected_suites(["core/scripts/aide-run-spec"], {}) == ["python", "runner", "dashboard", "e2e"]
 
 
 def test_after_a_repair_its_own_changes_choose_what_runs_beside_the_red_suites(monkeypatch):
@@ -23,11 +23,17 @@ def test_after_a_repair_its_own_changes_choose_what_runs_beside_the_red_suites(m
         (["dashboard/test/serve/x.test.ts"], ["dashboard"]),
         (["dashboard/test/e2e/x.test.ts"], ["dashboard", "e2e"]),
         (["dashboard/src/serve/x.ts"], ["contracts", "dashboard", "e2e"]),
-        (["core/scripts/aide-run-spec"], ["python", "dashboard", "e2e"]),
-        (None, ["python", "dashboard", "e2e"]),
+        (["core/scripts/aide-run-spec"], ["python", "runner", "dashboard", "e2e"]),
+        (None, ["python", "runner", "dashboard", "e2e"]),
     ]:
         monkeypatch.setattr(module, "_changed_since", lambda base, changed=changed: changed)
         assert module.selected_suites([], env) == expected
+
+
+def test_pytest_is_two_suites_that_together_run_every_test_once():
+    assert module.SUITES["runner"] == f"scripts/test-python {module.RUNNER_TESTS}"
+    assert module.SUITES["python"] == f"scripts/test-python --ignore={module.RUNNER_TESTS}"
+    assert (ROOT / module.RUNNER_TESTS).is_dir()
 
 
 def test_core_change_and_unknown_paths_keep_full_suite():
