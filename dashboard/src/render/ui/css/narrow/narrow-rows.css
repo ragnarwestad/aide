@@ -15,16 +15,14 @@
   /* And its cell takes the state column's own width, so the badge
      centres over the phase states rather than over whatever its own
      text happens to be wide. */
-  /* A word wider than the column grows leftwards, into the room the pips
-     leave, so the time after it stays in its own column. */
-  table.list tr.specstate > td[data-col="state"] { flex: 0 0 var(--state-w); text-align: center;
+  /* A word wider than the column widens the cell, and the pips before it
+     move left by as much, keeping the line's gap: nothing is drawn over
+     a neighbour. The time after it stays in its own column. */
+  table.list tr.specstate > td[data-col="state"] { flex: 0 0 auto; min-width: var(--state-w); text-align: center;
     display: flex; justify-content: flex-end; }
   table.list tr.specstate > td[data-col="state"] .badgeslot,
   table.list tr.specstate > td[data-col="state"] .badge {
     flex: none; min-width: 100%; box-sizing: border-box; white-space: nowrap; }
-  /* An open row's button stands back from the state by what the longest
-     word needs beyond the column, so the word grows into that room too. */
-  table.list tr.specstate .createdpips > .actionslot:not([hidden]) { margin-right: max(0px, calc(6.5rem - var(--state-w))); }
   /* The spec's total in the size every other time on a phone has, or it
      does not fit its column at 360px. */
   table.list tr.specstate > td[data-col="started"] { font-size: var(--fs-s); }
