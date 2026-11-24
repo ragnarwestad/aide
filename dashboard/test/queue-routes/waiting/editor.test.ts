@@ -46,3 +46,14 @@ test("any waiting job opens editing; a missing entry does not (AC-7)", async () 
   }
   expect((await post(base, "open", { requestId: "spec", entryId: `job:${added.job.id}:0` })).status).toBe(200);
 });
+
+test("a save naming many long job ids is not refused for its size", async () => {
+  const { base } = start({}, [], [], undefined, undefined, JSON.stringify([deploy]));
+  await fetch(`${base}/api/queue`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(JOB) });
+  const owner = await (await post(base, "open", { requestId: "tab-a", entryId: "job:deploy:0" })).json();
+  const ids = owner.entries.map((e: any) => e.id);
+  const credential = { token: owner.token, generation: owner.generation, revision: owner.revision };
+  // A queue of thirty jobs with long spec names sends about this much.
+  const response = await post(base, "save", { ...credential, snapshotIds: ids, ids, padding: "x".repeat(8000) });
+  expect(response.status).toBe(200);
+});

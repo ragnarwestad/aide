@@ -1,4 +1,4 @@
-import { bodyToObject, json, readBounded, languageChoice } from "../../serve-helpers";
+import { MAX_SAVE_BODY, bodyToObject, json, readBounded, languageChoice } from "../../serve-helpers";
 import type { RoutesContext } from "../index.ts";
 import type { Credential } from "../../../queue/waiting";
 import { queueEditor } from "../../../render/ui/components/queue-editor";
@@ -7,7 +7,9 @@ export async function handleWaitingRoutes(ctx: RoutesContext, req: Request, path
   const match = path.match(/^\/api\/queue\/waiting\/(open|renew|snapshot|save|cancel)$/);
   if (!match) return null;
   if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
-  const body = await readBounded(req);
+  // A save names every waiting job twice, by ids that carry the spec's
+  // full folder name, so a long queue is larger than an action post.
+  const body = await readBounded(req, MAX_SAVE_BODY);
   if ("refusal" in body) return body.refusal;
   let raw: Record<string, unknown>;
   try {

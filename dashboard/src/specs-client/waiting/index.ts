@@ -1,4 +1,5 @@
 import { legalMove } from "../../queue/waiting/movement.ts";
+import { credentialOf } from "../../queue/waiting/credential.ts";
 import { showAsk } from "../ask.ts";
 import type { Owner, WaitingEntry } from "../../queue/waiting";
 import { bindPointerMoves } from "./reorder.ts";
@@ -29,7 +30,7 @@ export function bindWaitingEditor(): void {
       active = state;
       mount(state, badge);
     } catch (error) {
-      if (owner) void post("cancel", owner).catch(() => {});
+      if (owner) void post("cancel", credentialOf(owner)).catch(() => {});
       // A failed acquisition has no dialog; use the page's existing refusal surface.
       const { showRefusal } = await import("../tail-actions.ts");
       showRefusal(error instanceof Error ? error.message : String(error), undefined);
@@ -100,7 +101,7 @@ export function bindWaitingEditor(): void {
     const refresh = async (action = "snapshot") => {
       if (closed || saving) return;
       try {
-        const next: Owner = await post(action, state.owner);
+        const next: Owner = await post(action, credentialOf(state.owner));
         if (closed || saving) return;
         state.owner = next; snapshotIds = next.entries.map(entry => entry.id);
         certain = true; render(next.entries);
@@ -117,13 +118,13 @@ export function bindWaitingEditor(): void {
       if (!certain || saving) return;
       saving = true; save.disabled = true;
       try {
-        await post("save", { ...state.owner, snapshotIds, ids: ids() });
+        await post("save", { ...credentialOf(state.owner), snapshotIds, ids: ids() });
         closed = true; dialog.close(); void swapRows();
       } catch (error) { refused.textContent = error instanceof Error ? error.message : String(error); if (/ownership|order has changed/.test(refused.textContent)) lost(error); save.disabled = !certain; }
       finally { saving = false; }
     });
     const release = () => {
-      if (!closed) { closed = true; void post("cancel", state.owner, true).catch(() => {}); }
+      if (!closed) { closed = true; void post("cancel", credentialOf(state.owner), true).catch(() => {}); }
       clearInterval(timer); clearInterval(live);
       window.removeEventListener("offline", offline);
       window.removeEventListener("beforeunload", leave);
