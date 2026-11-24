@@ -13,7 +13,7 @@ echo ""
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 source "$SCRIPT_DIR/lib/doc-fallback.sh"
-source "$SCRIPT_DIR/lib/hooks-merge.sh"
+source "$SCRIPT_DIR/../../scripts/_install-hooks.sh"
 source "$SCRIPT_DIR/../../scripts/_install-instructions.sh"
 
 # Confirm uninstallation
@@ -49,7 +49,8 @@ echo ""
 # 3. Remove Codex hooks
 echo "3️⃣  Removing Codex hooks..."
 
-uninstall_codex_hooks "$SCRIPT_DIR/hooks/hooks.json" "$HOME/.codex/hooks.json"
+uninstall_aide_hooks "$SCRIPT_DIR/hooks/hooks.json" "$HOME/.codex/hooks.json" \
+  "$AIDE_HOOKS_PATTERN_CODEX"
 
 rm -f "$HOME/.codex/hooks/"aide-*.sh
 echo "   ✅ Removed: ~/.codex/hooks/aide-*.sh"

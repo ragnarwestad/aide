@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # Block watch-mode test runs — a watcher never exits, which hangs the agent.
-# Port of the Claude Code PreToolUse hook in core/implementations/claude-code/settings.json.
+# The one copy of this rule: Claude Code and Codex both run it as a PreToolUse
+# Bash hook, from ~/.local/bin/lib/command-rules/ where every installer puts it.
 # Payload arrives on stdin; exit 2 with a reason on stderr denies the command.
 #
-# Conservative superset across the supported toolchains (spec 75):
+# Conservative superset across the supported toolchains:
 # blocking a valid command is worse than missing an exotic watcher.
 
 CMD=$(jq -r '.tool_input.command // empty')

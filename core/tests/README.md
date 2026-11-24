@@ -79,8 +79,8 @@ pytest core/tests/specs/unit/core -v
 # Implementation-specific tests
 pytest core/tests/specs/unit/implementations -v
 
-# Claude Code tests only
-pytest core/tests/specs/unit/implementations/claude-code -v
+# Codex tests only
+pytest core/tests/specs/unit/implementations/codex -v
 
 # Validation tests only
 pytest core/tests/specs/unit/core/validation -v
@@ -153,7 +153,6 @@ tests/
 │   │   │   │   └── templates/                    # test_templates.py
 │   │   │
 │   │   └── core/implementations/                  # Implementation-specific tests
-│   │       ├── claude-code/
 │   │       ├── codex/
 │   │       └── copilot/
 │   │

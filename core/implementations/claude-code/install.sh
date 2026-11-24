@@ -2,13 +2,14 @@
 
 # install.sh - Installs Claude Code configuration globally
 #
-# Global (~/.claude/): skills, agents, rules
+# Global (~/.claude/): skills, agents, rules, and the command-rule hooks in settings.json
 # Global (~/.local/bin/): scripts
 
 set -e  # Exit on error
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 source "$SCRIPT_DIR/../../scripts/_install-steps.sh"
+source "$SCRIPT_DIR/../../scripts/_install-hooks.sh"
 
 IMPL_DIR="$SCRIPT_DIR"
 
@@ -43,6 +44,11 @@ for retired in tools-and-scripts workflows documentation markdown-linting; do
   fi
 done
 
+# The command rules Codex runs too, from ~/.local/bin/lib/command-rules/;
+# only these hook entries are written, the rest of settings.json is kept.
+install_aide_hooks "$IMPL_DIR/hooks.json" "$GLOBAL_CLAUDE/settings.json" \
+  "$AIDE_HOOKS_PATTERN_CLAUDE"
+
 echo ""
 
 install_steps_finish claude
@@ -70,6 +76,7 @@ echo "✅ Setup complete!"
 echo ""
 echo "📋 Installed globally:"
 echo "   ~/.claude/skills/          ($(find ~/.claude/skills -mindepth 1 -maxdepth 1 2>/dev/null | wc -l | tr -d ' ') skills)"
+echo "   ~/.claude/settings.json    (the command-rule hooks)"
 echo "   ~/.claude/rules/           ($(find ~/.claude/rules -mindepth 1 -maxdepth 1 2>/dev/null | wc -l | tr -d ' ') rules)"
 echo "   ~/.local/bin/              (scripts)"
 echo ""

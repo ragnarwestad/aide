@@ -103,9 +103,21 @@ cd aide/implementations/claude-code
 - ✅ Every `core/scripts/aide-*` script and `upgrade-ai-tools` → `~/.local/bin/`, with `~/.local/bin` put on PATH
 - ✅ The shared tools (markdownlint-cli2, jq, gh, bun, pandoc, md-to-pdf, yt-dlp) through mise
 - ✅ Skills, agents and rules → `~/.claude/`
+- ✅ The two command rules as PreToolUse Bash hooks → `~/.claude/settings.json` (needs `jq`)
 - ✅ LSP plugins (typescript, kotlin, jdtls)
 
 Run `./install.sh` again to update after changes.
+
+**The command rules.** Two hooks refuse a shell command before it runs:
+`git add .` / `git add -A`, and a test runner started in watch mode. Each rule
+is one script in `core/scripts/lib/command-rules/`, installed to
+`~/.local/bin/lib/command-rules/`, and Codex runs the same scripts. The
+installer merges the two hook entries into `~/.claude/settings.json` and
+leaves every other key and hook there as it is; an inline copy of the rules
+from an earlier `settings.json` template is replaced. The merge rewrites the
+file through `jq`, so its indentation and key order may change. A file that
+is not valid JSON is left alone with a warning. `./uninstall.sh` takes the two
+entries out again.
 
 
 ---
@@ -178,8 +190,8 @@ gitignored `.aide/config`), so `install.sh` cannot compute or write this
 rule for every contributor. Run `aide-print-specs-guard` from inside the
 project instead — it prints a ready-to-paste `deny` snippet scoped to
 that project's own specs root, for you to paste into the `"permissions":
-{ "deny": [...] }` array of `~/.claude/settings.json` (Aide never edits
-that file itself).
+{ "deny": [...] }` array of `~/.claude/settings.json` (Aide writes nothing
+in that file but its own command-rule hooks).
 
 ---
 
@@ -199,14 +211,16 @@ aide/
     ├── README.md                       # This file
     ├── INSTALL.md                      # Installation guide
     ├── install.sh / uninstall.sh       # Global install/uninstall
-    └── settings.json                   # Template for ~/.claude/settings.json
+    ├── hooks.json                      # The command-rule hooks the installer merges into ~/.claude/settings.json
+    └── settings.json                   # Template for the rest of ~/.claude/settings.json
 ```
 
 ### Runtime files (installed locally, not in git)
 
 ```text
 ~/.local/bin/aide-*                     # Every core/scripts/aide-* script, plus upgrade-ai-tools
-~/.local/bin/lib/                       # The scripts' shared library
+~/.local/bin/lib/                       # The scripts' shared library, and the command rules in command-rules/
+~/.claude/settings.json                 # The command-rule hooks, merged beside your own settings
 ~/.claude/skills/<skill>/SKILL.md       # Every skill in core/skills/ except spec-structure
 ~/.claude/rules/*.md                    # The always-on rules
 ```

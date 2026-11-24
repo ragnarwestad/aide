@@ -8,6 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORKSPACE_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 source "$WORKSPACE_ROOT/core/scripts/_install-skills.sh"
 source "$WORKSPACE_ROOT/core/scripts/_install-rules.sh"
+source "$WORKSPACE_ROOT/core/scripts/_install-hooks.sh"
 
 echo "🗑️  Claude Code Uninstall"
 echo "========================="
@@ -18,6 +19,7 @@ echo "⚠️  This will remove:"
 echo "   - Skills recorded in ~/.claude/skills/$AIDE_SKILL_MANIFEST_NAME"
 echo "   - Agents from ~/.claude/agents/ (task-analyzer.md)"
 echo "   - Rules recorded in ~/.claude/rules/$AIDE_RULE_MANIFEST_NAME"
+echo "   - aide's command-rule hooks from ~/.claude/settings.json (the rest of the file is kept)"
 echo ""
 read -r -p "Are you sure you want to continue? [y/N]: " CONFIRM
 
@@ -58,6 +60,14 @@ echo ""
 echo "7️⃣  Removing rules from ~/.claude/rules/..."
 
 uninstall_rules "$HOME/.claude/rules"
+
+echo ""
+
+# 8. Remove aide's hooks from ~/.claude/settings.json
+echo "8️⃣  Removing aide's hooks from ~/.claude/settings.json..."
+
+uninstall_aide_hooks "$SCRIPT_DIR/hooks.json" "$HOME/.claude/settings.json" \
+  "$AIDE_HOOKS_PATTERN_CLAUDE"
 
 echo ""
 

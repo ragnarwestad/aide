@@ -101,7 +101,7 @@ aide/implementations/codex/install.sh
 
 It writes `core/AGENTS.md` (generated from `core/rules/`) into `~/.codex/AGENTS.md` as a marked block beside your
 own text, merges the hooks into `~/.codex/hooks.json` beside your own and copies `~/.codex/hooks/aide-*.sh` (both
-need `jq`), every skill in `core/skills/` to
+need `jq`), the command rules shared with Claude Code to `~/.local/bin/lib/command-rules/`, every skill in `core/skills/` to
 `~/.agents/skills/`, and the shared scripts to `~/.local/bin/`.
 
 Codex reads `~/.codex/AGENTS.md` automatically at startup (as well as the repo `AGENTS.md` via directory walk).
@@ -184,16 +184,23 @@ Codex's instruction file is `AGENTS.md`. Aide generates `core/AGENTS.md` from `c
 
 ### Hooks
 
-`install.sh` installs `hooks/hooks.json` to `~/.codex/hooks.json` and the
-`hooks/aide-*.sh` scripts to `~/.codex/hooks/`. They port the four Claude Code
-hooks from `core/implementations/claude-code/settings.json`:
+`install.sh` merges `hooks/hooks.json` into `~/.codex/hooks.json` and copies
+the `hooks/aide-*.sh` scripts to `~/.codex/hooks/`. The two command rules are
+not Codex's own: they are the scripts in `core/scripts/lib/command-rules/`,
+installed to `~/.local/bin/lib/command-rules/`, which Claude Code runs too.
+The other hooks port Claude Code's markdownlint and Stop hooks from
+`core/implementations/claude-code/settings.json`:
 
 | Hook                                        | Event              | What it does                                                  |
 |---------------------------------------------|--------------------|---------------------------------------------------------------|
 | `aide-markdownlint.sh`                      | PostToolUse        | Lints markdown files right after they are edited              |
-| `aide-block-git-add-all.sh`                 | PreToolUse         | Blocks `git add .` / `git add -A` (explicit file names only)  |
-| `aide-block-watch-mode.sh`                  | PreToolUse         | Blocks `pnpm test` without `--run` (watch mode never exits)   |
+| `command-rules/block-git-add-all.sh`        | PreToolUse         | Blocks `git add .` / `git add -A` (explicit file names only)  |
+| `command-rules/block-watch-mode.sh`         | PreToolUse         | Blocks test runners in watch mode (a watcher never exits)     |
 | `aide-track-turn.sh` + `aide-stop-guard.sh` | PostToolUse + Stop | Refuses to end a turn where source code changed without tests |
+
+An install replaces the entries an earlier install wrote, including the old
+`~/.codex/hooks/aide-block-*.sh` commands, and deletes those two old scripts
+once `~/.codex/hooks.json` no longer calls them.
 
 The Stop guard works differently from Claude Code's: Codex has no prompt
 hooks, so `aide-track-turn.sh` writes per-turn markers ("code changed",

@@ -185,9 +185,10 @@ have there:
   kept, a new install replaces only the block, and an uninstall removes only the
   block. A file that holds nothing but an earlier install's copy of the rules is
   replaced.
-- Codex's `~/.codex/hooks.json` gets aide's hooks beside your own; an uninstall
-  takes out aide's alone. The merge needs `jq`, and without it a file of your own
-  is left as it is.
+- Codex's `~/.codex/hooks.json` and Claude Code's `~/.claude/settings.json` get
+  aide's hooks beside your own hooks and settings; an uninstall takes out aide's
+  alone. The merge needs `jq`, and without it, or when the file is not valid
+  JSON, a file of your own is left as it is.
 - Skills and rules are installed by name, so yours with other names stay. A skill
   or rule with the same name as one of aide's is replaced.
 - OpenCode's `~/.config/opencode/opencode.json` gets `"CLAUDE.md"` added to its
@@ -278,6 +279,7 @@ pressing Deploy.
 
    **The script installs globally:**
     - ✅ Skills, agents and rules → `~/.claude/`
+    - ✅ The command-rule hooks, shared with Codex → `~/.claude/settings.json` (needs `jq`)
     - ✅ Scripts (incl. `upgrade-ai-tools`) → `~/.local/bin/`
     - ✅ LSP plugins (typescript, kotlin, jdtls)
 
@@ -368,7 +370,8 @@ pressing Deploy.
 
    **The script installs globally:**
     - ✅ Instructions (`core/AGENTS.md`) → `~/.codex/AGENTS.md`
-    - ✅ Hooks → `~/.codex/hooks.json` + `~/.codex/hooks/aide-*.sh` (the hooks need `jq`)
+    - ✅ Hooks → `~/.codex/hooks.json` + `~/.codex/hooks/aide-*.sh`, with the command rules shared with
+      Claude Code in `~/.local/bin/lib/command-rules/` (the hooks need `jq`)
     - ✅ Skills (`core/skills/`) → `~/.agents/skills/` (shared with Copilot)
     - ✅ Scripts → `~/.local/bin/`
     - ✅ On request: the MCP snippets in `mcp/*.toml` → appended to `~/.codex/config.toml`

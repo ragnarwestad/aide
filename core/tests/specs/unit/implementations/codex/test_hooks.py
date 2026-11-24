@@ -1,11 +1,12 @@
-"""Tests for the Codex port of the four Claude Code hooks.
+"""Tests for the Codex hooks in core/implementations/codex/hooks/.
 
-Claude Code enforces four behaviors via hooks in
-core/implementations/claude-code/settings.json: markdownlint on edited markdown,
-blocking `git add .`/`git add -A`, blocking watch-mode test runs, and a Stop
-guard that refuses to end a turn where source code changed without tests.
-Codex only has command hooks (no prompt hooks), so the Stop guard is two
-scripts: one marks "code changed"/"tests run" per turn, one blocks Stop.
+Codex runs four behaviors as hooks: markdownlint on edited markdown, the two
+command rules (blocking `git add .`/`git add -A` and watch-mode test runs),
+and a Stop guard that refuses to end a turn where source code changed
+without tests. The command rules are shared with Claude Code and tested in
+core/tests/specs/unit/core/scripts/command_rules/. Codex only has command
+hooks (no prompt hooks), so the Stop guard is two scripts: one marks
+"code changed"/"tests run" per turn, one blocks Stop.
 """
 import json
 import subprocess
@@ -66,12 +67,19 @@ class TestHooksJson:
             for hook in group["hooks"]
         ]
 
+    @staticmethod
+    def _codex_commands(config):
+        """The commands that run a script of Codex's own in ~/.codex/hooks/."""
+        return [
+            command
+            for event in config["hooks"]
+            for command in TestHooksJson._commands(config, event)
+            if "/command-rules/" not in command
+        ]
+
     def test_pre_tool_use_blocks_are_wired_to_bash(self, config):
         groups = config["hooks"]["PreToolUse"]
         assert all(g["matcher"] == "Bash" for g in groups)
-        commands = " ".join(self._commands(config, "PreToolUse"))
-        assert "aide-block-git-add-all.sh" in commands
-        assert "aide-block-watch-mode.sh" in commands
 
     def test_post_tool_use_covers_edits_and_bash(self, config):
         matchers = [g["matcher"] for g in config["hooks"]["PostToolUse"]]
@@ -89,118 +97,19 @@ class TestHooksJson:
         import os
         import re
 
-        for event in config["hooks"]:
-            for command in self._commands(config, event):
-                match = re.search(r"(aide-[a-z-]+\.sh)", command)
-                assert match, f"unrecognized hook command: {command}"
-                script = hooks_dir / match.group(1)
-                assert script.exists(), f"missing script: {script.name}"
-                assert os.access(script, os.X_OK), f"not executable: {script.name}"
+        for command in self._codex_commands(config):
+            match = re.search(r"(aide-[a-z-]+\.sh)", command)
+            assert match, f"unrecognized hook command: {command}"
+            script = hooks_dir / match.group(1)
+            assert script.exists(), f"missing script: {script.name}"
+            assert os.access(script, os.X_OK), f"not executable: {script.name}"
 
     def test_commands_point_at_the_installed_location(self, config):
-        for event in config["hooks"]:
-            for command in self._commands(config, event):
-                assert command.startswith("$HOME/.codex/hooks/"), (
-                    "hooks.json is installed to ~/.codex/hooks.json, so commands "
-                    f"must reference ~/.codex/hooks/ — got: {command}"
-                )
-
-
-@pytest.mark.codex
-class TestBlockGitAddAll:
-    """Same rule as the Claude Code PreToolUse hook: explicit file names only."""
-
-    def test_blocks_git_add_dot(self, hooks_dir):
-        result = run_hook(
-            hooks_dir,
-            "aide-block-git-add-all.sh",
-            payload("Bash", {"command": "git add ."}, event="PreToolUse"),
-        )
-        assert result.returncode == 2
-        assert "git add" in result.stderr
-
-    def test_blocks_git_add_dash_capital_a(self, hooks_dir):
-        result = run_hook(
-            hooks_dir,
-            "aide-block-git-add-all.sh",
-            payload("Bash", {"command": "cd repo && git add -A"}, event="PreToolUse"),
-        )
-        assert result.returncode == 2
-
-    def test_allows_git_add_with_explicit_files(self, hooks_dir):
-        result = run_hook(
-            hooks_dir,
-            "aide-block-git-add-all.sh",
-            payload("Bash", {"command": "git add docs/README.md"}, event="PreToolUse"),
-        )
-        assert result.returncode == 0
-
-    def test_allows_unrelated_commands(self, hooks_dir):
-        result = run_hook(
-            hooks_dir,
-            "aide-block-git-add-all.sh",
-            payload("Bash", {"command": "ls -la"}, event="PreToolUse"),
-        )
-        assert result.returncode == 0
-
-
-@pytest.mark.codex
-class TestBlockWatchMode:
-    """Same rule as the Claude Code PreToolUse hook: single-run mode only."""
-
-    def test_blocks_pnpm_test_without_run(self, hooks_dir):
-        result = run_hook(
-            hooks_dir,
-            "aide-block-watch-mode.sh",
-            payload("Bash", {"command": "pnpm test"}, event="PreToolUse"),
-        )
-        assert result.returncode == 2
-        assert "--run" in result.stderr
-
-    def test_allows_pnpm_test_with_run(self, hooks_dir):
-        result = run_hook(
-            hooks_dir,
-            "aide-block-watch-mode.sh",
-            payload("Bash", {"command": "pnpm test -- --run foo.test.ts"}, event="PreToolUse"),
-        )
-        assert result.returncode == 0
-
-    def test_allows_unrelated_commands(self, hooks_dir):
-        result = run_hook(
-            hooks_dir,
-            "aide-block-watch-mode.sh",
-            payload("Bash", {"command": "pnpm run build"}, event="PreToolUse"),
-        )
-        assert result.returncode == 0
-
-    @pytest.mark.parametrize("cmd", [
-        "vitest",
-        "jest --watch",
-        "./gradlew test --continuous",
-        "cargo watch -x test",
-        "ptw",
-        "pytest-watch",
-    ])
-    def test_blocks_watchers_across_toolchains(self, hooks_dir, cmd):
-        result = run_hook(
-            hooks_dir,
-            "aide-block-watch-mode.sh",
-            payload("Bash", {"command": cmd}, event="PreToolUse"),
-        )
-        assert result.returncode == 2, f"watcher not blocked: {cmd}"
-
-    @pytest.mark.parametrize("cmd", [
-        "npx vitest run country.test.ts",
-        "python -m pytest -q",
-        "./gradlew test",
-    ])
-    def test_allows_single_run_commands(self, hooks_dir, cmd):
-        result = run_hook(
-            hooks_dir,
-            "aide-block-watch-mode.sh",
-            payload("Bash", {"command": cmd}, event="PreToolUse"),
-        )
-        assert result.returncode == 0, f"valid command blocked: {cmd}"
+        for command in self._codex_commands(config):
+            assert command.startswith("$HOME/.codex/hooks/"), (
+                "hooks.json is installed to ~/.codex/hooks.json, so commands "
+                f"must reference ~/.codex/hooks/ — got: {command}"
+            )
 
 
 @pytest.mark.codex

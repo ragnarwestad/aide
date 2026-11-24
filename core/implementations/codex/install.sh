@@ -9,7 +9,8 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 source "$SCRIPT_DIR/../../scripts/_install-steps.sh"
 source "$SCRIPT_DIR/lib/optional-mcp.sh"
 source "$SCRIPT_DIR/lib/doc-fallback.sh"
-source "$SCRIPT_DIR/lib/hooks-merge.sh"
+source "$SCRIPT_DIR/lib/retired-hooks.sh"
+source "$SCRIPT_DIR/../../scripts/_install-hooks.sh"
 install_steps_begin codex
 
 # 2. Install global Codex instructions (AGENTS.md)
@@ -20,13 +21,15 @@ install_codex_doc_fallback "$HOME/.codex/config.toml"
 
 echo ""
 
-# 3. Install Codex hooks (ports of the Claude Code hooks in settings.json)
+# 3. Install Codex hooks: the shared command rules, and ports of the Claude Code hooks
 echo "3️⃣  Installing Codex hooks..."
 
 mkdir -p "$HOME/.codex/hooks"
-install_codex_hooks "$SCRIPT_DIR/hooks/hooks.json" "$HOME/.codex/hooks.json"
+install_aide_hooks "$SCRIPT_DIR/hooks/hooks.json" "$HOME/.codex/hooks.json" \
+  "$AIDE_HOOKS_PATTERN_CODEX"
 cp "$SCRIPT_DIR/hooks/"aide-*.sh "$HOME/.codex/hooks/"
 chmod +x "$HOME/.codex/hooks/"aide-*.sh
+remove_retired_codex_rules "$HOME/.codex/hooks" "$HOME/.codex/hooks.json"
 echo "   ✅ Installed: ~/.codex/hooks.json + hook scripts in ~/.codex/hooks/"
 
 if ! command -v jq &> /dev/null; then

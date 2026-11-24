@@ -1,5 +1,5 @@
 {
-  "description": "aide hooks for Codex - ports of the four Claude Code hooks in core/implementations/claude-code/settings.json. Installed to ~/.codex/hooks.json with the scripts in ~/.codex/hooks/.",
+  "description": "aide hooks for Codex. Installed to ~/.codex/hooks.json. The two command rules are the scripts Claude Code runs too, in ~/.local/bin/lib/command-rules/; the rest are Codex ports of the Claude Code hooks, in ~/.codex/hooks/.",
   "hooks": {
     "PreToolUse": [
       {
@@ -8,7 +8,7 @@
           {
             "type": "command",
             "timeout": 10,
-            "command": "$HOME/.codex/hooks/aide-block-git-add-all.sh",
+            "command": "$HOME/.local/bin/lib/command-rules/block-git-add-all.sh",
             "statusMessage": "Checking git add usage"
           }
         ]
@@ -19,7 +19,7 @@
           {
             "type": "command",
             "timeout": 10,
-            "command": "$HOME/.codex/hooks/aide-block-watch-mode.sh",
+            "command": "$HOME/.local/bin/lib/command-rules/block-watch-mode.sh",
             "statusMessage": "Checking for watch mode"
           }
         ]

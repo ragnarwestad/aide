@@ -55,7 +55,8 @@ claude
    launchd) find the scripts too.
 5. **Installs globally** to `~/.claude/`: every skill in `core/skills/` except `spec-structure` →
    `skills/`, the agents →
-   `agents/`, the always-on rules → `rules/`.
+   `agents/`, the always-on rules → `rules/`, and the two command-rule hooks (`git add .` and
+   watch mode, the scripts Codex runs too) → `settings.json`, beside your own settings.
 6. **Installs the LSP plugins** (typescript, kotlin, jdtls) when the `claude` CLI is present.
 
 Run it again to update; it replaces what it installed and removes what it no longer ships.

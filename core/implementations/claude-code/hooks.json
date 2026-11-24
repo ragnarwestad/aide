@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 10,
+            "command": "\"$HOME/.local/bin/lib/command-rules/block-git-add-all.sh\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 10,
+            "command": "\"$HOME/.local/bin/lib/command-rules/block-watch-mode.sh\""
+          }
+        ]
+      }
+    ]
+  }
+}

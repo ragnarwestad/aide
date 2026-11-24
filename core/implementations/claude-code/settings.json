@@ -12,28 +12,6 @@
         ]
       }
     ],
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "timeout": 10,
-            "command": "CMD=$(cat | jq -r '.tool_input.command'); if echo \"$CMD\" | grep -qE 'git (.*\\s)?add (\\.(\\s|$)|-A(\\s|$))'; then echo 'Blocked: Use explicit file names with git add' >&2; exit 2; fi; exit 0"
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "timeout": 10,
-            "command": "CMD=$(cat | jq -r '.tool_input.command'); if echo \"$CMD\" | grep -qE 'pnpm test' && ! echo \"$CMD\" | grep -q -- '--run'; then echo 'Blocked: Use pnpm test -- --run (not watch mode)' >&2; exit 2; fi; if echo \"$CMD\" | grep -qE '(^|[ /])vitest($| )' && ! echo \"$CMD\" | grep -qE '(^|[ /])vitest run($| )' && ! echo \"$CMD\" | grep -q -- '--run'; then echo 'Blocked: Bare vitest starts watch mode - use vitest run' >&2; exit 2; fi; if echo \"$CMD\" | grep -qE -- '--watch( |$|=)|--continuous|cargo watch|(^|[ /])(ptw|pytest-watch)($| )'; then echo 'Blocked: watch mode never exits - use single-run mode' >&2; exit 2; fi; exit 0"
-          }
-        ]
-      }
-    ],
     "Stop": [
       {
         "hooks": [
