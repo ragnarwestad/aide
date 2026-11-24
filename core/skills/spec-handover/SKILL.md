@@ -66,6 +66,9 @@ raise that concrete difference before settling the description.
    look alike, and the user pastes each into its own field.
 5. **No number.** The number is assigned when the spec is created, not
    by whoever writes the text; don't call it "spec 02".
+6. **Title and description in English**, whatever language the
+   conversation or the report around them is in. The labels above the
+   blocks stay as they are.
 
 Don't offer to create it afterwards either. The same goes for an
 existing spec's files: the aide commands write them, never a hand edit
