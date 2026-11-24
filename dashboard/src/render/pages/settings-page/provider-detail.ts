@@ -10,7 +10,7 @@ import { askButton, confirmDialog, messageSlot, saveCancelActions, toolIcon } fr
 import { pickTab, tabBar } from "../../ui/tabs.ts";
 import { t, type Language, type TranslationKey } from "../../../i18n";
 import { providerFields, type Provider, type ProviderField, type ProviderTool } from "../../../queue/providers/index.ts";
-import { TOOL_NAMES } from "../specs-list";
+import { TOOL_NAMES } from "../../../queue/providers/tools.ts";
 import {
   PROVIDERS_EDIT_ROUTE, PROVIDERS_REMOVE_ROUTE, PROVIDERS_TAB_PATH,
   providerEditPath, providerStatusLines, versionNumber, type ProviderStatus,

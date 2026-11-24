@@ -10,7 +10,6 @@ import {
   PROVIDER_TOOLS, RESULT_TOOLS, RUNNABLE_TOOLS, SHORT_TOOL_NAMES, TOOLS, TOOL_NAMES, checkRunnableTools, providerFamily,
 } from "../../../src/queue/providers/tools.ts";
 import { RUNNABLE_TOOLS as stepsExport, asResultTool, asRunnableTool } from "../../../src/queue/steps.ts";
-import { SHORT_TOOL_NAMES as pickerShort, TOOL_NAMES as pickerNames } from "../../../src/render/pages/specs-list/model-resolve.ts";
 
 const SRC = join(import.meta.dir, "../../../src");
 const SHARED_FILE = join(import.meta.dir, "../../../../core/scripts/lib/runnable-tools.json");
@@ -35,8 +34,6 @@ describe("the tool lists", () => {
   test("the modules that used to define a list hand out the same array (AC-1)", () => {
     expect(providersExport).toBe(PROVIDER_TOOLS);
     expect(stepsExport).toBe(RUNNABLE_TOOLS);
-    expect(pickerNames).toBe(TOOL_NAMES);
-    expect(pickerShort).toBe(SHORT_TOOL_NAMES);
   });
 
   test("each wider list is the narrower one and what it adds (AC-1)", () => {

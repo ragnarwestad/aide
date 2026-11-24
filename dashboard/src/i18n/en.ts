@@ -554,7 +554,6 @@ export const en = {
   "schedule.deleteAria": "Delete {name}",
   "schedule.deleteTitle": "Delete {project}:{name}?",
   "schedule.deleteSentence": "The entry is removed and stops firing. Its own run history stays in the queue.",
-  "schedule.project": "Project",
   "schedule.promptPath": "Prompt file path",
   "schedule.nextRunAt": "Next run: {at}",
   "newSpec.pageTitle": "New spec",

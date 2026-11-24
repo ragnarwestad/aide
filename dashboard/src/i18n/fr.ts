@@ -546,7 +546,6 @@ export const fr: Record<TranslationKey, string> = {
   "schedule.deleteAria": "Supprimer {name}",
   "schedule.deleteTitle": "Supprimer {project}:{name} ?",
   "schedule.deleteSentence": "L'entrée est supprimée et ne se déclenche plus. Son propre historique d'exécutions reste dans la file.",
-  "schedule.project": "Projet",
   "schedule.promptPath": "Chemin du fichier de prompt",
   "schedule.nextRunAt": "Prochaine exécution : {at}",
   "newSpec.pageTitle": "Nouvelle spec",

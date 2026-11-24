@@ -14,7 +14,7 @@ import {
 import { PROVIDERS_ADD_ROUTE, PROVIDERS_EDIT_ROUTE, PROVIDERS_REMOVE_ROUTE, PROVIDERS_SWITCH_ROUTE } from "../../../render";
 import { NAME_RE } from "../../../queue/parse-request.ts";
 import { freeShortName, shortNameError, shortNameHolder, withShortNames } from "../../../queue/providers/short-name.ts";
-import { TOOL_NAMES } from "../../../render/pages/specs-list/index.ts";
+import { TOOL_NAMES } from "../../../queue/providers/tools.ts";
 import { readProviderStatus } from "../../providers/status.ts";
 import { readsUsage, readUsage, usageReader } from "../../providers/usage-kept.ts";
 import { json, parseBody } from "../../serve-helpers";

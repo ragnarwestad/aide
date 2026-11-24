@@ -1,44 +1,27 @@
 import { esc } from "../../../ui/html.ts";
 import { durationLabel } from "../../../ui/job-state";
-import { aliasLabel, modelName } from "../../../ui/components/model-label.ts";
 import { providerFace } from "../../../ui/components/icons.ts";
 import { t, type Language } from "../../../../i18n";
-import type { SpecsPageOptions } from "../";
 import { groupKey, type SpecGroup } from "../data-model";
 import { runFormId } from "../cells.ts";
 import {
-  TOOL_NAMES,
   phaseLine,
   pickerFor,
-  providerToolOf,
   restsOnProject,
-  resolveChosenModel,
-  resolveProvider,
-  shortOf,
   type LineProvider,
   type PhaseFacts,
   type PickerOptions,
 } from "../model-resolve.ts";
+import { modelSelect, providerSelect, providerToolOf, resolveChosenModel, resolveProvider, shortOf } from "../../../ui/ai-model";
 import { type PickPart } from "../../../../queue/providers/side-tools.ts";
-import { RUNNABLE_TOOLS, asProviderTool } from "../../../../queue/providers/tools.ts";
-import { modelSelect, providerSelect } from "./selects.ts";
-
-export { modelSelect, providerSelect } from "./selects.ts";
+import { asProviderTool } from "../../../../queue/providers/tools.ts";
 
 export {
-  SHORT_TOOL_NAMES,
-  TOOL_NAMES,
-  defaultModelForTool,
-  offeredProviders,
   phaseAiModel,
   phaseLine,
-  providerToolOf,
-  resolveChosenModel,
-  resolveProvider,
   resolveRecordedModel,
   type PhaseFacts,
   type PickerOptions,
-  type ProviderOption,
 } from "../model-resolve.ts";
 
 // The picker a phase line carries, and the caption above the list that
@@ -131,69 +114,6 @@ export function lockedDuration(ms: number | undefined): string {
   return `<span class="muted small">${esc(label)}</span>`;
 }
 
-/** Every configured model, grouped by the CLI it starts.
- *
- *  The grouping is what carries the tool while the list is open, and
- *  the model's own name — `queue-config.json`'s own key — while it is
- *  closed. There is no `(codex)` suffix.
- *
- *  `data-tool` is read to say which tool a model belongs to: the AI select beside this one has to say which
- *  tool the model this select is on belongs to, and after a hand-picked
- *  model survives the five-second swap this attribute is the only place
- *  that fact lives in the browser. It is read to DISPLAY a tool, never
- *  to hide an option — nothing here is hidden by it or by anything
- *  else, which is the next paragraph's whole point.
- *
- *  Nothing is HIDDEN here either, which is the whole point. Every
- *  phase's select offers every model, so a row can be run analyze on
- *  one CLI and implement on another — which the runner has always
- *  allowed and the filter is what stopped anyone discovering.
- *
- *  `RUNNABLE_TOOLS`'s own order, not the configuration's: which group
- *  comes first is a fact about the page, not about whichever tool an
- *  admin happened to list first. A tool with nothing configured draws
- *  no group at all. */
-/** A recorded model no choice names any more: by the version it ran on
- *  where its run reported one, else by the word it was recorded as. */
-export function recordLabel(recorded: string, ranModelId: string | undefined): string {
-  return modelName(ranModelId) ?? recorded;
-}
-
-export function modelOptions(
-  models: NonNullable<SpecsPageOptions["modelChoices"]>,
-  chosen?: string,
-  ranModelId?: string,
-): string {
-  const groups = RUNNABLE_TOOLS
-    .map((tool) => {
-      const group = models.filter((m) => (m.tool ?? "claude") === tool);
-      if (!group.length) return "";
-      return (
-        `<optgroup label="${esc(TOOL_NAMES[tool])}">` +
-        group
-          .map(
-            (m) =>
-              `<option value="${esc(m.name)}" data-tool="${esc(providerToolOf(tool))}"` +
-              // The option's own label is the model's name
-              // alone — a per-step dollar figure would read as a price,
-              // so the config does not carry one.
-              // What the alias gives today, when it has run: `Opus 5.5`.
-              `${m.name === chosen ? " selected" : ""}>${esc(aliasLabel(m.name, m.ranAs, m.named))}</option>`,
-          )
-          .join("") +
-        `</optgroup>`
-      );
-    })
-    .join("");
-  // An archived phase's own record wins unconditionally
-  // (`resolveRecordedModel`), including a model retired or renamed since
-  // the run — which no group above lists any more. Rather than let that
-  // name silently vanish from the select, one bare option carries it,
-  // selected, outside any tool's group.
-  const known = chosen !== undefined && models.some((m) => m.name === chosen);
-  const stale = chosen && !known ? `<option value="${esc(chosen)}" selected>${esc(recordLabel(chosen, ranModelId))}</option>` : "";
-  return groups + stale;
-}
 
 // What the phase columns under this line are. TWO of them: the phase's
 // name, hard left in a cell of its own, and the three choices a line

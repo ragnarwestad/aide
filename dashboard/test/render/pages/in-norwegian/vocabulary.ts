@@ -8,7 +8,7 @@ import { MESSAGES } from "../../../../src/messages/catalog.ts";
 import { translations } from "../../../../src/i18n/translations.ts";
 import { STEP_LABELS_NB } from "../../../../src/format/step-label.ts";
 import { GERUND_NB } from "../../../../src/format/gerund.ts";
-import { TOOL_NAMES } from "../../../../src/render/pages/specs-list";
+import { TOOL_NAMES } from "../../../../src/queue/providers/tools.ts";
 import { INSTALL_TARGETS } from "../../../../src/render/pages/settings-page/places.ts";
 import { LANGUAGE_NATIVE_NAMES } from "../../../../src/render/ui/header-controls.ts";
 

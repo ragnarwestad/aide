@@ -12,8 +12,7 @@ import { t, type Language } from "../../../i18n";
 import { btn, cardRow, cardSection, helpPopover, messageSlot } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { OTHER_STEPS, SPEC_STEPS, type SettingsPageOptions } from "../settings-page/index.ts";
-import { providerToolOf, resolveChosenModel, resolveProvider, type ProviderOption } from "../specs-list/model-resolve.ts";
-import { modelSelect, providerSelect } from "../specs-list/model-picker/selects.ts";
+import { modelSelect, providerSelect, providerToolOf, resolveChosenModel, resolveProvider, type ProviderOption } from "../../ui/ai-model";
 
 type Tables = Pick<QueueDefaults, "model" | "provider" | "projectModels">;
 

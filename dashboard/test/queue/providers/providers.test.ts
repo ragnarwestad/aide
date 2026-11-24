@@ -18,7 +18,7 @@ import {
 } from "../../../src/queue/providers/index.ts";
 import { TOOLS } from "../../../src/queue/providers/tools.ts";
 import type { Job, QueueDefaults } from "../../../src/queue/queue.ts";
-import { resolveProvider } from "../../../src/render/pages/specs-list/model-resolve.ts";
+import { resolveProvider } from "../../../src/render/ui/ai-model";
 
 const PROVIDERS: Record<string, Provider> = {
   Claude: { name: "Claude", tool: "claude" },

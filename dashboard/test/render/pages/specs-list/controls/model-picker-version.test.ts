@@ -4,7 +4,8 @@
 // version dropped off it ("Opus 5.5" became "Opus").
 
 import { describe, expect, test } from "bun:test";
-import { pickerModels, recordLabel, resolveRecordedModel, sidePickers } from "../../../../../src/render/pages/specs-list/model-picker";
+import { pickerModels, resolveRecordedModel, sidePickers } from "../../../../../src/render/pages/specs-list/model-picker";
+import { recordLabel } from "../../../../../src/render/ui/ai-model";
 import type { SpecGroup } from "../../../../../src/render/pages/specs-list/data-model";
 
 const MODELS = [

@@ -12,7 +12,7 @@ import type { Provider } from "../../../queue/providers/index.ts";
 import type { RunnableTool } from "../../../queue/providers/tools.ts";
 import { t, type Language } from "../../../i18n";
 import { stepLabel } from "../../../format/step-label.ts";
-import { modelSelect, providerSelect, resolveChosenModel, resolveProvider, type ProviderOption } from "../specs-list";
+import { modelSelect, providerSelect, resolveChosenModel, resolveProvider, type ProviderOption } from "../../ui/ai-model";
 import { WORKFLOW_STEPS } from "../../../queue/steps.ts";
 import { PLAN_REVIEW, SIDE_PARTS_OF, type PickPart } from "../../../queue/providers/side-tools.ts";
 

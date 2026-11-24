@@ -18,7 +18,7 @@ import {
   type Provider,
 } from "../../../src/queue/providers/index.ts";
 import type { Job, QueueDefaults } from "../../../src/queue/queue.ts";
-import { offeredProviders, resolveProvider } from "../../../src/render/pages/specs-list/model-resolve.ts";
+import { offeredProviders, resolveProvider } from "../../../src/render/ui/ai-model";
 import { providerPickerOptions } from "../../../src/serve/providers/options.ts";
 
 const PROVIDERS: Record<string, Provider> = {

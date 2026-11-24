@@ -30,7 +30,7 @@ import { windowAttributes, windowControl } from "../list-window/control.ts";
 // (`renderSpecsPage`, `renderSpecsRows`) and `groupRows`, which is the
 // one function that knows about both a filtered/sorted list AND a single row's markup.
 
-import type { ProviderOption } from "./model-picker";
+import type { ModelChoice, ProviderOption } from "../../ui/ai-model";
 import { esc } from "../../ui/html.ts";
 import { LOADING_HIDE_RULE, loadingBlock } from "../../ui/loading.ts";
 import { pageShell, shellHead, shellRest, type NavEntry } from "../../ui/shell.ts";
@@ -38,26 +38,10 @@ import type { QueueRowView } from "../../ui/job-state";
 import { type ProgressStepState } from "../../ui/components";
 import { t, type Language } from "../../../i18n";
 import type { FailedCreate } from "../../../push/failed-creates.ts";
-import type { RunnableTool } from "../../../queue/providers/tools.ts";
 import type { SidePart } from "../../../queue/providers/side-tools.ts";
 import type { OpenOverlap } from "../../../project/overlapping-specs.ts";
 import type { ExecutionGroup } from "../../../queue/execution-groups";
 import { renderFailedCreateNotices } from "./failed-create-notices.ts";
-// Re-exported for the pages that pick a model outside a row of this
-// list — `new-spec-page/` and `settings-page.ts` — so the split
-// between this file and `specs-list/model-picker` is invisible to
-// them. Nothing here uses these locally.
-export {
-  TOOL_NAMES,
-  defaultModelForTool,
-  modelOptions,
-  modelSelect,
-  offeredProviders,
-  providerSelect,
-  resolveChosenModel,
-  resolveProvider,
-  type ProviderOption,
-} from "./model-picker";
 import {
   ACTIVE_FILTER_KEY,
   applyFilter,
@@ -159,7 +143,7 @@ export interface SpecsPageOptions {
   /** The models a job may be asked to run on, from the config. Empty or
    *  absent means the per-step configuration is the only answer and the
    *  page offers no choice at all. */
-  modelChoices?: { name: string; tool?: RunnableTool; ranAs?: string; named?: { id: string; name: string } }[];
+  modelChoices?: ModelChoice[];
   /** The configured model per step (plus a "default" key), from the
    *  config's own `model` table. It is what a phase line's select is
    *  pre-filled with when the phase has not run yet — the reader sees

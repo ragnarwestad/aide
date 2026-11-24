@@ -15,7 +15,8 @@ import { chosenSteps, runFormId, specLocked, specRunChoices } from "./row-state.
 import { phaseHasRun, phaseMessagesFold, phaseMessagesRow } from "./phase-messages";
 import { sideLines, sideRunOf } from "./phase-messages/side-lines.ts";
 import { dependsOnLine } from "./depends-on";
-import { pickerFor, resolveProvider, type PickerOptions } from "./model-resolve.ts";
+import { pickerFor, type PickerOptions } from "./model-resolve.ts";
+import { resolveProvider } from "../../ui/ai-model";
 import { PLAN_REVIEW, SIDE_PARTS_OF } from "../../../queue/providers/side-tools.ts";
 import { isGuardEnding } from "../../../step-endings.ts";
 import { specReference } from "../../../project/spec-folder.ts";

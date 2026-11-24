@@ -7,7 +7,7 @@ import { capitalizeFirst } from "../../../messages/usage-limit/get.ts";
 import { formatSentence } from "../../../messages/format.ts";
 import { t, type Language } from "../../../i18n";
 import { type Provider, type ProviderTool } from "../../../queue/providers/index.ts";
-import { TOOL_NAMES } from "../specs-list";
+import { TOOL_NAMES } from "../../../queue/providers/tools.ts";
 import { stamp, type ExtraCheck } from "./tools.ts";
 
 export const PROVIDERS_ADD_ROUTE = "/api/queue/settings/providers/add";

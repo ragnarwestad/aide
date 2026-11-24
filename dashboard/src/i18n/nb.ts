@@ -549,7 +549,6 @@ export const nb: Record<TranslationKey, string> = {
   "schedule.deleteAria": "Slett {name}",
   "schedule.deleteTitle": "Slette {project}:{name}?",
   "schedule.deleteSentence": "Oppføringen fjernes og slutter å kjøre. Kjøringshistorikken blir liggende i køen.",
-  "schedule.project": "Prosjekt",
   "schedule.promptPath": "Sti til promptfilen",
   "schedule.nextRunAt": "Neste kjøring: {at}",
   "newSpec.pageTitle": "Ny spesifikasjon",

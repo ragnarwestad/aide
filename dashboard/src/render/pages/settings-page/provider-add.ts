@@ -12,7 +12,7 @@ import { esc } from "../../ui/html.ts";
 import { btn, formDialog, radioCards, toolIcon } from "../../ui/components";
 import { t, type Language, type TranslationKey } from "../../../i18n";
 import { PROVIDER_TOOLS } from "../../../queue/providers/index.ts";
-import { TOOL_NAMES } from "../specs-list";
+import { TOOL_NAMES } from "../../../queue/providers/tools.ts";
 import { PROVIDERS_ADD_ROUTE, PROVIDERS_TAB_PATH } from "./providers.ts";
 import { fieldRow, runtimeRows } from "./provider-detail.ts";
 

@@ -10,7 +10,7 @@ import { btn, btnLink, field, messageSlot, rowMessage } from "../../ui/component
 import { esc } from "../../ui/html.ts";
 import { capitalizeFirst } from "../../../messages/shared/written.ts";
 import { t, type Language } from "../../../i18n";
-import { modelSelect, providerSelect, resolveChosenModel, resolveProvider, type SpecsPageOptions } from "../specs-list";
+import { modelSelect, providerSelect, resolveChosenModel, resolveProvider, type AiModelOptions } from "../../ui/ai-model";
 
 export interface ScheduleFormOptions {
   /** Present when editing; absent when creating — decides the submit
@@ -19,17 +19,10 @@ export interface ScheduleFormOptions {
   entryName?: string;
   entry?: { name: string; cron: string; prompt: string; model?: string; provider?: string; notify?: ScheduleNotify; chrome?: boolean; sandbox?: false; enabled?: boolean };
   action: string;
-  /** Every allowed project: draws a `<select name="project">`
-   *  the same way the New-spec form's own Project field is
-   *  (`new-spec-page/`). Mutually exclusive with `fixedProject`
-   *  below — the New-job page used this; nothing else does now that it
-   *  is gone. */
-  projects?: readonly string[];
   /** The project's own Schedule tab: the project is fixed by
-   *  the page, so it rides as a hidden field instead of a select — a
-   *  select is not allowed here, but the create route still reads `project`
-   *  off the POST body (`schedule-admin-routes.ts`), so the value still
-   *  has to be sent. Never set together with `projects`. */
+   *  the page, so it rides as a hidden field — the create route reads
+   *  `project` off the POST body (`schedule-admin-routes.ts`), so the
+   *  value still has to be sent. */
   fixedProject?: string;
   /** Where a successful save goes (`page-routes/schedule-edit-page.ts`):
    *  the page the reader came from, carried in the form so the POST can
@@ -40,14 +33,14 @@ export interface ScheduleFormOptions {
    *  given, built by the same helper in `serve.ts` so no two pages come
    *  to offer different lists. Absent or empty draws no picker at all,
    *  exactly as the New-spec form does. */
-  modelChoices?: SpecsPageOptions["modelChoices"];
+  modelChoices?: AiModelOptions["modelChoices"];
   /** What the configuration would give each step. Only `schedule`'s own
    *  entry (or the table's `default`) can matter here: a scheduled job
    *  runs that one step. */
-  defaultModels?: SpecsPageOptions["defaultModels"];
+  defaultModels?: AiModelOptions["defaultModels"];
   /** The providers the AI choice lists, and the configured one per step. */
-  providerChoices?: SpecsPageOptions["providerChoices"];
-  defaultProviders?: SpecsPageOptions["defaultProviders"];
+  providerChoices?: AiModelOptions["providerChoices"];
+  defaultProviders?: AiModelOptions["defaultProviders"];
   /** Draws Cancel beside Save, back to this address: the Settings tab
    *  the form was opened on. */
   cancelHref?: string;
@@ -183,12 +176,6 @@ export function renderScheduleForm(opts: ScheduleFormOptions, lang: Language = "
     messageSlot("refused", "failed") +
     rowMessage("info", t(lang, "schedule.reportOnly"), { tag: "p" }) +
     `<div class="frow">` +
-    (opts.projects
-      ? field(
-          t(lang, "schedule.project"),
-          `<select name="project">` + opts.projects.map((p) => `<option value="${esc(p)}">${esc(p)}</option>`).join("") + `</select>`,
-        )
-      : "") +
     field(t(lang, "schedule.colName"), `<input type="text" name="name" required maxlength="64" value="${esc(e?.name ?? "")}">`) +
     `</div>` +
     `<div class="frow">` +

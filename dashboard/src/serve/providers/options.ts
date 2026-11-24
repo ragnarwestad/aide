@@ -2,7 +2,7 @@
 
 import { providerChoices } from "../../queue/providers/index.ts";
 import type { QueueStore } from "../../queue/queue.ts";
-import type { ProviderOption } from "../../render/pages/specs-list/model-resolve.ts";
+import type { ProviderOption } from "../../render/ui/ai-model";
 
 /** The providers that run at least one model choice, in config order, with
  *  the configured provider per step. */
