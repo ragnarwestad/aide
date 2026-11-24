@@ -33,6 +33,6 @@ test("a group Archive gets its summary position only after the explicit action a
   const owner = store.waiting.open("hold dispatch", `job:${deploy.id}:0`);
   makeRunner().tick();
   expect(waitingGroups(store)[0]?.queuePosition).toMatchObject({ id: `group:${group.id}:archive`, operation: "archive", n: 2 });
-  expect(store.waiting.snapshot().entries[1]?.jobId).toBe(archive.id);
+  expect(store.waiting.snapshot().entries[1]).toMatchObject({ jobId: archive.id, label: "release" });
   store.waiting.cancel(owner);
 });

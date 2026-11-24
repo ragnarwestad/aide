@@ -18,6 +18,12 @@ export function jobEntry(job: Job): WaitingEntry {
     label: job.createTitle ?? job.branch ?? job.specFolder, operation: job.steps[job.stepIndex] ?? "",
     reason: formatSentence("en", job.error) ?? (job.results.at(-1)?.terminalReason === "acceptance-criteria-unticked" ? "Waiting for acceptance criteria to be checked" : job.landing ? "Waiting for this job's merge" : "") };
 }
+/** A group's Archive is one entry for the whole group, so it carries the
+ *  group's name rather than its first member's. */
+function groupNamed(entry: WaitingEntry, store: QueueStore): WaitingEntry {
+  const group = entry.groupId ? store.executionGroups.get(entry.groupId) : undefined;
+  return group ? { ...entry, label: group.displayName ?? group.name } : entry;
+}
 const archiveChecks = new WeakMap<QueueStore, Set<string>>();
 
 /** Called after the runner has ended archives with open acceptance. */
@@ -51,7 +57,7 @@ export function createWaiting(store: QueueStore, mirrorPath?: string): WaitingQu
         (j.state === "waiting" && !!j.usageLimitWait && !usageLimitStopSuperseded(jobs, j)) ||
         ((j.state === "done" || j.state === "failed") && j.results.at(-1)?.terminalReason === "approach-choice" &&
           !jobs.some(other => other.id !== j.id && other.project === j.project && other.specFolder === j.specFolder && Date.parse(other.createdAt) >= Date.parse(j.createdAt))));
-      return pending.map(jobEntry);
+      return pending.map((job) => groupNamed(jobEntry(job), store));
     },
   });
   waiting.snapshot();
