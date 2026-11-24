@@ -1,4 +1,5 @@
 import { dispatchFor } from "../../queue/waiting/dispatch.ts";
+import { mergeWaitEntry } from "../../queue/waiting/jobs.ts";
 // The landing every self-landing step shares: merge a step's own
 // branch into the default branch of every repo it pushed to, and
 // report per repo.
@@ -160,7 +161,7 @@ export async function landBranch(
       const handed = handedToMerge(ctx, job, what, repo.root, branch, codeRoots);
       const merge = () =>
         dispatchFor(ctx.queue.waiting).run(
-          { id: `merge:${job.id}:${what.step}:${repo.root}`, jobId: job.id, project: job.project, label: branch, operation: what.step, reason: "Waiting for the repository merge lock" },
+          mergeWaitEntry(ctx.queue, job, what.step, repo.root, branch),
           ctx.mergeLock, repo.root,
           () => {
             ctx.queue.update(job.id, { landBegan: true });

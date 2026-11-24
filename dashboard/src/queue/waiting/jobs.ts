@@ -83,3 +83,12 @@ export function queuedWhileMergeWaits<T extends { state?: MarkState }>(steps: T[
   const queuedStepState: MarkState = "queued";
   return waits ? steps.map((step) => (step.state === "running" ? { ...step, state: queuedStepState } : step)) : steps;
 }
+
+/** A landing's merge waiting for the repository's lock. A group's Archive
+ *  merges for the whole group, so its wait is the group's: it carries the
+ *  group and the group's name, and the group's card has its place. */
+export function mergeWaitEntry(store: QueueStore, job: Job, step: string, root: string, branch: string): WaitingEntry {
+  const group = job.executionGroupId && step === "archive" ? store.executionGroups.get(job.executionGroupId) : undefined;
+  return { id: `merge:${job.id}:${step}:${root}`, jobId: job.id, ...(group ? { groupId: group.id } : {}), project: job.project,
+    label: group ? group.displayName ?? group.name : branch, operation: step, reason: "Waiting for the repository merge lock" };
+}
