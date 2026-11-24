@@ -133,6 +133,12 @@ test("a card ready to archive offers Archive and says the group lands together (
   expect(html).toContain(t("en", "list.groupArchiveReady", { button: stepLabel("archive") }));
 });
 
+test("a card offers Archive for a member the group recorded as implemented while its files still say Analyze", () => {
+  const recorded = { ...group("waiting-acceptance"), completedMembers: ["1-first", "2-second"] };
+  const html = executionGroupCard(recorded, [implemented("1-first"), implemented("2-second", { done: ["create", "analyze"] })]);
+  expect(html).toContain('name="action" value="archive"');
+});
+
 test("an opened group shows one shared Archive line above its members without a checkbox (AC-1, AC-3, AC-6)", () => {
   const archiveJob = {
     id: "archive-1", project: "aide", specFolder: "1-first", steps: ["archive"], stepIndex: 0,

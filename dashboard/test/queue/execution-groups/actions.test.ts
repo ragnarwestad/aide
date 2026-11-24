@@ -6,6 +6,7 @@ import {
   groupBlocksIndividualRun,
   groupMemberSteps,
   groupReservesSpec,
+  memberImplemented,
   type ExecutionGroupMemberState,
 } from "../../../src/queue/execution-groups/actions.ts";
 import type { ExecutionGroup } from "../../../src/queue/execution-groups";
@@ -90,4 +91,11 @@ test("Edit and Remove stay visible but disabled while the group has work in flig
     expect(controls.menu).toEqual(["edit", "remove"]);
     expect(controls.disabledMenu).toEqual(["edit", "remove"]);
   }
+});
+
+test("a member whose Implement the group recorded counts as implemented before its files say so", () => {
+  const group = { completedMembers: ["871-b"] };
+  expect(memberImplemented(group, "871-b", ["create", "analyze"])).toBe(true);
+  expect(memberImplemented(group, "866-a", ["create", "analyze"])).toBe(false);
+  expect(memberImplemented(group, "866-a", ["create", "analyze", "implement"])).toBe(true);
 });

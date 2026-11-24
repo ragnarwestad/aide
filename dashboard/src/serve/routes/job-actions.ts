@@ -21,7 +21,7 @@ import { specReference } from "../../project/spec-folder.ts";
 import { workflowArc } from "../../workflow-steps.ts";
 import { groupBranch } from "../../project/spec-names.ts";
 import { enqueueRequest, groupRowPicks, withRowPicks } from "../../queue/request/index.ts";
-import { executionGroupAction, waitingGroupJob, type ExecutionGroup, type ExecutionGroupAction } from "../../queue/execution-groups";
+import { executionGroupAction, memberImplemented, waitingGroupJob, type ExecutionGroup, type ExecutionGroupAction } from "../../queue/execution-groups";
 import { groupBlocksIndividualRun } from "../../queue/execution-groups/actions.ts";
 import { createExecutionGroup, editGroup, removeExecutionGroup } from "./spec-edit/group.ts";
 import { executionGroupForAction } from "./spec-edit/execution-group-action.ts";
@@ -101,7 +101,7 @@ export async function handleJobActionRoutes(
     const historical = ctx.queue.list().filter((job) => job.project === project && input.members.includes(job.specFolder));
     const waiting = waitingGroupJob(execution, historical);
     const available = executionGroupAction(execution, [...members.map((member) => ({
-      implemented: (member.done ?? []).includes("implement") && !memberSteps[member.specFolder]?.length,
+      implemented: memberImplemented(execution, member.specFolder, member.done ?? []) && !memberSteps[member.specFolder]?.length,
       archived: false,
       acceptanceOpen: !!member.acceptanceOpen,
       automaticWaiting: waiting?.specFolder === member.specFolder,

@@ -12,6 +12,16 @@ export interface ExecutionGroupMemberState {
   automaticWaiting?: boolean;
 }
 
+/** Whether a member has done Implement: its files say so, or this group
+ *  recorded its Implement as completed. The group's own record stands while
+ *  the files are still read from the default branch, which gets a member's
+ *  Implement only when the group archives. */
+export function memberImplemented(
+  group: Pick<ExecutionGroup, "completedMembers">, specFolder: string, done: readonly string[],
+): boolean {
+  return done.includes("implement") || group.completedMembers.includes(specFolder);
+}
+
 export const executionGroupActivity = (state: ExecutionGroup["state"]): "running" | "queued" | "idle" => {
   if (state === "running" || state === "archiving") return "running";
   return state === "queued" ? "queued" : "idle";

@@ -392,3 +392,22 @@ test("manual Start consumes changed member choices even when Implement was alrea
   expect(queue.executionGroups.get(group.id)).toMatchObject({ state: "queued", stoppedByUser: undefined,
     completedMembers: [], memberSteps: { "81-first": ["analyze"], "82-next": ["implement"] } });
 });
+
+test("Start is refused once the group recorded every member's Implement, while the files still say Analyze", async () => {
+  const queue = new QueueStore({
+    defaults: { timeoutSec: { default: 1200 }, permissionMode: { default: "acceptEdits" }, model: { default: "sonnet" } },
+    resolve: () => ({ specFolders: ["81-first", "82-next"] }),
+  });
+  const group = queue.executionGroups.prepare({ project: "aide", name: "Release", members: ["81-first", "82-next"], branch: "aide/group-release" });
+  queue.executionGroups.update(group.id, { state: "waiting-acceptance", completedMembers: ["81-first", "82-next"] });
+  const path = `/api/queue/groups/${group.id}/action`;
+  const response = await handleJobActionRoutes({ queue,
+    targets: () => group.members.map((specFolder, i) => ({ project: "aide", specFolder,
+      done: i === 0 ? ["analyze", "implement"] : ["analyze"], group: { name: "Release", position: i + 1 } })),
+    withFreshness: (targets: unknown) => targets, specRef: () => undefined, tickRunner: async () => {},
+  } as unknown as Parameters<typeof handleJobActionRoutes>[0],
+  new Request(`http://localhost${path}`, { method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ action: "start" }) }), path);
+  expect(response?.status).toBe(409);
+  expect(queue.list()).toEqual([]);
+});

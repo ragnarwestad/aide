@@ -5,7 +5,7 @@ import { automaticProviderWait, inFlight } from "../../../queue/job-rules/activi
 import { currentStep } from "../../ui/job-state";
 import { specNumber } from "../../../project/spec-folder.ts";
 import type { ExecutionGroup } from "../../../queue/execution-groups";
-import { executionGroupActivity, executionGroupControls, executionGroupFinished } from "../../../queue/execution-groups";
+import { executionGroupActivity, executionGroupControls, executionGroupFinished, memberImplemented } from "../../../queue/execution-groups";
 import { esc } from "../../ui/html.ts";
 import { badge, buttonForm, foldButton, headerMenu, pips, progressDialog, stepLabel, type BadgeVariant, type PipKind } from "../../ui/components";
 import type { SpecGroup, SpecTarget, SpecsPageOptions } from "../specs-list";
@@ -141,7 +141,7 @@ export function executionGroupCard(
   const waiting = groupProviderLimitWait(group, members.map((member) => member.group));
   const states = members.map(({ group: member }) => ({
     specFolder: member.specFolder,
-    implemented: member.done.includes("implement"),
+    implemented: memberImplemented(group, member.specFolder, member.done),
     archived: isArchivedRow(member),
     acceptanceOpen: !!member.acceptanceOpen,
     busy: specBusy(member),

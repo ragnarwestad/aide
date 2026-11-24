@@ -88,6 +88,9 @@ What a member has done is known only once the board has read every spec after it
 after each start or Deploy. Until then Start on a group is refused with "The board is still reading the specs: press
 Start again in a moment.", and a group moving on to its next member, after a member's Implement or after an edit,
 waits and moves on once the specs are read. While it waits, the group's card reads stopped.
+A member whose Implement the group recorded counts as implemented, so the card offers Archive rather than Start,
+even while the board still reads that member's files from the default branch, which gets its Implement only with the
+group's Archive.
 
 A spec that belongs to an unfinished group has no Run on its own row. Start, Cancel and Archive for the members are on
 the group's card. A member's own queued or running job keeps its ordinary controls on the spec row.

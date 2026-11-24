@@ -1,7 +1,7 @@
 export { ExecutionGroupStore } from "./store.ts";
 export { EXECUTION_GROUP_STATES } from "./types.ts";
 export type { ExecutionGroup, ExecutionGroupJob, ExecutionGroupLog, ExecutionGroupState, PrepareExecutionGroup } from "./types.ts";
-export { executionGroupAction, executionGroupActivity, executionGroupControls, executionGroupFinished, groupMemberSteps, waitingGroupJob, activeGroupForSpec, groupReservesSpec } from "./actions.ts";
+export { executionGroupAction, executionGroupActivity, memberImplemented, executionGroupControls, executionGroupFinished, groupMemberSteps, waitingGroupJob, activeGroupForSpec, groupReservesSpec } from "./actions.ts";
 export type { ExecutionGroupAction, ExecutionGroupMenuAction, ExecutionGroupMemberState } from "./actions.ts";
 export { eligibleGroupMembers, groupableProjects, lockedGroupMembers, validateExecutionGroupEdit, validateExecutionGroupRequest } from "./eligibility.ts";
 export { groupBranchForJob } from "./branch.ts";
