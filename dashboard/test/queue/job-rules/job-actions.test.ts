@@ -16,8 +16,9 @@ describe("a scheduled job", () => {
     expect(jobActions(row("schedule", { state: "waiting", usageLimitWait: { until: "2027-01-01T00:00:00Z" } }))).toEqual(BUTTON("cancel"));
   });
 
-  test("offers Remove, and no Start, once cancelled or failed: Run now runs it again", () => {
-    for (const state of ["cancelled", "failed"]) expect(jobActions(row("schedule", { state }))).toEqual(BUTTON("remove"));
+  test("offers Start with Remove in the menu once cancelled, and Remove alone once failed", () => {
+    expect(jobActions(row("schedule", { state: "cancelled" }))).toEqual({ button: "start", menu: ["remove"] });
+    expect(jobActions(row("schedule", { state: "failed" }))).toEqual(BUTTON("remove"));
   });
 
   test("offers nothing once done", () => {

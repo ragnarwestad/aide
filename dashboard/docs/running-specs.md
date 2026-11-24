@@ -552,11 +552,10 @@ per fire window and reason. The step sends the named file's contents to the mode
 folder involved.
 
 **Cancel and Run on Jobs.** Open a scheduled job's row to Cancel a queued attempt or one waiting for quota.
-Cancel asks for confirmation, keeps the attempt as Cancelled and ends its automatic restart. A running attempt
-keeps Stop. Cancelled, stopped and failed attempts offer Run: its confirmation starts with the current Schedule
-AI and model settings, and lets you choose a valid pair for one new attempt. The old attempt stays in history;
-the recurring schedule and saved settings stay unchanged. A deleted schedule cannot be run again from history.
-When the next enabled occurrence becomes due, the old quota wait ends as Failed before any quota restart: the
+Cancel asks for confirmation, keeps the attempt as Cancelled and ends its automatic restart. A cancelled attempt
+offers Start, which runs the same job again with the AI and model it had, and Remove in its menu. A failed attempt
+offers Remove; it is run again with Run now on the project's Schedule tab. When the next enabled occurrence becomes
+due, an attempt still waiting for quota, or still queued because a usage limit holds it back, ends as Failed: the
 attempt did not run, and nobody cancelled it. The ordinary schedule handles the new occurrence, without backfilling
 missed runs.
 
@@ -965,11 +964,12 @@ scheduled job's, a deploy's and a Merge's row offers is one table the page and t
 
 | Job | Queued, running | Cancelled | Failed |
 | --- | --- | --- | --- |
-| Scheduled job | Cancel, also while it waits on its usage limit | Remove | Remove |
+| Scheduled job | Cancel, also while it waits on its usage limit | Start, with Remove in the menu | Remove |
 | Deploy | Cancel while queued or held back, nothing once its fetch has begun | Remove | Remove |
 | Merge | Cancel until its push begins | Start, with Remove in the menu; Remove alone once its branch has left origin | Start, with Remove in the menu; Remove alone once its branch has left origin |
 
-A scheduled job is run again with Run now on its project's Schedule tab, not from its row. Start on a failed or cancelled Merge
+A failed scheduled job is run again with Run now on its project's Schedule tab, not from its row. Start on a cancelled
+scheduled job queues the same job again, with the AI and model it had. Start on a failed or cancelled Merge
 queues the same job again, with the branch as it is on origin then. Remove takes the row off Jobs and out of the
 count of jobs needing the user; the job stays in the queue's history. Nothing leaves Jobs on its own: every Merge
 attempt keeps its row until it is removed.

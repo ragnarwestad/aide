@@ -193,6 +193,7 @@ export const de: Record<TranslationKey, string> = {
   "jobs.removeBody": "Er bleibt im Verlauf der Warteschlange, erscheint aber nicht mehr unter Jobs und zählt nicht mehr als offen.",
   "jobs.restartTitle": "{job} erneut starten?",
   "jobs.restartBody": "Derselbe Merge läuft noch einmal, mit dem Branch, wie er jetzt auf origin liegt.",
+  "jobs.restartScheduleBody": "Derselbe Job läuft erneut, mit der KI und dem Modell, die er hatte.",
   "jobs.removing": "Wird entfernt…",
   "jobs.endedFailed": "Der Job ist fehlgeschlagen — sein Protokoll sagt warum.",
   "jobs.endedWaiting": "Der Job wartet und läuft von selbst weiter.",

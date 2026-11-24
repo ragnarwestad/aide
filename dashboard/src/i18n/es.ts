@@ -193,6 +193,7 @@ export const es: Record<TranslationKey, string> = {
   "jobs.removeBody": "Queda en el historial de la cola, pero ya no aparece en Jobs ni cuenta como pendiente.",
   "jobs.restartTitle": "¿Iniciar {job} de nuevo?",
   "jobs.restartBody": "El mismo Merge se ejecuta otra vez, con la rama tal como está ahora en origin.",
+  "jobs.restartScheduleBody": "El mismo trabajo se ejecuta de nuevo, con la IA y el modelo que tenía.",
   "jobs.removing": "Quitando…",
   "jobs.endedFailed": "El trabajo falló — su registro dice por qué.",
   "jobs.endedWaiting": "El trabajo está en espera y seguirá por sí solo.",

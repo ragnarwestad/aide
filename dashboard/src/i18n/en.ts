@@ -194,6 +194,7 @@ export const en = {
   "jobs.removeBody": "It stays in the queue's history, but no longer shows on Jobs or counts as needing you.",
   "jobs.restartTitle": "Start {job} again?",
   "jobs.restartBody": "The same Merge runs again, with the branch as it is on origin now.",
+  "jobs.restartScheduleBody": "The same job runs again, with the AI and model it had.",
   "jobs.removing": "Removing…",
   "jobs.endedFailed": "The job failed — its log says why.",
   "jobs.endedWaiting": "The job is waiting and goes on by itself.",

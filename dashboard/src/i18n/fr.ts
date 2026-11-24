@@ -193,6 +193,7 @@ export const fr: Record<TranslationKey, string> = {
   "jobs.removeBody": "Il reste dans l’historique de la file, mais n’apparaît plus dans Jobs et ne compte plus comme à traiter.",
   "jobs.restartTitle": "Relancer {job} ?",
   "jobs.restartBody": "Le même Merge s’exécute de nouveau, avec la branche telle qu’elle est maintenant sur origin.",
+  "jobs.restartScheduleBody": "Le même travail s’exécute à nouveau, avec l’IA et le modèle qu’il avait.",
   "jobs.removing": "Retrait…",
   "jobs.endedFailed": "La tâche a échoué — son journal dit pourquoi.",
   "jobs.endedWaiting": "La tâche est en attente et reprendra d'elle-même.",

@@ -355,6 +355,26 @@ for (const first of ["poll", "runner"] as const) {
   });
 }
 
+test("a queued attempt a usage limit holds back fails when the next scheduled run is due", async () => {
+  const { QueueStore } = await import("../../../src/queue/queue.ts");
+  for (const hold of ["runner.usageLimitHeld", "runner.scheduleWaitsOnProject"] as const) {
+    const queue = new QueueStore({ defaults: { timeoutSec: {}, permissionMode: {}, model: {} }, resolve: () => ({ specFolders: [] }) });
+    const made = queue.enqueue({ project: "aide", specFolder: "schedule-nightly-report", steps: ["schedule"] });
+    if (!made.ok) throw new Error(made.error);
+    queue.update(made.job.id, { createdAt: "2026-11-17T00:00:00Z", errorReason: "held-back",
+      error: { key: hold, values: { provider: "Claude", at: "2027-01-01T00:00:00Z" } } });
+    writeSchedule("aide", [NIGHTLY]);
+    const ctx = { projectRoot: cfgDir, allowed: new Set(["aide"]), queue, scheduleStore: createScheduleStore(cfg),
+      now: () => Date.parse("2026-11-18T12:00:01Z") } as unknown as ScheduleContext;
+    await refreshSchedules(ctx);
+    const job = queue.get(made.job.id);
+    if (hold === "runner.usageLimitHeld") {
+      expect(job?.state).toBe("failed");
+      expect(job?.error).toEqual({ key: "runner.scheduleWaitReplaced" });
+    } else expect(job?.state).toBe("queued");
+  }
+});
+
 test("expiry leaves disabled, deleted, not due, unrelated and running attempts alone (AC-7)", async () => {
   const { QueueStore } = await import("../../../src/queue/queue.ts");
   for (const scenario of ["disabled", "deleted", "not-due", "unrelated", "running", "edited"] as const) {

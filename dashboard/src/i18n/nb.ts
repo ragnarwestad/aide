@@ -193,6 +193,7 @@ export const nb: Record<TranslationKey, string> = {
   "jobs.removeBody": "Den blir liggende i køens historikk, men vises ikke lenger på Jobs og teller ikke som noe du må gjøre noe med.",
   "jobs.restartTitle": "Starte {job} på nytt?",
   "jobs.restartBody": "Den samme Merge-jobben kjører igjen, med grenen slik den ligger på origin nå.",
+  "jobs.restartScheduleBody": "Den samme jobben kjører igjen, med samme AI og modell som sist.",
   "jobs.removing": "Fjerner…",
   "jobs.endedFailed": "Jobben feilet — loggen viser hvorfor.",
   "jobs.endedWaiting": "Jobben venter og fortsetter av seg selv.",

@@ -37,7 +37,8 @@ export function jobActions(row: JobActionRow): JobActions {
   const step = row.steps[row.stepIndex] ?? row.steps.at(-1);
   if (step === "schedule") {
     if (inFlight(row) || automaticProviderWait(row)) return { button: "cancel", menu: [] };
-    return row.state === "cancelled" || row.state === "failed" ? { button: "remove", menu: [] } : NONE;
+    if (row.state === "cancelled") return { button: "start", menu: ["remove"] };
+    return row.state === "failed" ? { button: "remove", menu: [] } : NONE;
   }
   if (step === "deploy") {
     if (inFlight(row)) return canCancelDeploy(row) ? { button: "cancel", menu: [] } : NONE;

@@ -93,9 +93,10 @@ function fold(key: string, open: boolean, name: string, o: JobRowOptions): strin
   });
 }
 
-/** One action's dialog: Cancel stops the job, Start runs a failed Merge
- *  again as the same job, Remove takes the row off Jobs. Each asks first and
- *  posts its route; the rows are redrawn in place. */
+/** One action's dialog: Cancel stops the job, Start runs a failed or
+ *  cancelled Merge, or a cancelled scheduled job, again as the same job,
+ *  Remove takes the row off Jobs. Each asks first and posts its route; the
+ *  rows are redrawn in place. */
 function actionDialog(row: QueueRowView, action: JobAction, name: string, lang: Language): { id: string; dialog: string } {
   const id = `job${action}-${row.id}`;
   if (action === "cancel") {
@@ -112,7 +113,7 @@ function actionDialog(row: QueueRowView, action: JobAction, name: string, lang: 
   return { id, dialog: confirmDialog(lang, {
     id,
     title: t(lang, start ? "jobs.restartTitle" : "jobs.removeTitle", { job: name }),
-    sentence: t(lang, start ? "jobs.restartBody" : "jobs.removeBody"),
+    sentence: t(lang, !start ? "jobs.removeBody" : currentStep(row) === "schedule" ? "jobs.restartScheduleBody" : "jobs.restartBody"),
     ok: { variant: "primary", pending: t(lang, start ? "list.starting" : "jobs.removing") },
     post: { action: `/api/queue/${row.id}/${start ? "restart" : "remove"}`, hook: "actionform" },
   }) };

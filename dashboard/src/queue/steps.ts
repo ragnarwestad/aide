@@ -198,7 +198,7 @@ export type TransitionEvent =
   | "landing-held" // done -> failed: the landing's suite went red
   | "landing-cancelled" // done -> cancelled: Cancel pressed while it merged
   | "cancel-schedule-wait" // waiting -> cancelled: Cancel pressed on a scheduled quota wait
-  | "replace-schedule-wait" // waiting -> failed: the next scheduled run was due while it waited
+  | "replace-schedule-wait" // waiting|queued -> failed: the next scheduled run was due while it waited or was held by a usage limit
   | "limit-reset" // waiting -> queued: its provider's usage limit has reset
   | "restart" // failed|cancelled -> queued: Start pressed on a failed or cancelled Merge
   | "restart-unbegun"; // running -> queued: the server restarted before a Merge was let into the repository
@@ -212,6 +212,7 @@ export const TRANSITIONS: Readonly<Partial<Record<JobState, Partial<Record<Trans
     start: "running",
     "no-step-left": "done",
     cancel: "cancelled",
+    "replace-schedule-wait": "failed",
   },
   running: {
     "step-succeeded": "queued",
@@ -256,7 +257,7 @@ export const TRANSITIONS: Readonly<Partial<Record<JobState, Partial<Record<Trans
     "retry-late": "queued",
     "limit-reset": "queued",
   },
-  // Start on a cancelled Merge runs it again as the same job.
+  // Start on a cancelled Merge or scheduled job runs it again as the same job.
   cancelled: {
     restart: "queued",
   },

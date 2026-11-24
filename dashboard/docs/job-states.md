@@ -40,7 +40,7 @@ second guard refuses a NEW job of any step for a spec whose own job reads `done`
 the merge settles, the same step may be queued again as a new job. A finished job is never resumed, except a step
 waiting on its provider's usage limit: the board queues it again as the same job (`limit-reset`).
 
-Only `failed` waits for a person. A failed or cancelled Merge is started again from its row as the same job, with its branch as it is on origin then (`restart`).
+Only `failed` waits for a person. A failed or cancelled Merge is started again from its row as the same job, with its branch as it is on origin then (`restart`). A cancelled scheduled job is started again the same way, with the AI and model it had.
 
 ## The transitions
 
@@ -62,11 +62,12 @@ stateDiagram-v2
     done --> cancelled: Cancel pressed while it merged
     waiting --> cancelled: Cancel pressed while it waits on its usage limit
     waiting --> failed: next scheduled run due while it waited
+    queued --> failed: next scheduled run due while a usage limit held it back
     waiting --> queued: usage limit reset or a late check gets its automatic second attempt
     failed --> queued: a late check gets its automatic second attempt, or Start on a failed Merge
     queued --> cancelled: Cancel
     running --> cancelled: Cancel
-    cancelled --> queued: Start on a cancelled Merge
+    cancelled --> queued: Start on a cancelled Merge or scheduled job
 ```
 
 **Into the queue.** A job is inserted as `queued` by a step button, Create, the schedule, Run now, the Close control

@@ -13,7 +13,7 @@ const attempt = (id: string, name: string) => ({ id, project: "aide", specFolder
   state: "waiting", stopReason: "provider-limit", usageLimitWait: { until: "2027-01-01T00:00:00Z", resetKnown: true },
   timeoutSec: {}, permissionMode: {}, model: { schedule: "codex-fast" }, results: [], createdAt: "2026-11-01T00:00:00Z" });
 
-test("a quota wait is cancelled from its row, and a cancelled or failed run offers Remove alone", async () => {
+test("a quota wait is cancelled from its row, and a cancelled run offers Start with Remove in its menu, and a failed one Remove alone", async () => {
   const { base } = harness.start({ queueMirror: JSON.stringify([attempt("old-report", "nightly"), { ...attempt("other-report", "other"), state: "failed" }]) });
   const page = await browser.newPage();
   try {
@@ -21,8 +21,10 @@ test("a quota wait is cancelled from its row, and a cancelled or failed run offe
     await page.getByRole("button", { name: "Cancel", exact: true }).click();
     await page.getByRole("dialog").getByRole("button", { name: "OK", exact: true }).click();
     await page.waitForFunction(async () => (await (await fetch("/api/queue/old-report")).json()).job.state === "cancelled");
-    await page.getByRole("button", { name: "Remove", exact: true }).nth(1).waitFor();
-    expect(await page.getByRole("button", { name: "Start", exact: true }).count()).toBe(0);
+    await page.getByRole("button", { name: "Start", exact: true }).waitFor();
+    expect(await page.getByRole("button", { name: "Start", exact: true }).count()).toBe(1);
+    expect(await page.getByRole("button", { name: "Remove", exact: true }).count()).toBe(1);
+    await page.getByLabel("More actions for", { exact: false }).click();
     await page.locator('button[data-ask="jobremove-old-report"]').click();
     await page.getByRole("dialog").getByRole("button", { name: "OK", exact: true }).click();
     await page.waitForFunction(async () => !!(await (await fetch("/api/queue/old-report")).json()).job.removedAt);
