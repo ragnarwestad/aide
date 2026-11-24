@@ -8,6 +8,7 @@
   - [YouTube channels](#youtube-channels)
 - [Notation](#notation)
 - [News log](#news-log)
+  - [2026-11-24](#2026-11-24)
   - [2026-11-23](#2026-11-23)
   - [2026-11-22](#2026-11-22)
   - [2026-11-21](#2026-11-21)
@@ -164,6 +165,76 @@ Relevance markers in each review's `Relevance for aide` section:
 ---
 
 ## News log
+
+### 2026-11-24
+
+Review period: 2026-11-23 to 2026-11-24. All 16 source addresses, 28 watched pages and 14 YouTube channels fetched.
+Fresh MyAI failed: HTTP Error 503: Service Unavailable; complete=false, zero posts collected or retained.
+15 videos listed; five selected, all five caption files read. No channel or caption fetch failed.
+Two watched pages changed; the hooks clarification is relevant, the prompting example changes a model identifier only.
+
+**Claude Code (review period):**
+
+| Date             | Version       | News                                                                                                                                                                                                                                                  | Source                                                                                     |
+|------------------|---------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------|
+| Nov 23           | v2.1.331      | Code Mode reaches additional cloud providers; optionalDependencies in plugin manifests; MCP hangs, headless push status, Stop transcript availability and compaction fixes. Managed marketplace auto-update default announced for on or after Nov 30. | [Source](https://github.com/anthropics/claude-code/releases/tag/v2.1.331)                  |
+| Nov 23           | article       | Enterprise security guide: bound agent authority outside the model, scope credentials and network access, review skills and plugins as dependencies.                                                                                                  | [Source](https://claude.com/resources/articles/enterprise-guide-to-securing-coding-agents) |
+| Nov 23           | beta          | Claude Ship combines Code Review, PR Steward and policy-based Approvals; /ship rolls out. Team/Enterprise on GitHub, token billing and data-handling eligibility limits.                                                                              | [Source](https://claude.com/resources/articles/introducing-claude-ship)                    |
+| Nov 24 (changed) | watched pages | Hooks guide clarifies PermissionRequest in headless runs without a permission host; not a newly announced hook feature. Prompting example changes older model identifier only.                                                                        | [Source](https://code.claude.com/docs/en/hooks-guide)                                      |
+
+**GitHub Copilot CLI (review period):**
+
+| Date                | Version                  | News                                                                                                                                       | Source                                                                  |
+|---------------------|--------------------------|--------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------|
+| Nov 23              | v1.0.115-8 (pre-release) | Usage grouped by subagent name, assisted permission retries and reused approvals, sandboxed Git/worktree fixes. Assessed only when stable. | [Source](https://github.com/github/copilot-cli/releases/tag/v1.0.115-8) |
+| Nov 23–24 (checked) | —                        | No in-period changelog article (latest Nov 18); displayed blog publication metadata checked, newest Nov 12.                                | [Source](https://github.blog/ai-and-ml/github-copilot/)                 |
+
+**OpenAI Codex CLI (review period):**
+
+| Date      | Version                                                | News                                                                                                                                                                                                           | Source                                                                                                   |
+|-----------|--------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------|
+| Nov 24    | 0.172.0                                                | Optional stdio MCP servers with cached tools start lazily by default; per-app-tool approval reviewer; exec resume restores saved sandbox permissions, cwd and workspace roots; code_mode_host_grpc deprecated. | [Source](https://github.com/openai/codex/releases/tag/rust-v0.172.0)                                     |
+| Nov 23–24 | 0.174.0-alpha.1; 0.172.0-alpha.2.1; 0.171.0-alpha.13.2 | Pre-releases with generic release text; no detailed behavior inferred.                                                                                                                                         | [Source](https://github.com/openai/codex/releases)                                                       |
+| Nov 23    | article                                                | Security reviews need system-specific threat models, explicit scope and thresholds, inspectable findings and integration into development.                                                                     | [Source](https://developers.openai.com/blog/building-security-review-into-your-sdlc-with-codex-security) |
+
+**OpenCode (review period):**
+
+| Date   | Version | News                                                                                                                                                                                                                                                | Source                                                              |
+|--------|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------|
+| Nov 23 | v2.4.0  | Automations and desktop browser; Copilot token variable changes; MCP newest protocol probing; tracked plugins auto-update; SDK model/provider endpoints may be partial during async plugin loading. Image tool and Code Mode session paths renamed. | [Source](https://github.com/anomalyco/opencode/releases/tag/v2.4.0) |
+| Nov 23 | v2.4.1  | Config-only provider models appear without login; macOS 12 message persistence, keep.tokens and cache-cost fixes. Experimental model speeds and plugin automation APIs.                                                                             | [Source](https://github.com/anomalyco/opencode/releases/tag/v2.4.1) |
+
+**Across tools (review period):**
+
+| Date                | Version   | News                                                                                                                                                                                                                                           | Source                                                                 |
+|---------------------|-----------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------|
+| Nov 23              | video     | Dex Horthy: plan according to rework risk, preserve code understanding, use executable quality checks and give agents ways to test; benchmark numbers are speaker claims, not an Aide model ranking.                                           | [Source](https://www.youtube.com/watch?v=-NFMsM2y0Vk)                  |
+| Nov 23              | video     | Ray Amjad: separate setup, driver and checker; test verification against seeded bugs and clean changes; add diff-triggered incident checks. His large unit-test deletion is not adopted.                                                       | [Source](https://www.youtube.com/watch?v=DNwMbJf5SAI)                  |
+| Nov 23              | video     | Code with Beto: inspect the plan, provide concrete framework/example context, and test on the real device. Demo revenue and model quality claims do not establish general results.                                                             | [Source](https://www.youtube.com/watch?v=PxSxgxW9Lvo)                  |
+| Nov 23              | video     | OpenAI Linux research: reproduce findings, challenge candidate patches, check fresh upstream state and retain human review. 948 counts distinct patches/LPEs in vendor research, not all candidate findings or accepted upstream fixes.        | [Source](https://www.youtube.com/watch?v=MpsO8Ds8uyo)                  |
+| Nov 23              | video     | Claude monthly recap covers previously announced models, desktop and consumer features; no new CLI configuration established.                                                                                                                  | [Source](https://www.youtube.com/watch?v=EuOg5f_Egns)                  |
+| Nov 24 (checked)    | benchmark | Artificial Analysis now exposes harness-comparison sections for GPT-6 Luna and GLM-5.3-Flash instead of Coming soon. Numeric chart values unavailable in fetched text; no ranking inferred.                                                    | [Source](https://artificialanalysis.ai/agents/coding-agents)           |
+| Nov 23–24 (checked) | —         | Fowler latest listed date Nov 12; Cookbooks latest commit Nov 20. No in-period recipe. Anthropic featured model announcement is Nov 9, not the listing page date. Enterprise ZDR beta and KPMG interview have low relevance to installed CLIs. | [Source](https://github.com/anthropics/claude-cookbooks/commits/main/) |
+
+**Relevance for aide:**
+
+- ⭐ Security guide: review the runner credential, egress and extension boundaries against explicit controls; prose instructions alone do not enforce isolation. [Source](https://claude.com/resources/articles/enterprise-guide-to-securing-coding-agents).
+- ⭐ Codex security article: add explicit threat-model context, security-review triggers and scope/exclusion reporting to the analysis and review instructions. [Source](https://developers.openai.com/blog/building-security-review-into-your-sdlc-with-codex-security).
+- ⭐ Claude Ship: document /ship, policy-based approval, availability and billing in the support matrix and reference; assess overlap with Merge without changing its required checks. [Source](https://claude.com/resources/articles/introducing-claude-ship).
+- ⭐ Claude 2.1.331: document optional plugin dependencies, trace token semantics and response-compression escape hatch; record the announced managed-marketplace update default. [Source](https://github.com/anthropics/claude-code/releases/tag/v2.1.331).
+- ⚠️ Hooks clarification: verify and document PermissionRequest behavior for -p with no permission host, outside dontAsk; do not infer a runtime change from wording alone. [Source](https://code.claude.com/docs/en/hooks-guide).
+- ⭐ Codex 0.172.0: update the reference for lazy MCP startup, per-tool approval reviewers and deprecated code_mode_host_grpc; verify saved permissions on runner resume. [Source](https://github.com/openai/codex/releases/tag/rust-v0.172.0).
+- ⚠️ OpenCode 2.4.0: document COPILOT_GITHUB_TOKEN replacing GITHUB_TOKEN, MCP protocol fallback, tracked-plugin updates and asynchronous SDK readiness; check integrations before relying on old names. [Source](https://github.com/anomalyco/opencode/releases/tag/v2.4.0).
+- ⭐ OpenCode 2.4.1 contradicts the matrix claim that every provider needs login: config-only providers such as Ollama can supply models without /connect. [Source](https://github.com/anomalyco/opencode/releases/tag/v2.4.1).
+- ⭐ Horthy video: strengthen mechanical quality checks for agent-created complexity and tie planning effort to cost of later changes; existing size limits cover only part of this. [Source](https://www.youtube.com/watch?v=-NFMsM2y0Vk).
+- ⭐ Amjad video: evaluate the verification instructions using seeded faults and clean controls, and retain incident-based checks only for matching changes. Keep unit tests and required Merge checks. [Source](https://www.youtube.com/watch?v=DNwMbJf5SAI).
+- ✅ Beto video: concrete examples, plan review and testing in the target environment agree with existing analysis and verification practice; no paid MCP installation follows. [Source](https://www.youtube.com/watch?v=PxSxgxW9Lvo).
+- ✅ OpenAI video: dynamic reproduction, adversarial patch review, current-code checks and human review bear on security-related review work; the linked Nov 4 research supports the method, not a new CLI release. [Source](https://www.youtube.com/watch?v=MpsO8Ds8uyo).
+- ✅ Artificial Analysis harness comparison is now present. Use it as external context for replay; numeric scores and dates of the comparison were not established. [Source](https://artificialanalysis.ai/agents/coding-agents).
+- ℹ Claude recap repeats earlier announcements; no new CLI action. [Source](https://www.youtube.com/watch?v=EuOg5f_Egns).
+- ℹ MyAI unavailable: HTTP Error 503: Service Unavailable; complete=false, zero posts collected or retained. No posts read. [Source](https://api.fxtwitter.com/2/search).
+
+---
 
 ### 2026-11-23
 
