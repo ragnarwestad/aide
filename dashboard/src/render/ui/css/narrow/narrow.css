@@ -165,7 +165,9 @@
      #jobrows/.tablewrap rules) is kept at this width too: the header,
      the tabs and the filter row stay put and the rows scroll under
      them, as they do held sideways and on a desktop. The scrollbar's
-     lane is not: a phone's scrollbar shows only while scrolling, and
-     the rows need the width. */
-  #jobrows .tablewrap { padding-inline: 0; }
+     lane is kept only where there is a mouse or trackpad: in a narrow
+     desktop window the scrollbar is drawn over the cards' right edge
+     without it, while a phone's shows only while scrolling, and the
+     rows need the width. */
+  @media (pointer: coarse) { #jobrows .tablewrap { padding-inline: 0; } }
 }
