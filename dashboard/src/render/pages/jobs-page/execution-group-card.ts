@@ -111,7 +111,8 @@ export function executionGroupPlace(shownGroup: ExecutionGroup, rows: ExecutionG
   const band = activity === "running" ? 0 : activity === "queued" ? 1 : group.state === "completed" ? 3 : 2;
   const own = rows.filter((row) => group.members.includes(row.group.specFolder) && row.group.project === group.project);
   const changedAt = Math.max(Date.parse(group.startedAt ?? group.createdAt ?? "") || 0, ...own.map((row) => specPlace(row.group).changedAt));
-  if (band === 1) return queuedPlace(changedAt, group.queuePosition ?? firstWaiting(own.map((row) => row.group.lead)));
+  const position = group.queuePosition ?? firstWaiting(own.map((row) => row.group.lead));
+  if (band === 1 || position) return queuedPlace(changedAt, position);
   return { band, changedAt };
 }
 

@@ -361,3 +361,8 @@ test("a provider wait keeps the current phase letter without marking the untouch
   expect(memberPipLabel("825-first", wait)).toBe("825 A");
   expect(memberPipLabel("823-next")).toBe("823");
 });
+
+test("an archiving group waiting with a place in the queue stands at that place", () => {
+  const waiting = { ...group("archiving"), queuePosition: { id: "group:group-1:archive", n: 4, total: 5, reason: "", operation: "archive" } };
+  expect(executionGroupPlace(waiting)).toMatchObject({ band: 1, queued: 4 });
+});

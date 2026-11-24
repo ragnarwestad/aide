@@ -1010,8 +1010,9 @@ under its state, ending with a Log link. A queued, running or merging job offers
 a finished one has no action. Which scheduled jobs show is decided in
 `src/render/pages/jobs-page/rows.ts`.
 
-The rows sort by Created by default, newest first, spec rows and job rows together regardless of state.
-Rows with the same creation time keep their order by state and most recent change.
+Running and merging rows come first. Then come the rows with a place in the queue, in the order the queue starts
+them, as their Queued n/N reads, including a finished step waiting for its turn to merge. Then come the rows waiting for
+you, and last the rest. Within each part except the queue, the most recent change comes first.
 
 The tab has the Specs list's search box, a State dropdown and, in brackets beside it, the number of rows the table shows. The dropdown first lists the states All, Running,
 Queued, Done, Waiting, Failed and Cancelled under a States heading, then lists the kinds All, Specs, Merge, Deploys,

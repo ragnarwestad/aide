@@ -86,6 +86,17 @@ describe("where a row stands on the tab: running or landing, queued, the rest; t
     expect(ordered).toEqual(["first-made-last", "second", "third-made-first", "no-position"]);
   });
 
+  test("a landing job or spec waiting with a place in the queue stands at that place, after the running ones", () => {
+    const places = [
+      ["landing-job-2", jobPlace(job({ state: "done", landing: true, createdAt: T(9), queuePosition: { n: 2 } }))],
+      ["running-merge", jobPlace(job({ state: "running", createdAt: T(5) }))],
+      ["landing-spec-1", specPlace(group({ state: "running", lead: { state: "done", landing: true, createdAt: T(8), queuePosition: { n: 1 } } }))],
+      ["queued-3", jobPlace(job({ state: "queued", createdAt: T(10), queuePosition: { n: 3 } }))],
+    ] as const;
+    const ordered = [...places].sort((a, b) => byTabPlace(a[1], b[1])).map(([name]) => name);
+    expect(ordered).toEqual(["running-merge", "landing-spec-1", "landing-job-2", "queued-3"]);
+  });
+
   test("running and landing specs come first, then the queued one, then the rest, newest first", () => {
     const places = [
       ["rest-t1", specPlace(group({ state: "not-started", createdAt: T(1) }))],

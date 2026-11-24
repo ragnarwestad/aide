@@ -84,6 +84,9 @@ export const jobPlace = (
   history: readonly JobLike[] = [],
   scheduleEntryExists?: (project: string, name: string) => boolean,
 ): TabPlace => {
+  // A place in the queue reads Queued n/N on the row, whatever the job's own
+  // state, and puts it in the queue's order too.
+  if (job.queuePosition) return queuedPlace(lastStamp(job), job.queuePosition);
   const band = group(job);
   if (band === 1) return queuedPlace(lastStamp(job), job.queuePosition);
   if (band !== 2) return { band, changedAt: lastStamp(job) };
@@ -107,7 +110,7 @@ export const specPlace = (g: Pick<SpecGroup, "state" | "lead" | "createdAt">, jo
     !g.lead && !g.createdAt && !jobs.length
       ? ["archived", "closed"].includes(g.state) ? 0 : Number.MAX_SAFE_INTEGER
       : Math.max(g.lead ? lastStamp(g.lead) : 0, ...jobs.map(lastStamp), Date.parse(g.createdAt ?? "") || 0);
-  if (g.state === "queued") return queuedPlace(changedAt, g.lead?.queuePosition);
+  if (g.state === "queued" || g.lead?.queuePosition) return queuedPlace(changedAt, g.lead?.queuePosition);
   return { band: g.state === "running" ? 0 : ["archived", "closed"].includes(g.state) ? 3 : 2, changedAt };
 };
 
@@ -115,7 +118,8 @@ export const specPlace = (g: Pick<SpecGroup, "state" | "lead" | "createdAt">, jo
 export const queuedPlace = (changedAt: number, position?: { n: number }): TabPlace =>
   position ? { band: 1, changedAt, queued: position.n } : { band: 1, changedAt };
 
-/** Running or landing first, then queued in the order the queue starts them,
+/** Running or landing first, then queued in the order the queue starts them
+ *  (a row with a place in the queue counts as queued, as its badge reads),
  *  then the rest; the newest change first everywhere else. A queued row
  *  without a position follows those with one. */
 export const byTabPlace = (a: TabPlace, b: TabPlace): number =>
