@@ -29,6 +29,7 @@
   - [31. Try Modern Web Guidance on a web task](#31-try-modern-web-guidance-on-a-web-task)
   - [32. Switching provider before a usage limit is reached](#32-switching-provider-before-a-usage-limit-is-reached)
   - [33. Domain Specific / Standard Agents](#33-domain-specific--standard-agents)
+  - [35. Claude Ship on a project that lands through pull requests](#35-claude-ship-on-a-project-that-lands-through-pull-requests)
 
 ---
 
@@ -44,7 +45,7 @@ An idea that becomes a spec names it, and leaves this page once the spec is arch
 
 Each idea has a number that stays with it. A new idea gets the next number after the highest one ever given, and
 the number of an idea taken off the page is never used again, so a number can be referred to and still mean the
-same idea later. The next number is 35.
+same idea later. The next number is 36.
 
 ## To consider
 
@@ -730,3 +731,54 @@ References:
 - [Code examples, including GitHub issue triage and composition](https://standardagentspec.org/0.2.0/getting-started/examples/)
 - [Available runtimes](https://standardagentspec.org/runtimes/)
 - [GEPA: Reflective Prompt Evolution Can Outperform Reinforcement Learning](https://arxiv.org/abs/2507.19457)
+
+### 35. Claude Ship on a project that lands through pull requests
+
+From [Introducing Claude Ship](https://claude.com/resources/articles/introducing-claude-ship) (Nov 23, 2026), and
+from Skjera moving from pushing to main to pull requests.
+
+With `codeLanding: pr` Aide pushes a step's branch, opens a pull request and leaves it there: review, fixes and
+approval happen on GitHub, outside Aide. Claude Ship works on exactly that pull request:
+
+- **Code Review** reviews it and posts its findings.
+- **PR Steward** fixes failing checks, merge conflicts and review findings on the branch. It never approves or merges.
+- **Claude Approvals** approves or asks for a person by a policy file in the repository, and can run in observe-only
+  mode first.
+
+The idea: use Claude Ship on Skjera's pull requests, after trying it on `aide-sandbox`, which is set up to look like
+Skjera:
+
+1. `codeLanding: pr` in its manifest.
+2. A CI workflow that runs its tests on every pull request, since PR Steward acts on failing checks.
+3. The repository where the Claude organisation's GitHub connection reaches it, as Skjera's will.
+
+Then run a few specs through it with Approvals in observe-only mode.
+
+What the trial should answer:
+
+- What Code Review finds that the implement step's own review and verification did not.
+- Whether PR Steward pushing to the branch conflicts with an Aide step on the same branch, such as an implement after
+  Reopen.
+- What it costs per pull request, since Claude Ship is billed on tokens.
+
+How it would be built into Aide, in steps, each taken only when the one before shows it is needed:
+
+1. **Nothing changes in Aide.** This is the trial. Aide already opens the pull request, Claude Ship works on it on
+   GitHub, and the row reads "pull request waiting" until it merges. The one thing to check: with `--push pr` the
+   pull request opens after implement, so PR Steward may push to the branch while the spec waits for its criteria to
+   be ticked. An archive, or an implement after Reopen, then has to take those commits from origin, or its push is
+   refused or PR Steward's work is lost.
+2. **The row shows what Claude Ship is doing.** The row reads the pull request's state with `gh`, as it already reads
+   whether the branch has merged: review findings, PR Steward at work, approved, or waiting for a person. If the
+   trial shows that PR Steward and an Aide step can collide, Aide also takes the branch from origin before each step,
+   or waits while PR Steward is at work.
+3. **Claude Ship replaces parts of Aide, where the trial shows it pays.** A project using it may leave out the
+   implement step's own review and verification, if Code Review finds at least as much, so the review is not done and
+   paid for twice. And a pull request Claude Approvals has approved may merge itself through GitHub's auto-merge, so
+   a project on pull requests needs as little attention as one using Merge.
+
+A project that lands on its default branch through Merge, as Aide does, keeps Merge: it has the test gate and the
+repair sessions, and there is no pull request for Claude Ship to work on.
+
+Limits: Claude Ship needs a Team or Enterprise plan and a repository on GitHub, and is not offered with Zero Data
+Retention, the HIPAA configuration or customer-managed keys. PR Steward and Claude Approvals are in beta.
