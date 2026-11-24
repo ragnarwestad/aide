@@ -18,6 +18,7 @@ from ..run_spec_status_files import with_status
 REVIEW_MARKER = "Read this spec's own description"
 FIX_MARKER = "A review of what you changed found"
 OUT_OF_SCOPE_MARKER = "The description has an ## Out of scope section"
+THREAT_MARKER = "The spec's analysis has a ### Threats section"
 WENT_BACK = "the defect(s) went back to the implement session to be fixed"
 
 IMPLEMENT_SESSION = "ee80227f-510c-45e9-bfbf-c5124f7761c0"
@@ -458,6 +459,22 @@ def test_a_description_without_the_section_gets_the_review_as_before(
     assert rc == 0, out
     assert OUT_OF_SCOPE_MARKER not in (tmp_path / "review-prompt.txt").read_text()
     assert len(fake_claude.calls.read_text().splitlines()) == 2
+
+
+def test_an_analysis_with_a_threat_section_tells_the_review_to_check_the_diff_against_it_ac_3(
+    runner, workspace, fake_claude, tmp_path
+):
+    with_status(workspace, ["create", "analyze"])
+    specs = workspace["specs"]
+    (specs / workspace["folder"] / "2-analysis.md").write_text(
+        "# x - Analysis\n\n## Findings\n\n### Threats\n\n- **Exposed:** the queue token\n- **Deferred:** nothing\n"
+    )
+    git(specs, "add", "-A")
+    git(specs, "commit", "-q", "-m", "threats")
+    claude = _out_of_scope_reviewer(fake_claude, tmp_path)
+    rc, out, _ = run(runner, workspace, claude, command="implement", review_model="claude-sonnet-4")
+    assert rc == 0, out
+    assert THREAT_MARKER in (tmp_path / "review-prompt.txt").read_text()
 
 
 def test_the_review_is_told_where_the_branch_left_main_and_finds_the_changes_itself(

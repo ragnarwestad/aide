@@ -6,11 +6,34 @@
 # and the verification's decision for each.
 # Kept apart from the turns that send them so scripts/review_eval measures
 # the very prompts the runner sends, and reads the replies by the runner's
-# own rule: it sources this file beside _aide-spec-lib.sh.
+# own rule: it sources this file beside _aide-spec-lib.sh and lib/spec-reference.sh.
 
 # Interface behaviour is reviewed against the project rules as well as the spec.
 review_design_instruction() {
   printf '%s\n' "For a user-interface change, read the project's CLAUDE.md or AGENTS.md and the design rules they point to for the changed files. Compare with the existing control named as the reference in the description or plan; when none is named, locate the nearest control with the same role. Check the component and variant, opening, closing, keyboard behaviour, and feedback or navigation after the action. A concrete violation of those rules is a defect even when the description does not repeat the rule; this is not a request for stylistic preferences or a redesign. Follow the project's visual verification requirements: inspect the recorded browser comparison or verify it yourself where possible, and report any missing verification separately without claiming the appearance is verified."
+}
+
+# The spec's analysis: the file AIDE_ANALYSIS_FILE names (spec-reference.sh),
+# beside the description at <description-path>.
+review_analysis_path() {  # <description-path>
+  printf '%s\n' "$(dirname "$1")/$AIDE_ANALYSIS_FILE"
+}
+
+# The newest `### Threats` section of the spec's analysis: its heading and
+# every line up to the next heading of level 1-3 or a `---` line. The last
+# one in the file wins, so a later round's section replaces an earlier
+# one. Nothing when there is none, or when spec-reference.sh is not loaded.
+review_threat_section() {  # <description-path>
+  local analysis
+  [ -n "${AIDE_ANALYSIS_FILE:-}" ] || return 0
+  analysis="$(review_analysis_path "$1")"
+  [ -f "$analysis" ] || return 0
+  awk '
+    (/^#{1,3}[ \t]/ || /^---[ \t\r]*$/) && inside { inside = 0 }
+    /^###[ \t]+Threats[ \t\r]*$/ { inside = 1; n = 0 }
+    inside { sub(/[ \t\r]+$/, ""); line[++n] = $0 }
+    END { for (i = 1; i <= n; i++) print line[i] }
+  ' "$analysis"
 }
 
 # The review's prompt: look for defects in what the branch changed since
@@ -18,11 +41,17 @@ review_design_instruction() {
 # with an `## Out of scope` section adds one instruction: each change
 # under an item in it is a defect too.
 # An existing test the branch weakened is a defect in every review,
-# unless the description replaces or removes what it checked.
+# unless the description replaces or removes what it checked. Every
+# review tries a stated security fix against a variant of its flaw and
+# against what <base> has changed since <fork>; an analysis with a
+# `### Threats` section adds the instruction to check the diff against it.
 review_prompt() {  # <description-path> <fork> <base> <screenshots-line> <headless-note>
-  local scope=""
+  local scope="" threats=""
   if [ -n "$(aide_out_of_scope_section "$(cat "$1" 2>/dev/null)")" ]; then
     scope="The description has an ## Out of scope section: what this change must not do or touch. Each change in the diff that falls under an item in it is a defect too, whatever kind of change it is, style, naming and structure included; say which item."
+  fi
+  if [ -n "$(review_threat_section "$1")" ]; then
+    threats="The spec's analysis has a ### Threats section: $(review_analysis_path "$1") (when it has several, the last one). Read it, and check the diff against it: what it says is exposed, to whom, and what the change may do to it. Report each security finding as a defect with the file and line, why it is a risk (the input an attacker controls and what it reaches), and what would fix it."
   fi
   printf '%s\n' \
     "Read this spec's own description and everything this spec's branch changed, and look for defects: behaviour that is wrong, broken or missing against the description. Say nothing about stylistic preferences, naming or structure." \
@@ -32,6 +61,8 @@ review_prompt() {  # <description-path> <fork> <base> <screenshots-line> <headle
     "" "What changed: run \`git diff $2\` in this directory, for every change since the branch left $3, committed or not, and \`git status --porcelain\` for new files not tracked yet. Read a whole file wherever the diff alone does not show enough."
   printf '%s\n' "" "$(review_design_instruction)"
   [ -n "$scope" ] && printf '%s\n' "" "$scope"
+  printf '%s\n' "" "When the description, or the spec's analysis, says this change fixes a security flaw, try the fix against at least one variant of that flaw — another input, path or caller reaching the same weakness — and report a variant the fix does not stop as a defect. Then read the code the fix touches as it stands now on $3 (\`git diff $2 $3 -- <path>\`, \`git show $3:<path>\`): report it as a defect when $3 has since gained another way to reach the flaw that the fix does not cover, or has changed code the fix relies on. The flaw itself still being there on $3 is expected, since the fix has not landed, and is not a defect."
+  [ -n "$threats" ] && printf '%s\n' "" "$threats"
   [ -n "$4" ] && printf '%s\n' "" "$4"
   printf '%s\n' \
     "" "Do not edit, create or delete any file — you are reading and reporting only." \
@@ -53,7 +84,11 @@ verify_prompt() {  # <description-path> <fork> <base> <defects> <headless-note>
     "" "A defect about an existing test the branch weakened — one deleted, an assertion removed or loosened, or one marked as skipped or disabled — is checked on these terms instead: keep it when the diff shows the test weakened and the description does not replace or remove the behaviour that test checked. Drop it when the description replaces or removes that behaviour, or when the test was only moved or renamed and still checks the same behaviour." \
     "" "The description: $1" \
     "" "What changed: run \`git diff $2\` in this directory, for every change since the branch left $3, committed or not, and \`git status --porcelain\` for new files not tracked yet. Read a whole file wherever the diff alone does not show enough." \
-    "" "$(review_design_instruction)" \
+    "" "$(review_design_instruction)"
+  if [ -n "$(review_threat_section "$1")" ]; then
+    printf '%s\n' "" "The spec's analysis has a ### Threats section: $(review_analysis_path "$1"). A security finding is required by it as much as by the description: keep one when you can trace the input that reaches the risk it names."
+  fi
+  printf '%s\n' \
     "" "The defects:" "" "$4" \
     "" "Do not edit, create or delete any file — you are reading and reporting only." \
     "" "End your reply with one line for each defect, in the order of their numbers, as your very last lines, plain text, no other formatting:" \

@@ -114,6 +114,19 @@ def test_the_rule_the_reader_the_create_skill_and_the_plan_review_share_the_out_
 
 
 @pytest.mark.validation
+def test_the_analyze_skill_and_the_short_analysis_name_the_threats_heading_the_review_reads_ac_1():
+    """`review_threat_section` finds an analysis's threat section only under
+    the exact heading, so the analyze skill and the short analysis's list of
+    sections must both give it."""
+    heading = "### Threats"
+    for path in (
+        CORE_STEPS_DIR / "aide-analyze" / "SKILL.md",
+        CORE_STEPS_DIR / "aide-analyze" / "references" / "spec-files.md",
+    ):
+        assert f"`{heading}`" in path.read_text(encoding="utf-8"), f"{path.relative_to(REPO_ROOT)} does not name {heading!r}"
+
+
+@pytest.mark.validation
 def test_the_template_the_plan_step_the_plan_review_and_implement_share_the_test_places_heading():
     """Implement's RED step finds the plan's places by this heading, so the
     solution template, the plan step, the plan review and implement must

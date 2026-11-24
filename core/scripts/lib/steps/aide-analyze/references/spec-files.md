@@ -141,7 +141,8 @@ Every analysis, short or full, writes three fields the runner reads:
 A short analysis writes these three files and no more:
 
 - `2-analysis.md`: Tracking info, then Findings with `### Affected files`
-  (file:line, one line each), `### Files to change` and the `### Overlapping
+  (file:line, one line each), `### Files to change`, `### Threats` when
+  Step 5 finds that the spec touches security, and the `### Overlapping
   specs` record Step 6 writes. No other section
 - `3-solution.md`: Tracking info with the two fields; a `## Short analysis`
   section of one plain sentence saying there is no plan and no plan review,

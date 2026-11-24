@@ -70,7 +70,8 @@ def description_at(specs_repo, project, spec, commit_time):
 
 def prompt(function, *args):
     """A prompt from review-prompts.sh, built by bash as the runner builds it."""
-    script = f'source "$1/_aide-spec-lib.sh"; source "$1/lib/run-spec/turn/review-prompts.sh"; {function} "${{@:2}}"'
+    script = (f'source "$1/_aide-spec-lib.sh"; source "$1/lib/spec-reference.sh"; '
+              f'source "$1/lib/run-spec/turn/review-prompts.sh"; {function} "${{@:2}}"')
     return subprocess.run(["bash", "-c", script, "bash", str(SCRIPTS), *args], capture_output=True, text=True, check=True).stdout
 
 

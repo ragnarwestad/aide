@@ -76,3 +76,90 @@ review_design_instruction() { printf '%s\\n' 'design-instruction-sentinel'; }
     )
     assert result.stdout.splitlines().count("design-instruction-sentinel") == 1
     assert result.stdout.rstrip().endswith("headless-sentinel")
+
+
+THREATS = (
+    "# x - Analysis\n\n## Findings\n\n### Affected files\n\n- `a.sh:1`\n\n"
+    "### Threats\n\n- **Exposed:** the token in `a.sh:3`\n- **To whom:** a page on the network\n"
+    "- **What the change does to it:** narrows it\n- **Fixes:** no\n"
+    "- **Left out:** the logs\n- **Deferred:** nothing\n\n"
+    "### Overlapping specs\n\nNone.\n"
+)
+THREAT_MARKER = "The spec's analysis has a ### Threats section"
+
+
+def _spec_folder(tmp_path, analysis=None):
+    description = tmp_path / "1-description.md"
+    description.write_text("# x\n\nA change.\n")
+    if analysis is not None:
+        (tmp_path / "2-analysis.md").write_text(analysis)
+    return description
+
+
+def test_a_threat_section_asks_the_review_for_each_security_finding_and_the_verification_to_keep_it_ac_3(review_eval, tmp_path):
+    description = _spec_folder(tmp_path, THREATS)
+
+    review = review_eval.prompt("review_prompt", str(description), "abc123", "main", "", "(headless)")
+    verify = review_eval.prompt("verify_prompt", str(description), "abc123", "main", "1. one", "(headless)")
+
+    analysis = str(tmp_path / "2-analysis.md")
+    assert THREAT_MARKER in review and analysis in review
+    for term in ("file and line", "risk", "what would fix it"):
+        assert term in review, term
+    assert THREAT_MARKER in verify and analysis in verify
+    assert review.rstrip().endswith("(headless)") and verify.rstrip().endswith("(headless)")
+
+
+@pytest.mark.parametrize("analysis", [None, THREATS])
+def test_every_review_prompt_tries_a_security_fix_against_a_variant_and_the_default_branch_ac_4(review_eval, tmp_path, analysis):
+    description = _spec_folder(tmp_path, analysis)
+
+    text = review_eval.prompt("review_prompt", str(description), "abc123", "main", "", "(headless)")
+
+    assert "fixes a security flaw" in text
+    assert "at least one variant" in text
+    assert "git diff abc123 main" in text and "git show main:" in text
+    assert "still being there on main is expected" in text
+
+
+@pytest.mark.parametrize("analysis", [
+    None,
+    "# x - Analysis\n\n## Findings\n\n### Affected files\n\n- `a.sh:1`\n",
+    "# x - Analysis\n\n## Findings\n\n### Threats and risks\n\n- **Exposed:** nothing\n",
+])
+def test_no_threat_section_means_no_threat_instruction_ac_5(review_eval, tmp_path, analysis):
+    description = _spec_folder(tmp_path, analysis)
+
+    assert review_eval.prompt("review_threat_section", str(description)) == ""
+    for function, defects in (("review_prompt", ""), ("verify_prompt", "1. one")):
+        text = review_eval.prompt(function, str(description), "abc123", "main", defects, "(headless)")
+        assert THREAT_MARKER not in text, function
+
+
+@pytest.mark.parametrize("end", ["### Overlapping specs\n", "## Round 2\n", "---\n"])
+def test_the_threat_reader_returns_the_whole_section_and_stops_at_the_next_heading_ac_1_ac_2(review_eval, tmp_path, end):
+    analysis = (
+        "## Findings\n\n### Threats\n\n- **Exposed:** the token\n- **To whom:** a page\n"
+        "- **What the change does to it:** narrows it\n- **Left out:** the logs\n"
+        f"- **Deferred:** nothing\n\n{end}\nafter\n"
+    )
+    description = _spec_folder(tmp_path, analysis)
+
+    lines = review_eval.prompt("review_threat_section", str(description)).splitlines()
+
+    assert lines[0] == "### Threats"
+    assert "- **Left out:** the logs" in lines and "- **Deferred:** nothing" in lines
+    assert "after" not in lines and end.strip() not in lines
+
+
+def test_the_threat_reader_returns_the_newest_rounds_section_ac_3(review_eval, tmp_path):
+    analysis = (
+        "## Findings\n\n### Threats\n\n- **Exposed:** round one\n\n"
+        "## Round 2\n\n### Threats\n\n- **Exposed:** round two\n\n### Files to change\n\n- `a.sh`\n"
+    )
+    description = _spec_folder(tmp_path, analysis)
+
+    text = review_eval.prompt("review_threat_section", str(description))
+
+    assert "round two" in text and "round one" not in text
+    assert text.count("### Threats") == 1

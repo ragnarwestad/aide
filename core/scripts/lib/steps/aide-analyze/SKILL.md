@@ -207,6 +207,24 @@ In Tracking info, on every run and a held-back round's included, write
 chose, the latest one this file holds. A short analysis writes only the
 sections `references/spec-files.md` names for it.
 
+**Decide whether the spec touches security**: credentials or secrets,
+network access, permissions or sandboxing, file access outside the
+project, or input from outside. When it touches one or more, write
+`### Threats` under Findings, short:
+
+- **Exposed:** what the change exposes or protects, with file:line
+- **To whom:** who could reach it — another user, a page on the network,
+  a model session, a file it reads
+- **What the change does to it:** widens, narrows or leaves it, and how
+- **Fixes:** the flaw, when the spec is a security fix; else `no`
+- **Left out:** what this section did not look at
+- **Deferred:** what it found and left for later, or `nothing`
+
+When it touches none of them, write no `### Threats` section. A held-back
+round writes its own under its `## Round N`, in full, whenever the spec
+still touches security: the implement review reads the newest one, under
+exactly this heading.
+
 Nothing that judges the solution goes here — complexity, estimate and risk
 analysis belong to 3-solution.md (spec structure § Separation of content).
 
