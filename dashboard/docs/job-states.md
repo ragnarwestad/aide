@@ -121,8 +121,8 @@ A held-back job keeps its state; the reason is on the row and clears on a later 
   `waiting` back to `queued` with no press.
 - A step stopped on a usage limit can be run on another provider by choosing it in the phase's AI choice and pressing
   the step's button: that makes a new job on the chosen provider, which the waiting provider's wait does not hold.
-  In an execution group, changing the provider resumes the same waiting job on its existing phases. The group's Stop
-  cancels automatic restart; phase checkboxes are editable only after that Stop.
+  In an execution group, changing the provider resumes the same waiting job on its existing phases. The group's Cancel
+  cancels automatic restart; phase checkboxes are editable only after that Cancel.
 - `model-at-capacity` gives `failed`: the provider had no room for the model, so there is no reset to wait for. The
   job's `error` names the step's button and the model and says to press the button again or choose another model.
   It merges nothing, and the step is offered again. [How the runner tells](the-runner.md#when-a-provider-limit-ends-a-step).

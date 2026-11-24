@@ -24,11 +24,11 @@ export const JOBS_CATALOG = {
     },
   },
   "group.stoppedByUser": {
-    en: "the group stopped because you pressed Stop",
-    nb: "gruppa stoppet fordi du trykket Stopp",
-    es: "el grupo se detuvo porque pulsaste Detener",
-    de: "die Gruppe wurde angehalten, weil du auf Stoppen geklickt hast",
-    fr: "le groupe s’est arrêté parce que vous avez appuyé sur Arrêter",
+    en: "the group stopped because you pressed Cancel",
+    nb: "gruppa stoppet fordi du trykket Avbryt",
+    es: "el grupo se detuvo porque pulsaste Cancelar",
+    de: "die Gruppe wurde angehalten, weil du auf Abbrechen geklickt hast",
+    fr: "le groupe s’est arrêté parce que vous avez appuyé sur Annuler",
     statement: "a user-requested stop is information, not a failure to resolve",
   },
   "group.stopped": {

@@ -50,7 +50,7 @@ repair session uses the job's Implement model and provider, or their current def
 receives the tested commit and complete output, and the runner checks the failed files independently using
 `AIDE_TEST_FILES_CMD`. Missing file commands, timeouts, provider failures, unknown failures and red main stop the
 merge. At most two repairs are saved to the source branch, without force, followed by a fresh merge and test run.
-Stop cancels the repair too. Repair transcripts are kept beside the job's stream as `.repair.jsonl` files.
+Cancel ends the repair too. Repair transcripts are kept beside the job's stream as `.repair.jsonl` files.
 
 Every test run the board starts is told how many workers it may use, as `AIDE_TEST_WORKERS`: the host's cores
 divided by the live test recorders at that moment, rounded down and at least one. Implement, Merge and Archive use

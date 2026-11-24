@@ -284,8 +284,8 @@ and the CODE root of an `archive` merge is not merged.
 Merge applies the same merge lock and test gate to a named branch already on origin. An unresolved conflict or red
 tests leave the default branch unchanged. A successful Merge pushes the tested merge and deletes the source branch. Deploy is still a
 separate action.
-Stop cancels a queued Merge or interrupts its merge and tests before push, keeping the source branch and leaving the
-remote default branch unchanged. Once push begins, Stop is unavailable and the operation finishes reporting its result.
+Cancel ends a queued Merge or interrupts its merge and tests before push, keeping the source branch and leaving the
+remote default branch unchanged. Once push begins, Cancel is unavailable and the operation finishes reporting its result.
 A cancelled Merge never restarts automatically; the same branch can be submitted again.
 
 
@@ -302,5 +302,5 @@ session may edit only those files and may not commit, push or change the open me
 MERGE_HEAD and other files are unchanged, stages the resolution and rejects remaining conflicts or conflict markers.
 It then commits the merge and saves it to the source branch without force. A failed push preserves a recovery ref.
 Merge fetches current main, rebuilds the merge and runs the project's tests before pushing main, including a resolution
-whose resulting tree matches main. At most two conflict repairs are attempted per repository. Stop cancels the AI
+whose resulting tree matches main. At most two conflict repairs are attempted per repository. Cancel ends the AI
 session and prevents further commits or pushes. Progress and a conflict-repair transcript appear in the job's log.

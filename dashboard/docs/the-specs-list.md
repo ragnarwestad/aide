@@ -140,7 +140,7 @@ ticked until it is removed. The scan resolves each entry of the `Depends on:` li
 Execution-group membership is created on Running, not on an individual Specs row. Every member keeps four progress
 pips on Specs and Jobs, but its Archive pip follows the group's shared Archive job. An active grouped member has no
 individual Archive phase line or action. Its Archive details name and link to the group. The combined card owns the
-shared Archive line, progress and Start, Stop or Archive action on Jobs.
+shared Archive line, progress and Start, Cancel or Archive action on Jobs.
 the spec it names. Save posts the picker to `POST /api/queue/specs/<project>/<spec>/tracking` and the rows are redrawn
 in place; Cancel puts back what the server drew. A tick not yet saved outlives a redraw, each row's picker apart from
 the others. While a job of the spec is queued, running or merging the picker shows only what the spec depends on, with
@@ -703,7 +703,7 @@ The page's own browser code does one thing to the controls: it keeps the reader 
   running or merge, and while it waits for a person after failing or stopping, until a newer job of the spec is
   created (`jobsShown`, `render/pages/jobs-page/rows.ts`). The row is named for the step and the spec ("Reopen
   534-…"), its key is `<project>/<spec>:<step>` so it never folds with the spec's own row, and it has no links under
-  its title; when it fails or stops, a line under its state says why and ends with a Log link. It offers no Stop or
+  its title; when it fails or stops, a line under its state says why and ends with a Log link. It offers no
   Cancel: stopped part-way, the job would leave the spec between its two
   places. The spec's own row is left as it is, on this tab and on the Specs list alike (`listedSpecJobs`,
   `serve/routes/page-routes/spec-row-options.ts`): an archived or closed spec gets no row on the tab for it, and a

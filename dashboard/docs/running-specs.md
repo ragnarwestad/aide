@@ -80,7 +80,7 @@ a member whose analysis is done starts on Implement. A member that finishes Impl
 made from Run writes that dialog's AI and model choices for Analyze, Implement, plan review, Review and Verify to
 every member's own row; the rows show those choices, and Start uses them. A group made on Jobs uses the choices on
 each member's own row. Every
-member uses the branch named for the group's first member. Stop ends the current job and keeps later members
+member uses the branch named for the group's first member. Cancel ends the current job and keeps later members
 waiting until Start resumes the same execution. An earlier member through Implement satisfies a dependency inside
 the same group; it need not be archived separately.
 
@@ -89,7 +89,7 @@ after each start or Deploy. Until then Start on a group is refused with "The boa
 Start again in a moment.", and a group moving on to its next member, after a member's Implement or after an edit,
 waits and moves on once the specs are read. While it waits, the group's card reads stopped.
 
-A spec that belongs to an unfinished group has no Run on its own row. Start, Stop and Archive for the members are on
+A spec that belongs to an unfinished group has no Run on its own row. Start, Cancel and Archive for the members are on
 the group's card. A member's own queued or running job keeps its ordinary controls on the spec row.
 
 Run on a spec lists the other specs that can join a group under **Run together in a group**. Ticking one or more shows a
@@ -122,7 +122,7 @@ While Archive is queued, the collapsed card shows Queued with its queue position
 the shared Archive: orange while queued, moving red while running or merge, and green once the group completes.
 A stopped or failed attempt keeps its reason and the Archive retry action on the group.
 An archived member waiting for the group's shared Archive is not reported as an individual merge failure merely because the branch is still open.
-Stop on the group cancels all its queued and running jobs, including a member whose branch is still being tested and merged.
+Cancel on the group cancels all its queued and running jobs, including a member whose branch is still being tested and merged.
 Cancel also stops a merge's comparison test run on main. An interrupted individual Archive in an old member job is not resumed after a restart.
 
 The … menu offers Remove for prepared, stopped, waiting-for-acceptance and completed groups, while no member job is queued, running or merge. It asks in the shared progress dialog, blocks input
@@ -928,10 +928,10 @@ implemented and Archive on the card merges them together, or which members are s
 acceptance rows left to tick, each member a link to its spec page.
 When a group is stopped, its card names the member that stopped, with a link to that spec, even while the group
 is shut. The detailed reason stays on the spec. A stop with no member failure carries a general stopped message.
-When the user presses Stop on the group, the message says so instead of attributing the cancelled member job as the cause.
+When the user presses Cancel on the group, the message says so instead of attributing the cancelled member job as the cause.
 A group waiting for a provider's usage limit shows Waiting and keeps its phase checkboxes locked. AI and model choices
 remain available. Choosing another provider resumes the same job and phases; choosing another model on the same provider
-keeps that provider's reset time. Stop cancels automatic restart and unlocks the phase choices. The next Start follows
+keeps that provider's reset time. Cancel ends automatic restart and unlocks the phase choices. The next Start follows
 the choices for each member, including explicitly chosen reruns of completed work. Untouched members do not repeat
 completed phases.
 The same notice covers failed and cancelled member jobs, and a failed Archive merging even when the
@@ -1000,10 +1000,10 @@ the checkout lock. After a restart wait it fetches main again and reinstalls if 
 
 A scheduled job's row (`src/render/pages/jobs-page/job-row.ts`) has the same columns and two-line shape. Its title leads
 with the project: "<project>:<name>". Every job row's second line holds when the job last changed (made, started or finished, what the tab orders by) and
-one pip per step, the step's first letter above it, coloured done, running, failed or not started. It is shut by default, and its › opens it to show Stop or Cancel and a line per
+one pip per step, the step's first letter above it, coloured done, running, failed or not started. It is shut by default, and its › opens it to show Cancel and a line per
 step its log has marked (Aide's preparing, the steps the model marks, Aide's tests and commit of spec files or code and spec files), each with its state, its
 time and a › that unfolds the step's part of the log. A job that failed or stopped says why in a line
-under its state, ending with a Log link. A queued job offers Cancel and a running or merging one Stop, each asking first;
+under its state, ending with a Log link. A queued, running or merging job offers Cancel, asking first;
 a finished one has no action. Which scheduled jobs show is decided in
 `src/render/pages/jobs-page/rows.ts`.
 
