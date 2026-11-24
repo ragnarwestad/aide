@@ -248,7 +248,7 @@
       "lines": 436
     },
     "src/serve/serve-helpers/parse-args.ts::parseArgs": {
-      "lines": 99
+      "lines": 71
     },
     "src/serve/serve-helpers/http.ts::bodyToObject": {
       "lines": 80

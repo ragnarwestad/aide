@@ -95,6 +95,55 @@ function writeParseArgs(checkout: string, knowsTestBoard: boolean): void {
   );
 }
 
+/** The served checkout's flag definition, with or without `--test-board`
+ *  — what `run` reads first, before the parser's source. */
+function writeServeArgs(checkout: string, knowsTestBoard: boolean): void {
+  const dir = join(checkout, "dashboard", "deploy");
+  mkdirSync(dir, { recursive: true });
+  const flags = knowsTestBoard ? ["--port", "--test-board"] : ["--port"];
+  writeFileSync(join(dir, "serve-args.json"), `{\n${flags.map((f) => `  "${f}": { "takesValue": true }`).join(",\n")}\n}\n`);
+}
+
+/** A clone of an origin whose branch `branch` carries what `write` puts
+ *  in the checkout. */
+function cloneWithBranch(branch: string, write: (seed: string) => void): string {
+  const originBare = tmp("aide-round-origin-");
+  git(originBare, ["init", "-q", "--bare", "-b", "main"]);
+  const seed = tmp("aide-round-seed-");
+  git(seed, ["init", "-q", "-b", "main"]);
+  mkdirSync(join(seed, "dashboard", "src", "serve"), { recursive: true });
+  writeFileSync(join(seed, "dashboard", "src", "serve", "serve.ts"), "");
+  git(seed, ["add", "-A"]);
+  git(seed, ["-c", "user.name=t", "-c", "user.email=t@localhost", "commit", "-qm", "baseline"]);
+  git(seed, ["remote", "add", "origin", originBare]);
+  git(seed, ["push", "-q", "origin", "main"]);
+  git(seed, ["checkout", "-q", "-b", branch]);
+  writeFileSync(join(seed, "dashboard", "src", "serve", "serve.ts"), "// branch\n");
+  write(seed);
+  git(seed, ["add", "-A"]);
+  git(seed, ["-c", "user.name=t", "-c", "user.email=t@localhost", "commit", "-qm", "branch work"]);
+  git(seed, ["push", "-q", "origin", branch]);
+  const aide = tmp("aide-round-aide-");
+  git(tmpdir(), ["clone", "-q", originBare, aide]);
+  return aide;
+}
+
+/** The argv lines the fake bun recorded for one round of `run` on `branch`. */
+async function roundArgv(aide: string, branch: string): Promise<string[]> {
+  const logPath = join(tmp("aide-round-fakebun-"), "argv.log");
+  const decoy = decoyPort();
+  try {
+    await runToExit(
+      [aide, "--branch", branch, "--port", String(decoy.port), "--timeout", "5"],
+      { AIDE_ROUND_BUN: fakeBun(), FAKE_BUN_LOG: logPath },
+    );
+    expect(leftovers(aide)).toEqual([]);
+    return readFileSync(logPath, "utf-8").trim().split("\n");
+  } finally {
+    await decoy.stop();
+  }
+}
+
 /** Every process still running from this one round — its own watcher,
  *  or the server it started — named by the round's own temp checkout,
  *  which only it carries on its command line. */
@@ -170,46 +219,10 @@ describe("run passes --test-board to its serve.ts serve invocation", () => {
   // board then comes up without the header line and the Stop button
   // rather than not at all.
   test("a branch whose serve.ts does not know --test-board is not handed it", async () => {
-    const originBare = tmp("aide-round-origin-");
-    git(originBare, ["init", "-q", "--bare", "-b", "main"]);
-    const seed = tmp("aide-round-seed-");
-    git(seed, ["init", "-q", "-b", "main"]);
-    mkdirSync(join(seed, "dashboard", "src", "serve"), { recursive: true });
-    writeFileSync(join(seed, "dashboard", "src", "serve", "serve.ts"), "");
-    git(seed, ["add", "-A"]);
-    git(seed, ["-c", "user.name=t", "-c", "user.email=t@localhost", "commit", "-qm", "baseline"]);
-    git(seed, ["remote", "add", "origin", originBare]);
-    git(seed, ["push", "-q", "origin", "main"]);
-    git(seed, ["checkout", "-q", "-b", "426-older-branch"]);
-    writeFileSync(join(seed, "dashboard", "src", "serve", "serve.ts"), "// older\n");
-    writeParseArgs(seed, false);
-    git(seed, ["add", "-A"]);
-    git(seed, ["-c", "user.name=t", "-c", "user.email=t@localhost", "commit", "-qm", "older work"]);
-    git(seed, ["push", "-q", "origin", "426-older-branch"]);
-    const aide = tmp("aide-round-aide-");
-    git(tmpdir(), ["clone", "-q", originBare, aide]);
-
-    const scratch = tmp("aide-round-fakebun-");
-    const logPath = join(scratch, "argv.log");
-    const binPath = fakeBun();
-
-    const decoy = decoyPort();
-    try {
-      await runToExit(
-        [aide, "--branch", "426-older-branch", "--port", String(decoy.port), "--timeout", "5"],
-        { AIDE_ROUND_BUN: binPath, FAKE_BUN_LOG: logPath },
-      );
-      // A round that ends leaves nothing of itself running: kept, each
-      // left a watcher waiting on its stub server (five of them, eight
-      // hours, 2026-09-19).
-      expect(leftovers(aide)).toEqual([]);
-      const lines = readFileSync(logPath, "utf-8").trim().split("\n");
-      const serveLine = lines.find((l) => l.includes("src/serve/serve.ts") && l.includes("serve"));
-      expect(serveLine).toBeDefined();
-      for (const line of lines) expect(line).not.toContain("--test-board");
-    } finally {
-      await decoy.stop();
-    }
+    const aide = cloneWithBranch("426-older-branch", (seed) => writeParseArgs(seed, false));
+    const lines = await roundArgv(aide, "426-older-branch");
+    expect(lines.find((l) => l.includes("src/serve/serve.ts") && l.includes("serve"))).toBeDefined();
+    for (const line of lines) expect(line).not.toContain("--test-board");
   });
 
   // Every board the round starts is a test board (2026-09-10): with no
@@ -250,5 +263,24 @@ describe("run passes --test-board to its serve.ts serve invocation", () => {
     } finally {
       await decoy.stop();
     }
+  });
+
+  test("a branch whose flag definition names --test-board is handed it", async () => {
+    const aide = cloneWithBranch("870-defined-flags", (seed) => writeServeArgs(seed, true));
+    const lines = await roundArgv(aide, "870-defined-flags");
+    const serveLine = lines.find((l) => l.includes("src/serve/serve.ts") && l.includes("serve"));
+    expect(serveLine).toContain("--test-board 870-defined-flags");
+  });
+
+  // The definition decides, not the parser's text: a parse-args.ts that
+  // mentions the flag does not make the branch accept it.
+  test("a branch whose flag definition leaves --test-board out is not handed it", async () => {
+    const aide = cloneWithBranch("871-defined-without", (seed) => {
+      writeServeArgs(seed, false);
+      writeParseArgs(seed, true);
+    });
+    const lines = await roundArgv(aide, "871-defined-without");
+    expect(lines.find((l) => l.includes("src/serve/serve.ts") && l.includes("serve"))).toBeDefined();
+    for (const line of lines) expect(line).not.toContain("--test-board");
   });
 });

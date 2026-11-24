@@ -9,6 +9,7 @@ import type { DiscoveredProject, SpecRef } from "../../project/discover";
 import { resolveDependencyFolderName } from "../../project/spec-folder.ts";
 import { mergeQueueDefaults, parseAllowedHosts, parseHeaderAuth, parseQueueProjects } from "../../queue/queue.ts";
 import { navEntries } from "../../render";
+import SERVE_ARGS from "../../../deploy/serve-args.json";
 import type { ServerOptions } from "../options.ts";
 import { QUEUE_DEFAULTS, parseQueueConcurrency } from "./config.ts";
 
@@ -25,37 +26,58 @@ export function resolveDependencyFolder(project: DiscoveredProject, id: string):
   return folder ? project.specs.find((spec) => spec.folder === folder) : undefined;
 }
 
-export function parseArgs(argv: string[]): ServerOptions {
-  const opts: ServerOptions = { port: 8788 };
+/** A flag `serve` accepts: a key of deploy/serve-args.json. */
+type ServeFlag = keyof typeof SERVE_ARGS;
+
+/** Sets on `opts` what each flag in `argv` says, and returns the two
+ *  flags that are not options of their own: `--root` and `--queue-config`. */
+function readFlags(argv: string[], opts: ServerOptions): { root?: string; queueConfigFile?: string } {
   let root: string | undefined;
   let queueConfigFile: string | undefined;
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i];
-    const v = argv[i + 1];
-    if (a === "--port" && v) opts.port = Number(argv[++i]);
-    else if (a === "--mirror" && v) opts.mirrorPath = argv[++i];
-    else if (a === "--root" && v) root = argv[++i];
-    else if (a === "--bind" && v) opts.bindHost = argv[++i];
-    else if (a === "--queue-mirror" && v) opts.queueMirrorPath = argv[++i];
-    else if (a === "--pending-models" && v) opts.pendingModelsPath = argv[++i];
-    else if (a === "--pending-steps" && v) opts.pendingStepsPath = argv[++i];
-    else if (a === "--queue-projects" && v) opts.queueProjects = argv[++i]!.split(",").map((s) => s.trim());
-    else if (a === "--runner-bin" && v) opts.queueRunnerBin = argv[++i];
+  // One setter per flag in deploy/serve-args.json, the list the Deploy's
+  // plist repair reads too: a flag defined there without a setter here,
+  // or set here without being defined, fails the type check.
+  const set: Record<ServeFlag, (v: string) => void> = {
+    "--port": (v) => { opts.port = Number(v); },
+    "--mirror": (v) => { opts.mirrorPath = v; },
+    "--root": (v) => { root = v; },
+    "--bind": (v) => { opts.bindHost = v; },
+    "--queue-mirror": (v) => { opts.queueMirrorPath = v; },
+    "--pending-models": (v) => { opts.pendingModelsPath = v; },
+    "--pending-steps": (v) => { opts.pendingStepsPath = v; },
+    "--queue-projects": (v) => { opts.queueProjects = v.split(",").map((s) => s.trim()); },
+    "--runner-bin": (v) => { opts.queueRunnerBin = v; },
     // Like `--runner-bin`: launchd's PATH carries neither `~/.local/bin`
     // nor mise's shims, so the installed `aide-generate-pdf` is
     // unreachable by name from the service and the PDF button answers
     // "Executable not found in $PATH".
-    else if (a === "--pdf-bin" && v) opts.pdfGeneratorBin = argv[++i];
-    else if (a === "--result-dir" && v) opts.queueResultDir = argv[++i];
+    "--pdf-bin": (v) => { opts.pdfGeneratorBin = v; },
+    "--result-dir": (v) => { opts.queueResultDir = v; },
     // Where the dashboard keeps the clones it works in.
     // `~/.aide/dashboard/checkouts` unless a host wants them elsewhere.
-    else if (a === "--dashboard-checkouts" && v) opts.dashboardCheckoutRoot = argv[++i];
-    else if (a === "--queue-config" && v) queueConfigFile = argv[++i];
+    "--dashboard-checkouts": (v) => { opts.dashboardCheckoutRoot = v; },
+    "--queue-config": (v) => { queueConfigFile = v; },
     // Which spec/branch this process is a TEST board for —
     // absent means an ordinary (prod) server.
-    else if (a === "--test-board" && v) opts.testBoardSpec = argv[++i];
-    else throw new Error(`unknown argument: ${a}`);
+    "--test-board": (v) => { opts.testBoardSpec = v; },
+  };
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i]!;
+    if (!Object.hasOwn(SERVE_ARGS, a)) throw new Error(`unknown argument: ${a}`);
+    const flag = a as ServeFlag;
+    if (!SERVE_ARGS[flag].takesValue) {
+      set[flag]("");
+      continue;
+    }
+    if (!argv[i + 1]) throw new Error(`unknown argument: ${a}`);
+    set[flag](argv[++i]!);
   }
+  return { root, queueConfigFile };
+}
+
+export function parseArgs(argv: string[]): ServerOptions {
+  const opts: ServerOptions = { port: 8788 };
+  const { root, queueConfigFile } = readFlags(argv, opts);
   if (!opts.mirrorPath) opts.mirrorPath = join(homedir(), ".aide", "dashboard", "aide-runs.json");
   if (!opts.queueMirrorPath) opts.queueMirrorPath = join(homedir(), ".aide", "dashboard", "aide-queue.json");
   // Beside the queue mirror, not the served board's own directory: a

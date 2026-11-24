@@ -5,16 +5,21 @@
 // refused to start at all.
 //
 // Two halves guard it: the Makefile's own argument list, checked here
-// against what the parser accepts, and the INSTALLED job's arguments,
-// repaired by deploy/install-after-merge.sh on the serving host — the
-// only place the real service's arguments can be seen.
+// against deploy/serve-args.json — the one list of flags the parser and
+// the repair both read — and the INSTALLED job's arguments, repaired by
+// deploy/install-after-merge.sh on the serving host, the only place the
+// real service's arguments can be seen.
 
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { parseArgs } from "../../src/serve/serve-helpers/parse-args.ts";
 
 const read = (p: string) => readFileSync(new URL(p, import.meta.url), "utf8");
 const MAKEFILE = read("../../Makefile");
-const PARSE_ARGS = read("../../src/serve/serve-helpers/parse-args.ts");
+const DEFINITION_PATH = fileURLToPath(new URL("../../deploy/serve-args.json", import.meta.url));
+const DEFINED = Object.keys(JSON.parse(read("../../deploy/serve-args.json")) as Record<string, unknown>).sort();
+const REPAIR = read("../../deploy/repair-serve-plist.sh");
 const INSTALL = read("../../deploy/install-after-merge.sh");
 const SHELL = read("../../src/render/ui/header-notices.ts");
 const SERVE_SH = read("../../serve.sh");
@@ -33,11 +38,26 @@ function installServeFlags(): string[] {
 }
 
 describe("the serve job passes only options the code accepts", () => {
-  test("every flag install-serve hands to serve is one parse-args accepts", () => {
+  test("every flag install-serve hands to serve is one the definition names (AC-1)", () => {
     const flags = installServeFlags();
     expect(flags.length).toBeGreaterThan(5);
-    const unknown = flags.filter((f) => !PARSE_ARGS.includes(`"${f}"`));
+    const unknown = flags.filter((f) => !DEFINED.includes(f));
     expect(unknown).toEqual([]);
+  });
+
+  test("parseArgs accepts every flag the definition names, each with a value (AC-1)", () => {
+    expect(DEFINED.length).toBeGreaterThan(5);
+    for (const flag of DEFINED) expect(() => parseArgs([flag, "1"])).not.toThrow();
+  });
+
+  // The repair reads the definition with sed, one flag per line: a
+  // reformatted file it reads fewer flags from would drop valid ones.
+  test("the repair's reader finds exactly the definition's flags (AC-1)", () => {
+    const expr = /sed -n -E '([^']+)' "\$definition"/.exec(REPAIR)?.[1];
+    expect(expr).toBeDefined();
+    const out = Bun.spawnSync(["sed", "-n", "-E", expr!, DEFINITION_PATH]).stdout.toString();
+    const read = out.trim().split("\n").map((l) => l.split(" ")[0]).sort();
+    expect(read).toEqual(DEFINED);
   });
 
   // serve.sh is the same service with no launchd, on Linux: what one
@@ -52,7 +72,7 @@ describe("the serve job passes only options the code accepts", () => {
   // and says so in the log the board draws its banner from when it cannot.
   test("the install step repairs the installed job, and warns in the log when it cannot", () => {
     expect(INSTALL).toContain("deploy/service.json");
-    expect(INSTALL).toContain("parse-args.ts");
+    expect(INSTALL).toContain("dashboard/deploy/serve-args.json");
     expect(INSTALL).toContain("repair-serve-plist.sh");
     expect(INSTALL).toContain("⚠️ [aide serve]");
   });

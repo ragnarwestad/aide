@@ -40,7 +40,7 @@ def test_a_new_file_holds_the_rules_in_the_block(helper, workspace_root, tmp_pat
     assert "Rule one." in block(out)
 
 
-def test_the_users_own_text_is_kept_outside_the_block(helper, workspace_root, tmp_path):
+def test_the_users_own_text_is_kept_outside_the_block_ac_2(helper, workspace_root, tmp_path):
     destination = tmp_path / "AGENTS.md"
     destination.write_text("My own rule.\n")
     out = run(helper, workspace_root, "install_instructions", destination).read_text()

@@ -4,7 +4,7 @@
 // after a merge drops such options from the job's plist, and the restart
 // reloads the job from that file.
 import { afterAll, describe, expect, test } from "bun:test";
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { renderPlist } from "../../deploy/render-plist.ts";
@@ -12,7 +12,7 @@ import { reloadScript } from "../../src/serve/deployment";
 
 const ROOT = join(import.meta.dir, "..", "..");
 const REPAIR = join(ROOT, "deploy", "repair-serve-plist.sh");
-const PARSE_ARGS = join(ROOT, "src", "serve", "serve-helpers", "parse-args.ts");
+const DEFINITION = join(ROOT, "deploy", "serve-args.json");
 const BUDDY = "/usr/libexec/PlistBuddy";
 
 function programArguments(plist: string): string[] {
@@ -20,33 +20,105 @@ function programArguments(plist: string): string[] {
   return out.split("\n").slice(1, -2).map((l) => l.trim());
 }
 
-describe.skipIf(!existsSync(BUDDY))("repair-serve-plist.sh", () => {
-  const dir = mkdtempSync(join(tmpdir(), "aide-repair-plist-"));
-  afterAll(() => rmSync(dir, { recursive: true, force: true }));
+const dir = mkdtempSync(join(tmpdir(), "aide-repair-plist-"));
+afterAll(() => rmSync(dir, { recursive: true, force: true }));
 
-  function plistWith(serveArgv: string[]): string {
-    const path = join(dir, `${serveArgv.join("_").replace(/\W/g, "")}.plist`);
-    writeFileSync(path, renderPlist({
-      label: "L", bunPath: "/b/bun", script: "/s/serve.ts", workingDirectory: "/w", logPath: "/l", serveArgv,
-    }));
-    return path;
-  }
+function plistWith(serveArgv: string[]): string {
+  const path = join(dir, `${serveArgv.join("_").replace(/\W/g, "")}.plist`);
+  writeFileSync(path, renderPlist({
+    label: "L", bunPath: "/b/bun", script: "/s/serve.ts", workingDirectory: "/w", logPath: "/l", serveArgv,
+  }));
+  return path;
+}
 
+/** A definition file in the shape of deploy/serve-args.json, naming
+ *  only the flags given, each taking a value. */
+function definitionWith(flags: string[]): string {
+  const path = join(dir, `def-${flags.join("_").replace(/\W/g, "")}.json`);
+  const lines = flags.map((f) => `  "${f}": { "takesValue": true }`);
+  writeFileSync(path, `{\n${lines.join(",\n")}\n}\n`);
+  return path;
+}
+
+describe.skipIf(!existsSync(BUDDY))("repair-serve-plist.sh against deploy/serve-args.json", () => {
   test("an option the code dropped goes, with its value; the rest stays in order", () => {
     const plist = plistWith(["serve", "--root", "/x/root", "--token-file", "/x/token", "--port", "8788"]);
-    const res = Bun.spawnSync(["bash", REPAIR, plist, PARSE_ARGS]);
+    const res = Bun.spawnSync(["bash", REPAIR, plist, DEFINITION]);
 
     expect(res.exitCode).toBe(0);
     expect(res.stdout.toString()).toContain("removed --token-file");
     expect(programArguments(plist)).toEqual(["/b/bun", "run", "/s/serve.ts", "serve", "--root", "/x/root", "--port", "8788"]);
   });
 
-  test("a job passing only accepted options is left as it was", () => {
+  test("a job passing only defined options keeps them all, in order (AC-3)", () => {
     const plist = plistWith(["serve", "--root", "/x/root", "--port", "8788"]);
     const before = programArguments(plist);
-    const res = Bun.spawnSync(["bash", REPAIR, plist, PARSE_ARGS]);
+    const res = Bun.spawnSync(["bash", REPAIR, plist, DEFINITION]);
 
+    expect(res.exitCode).toBe(0);
     expect(res.stdout.toString()).toBe("");
+    expect(programArguments(plist)).toEqual(before);
+  });
+
+  test("every defined flag passed with a value is left as it was, whatever the parser's text (AC-1)", () => {
+    const flags = Object.keys(JSON.parse(readFileSync(DEFINITION, "utf8")) as Record<string, unknown>);
+    expect(flags.length).toBeGreaterThan(5);
+    const plist = plistWith(["serve", ...flags.flatMap((f, n) => [f, `/v/${n}`])]);
+    const before = programArguments(plist);
+    const res = Bun.spawnSync(["bash", REPAIR, plist, DEFINITION]);
+
+    expect(res.exitCode).toBe(0);
+    expect(res.stdout.toString()).toBe("");
+    expect(programArguments(plist)).toEqual(before);
+  });
+
+  test("a defined flag whose value begins with -- keeps that value (AC-3)", () => {
+    const plist = plistWith(["serve", "--root", "--odd-value", "--port", "8788"]);
+    const before = programArguments(plist);
+    const res = Bun.spawnSync(["bash", REPAIR, plist, DEFINITION]);
+
+    expect(res.exitCode).toBe(0);
+    expect(res.stdout.toString()).toBe("");
+    expect(programArguments(plist)).toEqual(before);
+  });
+});
+
+describe.skipIf(!existsSync(BUDDY))("repair-serve-plist.sh against a definition of its own", () => {
+  test("a flag removed from the definition goes with its value (AC-2)", () => {
+    const plist = plistWith(["serve", "--root", "/x/root", "--port", "8788"]);
+    const res = Bun.spawnSync(["bash", REPAIR, plist, definitionWith(["--root", "--mirror"])]);
+
+    expect(res.exitCode).toBe(0);
+    expect(res.stdout.toString()).toContain("removed --port");
+    expect(programArguments(plist)).toEqual(["/b/bun", "run", "/s/serve.ts", "serve", "--root", "/x/root"]);
+  });
+
+  test("a removed flag's value goes even when it begins with -- (AC-2)", () => {
+    const plist = plistWith(["serve", "--root", "--odd-value", "--port", "8788"]);
+    const res = Bun.spawnSync(["bash", REPAIR, plist, definitionWith(["--port"])]);
+
+    expect(res.exitCode).toBe(0);
+    expect(res.stdout.toString()).toContain("removed --root");
+    expect(programArguments(plist)).toEqual(["/b/bun", "run", "/s/serve.ts", "serve", "--port", "8788"]);
+  });
+
+  test("a removed flag directly followed by a defined flag goes alone (AC-2)", () => {
+    const plist = plistWith(["serve", "--verbose", "--port", "8788"]);
+    const res = Bun.spawnSync(["bash", REPAIR, plist, definitionWith(["--port"])]);
+
+    expect(res.exitCode).toBe(0);
+    expect(res.stdout.toString()).toContain("removed --verbose");
+    expect(programArguments(plist)).toEqual(["/b/bun", "run", "/s/serve.ts", "serve", "--port", "8788"]);
+  });
+
+  test("a definition it reads no flag from is refused, and the job is left as it was", () => {
+    const plist = plistWith(["serve", "--root", "/x/empty", "--port", "8788"]);
+    const before = programArguments(plist);
+    const empty = join(dir, "empty.json");
+    writeFileSync(empty, "{}\n");
+    const res = Bun.spawnSync(["bash", REPAIR, plist, empty]);
+
+    expect(res.exitCode).not.toBe(0);
     expect(programArguments(plist)).toEqual(before);
   });
 });

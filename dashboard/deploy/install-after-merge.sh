@@ -26,22 +26,20 @@ LOG="${AIDE_INSTALL_LOG:-$LOG_DEFAULT}"
 mkdir -p "$(dirname "$LOG")"
 {
   echo "--- $(date -u +%Y-%m-%dT%H:%M:%SZ) ---"
-  ./core/implementations/claude-code/install.sh
-  # Codex too, or its copy of the skills and AGENTS.md drifts silently:
-  # both tools read the SAME shared sources, but each has its own
-  # installer, and only Claude Code's ran here. Found 2026-08-19, when
-  # Codex created a spec on the four-file layout that spec 82 replaced —
-  # it had been reading its 16 August copy ever since.
-  ./core/implementations/codex/install.sh
-  # And OpenCode, for the same reason and no other: its instructions file
-  # lives where only its own installer writes. Copilot needs no line —
-  # it reads `~/.agents/skills/` and the instructions file Codex's
-  # installer already refreshes.
-  ./core/implementations/opencode/install.sh
+  # Every tool on the shared list, as install-all.sh installs them: each
+  # tool's instructions file is written only by its own installer, so a
+  # tool left out here keeps running on the rules it was installed with.
+  # Nothing asks on a headless Deploy, and a failing installer stops it.
+  source ./core/scripts/lib/ai-tools/read.sh
+  tool_ids="$(ai_tool_ids)"
+  for id in $tool_ids; do
+    ai="$(ai_tool_field "$id" implementation)"
+    "./core/implementations/$ai/install.sh" < /dev/null
+  done
 } >> "$LOG" 2>&1
 SERVICE_LABEL="${AIDE_DASH_LABEL:-$(sed -n 's/.*"label": "\([^"]*\)".*/\1/p' dashboard/deploy/service.json)}"
 PLIST="${AIDE_DASH_PLIST:-$HOME/Library/LaunchAgents/$SERVICE_LABEL.plist}"
-ARGS_SRC="dashboard/src/serve/serve-helpers/parse-args.ts"
+ARGS_DEF="dashboard/deploy/serve-args.json"
 BUN="${AIDE_DASH_BUN:-$HOME/.local/share/mise/shims/bun}"
 if [ -x "$BUN" ]; then
   ( cd dashboard && "$BUN" install --silent )
@@ -57,9 +55,9 @@ fi
 # option leaves the service passing one the new binary refuses, and the
 # board dies at its next restart. Dropped here, where both halves are on
 # disk; the restart that follows reloads the job from this file.
-if [ -f "$PLIST" ] && [ -f "$ARGS_SRC" ]; then
+if [ -f "$PLIST" ] && [ -f "$ARGS_DEF" ]; then
   {
-    bash dashboard/deploy/repair-serve-plist.sh "$PLIST" "$ARGS_SRC" ||
+    bash dashboard/deploy/repair-serve-plist.sh "$PLIST" "$ARGS_DEF" ||
       echo "⚠️ [aide serve] could not drop the options this build no longer accepts from $PLIST — the board will not start after a restart until they are removed"
   } >> "$LOG" 2>&1
 fi

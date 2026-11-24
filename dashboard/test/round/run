@@ -122,8 +122,18 @@ SPEC_FOLDER="${BRANCH#aide/}"
 # the round's own fixture specs and a stub model, whatever checkout it
 # runs from. A branch names its spec; a plain checkout is named by its
 # folder, which the header shows as just "Test".
+# The branch's flag definition decides where it has one; a branch cut
+# before deploy/serve-args.json existed is read from its parser's source.
 TEST_BOARD_ARGS=()
-if grep -q -- '--test-board' "$SERVE_FROM/dashboard/src/serve/serve-helpers/parse-args.ts" 2>/dev/null; then
+SERVE_ARGS_DEF="$SERVE_FROM/dashboard/deploy/serve-args.json"
+if [ -f "$SERVE_ARGS_DEF" ]; then
+  KNOWS_TEST_BOARD_FROM="$SERVE_ARGS_DEF"
+  TEST_BOARD_PATTERN='"--test-board"'
+else
+  KNOWS_TEST_BOARD_FROM="$SERVE_FROM/dashboard/src/serve/serve-helpers/parse-args.ts"
+  TEST_BOARD_PATTERN='--test-board'
+fi
+if grep -q -- "$TEST_BOARD_PATTERN" "$KNOWS_TEST_BOARD_FROM" 2>/dev/null; then
   TEST_BOARD_ARGS=(--test-board "${SPEC_FOLDER:-$(basename "$SERVE_FROM")}")
 fi
 

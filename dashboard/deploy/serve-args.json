@@ -1,0 +1,16 @@
+{
+  "--port": { "takesValue": true },
+  "--mirror": { "takesValue": true },
+  "--root": { "takesValue": true },
+  "--bind": { "takesValue": true },
+  "--queue-mirror": { "takesValue": true },
+  "--pending-models": { "takesValue": true },
+  "--pending-steps": { "takesValue": true },
+  "--queue-projects": { "takesValue": true },
+  "--runner-bin": { "takesValue": true },
+  "--pdf-bin": { "takesValue": true },
+  "--result-dir": { "takesValue": true },
+  "--dashboard-checkouts": { "takesValue": true },
+  "--queue-config": { "takesValue": true },
+  "--test-board": { "takesValue": true }
+}

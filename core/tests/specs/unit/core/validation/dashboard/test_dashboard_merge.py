@@ -5,7 +5,13 @@ Project-command detection (`core/skills/tools-and-scripts/SKILL.md`)
 reads the ROOT only: a JS lockfile or `package.json` appearing there would
 silently redirect every AI's idea of "run the tests" from pytest to npm.
 """
+import os
+import re
+import subprocess
+
 import pytest
+
+from ..installer.tool_list import copy_with_fake_tool, read_tools
 
 
 # The detection table in core/skills/tools-and-scripts/SKILL.md, in the order it
@@ -32,35 +38,54 @@ class TestToolchainsStaySeparate:
 
 
 @pytest.mark.validation
-class TestTheMergeInstallRefreshesEveryTool:
-    """A code merge installs the shared sources for BOTH supported tools.
+class TestTheDeployInstallRefreshesEveryTool:
+    """Deploy runs the installer of every tool on the shared tool list.
 
-    Claude Code and Codex read the same skills and the same rules, but
-    each has an installer of its own, and the post-merge script ran only
-    Claude Code's. Codex therefore went on reading its install-time copy:
-    on 2026-08-19 it created a spec on the four-file layout that
-    was replaced, because its copy of `aide-create` still described the old
-    one. Copilot needs no line of its own: it reads `~/.agents/skills/`
-    and the instructions file the Codex installer already refreshes.
+    Each tool's instructions file is written only by its own installer, so
+    a tool Deploy skips keeps running on the rules it was installed with.
     """
 
-    #: Every tool whose own installer writes somewhere no other
-    #: installer touches. Copilot is absent for the reason above.
-    OWN_FILES = ("claude-code", "codex", "opencode")
-
-    def test_every_installer_that_owns_a_file_runs_after_a_merge(self, workspace_root):
+    def test_every_listed_installer_runs_and_logs_ac_1_ac_3(self, workspace_root, tmp_path):
         # Arrange
-        script = workspace_root / "dashboard" / "deploy" / "install-after-merge.sh"
+        copy_with_fake_tool(workspace_root, tmp_path, (
+            "dashboard/deploy/install-after-merge.sh",
+            "core/scripts/lib/ai-tools",
+        ))
+        ran = tmp_path / "ran.txt"
+        implementations = [tool["implementation"] for tool in read_tools(tmp_path)]
+        for implementation in implementations:
+            installer = tmp_path / "core/implementations" / implementation / "install.sh"
+            installer.parent.mkdir(parents=True, exist_ok=True)
+            installer.write_text(
+                "#!/bin/bash\n"
+                f'echo {implementation} >> "{ran}"\n'
+                f"echo installed {implementation}\n"
+                f"echo warned {implementation} >&2\n"
+            )
+            installer.chmod(0o755)
+        log = tmp_path / "install.log"
+        env = {key: value for key, value in os.environ.items() if key != "AI_TOOLS_FILE"}
+        env.update(
+            AIDE_INSTALL_LOG=str(log),
+            AIDE_DASH_LABEL="test.label",
+            AIDE_DASH_PLIST=str(tmp_path / "missing.plist"),
+            AIDE_DASH_BUN=str(tmp_path / "missing-bun"),
+        )
 
         # Act
-        content = script.read_text(encoding="utf-8")
+        result = subprocess.run(
+            ["bash", str(tmp_path / "dashboard/deploy/install-after-merge.sh")],
+            env=env, capture_output=True, text=True, stdin=subprocess.DEVNULL,
+        )
 
         # Assert
-        for tool in self.OWN_FILES:
-            assert f"./core/implementations/{tool}/install.sh" in content, (
-                f"{tool}'s installer should run after a merge — otherwise its "
-                "copy of the skills and the rules drifts from the repo silently"
-            )
+        assert result.returncode == 0, result.stderr
+        assert "copilot" in implementations and "fake-impl" in implementations
+        assert ran.read_text().split() == implementations
+        logged = log.read_text()
+        for implementation in implementations:
+            assert f"installed {implementation}" in logged
+            assert f"warned {implementation}" in logged
 
 
 @pytest.mark.validation
@@ -78,7 +103,7 @@ class TestInstallAfterMergeLogsInsteadOfDiscarding:
         ]
         assert lines, "no installer call lines found in install-after-merge.sh"
         for line in lines:
-            assert "/dev/null" not in line, \
+            assert not re.search(r">\s*[\"']?/dev/null", line), \
                 f"installer output is still discarded: {line}"
         assert "Library/Logs/aide-dashboard" in content or "AIDE_INSTALL_LOG" in content, \
             "install-after-merge.sh does not log installer output anywhere"

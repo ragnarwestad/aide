@@ -8,16 +8,36 @@
 # its next restart. install-after-merge.sh runs this where both halves are
 # on disk; the restart that follows reloads the job from the file.
 #
-# Prints one line per option it removed; exits non-zero only when the plist
-# could not be read or written.
+# Which options are valid, and whether each takes a value, is read from
+# serve-args.json — the same list the serve code's argument parser reads.
+# It is read with sed, so the file keeps one flag per line.
 #
-# Usage: repair-serve-plist.sh <plist> <parse-args.ts>
+# Prints one line per option it removed; exits non-zero when the plist
+# could not be read or written, or the definition names no flag.
+#
+# Usage: repair-serve-plist.sh <plist> <serve-args.json>
 
 set -u
 
-plist="${1:?usage: repair-serve-plist.sh <plist> <parse-args.ts>}"
-accepted="${2:?usage: repair-serve-plist.sh <plist> <parse-args.ts>}"
+plist="${1:?usage: repair-serve-plist.sh <plist> <serve-args.json>}"
+definition="${2:?usage: repair-serve-plist.sh <plist> <serve-args.json>}"
 buddy=/usr/libexec/PlistBuddy
+
+# "<flag> <true|false>" per defined flag. None read is a definition this
+# script cannot understand, and dropping every option would stop the board.
+defined=$(sed -n -E 's/^ *"(--[a-z][a-z-]*)": *\{ *"takesValue": *(true|false) *\}.*/\1 \2/p' "$definition")
+[ -n "$defined" ] || exit 1
+
+# Prints "true" or "false" for a defined flag, nothing for any other text.
+takes_value() {
+  local flag value
+  while read -r flag value; do
+    if [ "$flag" = "$1" ]; then
+      echo "$value"
+      return
+    fi
+  done <<< "$defined"
+}
 
 args=()
 while IFS= read -r line; do
@@ -31,14 +51,22 @@ drop=()
 i=0
 while [ "$i" -lt "${#args[@]}" ]; do
   arg="${args[$i]}"
-  if [[ "$arg" == --[a-z]* ]] && ! grep -q -- "\"$arg\"" "$accepted"; then
-    drop+=("$i")
-    next=$((i + 1))
-    if [ "$next" -lt "${#args[@]}" ] && [[ "${args[$next]}" != --* ]]; then
-      drop+=("$next")
-      i=$next
-    fi
-    echo "removed $arg from $plist"
+  next=$((i + 1))
+  if [[ "$arg" == --[a-z]* ]]; then
+    case "$(takes_value "$arg")" in
+      true) i=$next ;;  # its value is kept, whatever it looks like
+      false) ;;
+      *)
+        drop+=("$i")
+        # The argument after a dropped option is its value, unless it is
+        # an option this build accepts.
+        if [ "$next" -lt "${#args[@]}" ] && [ -z "$(takes_value "${args[$next]}")" ]; then
+          drop+=("$next")
+          i=$next
+        fi
+        echo "removed $arg from $plist"
+        ;;
+    esac
   fi
   i=$((i + 1))
 done
