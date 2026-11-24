@@ -390,13 +390,15 @@ fi
 # The window's use so far is the step's own turn; what the review's fix turn
 # and the red tests' fix turns add comes after this point.
 context_before_checks="$context_fullest"
-# What Aide does once the AI is done: its own test run, the commit and
-# the push. A step with no AI turn goes straight on from preparing.
+# What Aide does once the AI is done: the commit and the push, after its
+# own test run for a step whose entry runs tests (`runsTests`). A step with
+# no AI turn goes straight on from preparing.
 aide_part_close
 case "$command_name" in
-  create|analyze|reopen|close) aide_part_open "tests and commit spec files" ;;
-  implement|archive) aide_part_open "tests and commit code and spec files" ;;
-  *) aide_part_open "tests and commit files" ;;
+  create|analyze|reopen|close) aide_part_open "commit spec files" ;;
+  implement) aide_part_open "tests and commit code and spec files" ;;
+  archive) aide_part_open "commit code and spec files" ;;
+  *) aide_part_open "commit files" ;;
 esac
 
 ok="false"

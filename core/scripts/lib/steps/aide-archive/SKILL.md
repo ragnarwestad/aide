@@ -196,9 +196,9 @@ Name the default branch by its own name (`main` above). An
 usually happened seconds before this session, in the same run, and the
 merge is still to come.
 
-### Step 5 of 5: Merge code and spec files into main
+### Step 5 of 5: Test and merge code and spec files into main
 
-Aide writes `--- Step 5 of 5: Merge code and spec files into main — started` itself, after this session, and ends it `— done` or `— stopped: <why>`.
+Aide writes `--- Step 5 of 5: Test and merge code and spec files into main — started` itself, after this session, and ends it `— done` or `— stopped: <why>`.
 
 Not this session's step, and it writes no mark for it. Aide merges the
 spec's branches into the default branch once this session has ended: it

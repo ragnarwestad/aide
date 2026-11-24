@@ -524,9 +524,10 @@ aide-run-spec: <text>                                                  an older,
 ```
 
 The script marks the parts it runs itself the way a skill's steps are marked: `--- Step Aide: preparing — started` on
-its first line, `— done` just before the AI's first turn; `--- Step Aide: tests and commit spec files — started` after an AI that changes only specs,
-ending `— done`, or `— stopped: <why>` for a step that failed. Implement and Archive name
-`tests and commit code and spec files`; scheduled jobs name `tests and commit files`. A model turn closes the part it interrupts and a fix
+its first line, `— done` just before the AI's first turn; `--- Step Aide: commit spec files — started` after an AI that changes only specs,
+ending `— done`, or `— stopped: <why>` for a step that failed. Archive names `commit code and spec files`, and
+scheduled jobs `commit files`. Implement, the one step whose entry runs tests (`runsTests` in
+`core/scripts/lib/workflow-steps.json`), names `tests and commit code and spec files`. A model turn closes the part it interrupts and a fix
 turn opens it again after itself, so the log reads as one sequence of marked parts (`aide_part_open`,
 `aide_part_close`).
 

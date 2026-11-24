@@ -75,7 +75,10 @@ function planFrom(text: string, hasModelTurn: boolean, step: string): PlannedSte
 
 const part = (name: string): PlannedStep => ({ key: stepKey("Aide", name), label: capitalizeFirst(name) });
 
-/** The publication stage names the files the phase is allowed to change. */
-export const commitPartTitle = (step: string): string =>
-  ["create", "analyze", "reopen", "close"].includes(step) ? "tests and commit spec files"
-    : ["implement", "archive"].includes(step) ? "tests and commit code and spec files" : "tests and commit files";
+/** The publication stage names the files the phase is allowed to change,
+ *  and its test run only for a step whose entry runs tests. */
+export const commitPartTitle = (step: string): string => {
+  const files = ["create", "analyze", "reopen", "close"].includes(step) ? "spec files"
+    : ["implement", "archive"].includes(step) ? "code and spec files" : "files";
+  return `${workflowStep(step)?.runsTests ? "tests and commit" : "commit"} ${files}`;
+};

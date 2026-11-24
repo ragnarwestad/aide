@@ -9,7 +9,7 @@ import type { StepMark } from "../../../src/queue/parse-stream";
 
 const marks = (): StepMark[] => [
   { key: "Step Aide: tests and commit", title: "Tests and commit", state: "done" },
-  { key: "Step 5 of 5", title: "Merge code and spec files into main", state: "running" },
+  { key: "Step 5 of 5", title: "Test and merge code and spec files into main", state: "running" },
 ];
 
 test("the running merge step is queued while its merge waits for the lock", () => {

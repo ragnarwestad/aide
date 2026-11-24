@@ -1004,7 +1004,7 @@ the checkout lock. After a restart wait it fetches main again and reinstalls if 
 A scheduled job's row (`src/render/pages/jobs-page/job-row.ts`) has the same columns and two-line shape. Its title leads
 with the project: "<project>:<name>". Every job row's second line holds when the job last changed (made, started or finished, what the tab orders by) and
 one pip per step, the step's first letter above it, coloured done, running, failed or not started. It is shut by default, and its › opens it to show Cancel and a line per
-step its log has marked (Aide's preparing, the steps the model marks, Aide's tests and commit of spec files or code and spec files), each with its state, its
+step its log has marked (Aide's preparing, the steps the model marks, Aide's commit of spec files or code and spec files, with Implement's tests), each with its state, its
 time and a › that unfolds the step's part of the log. A job that failed or stopped says why in a line
 under its state, ending with a Log link. A queued, running or merging job offers Cancel, asking first;
 a finished one has no action. Which scheduled jobs show is decided in

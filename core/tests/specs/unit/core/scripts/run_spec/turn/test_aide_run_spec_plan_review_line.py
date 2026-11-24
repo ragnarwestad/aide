@@ -24,7 +24,7 @@ PLAN_REVIEW_REFERENCE = (
 COUNTS_TAIL = " — the findings are under Plan review in the plan (3-solution.md)"
 NO_SECTION = "plan review: the plan (3-solution.md) has no Plan review section"
 NO_COUNTS = "plan review: the Plan review section in the plan (3-solution.md) gives no counts — the findings are there"
-PARTS_OPENED = "--- Step Aide: tests and commit spec files — started"
+PARTS_OPENED = "--- Step Aide: commit spec files — started"
 
 RESULT_OK = {
     "type": "result", "subtype": "success", "is_error": False,

@@ -243,7 +243,7 @@ const firstLine = (text: string): string => text.split(/\r?\n/, 1)[0] ?? text;
  *  the step's Log marks it in the skill's own words, the heading of that
  *  skill's last step in `core/scripts/lib/steps/aide-<step>/SKILL.md`: its place by
  *  step, and a title naming the files it lands. */
-const MERGE_TITLES: Partial<Record<WorkflowStep, string>> = { archive: "Merge code and spec files into main" };
+const MERGE_TITLES: Partial<Record<WorkflowStep, string>> = { archive: "Test and merge code and spec files into main" };
 export const mergeStepTitle = (step: WorkflowStep): string => MERGE_TITLES[step] ?? "Merge spec files into main";
 export const MERGE_STEP: Partial<Record<WorkflowStep, string>> = {
   create: "7 of 7",

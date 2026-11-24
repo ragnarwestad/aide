@@ -70,7 +70,7 @@ it in the words of that skill's last heading:
 - `— done` when every repo merged
 - `— stopped: <why> — the archive is not finished`, an error line, when it did not
 
-Create, Analyze, Reopen and Close name spec files; Archive says `Merge code and spec files into main`.
+Create, Analyze, Reopen and Close name spec files; Archive says `Test and merge code and spec files into main`.
 
 The places are `MERGE_STEP` and the titles come from `mergeStepTitle()` in `src/serve/land-branch/steps.ts`, one per step that merges (`create`, `analyze`,
 `reopen`, `archive`, `close`).

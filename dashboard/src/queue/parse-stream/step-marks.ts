@@ -36,9 +36,9 @@ export interface StepMark {
 /** A step's key, shared by a mark and the planned line it moves: the place
  *  the step has in its job, whatever words the model gives its title. Aide's
  *  two parts share the place "Aide", so their name stays in. */
-const COMMIT_PARTS = new Set(["tests and commit", "tests and commit spec files", "tests and commit code and spec files", "tests and commit files"]);
+const COMMIT_PART = /^(tests and commit|commit)( spec files| code and spec files| files)?$/;
 export const stepKey = (place: string, title: string): string =>
-  place === "Aide" ? `Step Aide: ${COMMIT_PARTS.has(title.toLowerCase()) ? "tests and commit" : title}` : `Step ${place}`;
+  place === "Aide" ? `Step Aide: ${COMMIT_PART.test(title.toLowerCase()) ? "tests and commit" : title}` : `Step ${place}`;
 
 /** A step's mark, as `aide_step_mark` (core/scripts/lib/run-spec/setup/run-log.sh) writes it: the place
  *  (`Aide`, `N of M`), the title, and the ending (`started`, `done`, `skipped…`, `stopped: <why>`). */

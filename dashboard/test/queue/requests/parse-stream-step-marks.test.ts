@@ -266,7 +266,7 @@ describe("stepPlan", () => {
     return dir;
   };
 
-  test("a close's plan is Aide's preparing, the skill's steps, Aide's tests and commit, then the heading Aide writes (AC-4)", () => {
+  test("a close's plan is Aide's preparing, the skill's steps, Aide's commit, then the heading Aide writes (AC-4)", () => {
     const dir = skillsWith("close", skillText(["move the spec", "commit", "confirm", "merge into main"]));
     const plan = stepPlan("close", dir);
     expect(plan.map((s) => s.key)).toEqual([
@@ -277,7 +277,7 @@ describe("stepPlan", () => {
       "Step Aide: tests and commit",
       "Step 4 of 4",
     ]);
-    expect(plan.map((s) => s.label)).toEqual(["Preparing", "Move the spec", "Commit", "Confirm", "Tests and commit spec files", "Merge into main"]);
+    expect(plan.map((s) => s.label)).toEqual(["Preparing", "Move the spec", "Commit", "Confirm", "Commit spec files", "Merge into main"]);
   });
 
   test("a reopen, listed without a model turn, gives Aide's two parts and the heading Aide writes, none of the session's (AC-3)", () => {
@@ -331,7 +331,13 @@ describe("stepPlan", () => {
     );
     // The literals `aide_part_open "<name>"` is called with; `"$variable"` names a variable and does not count.
     const names = sources.flatMap((text) => [...text.replace(/^\s*#.*$/gm, "").matchAll(/\baide_part_open "([^"$]+)"/g)].map((m) => m[1]!));
-    expect(names.sort()).toEqual([AIDE_PARTS.before, commitPartTitle("analyze"), commitPartTitle("implement"), commitPartTitle("schedule")].sort());
+    expect(names.sort()).toEqual([AIDE_PARTS.before, commitPartTitle("analyze"), commitPartTitle("implement"), commitPartTitle("archive"), commitPartTitle("schedule")].sort());
+  });
+
+  test("only a step whose entry runs tests names tests in its commit part", () => {
+    for (const step of WORKFLOW_STEP_RECORDS.filter((s) => s.runBy === "runner")) {
+      expect(commitPartTitle(step.name).startsWith("tests and "), step.name).toBe(step.runsTests);
+    }
   });
 
   test("a skills folder with no file for the step, or a file with no Step N of X heading, gives no plan", () => {
@@ -342,7 +348,7 @@ describe("stepPlan", () => {
 });
 
 test("old and explicit commit marks refer to one publishing step, retaining state and timing", () => {
-  for (const name of ["tests and commit spec files", "tests and commit code and spec files", "tests and commit files"]) {
+  for (const name of ["tests and commit spec files", "tests and commit code and spec files", "tests and commit files", "commit spec files", "commit code and spec files", "commit files"]) {
     const marks = stepMarks([{ by: "aide-after", lines: [
       "00:00:01 +1s --- Step Aide: tests and commit — started",
       `00:00:05 +5s --- Step Aide: ${name} — done`,

@@ -92,8 +92,9 @@ Each entry says what the word is and links the page that has the rest.
   archive's merge runs the project's tests on the merge first.
   [Merge](../dashboard/docs/landing.md).
 - **Merge spec files into main** — the last step of Create, Analyze, Reopen and Close.
-  Only the spec files reach the default branch. Archive instead says
-  **Merge code and spec files into main**, since it also merges the project changes.
+  Only the spec files reach the default branch, and no tests run. Archive instead says
+  **Test and merge code and spec files into main**, since it also merges the project changes and runs the project's
+  tests on the merge first.
 - **Test server** — a running copy of the project built from a spec's
   branch, offered between implement and archive.
   [Test server](../dashboard/docs/test-server.md).
