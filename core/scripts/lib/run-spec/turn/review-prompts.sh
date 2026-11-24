@@ -2,8 +2,11 @@
 # run-spec/turn/review-prompts.sh — the words implement's review and its
 # verification are given (run-spec/turn/review.sh), and an analyze's plan
 # review and the findings it hands back (run-spec/turn/plan-review.sh).
+# Also how both replies are read: the review part, its numbered findings,
+# and the verification's decision for each.
 # Kept apart from the turns that send them so scripts/review_eval measures
-# the very prompts the runner sends: it sources this file beside _aide-spec-lib.sh.
+# the very prompts the runner sends, and reads the replies by the runner's
+# own rule: it sources this file beside _aide-spec-lib.sh.
 
 # Interface behaviour is reviewed against the project rules as well as the spec.
 review_design_instruction() {
@@ -58,6 +61,51 @@ verify_prompt() {  # <description-path> <fork> <base> <defects> <headless-note>
     "or" \
     "drop <its number>. <why, naming the code that shows it>" \
     "$5"
+}
+
+# The review part of a review's <reply>: the LAST `review: ` line, in any
+# case, then every line after it. The first line is the verdict, the lines
+# after it the defects. Nothing for a reply with no such line.
+review_reply_part() {  # <reply>
+  printf '%s\n' "$1" | awk '
+    tolower($0) ~ /^review: / { part = $0; found = 1; next }
+    found { part = part "\n" $0 }
+    END { if (found) print part }'
+}
+
+# The numbered findings in <defects>, one per line: `<n><TAB><text>`. A
+# line `<n>. <text>`, or `<n>.` with its text on the lines below, starts
+# a finding; a non-blank line after it is joined
+# on with one space, and spaces around each piece are trimmed. Lines
+# before the first numbered one are not findings. Nothing when no line
+# is numbered.
+review_reply_findings() {  # <defects>
+  printf '%s\n' "$1" | awk '
+    function trim(s) { sub(/^[[:space:]]+/, "", s); sub(/[[:space:]]+$/, "", s); return s }
+    function flush() { if (have) print n "\t" text }
+    /^[[:space:]]*[0-9]+\.([[:space:]]|$)/ {
+      flush(); have = 1
+      n = $0; sub(/^[[:space:]]*/, "", n); sub(/\..*$/, "", n)
+      text = $0; sub(/^[[:space:]]*[0-9]+\./, "", text); text = trim(text)
+      next
+    }
+    have && NF { text = (text == "" ? "" : text " ") trim($0) }
+    END { flush() }'
+}
+
+# What a verification's <reply> decided for finding <n>: the LAST line
+# `keep <n>` or `drop <n>. <why>`, in any case, decides, and the number
+# ends at any non-digit. Prints `keep<TAB><why>` or `drop<TAB><why>`; a
+# finding with no line is kept, `keep<TAB>no line for it`.
+verify_reply_decision() {  # <reply> <n>
+  case "$2" in '' | *[!0-9]*) return 1 ;; esac
+  printf '%s\n' "$1" | awk -v n="$2" '
+    function trim(s) { sub(/^[[:space:]]+/, "", s); sub(/[[:space:]]+$/, "", s); return s }
+    tolower($0) ~ ("^[[:space:]]*(keep|drop)[[:space:]]+" n "([^0-9]|$)") {
+      action = trim($0); action = tolower(substr(action, 1, 4))
+      why = $0; sub(/^[[:space:]]*[A-Za-z]+[[:space:]]+[0-9]+\.?/, "", why); why = trim(why)
+    }
+    END { if (action == "") print "keep\tno line for it"; else print action "\t" why }'
 }
 
 # The plan review's prompt: run the three reviewers of the routine at

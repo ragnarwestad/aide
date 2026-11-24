@@ -1,30 +1,29 @@
-"""Reading what a review and a verification answered, and scoring them against the labelled findings."""
+"""Reading what a review and a verification answered, by the runner's own rule, and scoring them against the labelled
+findings."""
 import json
-import re
+import subprocess
+from pathlib import Path
 
-REVIEW_LINE = re.compile(r"^review: ", re.I | re.M)
-NUMBERED = re.compile(r"^\s*(\d+)\.\s+(.*\S)")
-DECISION = re.compile(r"^\s*(keep|drop)\s+(\d+)\b\.?\s*(.*)$", re.I)
+SCRIPTS = Path(__file__).resolve().parents[2] / "core" / "scripts"
+
+
+def _runner(body, *args):
+    """Run `body` in bash with the runner's review-prompts.sh sourced, as prompt() in __main__.py does."""
+    script = f'source "$1/_aide-spec-lib.sh"; source "$1/lib/run-spec/turn/review-prompts.sh"; shift; {body}'
+    return subprocess.run(["bash", "-c", script, "bash", str(SCRIPTS), *args], capture_output=True, text=True,
+                          check=True).stdout
 
 
 def review_defects(text):
-    """The numbered defects after the last `review:` line, as the runner reads them; [] for no defects and None for
-    a reply without the line."""
-    lines = (text or "").splitlines()
-    marks = [i for i, line in enumerate(lines) if REVIEW_LINE.match(line)]
-    if not marks:
+    """The numbered defects after the last `review:` line, read by the runner's own rule; [] for no defects and None
+    for a reply without the line."""
+    part = _runner('review_reply_part "$1"', text or "").splitlines()
+    if not part:
         return None
-    verdict = lines[marks[-1]]
-    if "no defects found" in verdict.lower():
+    if "no defects found" in part[0].lower():
         return []
-    defects = []
-    for line in lines[marks[-1] + 1:]:
-        found = NUMBERED.match(line)
-        if found:
-            defects.append(found.group(2))
-        elif defects and line.strip():
-            defects[-1] += " " + line.strip()
-    return defects
+    found = _runner('review_reply_findings "$1"', "\n".join(part[1:]))
+    return [line.split("\t", 1)[1] for line in found.splitlines()]
 
 
 def numbered(texts):
@@ -32,14 +31,15 @@ def numbered(texts):
 
 
 def decisions(text, count):
-    """What a verification decided for defects 1..count: {n: ("keep"|"drop", why)}. A defect it gives no line for is
-    kept, as the runner keeps it."""
-    found = {}
-    for line in (text or "").splitlines():
-        match = DECISION.match(line)
-        if match and 1 <= int(match.group(2)) <= count:
-            found[int(match.group(2))] = (match.group(1).lower(), match.group(3).strip())
-    return {n: found.get(n, ("keep", "no line for it")) for n in range(1, count + 1)}
+    """What a verification decided for defects 1..count, read by the runner's own rule: {n: ("keep"|"drop", why)}. A
+    defect it gives no line for is kept, as the runner keeps it."""
+    body = 'reply="$1"; shift; for n in "$@"; do printf \'%s\\t\' "$n"; verify_reply_decision "$reply" "$n"; done'
+    found = _runner(body, text or "", *(str(n) for n in range(1, count + 1)))
+    decided = {}
+    for line in found.splitlines():
+        n, action, why = line.split("\t", 2)
+        decided[int(n)] = (action, why)
+    return decided
 
 
 def verify_score(findings, decided):

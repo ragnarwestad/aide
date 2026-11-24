@@ -6,8 +6,10 @@ that checks each defect it finds before any goes back to the session
 
 import json
 import re
+import subprocess
 
 from ...conftest import run
+from ..test_runner_error_solutions import SCRIPTS
 from ..run_spec_result_fields import assert_written_as_in_fixture
 from ..run_spec_results import CODEX_STREAM_OK, CODEX_USAGE, OPENCODE_SESSION_ID, OPENCODE_STREAM_OK, emits
 from ..run_spec_status_files import with_status
@@ -19,6 +21,14 @@ WENT_BACK = "the defect(s) went back to the implement session to be fixed"
 
 IMPLEMENT_SESSION = "ee80227f-510c-45e9-bfbf-c5124f7761c0"
 TWO_DEFECTS = "review: 2 defect(s) found\n1. The first is real\n2. The second is not"
+
+
+def _reply_rule(function, *args):
+    """One of the reply-reading functions of review-prompts.sh, run as the runner sources it."""
+    script = f'source "{SCRIPTS}/lib/run-spec/turn/review-prompts.sh"; {function} "$@"'
+    done = subprocess.run(["bash", "-c", script, "bash", *args], capture_output=True, text=True)
+    assert done.returncode == 0, done.stderr
+    return done.stdout
 
 
 def _stamped(err):
@@ -321,3 +331,43 @@ def test_a_codex_step_keeps_the_reviews_dollars_through_the_fix_turn_ac_5(runner
                      review_tool="claude", review_model="claude-sonnet-4")
     assert out["terminalReason"] == "completed", out
     assert out["costUsd"] == 0.5, out
+
+
+TWO_PARTS = "review: 1 defect(s) found\n1. the old one\nREVIEW: 2 defect(s) found\n1. the kept one\n2. the handled one"
+
+
+def test_the_last_review_part_in_any_case_is_the_one_read_ac_2():
+    part = _reply_rule("review_reply_part", "I looked.\n" + TWO_PARTS)
+
+    assert part.splitlines()[0] == "REVIEW: 2 defect(s) found"
+    defects = "\n".join(part.splitlines()[1:])
+    assert _reply_rule("review_reply_findings", defects) == "1\tthe kept one\n2\tthe handled one\n"
+    assert _reply_rule("review_reply_part", "1. no review line here") == ""
+
+
+def test_the_last_keep_or_drop_for_a_finding_decides_in_any_case_ac_2():
+    assert _reply_rule("verify_reply_decision", "drop 2. x\nkeep 2", "2") == "keep\t\n"
+    assert _reply_rule("verify_reply_decision", "keep 2\nDROP 2. y", "2") == "drop\ty\n"
+    assert _reply_rule("verify_reply_decision", "Keep 12\ndrop 1. one", "12") == "keep\t\n"
+
+
+def test_a_finding_with_no_decision_is_kept_ac_3():
+    assert _reply_rule("verify_reply_decision", "keep 1\ndrop 2. handled", "3") == "keep\tno line for it\n"
+
+
+def test_a_numbered_finding_over_several_lines_is_one_finding_ac_4():
+    findings = _reply_rule("review_reply_findings", "1. first  \n   goes on   \n\n2. second")
+
+    assert findings == "1\tfirst goes on\n2\tsecond\n"
+    assert _reply_rule("review_reply_findings", "1. First defect\n2. \n   Second defect") == "1\tFirst defect\n2\tSecond defect\n"
+
+
+def test_the_runner_sends_back_only_the_last_parts_findings_its_verification_kept_ac_1_ac_2(
+    runner, workspace, fake_claude, tmp_path
+):
+    with_status(workspace, ["create", "analyze"])
+    claude = _claude(fake_claude, TWO_PARTS, "drop 1. no\nkeep 1\ndrop 2. handled", keep_in=tmp_path)
+    run(runner, workspace, claude, command="implement", review_model="claude-sonnet-4", verify_model="claude-opus-4")
+    fix_prompt = (tmp_path / "fix-prompt.txt").read_text()
+    assert "1. the kept one" in fix_prompt
+    assert "the old one" not in fix_prompt and "the handled one" not in fix_prompt

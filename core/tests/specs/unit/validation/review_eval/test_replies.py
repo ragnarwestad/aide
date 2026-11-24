@@ -1,5 +1,15 @@
 """scripts/review_eval/replies.py: reading a review's and a verification's answers, and scoring them."""
+import subprocess
+from pathlib import Path
+
 import replies
+
+SCRIPTS = Path(__file__).resolve().parents[6] / "core" / "scripts"
+
+
+def _runner_reads(function, *args):
+    script = f'source "{SCRIPTS}/lib/run-spec/turn/review-prompts.sh"; {function} "$@"'
+    return subprocess.run(["bash", "-c", script, "bash", *args], capture_output=True, text=True, check=True).stdout
 
 
 def test_the_defects_are_the_numbered_lines_after_the_last_review_line_and_a_wrapped_one_is_joined():
@@ -41,3 +51,18 @@ def test_a_review_run_counts_each_labelled_finding_it_matched_once():
     score = replies.review_score(labelled, ["r", "r", "f", "new"])
 
     assert score == {"real": 2, "real found": 1, "false reported": 1, "unclear reported": 0, "new": 1}
+
+
+def test_the_evaluation_reads_a_reply_as_the_runner_does_ac_1():
+    review = ("Review: 1 defect(s) found\n1. an old one\n\nREVIEW: 3 defect(s) found\n"
+              "1. the first  \n   goes on\n2. the second\n3. the third\n")
+    verify = "drop 1. the guard is there\nKEEP 1\nkeep 2\nDrop 2. handled at y.ts:4\ndrop 3x\n"
+
+    part = _runner_reads("review_reply_part", review).splitlines()
+    runner_findings = [line.split("\t", 1) for line in _runner_reads("review_reply_findings", "\n".join(part[1:])).splitlines()]
+    runner_decided = {int(n): tuple(_runner_reads("verify_reply_decision", verify, n).rstrip("\n").split("\t", 1))
+                      for n, _ in runner_findings}
+
+    assert replies.review_defects(review) == [text for _, text in runner_findings]
+    assert replies.decisions(verify, 3) == runner_decided
+    assert runner_decided == {1: ("keep", ""), 2: ("drop", "handled at y.ts:4"), 3: ("drop", "x")}

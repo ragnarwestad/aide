@@ -60,26 +60,19 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "analyze" ]; then
 fi
 
 # What a verification decided for each of the numbered <defects>, given its
-# reply: one `keep <n>` or `drop <n>. <why>` line per defect, and a defect
-# it gives no line for is kept. A defect's text wrapped onto further
-# lines is joined back into one. One line per defect: `keep<TAB><defect>`,
-# or `drop<TAB><n>. <defect> — <why>`.
+# reply, by the rule in run-spec/turn/review-prompts.sh. One line per
+# defect: `keep<TAB><defect>`, or `drop<TAB><n>. <defect> — <why>`.
 verified_defects() {  # <defects> <reply>
-  local line n text why
-  while IFS= read -r line; do
-    n="$(printf '%s' "$line" | sed -nE 's/^[[:space:]]*([0-9]+)\.[[:space:]].*/\1/p')"
-    [ -n "$n" ] || continue
-    text="$(printf '%s' "$line" | sed -E 's/^[[:space:]]*[0-9]+\.[[:space:]]+//')"
-    why="$(printf '%s\n' "$2" | grep -iE "^[[:space:]]*drop[[:space:]]+$n([^0-9]|$)" | tail -n 1)"
-    if [ -n "$why" ]; then
-      printf 'drop\t%s. %s — %s\n' "$n" "$text" "$(printf '%s' "$why" | sed -E 's/^[[:space:]]*[A-Za-z]+[[:space:]]+[0-9]+\.?[[:space:]]*//')"
+  local n text decision tab
+  tab="$(printf '\t')"
+  while IFS="$tab" read -r n text; do
+    decision="$(verify_reply_decision "$2" "$n")"
+    if [ "${decision%%"$tab"*}" = "drop" ]; then
+      printf 'drop\t%s. %s — %s\n' "$n" "$text" "${decision#*"$tab"}"
     else
       printf 'keep\t%s\n' "$text"
     fi
-  done < <(printf '%s\n' "$1" | awk '
-    /^[[:space:]]*[0-9]+\.[[:space:]]/ { if (buf != "") print buf; buf = $0; next }
-    NF && buf != "" { sub(/^[[:space:]]+/, ""); buf = buf " " $0 }
-    END { if (buf != "") print buf }')
+  done < <(review_reply_findings "$1")
 }
 
 # The review's and the verification's records for the result, when they ran.
@@ -121,7 +114,8 @@ if [ "$terminal_reason" = "completed" ] && [ "$STEP_RUNS_REVIEW" = "true" ] \
   else
     [ "$side_reason" != "provider-limit" ] \
       || stage_error "Review on ${review_model:-$review_on} reached its provider limit — its findings still go through while the implement result stays completed"
-    review_verdict="$(printf '%s\n' "$side_message" | grep -iE '^review: ' | tail -n 1)"
+    review_part="$(review_reply_part "$side_message")"
+    review_verdict="$(printf '%s\n' "$review_part" | head -n 1)"
     review_defects=""
     if [ -z "$review_verdict" ]; then
       # Still best-effort, so the step goes on, but never logged as a
@@ -130,7 +124,7 @@ if [ "$terminal_reason" = "completed" ] && [ "$STEP_RUNS_REVIEW" = "true" ] \
     elif printf '%s' "$review_verdict" | grep -qi 'no defects found'; then
       stage "the review found no defects"
     else
-      review_defects="$(printf '%s\n' "$side_message" | sed -n '/^[Rr]eview: [0-9]/,$p' | tail -n +2)"
+      review_defects="$(printf '%s\n' "$review_part" | tail -n +2)"
       review_count="$(printf '%s' "$review_verdict" | grep -oE '[0-9]+' | head -1)"
       stage_error "the review found ${review_count:-an unknown number of} defect(s)"
       while IFS= read -r review_defect_line; do

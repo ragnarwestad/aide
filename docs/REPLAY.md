@@ -198,7 +198,8 @@ the tests go, and why the runner, not the model, decides when it is taken.
 whole step, while these need fixed commits with known defects. `scripts/review_eval/cases.json` holds 23 implement
 commits whose review on the board found nothing, and every finding a later review made on them, each labelled
 `real`, `false` or `unclear` by reading the code at the commit. Both commands send the runner's own prompts
-(`run-spec/turn/review-prompts.sh`) in a detached worktree of each commit.
+(`run-spec/turn/review-prompts.sh`) in a detached worktree of each commit, and read the replies by the runner's own
+rule from the same file.
 
 - `review --tool codex --model gpt-6.1-sol` runs the review on every commit, and a Claude judge matches each finding
   to a labelled one. It reports how many real defects were found and how many false ones reported, and lists the new
