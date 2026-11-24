@@ -117,8 +117,11 @@ pids=""
 w=0
 while [ "$w" -lt "$WORKERS" ]; do
   if [ -s "$OUT/list.$w" ]; then
+    # Each worker writes its own exit status: macOS's bash 3.2 can forget
+    # a background job that ended long before the others, and `wait` then
+    # answers "not a child of this shell" for a worker that was green.
     # shellcheck disable=SC2046  # the list is our own, one path per line
-    bun test --timeout "$LIMIT" $(cat "$OUT/list.$w") > "$OUT/out.$w" 2>&1 &
+    { bun test --timeout "$LIMIT" $(cat "$OUT/list.$w") > "$OUT/out.$w" 2>&1; echo $? > "$OUT/rc.$w"; } &
     pids="$pids $!:$w"
   fi
   w=$(( w + 1 ))
@@ -185,7 +188,10 @@ bun "$(dirname "$0")/test-timings.ts" "$OUT"/out.* || true
 failed=""
 for p in $pids; do
   w=${p##*:}
-  wait "${p%%:*}"; rc=$?
+  wait "${p%%:*}" 2>/dev/null; rc=$?
+  # No status file: the worker itself was stopped before bun returned,
+  # which reads as the signal it most likely was.
+  if [ -s "$OUT/rc.$w" ]; then rc=$(cat "$OUT/rc.$w"); elif [ "$rc" -eq 127 ]; then rc=137; fi
   [ "$rc" -eq 0 ] && continue
   if [ -z "${AIDE_TEST_ONCE:-}" ] && [ "$rc" -gt 128 ] && ! grep -q '^(fail)' "$OUT/out.$w"; then
     echo "--- worker $w was killed (signal $(( rc - 128 ))) without a failing test; running its files again"

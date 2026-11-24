@@ -226,3 +226,20 @@ def test_with_no_worker_count_the_cores_less_two_are_used_ac_5(workspace_root, t
     r, calls = _run_files(workspace_root, tmp_path, {"BASH_FUNC_sysctl%%": "() { echo 10; }"})
     assert r.returncode == 0, r.stdout + r.stderr
     assert len(calls) == 8, calls
+
+
+def test_a_green_worker_stays_green_when_bash_has_forgotten_its_status(workspace_root, tmp_path):
+    """macOS's bash 3.2 can forget a background job that ended long before
+    the others, and `wait` then answers "not a child of this shell" (127)
+    for a worker whose tests all passed."""
+    import os
+    import subprocess
+    (tmp_path / "green.test.ts").write_text("")
+    forgetful_wait = '() { echo "wait: pid $1 is not a child of this shell" >&2; return 127; }'
+    env = {**os.environ, "AIDE_TEST_WORKERS": "1", "BASH_FUNC_bun%%": _FAKE_BUN, "BASH_FUNC_wait%%": forgetful_wait}
+    r = subprocess.run(
+        ["bash", str(workspace_root / "dashboard" / "scripts" / "run-tests.sh"), str(tmp_path)],
+        capture_output=True, text=True, env=env, timeout=60,
+    )
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "red: worker(s)" not in r.stdout
