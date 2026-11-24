@@ -98,7 +98,9 @@ export function memberPipLabel(folder: string, job?: QueueRowView, lang: Languag
 export function executionGroupMemberPip(group: ExecutionGroup, folder: string, member?: SpecGroup, archiveJob?: QueueRowView, lang: Language = "en") {
   const job = group.state === "completed" ? archiveJob : executionGroupMemberJob(group, folder, member?.lead, archiveJob);
   if (group.state === "archiving" || group.state === "completed") return {
-    kind: phasePipKind({ step: "archive", attempts: job ? [job] : [], history: {} }, group.state === "completed" ? ["archive"] : []),
+    // The group's own place in the queue, as a spec's phase carries its
+    // own: an Archive held back behind another is still queued.
+    kind: phasePipKind({ step: "archive", attempts: job ? [job] : [], history: {}, waiting: group.queuePosition }, group.state === "completed" ? ["archive"] : []),
     title: folder,
     label: `${specNumber(folder)} ${stepLabel("archive", lang).slice(0, 1)}`,
   };

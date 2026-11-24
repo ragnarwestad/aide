@@ -351,6 +351,14 @@ test("all member pips follow the shared Archive, including completed Implement m
       expect(executionGroupMemberPip(execution, folder, own, archive)).toEqual({ kind, title: folder, label: `${folder.split("-")[0]} A` });
     }
   }
+  // Held back behind another archive, with its place in the queue: the
+  // queue's colour, as a spec's own held-back Archive pip has.
+  const heldBack = { state: "queued", errorReason: "held-back", steps: ["archive"], stepIndex: 0 } as QueueRowView;
+  const placed = { ...execution, queuePosition: { id: "group:g:archive", n: 2, total: 4, reason: "another archive is running", operation: "archive" } };
+  for (const folder of execution.members) {
+    const own = member(folder, "", { state: "done", done: ["create", "analyze", "implement"] }).group;
+    expect(executionGroupMemberPip(placed, folder, own, heldBack).kind).toBe("queued");
+  }
   for (const folder of execution.members)
     expect(executionGroupMemberPip({ ...execution, state: "completed" }, folder)).toEqual({ kind: "past", title: folder, label: `${folder.split("-")[0]} A` });
 });
