@@ -5,6 +5,8 @@ import subprocess
 from pathlib import Path
 
 SCRIPTS = Path(__file__).resolve().parents[2] / "core" / "scripts"
+# What the runner's verify_reply_decision gives a defect the reply has no keep or drop line for.
+NO_LINE = ("keep", "no line for it")
 
 
 def _runner(body, *args):

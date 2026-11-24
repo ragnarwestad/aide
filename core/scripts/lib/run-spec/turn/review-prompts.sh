@@ -13,6 +13,50 @@ review_design_instruction() {
   printf '%s\n' "For a user-interface change, read the project's CLAUDE.md or AGENTS.md and the design rules they point to for the changed files. Compare with the existing control named as the reference in the description or plan; when none is named, locate the nearest control with the same role. Check the component and variant, opening, closing, keyboard behaviour, and feedback or navigation after the action. A concrete violation of those rules is a defect even when the description does not repeat the rule; this is not a request for stylistic preferences or a redesign. Follow the project's visual verification requirements: inspect the recorded browser comparison or verify it yourself where possible, and report any missing verification separately without claiming the appearance is verified."
 }
 
+# The change-specific checks: each file in review-checks/ names, in its
+# `paths:` frontmatter, the globs of the code it applies to, and its body
+# is what the review and the verification are given for a diff touching
+# them. Found beside this file, so the runner, its installed copy and
+# scripts/review_eval read the same checks.
+REVIEW_CHECKS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/review-checks"
+
+# The globs in a check file's `paths:` frontmatter, one per line.
+review_check_globs() {  # <check-file>
+  awk 'NR == 1 && /^---$/ { fm = 1; next }
+    fm && /^---$/ { exit }
+    fm && /^[[:space:]]*-[[:space:]]/ { sub(/^[[:space:]]*-[[:space:]]*/, ""); gsub(/^"|"$/, ""); print }' "$1"
+}
+
+# The text of every check in review-checks/ whose paths: a file the branch
+# changed since <fork> in <project-dir> matches, tracked or not, a blank
+# line between two. Nothing with no project directory, no repository
+# there, a git failure, or nothing matching. `[[ == ]]` lets `*` match
+# across `/`, so `dir/*` covers a whole folder.
+review_change_checks() {  # <project-dir> <fork>
+  local changed check glob path matched out=""
+  [ -n "$1" ] && [ -n "$2" ] || return 0
+  changed="$({ git -C "$1" diff --name-only "$2" && git -C "$1" ls-files --others --exclude-standard; } 2>/dev/null)" \
+    || return 0
+  [ -n "$changed" ] || return 0
+  for check in "$REVIEW_CHECKS_DIR"/*.md; do
+    [ -f "$check" ] || continue
+    matched=""
+    while IFS= read -r glob; do
+      [ -n "$glob" ] || continue
+      while IFS= read -r path; do
+        # shellcheck disable=SC2053 # the glob is a pattern on purpose
+        if [[ $path == $glob ]]; then matched=1; break 2; fi
+      done <<<"$changed"
+    done < <(review_check_globs "$check")
+    [ -n "$matched" ] || continue
+    out="${out:+$out
+
+}$(awk 'NR == 1 && /^---$/ { fm = 1; next } fm == 1 && /^---$/ { fm = 2; next } fm != 1' "$check" | sed '/./,$!d')"
+  done
+  [ -n "$out" ] && printf '%s\n' "$out"
+  return 0
+}
+
 # The spec's analysis: the file AIDE_ANALYSIS_FILE names (spec-reference.sh),
 # beside the description at <description-path>.
 review_analysis_path() {  # <description-path>
@@ -41,12 +85,11 @@ review_threat_section() {  # <description-path>
 # with an `## Out of scope` section adds one instruction: each change
 # under an item in it is a defect too.
 # An existing test the branch weakened is a defect in every review,
-# unless the description replaces or removes what it checked. Every
-# review tries a stated security fix against a variant of its flaw and
-# against what <base> has changed since <fork>; an analysis with a
-# `### Threats` section adds the instruction to check the diff against it.
-review_prompt() {  # <description-path> <fork> <base> <screenshots-line> <headless-note>
-  local scope="" threats=""
+# unless the description replaces or removes what it checked. With a
+# <project-dir>, the change-specific checks the diff touches are added.
+# Every review also checks security fixes and the analysis's threats.
+review_prompt() {  # <description-path> <fork> <base> <screenshots-line> <headless-note> [<project-dir>]
+  local scope="" checks threats=""
   if [ -n "$(aide_out_of_scope_section "$(cat "$1" 2>/dev/null)")" ]; then
     scope="The description has an ## Out of scope section: what this change must not do or touch. Each change in the diff that falls under an item in it is a defect too, whatever kind of change it is, style, naming and structure included; say which item."
   fi
@@ -61,6 +104,8 @@ review_prompt() {  # <description-path> <fork> <base> <screenshots-line> <headle
     "" "What changed: run \`git diff $2\` in this directory, for every change since the branch left $3, committed or not, and \`git status --porcelain\` for new files not tracked yet. Read a whole file wherever the diff alone does not show enough."
   printf '%s\n' "" "$(review_design_instruction)"
   [ -n "$scope" ] && printf '%s\n' "" "$scope"
+  checks="$(review_change_checks "${6:-}" "$2")"
+  [ -n "$checks" ] && printf '%s\n' "" "This diff changes code that has had defects of its own kind before. Check it for each of these too; a change that breaks one is a defect, and say which:" "" "$checks"
   printf '%s\n' "" "When the description, or the spec's analysis, says this change fixes a security flaw, try the fix against at least one variant of that flaw — another input, path or caller reaching the same weakness — and report a variant the fix does not stop as a defect. Then read the code the fix touches as it stands now on $3 (\`git diff $2 $3 -- <path>\`, \`git show $3:<path>\`): report it as a defect when $3 has since gained another way to reach the flaw that the fix does not cover, or has changed code the fix relies on. The flaw itself still being there on $3 is expected, since the fix has not landed, and is not a defect."
   [ -n "$threats" ] && printf '%s\n' "" "$threats"
   [ -n "$4" ] && printf '%s\n' "" "$4"
@@ -76,8 +121,11 @@ review_prompt() {  # <description-path> <fork> <base> <screenshots-line> <headle
 }
 
 # The verification's prompt: check each numbered defect in <defects>
-# against the code, and keep or drop it.
-verify_prompt() {  # <description-path> <fork> <base> <defects> <headless-note>
+# against the code, and keep or drop it. With a <project-dir>, the
+# change-specific checks the review was given are given here too.
+verify_prompt() {  # <description-path> <fork> <base> <defects> <headless-note> [<project-dir>]
+  local checks
+  checks="$(review_change_checks "${6:-}" "$2")"
   printf '%s\n' \
     "A review of this spec's branch reported the defects below against the spec's own description and applicable project design rules. A review is often wrong. Check each one yourself in the code before anyone acts on it." \
     "" "Keep a defect only when you have traced a concrete case through the code: a state the code can reach, and the wrong result it gives there, against what the description or applicable project design rules require. Drop it when the code already handles the case, when the state cannot be reached, when it is only a guard that might be missing, or when neither the description nor the applicable project rules require what it says is missing." \
@@ -85,6 +133,7 @@ verify_prompt() {  # <description-path> <fork> <base> <defects> <headless-note>
     "" "The description: $1" \
     "" "What changed: run \`git diff $2\` in this directory, for every change since the branch left $3, committed or not, and \`git status --porcelain\` for new files not tracked yet. Read a whole file wherever the diff alone does not show enough." \
     "" "$(review_design_instruction)"
+  [ -n "$checks" ] && printf '%s\n' "" "The review was also given these checks, for code that has had defects of its own kind before. A defect that breaks one of them is kept on the same terms as one against the description:" "" "$checks"
   if [ -n "$(review_threat_section "$1")" ]; then
     printf '%s\n' "" "The spec's analysis has a ### Threats section: $(review_analysis_path "$1"). A security finding is required by it as much as by the description: keep one when you can trace the input that reaches the risk it names."
   fi

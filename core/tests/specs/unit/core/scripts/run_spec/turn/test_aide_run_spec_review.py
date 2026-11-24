@@ -602,3 +602,28 @@ def test_a_review_that_found_nothing_leaves_the_verification_field_out_ac_6(runn
                      review_model="claude-sonnet-4", verify_model="claude-opus-4")
     assert out["review"]["outcome"] == "completed", out
     assert "verify" not in out, out
+
+
+def test_a_branch_changing_the_runners_checkout_code_gets_the_runner_git_check_in_its_review_ac_4(
+    runner, workspace, fake_claude, tmp_path, workspace_root
+):
+    with_status(workspace, ["create", "analyze"])
+    check = workspace_root / "core" / "scripts" / "lib" / "run-spec" / "turn" / "review-checks" / "runner-git.md"
+    body = check.read_text().split("\n---\n", 1)[1].strip()
+    kept = tmp_path / "review-prompt.txt"
+    claude = fake_claude(
+        "prompt=\"$(cat)\"\n"
+        f"if printf '%s' \"$prompt\" | grep -q \"{REVIEW_MARKER}\"; then\n"
+        f"  printf '%s' \"$prompt\" > {kept}\n"
+        f"  echo '{json.dumps(_result(REVIEW_SESSION, 'review: no defects found', 0.05))}'\n"
+        "else\n"
+        "  mkdir -p core/scripts/lib/run-spec/checkout\n"
+        "  printf 'work\\n' > core/scripts/lib/run-spec/checkout/checkouts.sh && git add -A && git commit -q -m 'the step'\n"
+        f"  echo '{json.dumps(_result(IMPLEMENT_SESSION, 'done', 0.10))}'\n"
+        "fi\n"
+    )
+
+    rc, out, _ = run(runner, workspace, claude, command="implement", review_model="claude-sonnet-4")
+
+    assert rc == 0, out
+    assert body in kept.read_text()

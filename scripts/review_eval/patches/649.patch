@@ -1,0 +1,13 @@
+diff --git a/dashboard/src/serve/routes/page-routes/project-pages.ts b/dashboard/src/serve/routes/page-routes/project-pages.ts
+index d01567e..18ba7f1 100644
+--- a/dashboard/src/serve/routes/page-routes/project-pages.ts
++++ b/dashboard/src/serve/routes/page-routes/project-pages.ts
+@@ -286,7 +286,7 @@ export async function projectPages(
+     // on the specs list: a directory under the projects root that is not
+     // on it is not one of the board's projects.
+     const projects = buildProjectViews(ctx.opts.projectRoot, ctx.ownedSpecsRoot, manifestInside(ctx.machineryProjectDir))
+-      .filter((p) => ctx.allowed.has(p.name));
++      .filter((p) => ctx.allowed.size === 0 || ctx.allowed.has(p.name));
+     // Spec 184: whether a run could start in each project, asked on
+     // every visit. The Add flow answered this exactly once, in the
+     // query string of the redirect it landed on — so an operator who

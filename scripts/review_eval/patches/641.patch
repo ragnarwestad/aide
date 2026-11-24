@@ -1,0 +1,13 @@
+diff --git a/dashboard/src/render/pages/jobs-page/rows.ts b/dashboard/src/render/pages/jobs-page/rows.ts
+index 2791769..961b856 100644
+--- a/dashboard/src/render/pages/jobs-page/rows.ts
++++ b/dashboard/src/render/pages/jobs-page/rows.ts
+@@ -145,7 +145,7 @@ export function jobMessage(row: MessageRow, lang: Language): JobMessage | undefi
+   if (ended) {
+     return {
+       // The badge's own colour: a stop is amber, a failure red.
+-      variant: row.state === "stopped" ? "waiting" : "failed",
++      variant: row.state === "stopped" && !deployStep(row) ? "waiting" : "failed",
+       text: renderSentence(lang, row.error) || t(lang, ended),
+       log: `/jobs/${row.id}?tab=steps`,
+     };

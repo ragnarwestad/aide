@@ -12,6 +12,15 @@ the spec's description as it was when the commit was made.
   verify  gives each case's labelled findings to the verification, and reports how many real ones it kept and how
           many false ones it dropped.
 
+planted.json holds planted cases, each a commit with one described defect added by its patch, and clean cases,
+commits promised to have none (planted.py).
+
+  check   calls no model: every case's commit, patch and description can be found and its patch applies.
+  planted runs the review, the verification of its findings and, for a planted case, the judge on every case, and
+          writes results.json and results.md: per case whether the planted defect was found and kept, or how many
+          false findings were raised and kept.
+  compare reads two planted runs' results.json and writes the difference to comparison.md in the second (compare.py).
+
 Run by hand, like scripts/replay_specs; it is no part of any test suite and does not run on the board. The sessions
 read the worktree with bypassPermissions (Claude, with the edit tools taken away) or read-only (Codex).
 
@@ -19,6 +28,10 @@ Usage:
   export CLAUDE_CODE_OAUTH_TOKEN=...   # a Claude review or verification, or the judge
   python3 scripts/review_eval review --tool codex --model gpt-6.1-sol [--specs 637,640] [--judge sonnet]
   python3 scripts/review_eval verify --tool claude --model opus [--specs 645]
+  python3 scripts/review_eval check
+  python3 scripts/review_eval planted --tool codex --model gpt-6.1-sol [--verify-tool claude --verify-model opus]
+      [--cases 641-planted,636-clean]
+  python3 scripts/review_eval compare <run folder A> <run folder B>
       [--code ~/develop/aide] [--specs-repo ~/develop/aide-specs] [--project aide] [--results ~/.aide/review-eval]
 """
 import argparse
@@ -33,6 +46,8 @@ import threading
 import time
 from pathlib import Path
 
+import compare
+import planted
 import replies
 
 HERE = Path(__file__).resolve().parent
@@ -43,6 +58,20 @@ MATCH_PROMPT = """A code review of one commit reported the findings under <new>.
 on the same commit earlier, each with an id. For each new finding, say which known finding describes the same defect:
 the same wrong behaviour, even when the wording, the line or the example differs. A new finding that describes no
 known one is "new". Answer with one JSON object and nothing else, mapping each new finding's number to an id or "new":
+{{"1": "<id>", "2": "new"}}
+
+<known>
+{known}
+</known>
+
+<new>
+{new}
+</new>
+"""
+PLANTED_MATCH_PROMPT = """A code review of one commit reported the findings under <new>. The commit is known to have the defect
+under <known>, with its id. For each new finding, say whether it describes that defect: the same wrong behaviour, even
+when the wording, the line or the example differs. A new finding that does not is "new". Answer with one JSON object
+and nothing else, mapping each new finding's number to the id or "new":
 {{"1": "<id>", "2": "new"}}
 
 <known>
@@ -115,9 +144,9 @@ def worktree(code, *args):
 class Case:
     def __init__(self, args, case, scratch):
         self.args, self.spec, self.commit = args, case["spec"], case["commit"]
-        self.out = Path(args.out) / self.spec
+        self.out = Path(args.out) / case.get("id", self.spec)
         self.out.mkdir(parents=True, exist_ok=True)
-        self.tree = Path(scratch) / self.spec
+        self.tree = Path(scratch) / case.get("id", self.spec)
         self.fork = git(args.code, "rev-parse", f"{self.commit}^")
         when = git(args.code, "log", "-1", "--format=%ct", self.commit)
         self.description = self.out / "1-description.md"
@@ -192,13 +221,64 @@ def report_verify(args, labelled, results):
     return head, lines
 
 
+def planted_one(args, case, scratch):
+    with Case(args, case, scratch) as c:
+        def ask(role, text):
+            (c.out / f"prompt-{role}").write_text(text)
+            if role == "judge":
+                with tempfile.TemporaryDirectory() as empty:
+                    return turn("claude", args.judge, text, empty, c.out / role)
+            tool, model = (args.tool, args.model) if role == "review" else (args.verify_tool, args.verify_model)
+            return turn(tool, model, text, c.tree, c.out / role)
+
+        outcome = planted.run_case(case, c.tree, c.fork, c.description, HERE, HEADLESS, PLANTED_MATCH_PROMPT,
+                                   build=prompt, ask=ask)
+    return {**outcome, "sha256": planted.digest(case)}
+
+
+def run_planted(args):
+    cases = [c for c in planted.load_cases() if not args.cases or c["id"] in args.cases.split(",")]
+    with tempfile.TemporaryDirectory() as scratch, concurrent.futures.ThreadPoolExecutor(args.jobs) as pool:
+        outcomes = list(pool.map(lambda c: planted_one(args, c, scratch), cases))
+    setup = {"tool": args.tool, "model": args.model, "verify tool": args.verify_tool,
+             "verify model": args.verify_model, "judge": args.judge, "aide commit": git(HERE, "rev-parse", "HEAD")}
+    return planted.write_results(args.out, setup, outcomes)
+
+
+def check(args):
+    """Every planted and clean case ready to run, with no model: 0 when all are."""
+    ready = True
+    for case in planted.load_cases():
+        problems = planted.structure_problems(case)
+        try:
+            git(args.code, "cat-file", "-e", f"{case['commit']}^{{commit}}")
+        except subprocess.CalledProcessError:
+            problems.append(f"the commit {case['commit']} is not in {args.code}")
+        else:
+            if case.get("kind") == "planted" and not problems:
+                why = planted.patch_applies(args.code, case["commit"], HERE / case["patch"])
+                problems += [why] if why else []
+            when = git(args.code, "log", "-1", "--format=%ct", case["commit"])
+            try:
+                description_at(args.specs_repo, args.project, case["spec"], when)
+            except (subprocess.CalledProcessError, IndexError):
+                problems.append(f"no description of spec {case['spec']} in {args.specs_repo}")
+        ready = ready and not problems
+        print(f"{case.get('id')}: " + ("ready" if not problems else "; ".join(problems)))
+    return 0 if ready else 1
+
+
 def main(argv):
     home = os.path.expanduser("~")
     ap = argparse.ArgumentParser(description="Measure implement's review and its verification against known defects.")
-    ap.add_argument("command", choices=("review", "verify"))
-    ap.add_argument("--tool", choices=("claude", "codex"), required=True)
-    ap.add_argument("--model", required=True)
+    ap.add_argument("command", choices=("review", "verify", "check", "planted", "compare"))
+    ap.add_argument("runs", nargs="*", help="compare: the folders of run A and run B")
+    ap.add_argument("--tool", choices=("claude", "codex"))
+    ap.add_argument("--model")
+    ap.add_argument("--verify-tool", choices=("claude", "codex"), help="planted: the verification's tool; --tool when left out")
+    ap.add_argument("--verify-model", help="planted: the verification's model; --model when left out")
     ap.add_argument("--specs", help="comma-separated spec numbers; all cases when left out")
+    ap.add_argument("--cases", help="planted: comma-separated case ids; all cases when left out")
     ap.add_argument("--judge", default="sonnet", help="the Claude model that matches a review's findings to the labelled ones")
     ap.add_argument("--jobs", type=int, default=4)
     ap.add_argument("--project", default="aide")
@@ -206,7 +286,24 @@ def main(argv):
     ap.add_argument("--specs-repo", default=os.path.join(home, "develop", "aide-specs"))
     ap.add_argument("--results", default=os.path.join(home, ".aide", "review-eval"))
     args = ap.parse_args(argv)
+    if args.command == "check":
+        return check(args)
+    if args.command == "compare":
+        if len(args.runs) != 2:
+            ap.error("compare takes two run folders")
+        print(compare.main(*args.runs), end="")
+        print(f"Comparison: {args.runs[1]}/comparison.md")
+        return 0
+    if not args.tool or not args.model:
+        ap.error(f"{args.command} needs --tool and --model")
+    args.verify_tool = args.verify_tool or args.tool
+    args.verify_model = args.verify_model or args.model
     args.out = os.path.join(args.results, f"{datetime.datetime.now():%Y%m%d-%H%M}-{args.command}-{args.tool}-{args.model}")
+    if args.command == "planted":
+        head = run_planted(args)
+        print(head)
+        print(f"Results: {args.out}/results.md")
+        return 0
     work, report = (review_one, report_review) if args.command == "review" else (verify_one, report_verify)
     labelled, results = run_all(args, work)
     head, lines = report(args, labelled, results)

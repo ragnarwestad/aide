@@ -78,6 +78,97 @@ review_design_instruction() { printf '%s\\n' 'design-instruction-sentinel'; }
     assert result.stdout.rstrip().endswith("headless-sentinel")
 
 
+def test_the_planted_set_has_planted_and_clean_cases_each_described_or_promised_clean_ac_1():
+    data = json.loads((SCRIPT_DIR / "planted.json").read_text())
+    cases = data["cases"]
+    ids = [c["id"] for c in cases]
+
+    assert len(ids) == len(set(ids))
+    assert {c["kind"] for c in cases} == {"planted", "clean"}
+    for case in cases:
+        assert case["spec"] and case["commit"], case["id"]
+        if case["kind"] == "planted":
+            assert case["defect"].strip(), case["id"]
+            assert (SCRIPT_DIR / case["patch"]).is_file(), case["id"]
+        else:
+            assert "defect" not in case and "patch" not in case, case["id"]
+
+
+CHECKS = SCRIPT_DIR.parents[1] / "core" / "scripts" / "lib" / "run-spec" / "turn" / "review-checks"
+
+
+def _check_body(name):
+    """A check's text after its frontmatter, as the prompts carry it."""
+    text = (CHECKS / name).read_text()
+    return text.split("\n---\n", 1)[1].strip()
+
+
+def _repo_with_change(tmp_path, changed, untracked=False):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    run = lambda *a: subprocess.run(["git", "-C", str(repo), *a], capture_output=True, text=True, check=True).stdout.strip()
+    run("init", "-q", "-b", "main")
+    run("config", "user.email", "t@example.com")
+    run("config", "user.name", "t")
+    (repo / "README.md").write_text("x\n")
+    run("add", "-A")
+    run("commit", "-q", "-m", "fork")
+    fork = run("rev-parse", "HEAD")
+    target = repo / changed
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text("changed\n")
+    if not untracked:
+        run("add", "-A")
+        run("commit", "-q", "-m", "change")
+    return repo, fork
+
+
+def _both_prompts(review_eval, tmp_path, fork, *project):
+    description = tmp_path / "d.md"
+    description.write_text("# x\n")
+    return (
+        review_eval.prompt("review_prompt", str(description), fork, "main", "", "(headless)", *project),
+        review_eval.prompt("verify_prompt", str(description), fork, "main", "1. one", "(headless)", *project),
+    )
+
+
+@pytest.mark.parametrize("untracked", [False, True])
+def test_a_diff_under_a_checks_paths_gives_both_prompts_that_check_ac_4(review_eval, tmp_path, untracked):
+    repo, fork = _repo_with_change(tmp_path, "core/scripts/lib/run-spec/checkout/checkouts.sh", untracked)
+
+    for text in _both_prompts(review_eval, tmp_path, fork, str(repo)):
+        assert _check_body("runner-git.md") in text
+
+
+def test_a_diff_under_no_checks_paths_gives_neither_prompt_a_check_ac_5(review_eval, tmp_path):
+    repo, fork = _repo_with_change(tmp_path, "dashboard/src/other.ts")
+
+    with_dir = _both_prompts(review_eval, tmp_path, fork, str(repo))
+    without = _both_prompts(review_eval, tmp_path, fork)
+
+    assert with_dir == without
+    for text in with_dir:
+        assert _check_body("runner-git.md") not in text
+
+
+@pytest.mark.parametrize("project", [None, "not-a-repo"])
+def test_no_project_directory_or_no_repository_gives_no_check_and_no_failure_ac_5(review_eval, tmp_path, project):
+    description = tmp_path / "d.md"
+    description.write_text("# x\n")
+    sixth = ""
+    if project:
+        (tmp_path / project).mkdir()
+        sixth = f' "{tmp_path / project}"'
+    script = ('set -u; source "$1/_aide-spec-lib.sh"; source "$1/lib/run-spec/turn/review-prompts.sh"; '
+              f'review_prompt "$2" fork main "" headless{sixth}; verify_prompt "$2" fork main "1. one" headless{sixth}')
+
+    result = subprocess.run(["bash", "-c", script, "bash", str(review_eval.SCRIPTS), str(description)],
+                            capture_output=True, text=True)
+
+    assert result.returncode == 0, result.stderr
+    assert _check_body("runner-git.md") not in result.stdout
+
+
 THREATS = (
     "# x - Analysis\n\n## Findings\n\n### Affected files\n\n- `a.sh:1`\n\n"
     "### Threats\n\n- **Exposed:** the token in `a.sh:3`\n- **To whom:** a page on the network\n"

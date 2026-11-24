@@ -13,6 +13,8 @@
 - [Deciding from a round](#deciding-from-a-round)
 - [What the rounds found](#what-the-rounds-found)
 - [Measuring the review](#measuring-the-review)
+  - [Planted defects and clean cases](#planted-defects-and-clean-cases)
+  - [Checks for one kind of change](#checks-for-one-kind-of-change)
 - [Measuring the analysis and the plan](#measuring-the-analysis-and-the-plan)
   - [The cases](#the-cases)
   - [The commands](#the-commands)
@@ -219,6 +221,36 @@ On 26 October 2026, with 17 real, 13 false and 2 unclear findings labelled:
 
 That is why `model.review` is gpt-6.1-sol and `model.verify` Opus. The three real defects Opus dropped each turn on
 how the description is read.
+
+### Planted defects and clean cases
+
+`scripts/review_eval/planted.json` holds cases whose answer is known in advance. A planted case is a commit from
+`cases.json` with one defect added by its patch in `scripts/review_eval/patches/`, applied uncommitted in a file the
+commit changed, and described as a concrete case. Each patch passes the tests of its commit. A clean case is a commit
+on which no finding is labelled `real` or `unclear`, so every finding on it is false. A person reads each planted
+defect and clean case before a run is trusted.
+
+- `check` calls no model: it says per case whether the commit, the description and the patch can be found, and
+  whether the patch applies.
+- `planted --tool codex --model gpt-6.1-sol --verify-tool claude --verify-model opus` runs, per case, the review, the
+  verification of its findings as the runner does, and for a planted case a Claude judge asking whether a finding
+  describes the planted defect. `--cases` takes a subset. The run's folder holds `results.md`, one line per case and
+  the totals, and `results.json`, the same with the setup and a sha256 of each case.
+- `compare <run A> <run B>` writes `comparison.md` into B's folder: the change per case and in total in planted
+  defects found and kept, and in false findings raised and kept, with both setups.
+
+A figure decided by a turn that failed or could not be read is `not measured`, never 0, and counts in no total. A
+comparison leaves out of its totals, and lists apart, a case in one run only, one whose entry or patch changed
+between the runs, and one with a figure not measured in either.
+
+### Checks for one kind of change
+
+`core/scripts/lib/run-spec/turn/review-checks/` holds checks that apply only to one kind of code, taken from defects
+it has had. Each file names the code in a `paths:` frontmatter list of globs, as `dashboard/.claude/rules/` does, and
+its body is the check. `review_prompt` and `verify_prompt` add the checks whose globs match a file the branch changed
+since its fork, tracked or not, and none when no file matches. The runner and `planted` hand them the worktree, so a
+measured review gets the checks the runner would send. A `*` in a glob matches across `/`. A new check is a new file
+there; measure it with `planted` and `compare` before it is merged.
 
 ---
 

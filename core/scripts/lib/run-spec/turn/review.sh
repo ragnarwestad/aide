@@ -94,7 +94,7 @@ if [ "$terminal_reason" = "completed" ] && [ "$STEP_RUNS_REVIEW" = "true" ] \
   screenshots_settle "$review_fork"
   review_screenshots="$(screenshots_review_line)"
 
-  review_prompt "$review_description_path" "$review_fork" "$review_base" "$review_screenshots" "$headless_note" \
+  review_prompt "$review_description_path" "$review_fork" "$review_base" "$review_screenshots" "$headless_note" "$project_wt" \
     > "$work_dir/prompt-review"
 
   # A fresh read-only session on the independently chosen AI and model.
@@ -138,7 +138,7 @@ if [ "$terminal_reason" = "completed" ] && [ "$STEP_RUNS_REVIEW" = "true" ] \
     # too: a verification that does not complete keeps every defect.
     if [ -n "$review_defects" ] && { [ -n "$verify_model" ] || [ -n "$verify_tool" ]; }; then
       verify_on="${verify_tool:-$tool}"
-      verify_prompt "$review_description_path" "$review_fork" "$review_base" "$review_defects" "$headless_note" \
+      verify_prompt "$review_description_path" "$review_fork" "$review_base" "$review_defects" "$headless_note" "$project_wt" \
         > "$work_dir/prompt-verify"
       stage "verifying the review's defect(s)"
       side_reason="unavailable"

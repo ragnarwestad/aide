@@ -1,0 +1,13 @@
+diff --git a/dashboard/src/serve/queue-guard.ts b/dashboard/src/serve/queue-guard.ts
+index 7eb4f72..3184d10 100644
+--- a/dashboard/src/serve/queue-guard.ts
++++ b/dashboard/src/serve/queue-guard.ts
+@@ -62,7 +62,7 @@ export const DEFAULT_BIND_HOST = "127.0.0.1";
+  *  nothing else can reach the port at all (spec 363). No address given
+  *  is the default, which is. */
+ export const isLoopbackBind = (host: string = DEFAULT_BIND_HOST): boolean =>
+-  host === "127.0.0.1" || host === "::1";
++  host === "127.0.0.1" || host.startsWith("::");
+ 
+ /** The line printed at start-up when other machines can reach the port,
+  *  or `undefined` on a loopback address. */

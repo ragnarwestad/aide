@@ -1,0 +1,13 @@
+diff --git a/core/scripts/aide-create-spec b/core/scripts/aide-create-spec
+index d697e1f..9fac5d6 100755
+--- a/core/scripts/aide-create-spec
++++ b/core/scripts/aide-create-spec
+@@ -333,7 +333,7 @@ if [ "$given_set" = "yes" ]; then
+   without_added() { printf '%s\n' "$1" | awk -v ids="$given_ids" '
+     function given(s,  n) { if (s !~ /^- \*\*AC-[0-9]+:\*\*/) return -1; n = s; sub(/^- \*\*AC-/, "", n); sub(/:.*/, "", n); return index(ids, " " (n + 0) " ") > 0 }
+     { l[NR] = $0; if (given($0) == 1) last = NR }
+-    END { i = last + 1; if (last) while (i <= NR && given(l[i]) == 0) i++; for (j = 1; j <= NR; j++) if (j <= last || j >= i) print l[j] }'; }
++    END { i = last + 1; if (last) while (i <= NR && given(l[i]) <= 0) i++; for (j = 1; j <= NR; j++) if (j <= last || j >= i) print l[j] }'; }
+   if declare -f aide_out_of_scope_section >/dev/null 2>&1; then
+     given_scope="$(aide_out_of_scope_section "$(printf '%s\n' "$given_description" | sed -E "$AC_BOLD")")"
+     written_scope="$(aide_out_of_scope_section "$(without_added "$description")")"

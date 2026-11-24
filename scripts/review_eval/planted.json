@@ -1,0 +1,17 @@
+{
+ "_about": "Implement commits from archived specs, all in cases.json, where no finding is labelled real or unclear. A planted case adds one defect with its patch, applied uncommitted on top of the commit in a file the commit changed, and describes it as a concrete case: the input or state, and the wrong result. Each patch passes the tests of its commit. A clean case promises no defect: every finding on it is false.",
+ "cases": [
+  {"id": "641-planted", "spec": "641", "commit": "c8596282", "kind": "planted", "patch": "patches/641.patch",
+   "defect": "A Deploy that was stopped gets the line under its state in red (variant failed) instead of amber (waiting), though a stop is drawn amber for every kind of job."},
+  {"id": "649-planted", "spec": "649", "commit": "3ae3585f", "kind": "planted", "patch": "patches/649.patch",
+   "defect": "With no project on the allowlist, the Projects list shows every directory under the projects root instead of none, so the last project removed from the board stays on the list."},
+  {"id": "659-planted", "spec": "659", "commit": "00aa1041", "kind": "planted", "patch": "patches/659.patch",
+   "defect": "A new out-of-scope item written after the criteria added below the last given one is left out of the comparison: a description that adds '- Do not change the docs.' there is created, where it must be refused because only its author writes the ## Out of scope section."},
+  {"id": "673-planted", "spec": "673", "commit": "c10722ba", "kind": "planted", "patch": "patches/673.patch",
+   "defect": "`--bind ::`, every IPv6 address, counts as loopback: the server listens on all interfaces without printing the not-loopback warning, and a headerAuth configuration is accepted there."},
+  {"id": "636-clean", "spec": "636", "commit": "b40590de", "kind": "clean"},
+  {"id": "638-clean", "spec": "638", "commit": "488a131c", "kind": "clean"},
+  {"id": "642-clean", "spec": "642", "commit": "bf3a4599", "kind": "clean"},
+  {"id": "662-clean", "spec": "662", "commit": "e05f2593", "kind": "clean"}
+ ]
+}
