@@ -174,8 +174,17 @@ def test_a_read_only_mode_denies_opencode_every_tool_that_changes_a_file(
 
 
 @pytest.mark.parametrize("mode", ["bypassPermissions", "acceptEdits"])
-def test_a_writing_mode_passes_opencode_no_config(runner, workspace, fake_opencode, tmp_path, mode):
-    assert _config_seen(fake_opencode, tmp_path, runner, workspace, mode) is None
+def test_a_writing_mode_passes_opencode_no_permission_rules(runner, workspace, fake_opencode, tmp_path, mode):
+    config = _config_seen(fake_opencode, tmp_path, runner, workspace, mode)
+    assert "permission" not in config and "agent" not in config, config
+
+
+@pytest.mark.parametrize("mode", ["bypassPermissions", "acceptEdits", "plan", "default"])
+def test_every_opencode_turn_has_automations_off(runner, workspace, fake_opencode, tmp_path, mode):
+    """An automation runs a prompt or a shell command later, after the
+    step has ended and outside its boundaries (OpenCode 2.4.0)."""
+    config = _config_seen(fake_opencode, tmp_path, runner, workspace, mode)
+    assert config["automations"] is False, config
 
 
 def test_an_unknown_permission_mode_refuses_rather_than_guessing(

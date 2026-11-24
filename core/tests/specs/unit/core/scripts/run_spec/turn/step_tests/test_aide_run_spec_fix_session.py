@@ -237,6 +237,7 @@ def test_a_full_codex_thread_starts_fresh_and_later_resumes_that_thread_ac_8(
     calls = fake_codex.calls.read_text().splitlines()
     assert calls[1].startswith("exec --json") and "exec resume" not in calls[1], calls[1]
     assert "--sandbox" in calls[1], calls[1]
-    assert calls[2].startswith(f"exec resume --json {FRESH_SESSION} -"), calls[2]
-    assert "--sandbox" not in calls[2], calls[2]
+    assert calls[2].startswith("exec resume --json"), calls[2]
+    assert calls[2].endswith(f"{FRESH_SESSION} -"), calls[2]
+    assert '-c sandbox_mode="workspace-write"' in calls[2], calls[2]
     assert out["sessionId"] == CODEX_THREAD_ID, out

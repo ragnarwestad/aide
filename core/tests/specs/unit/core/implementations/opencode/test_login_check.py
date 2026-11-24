@@ -16,8 +16,8 @@ def helper(workspace_root):
     return workspace_root / "core" / "implementations" / "opencode" / "_login-check.sh"
 
 
-def _run(helper, auth_list_output=None):
-    env = {"PATH": "/usr/bin:/bin"}
+def _run(helper, auth_list_output=None, home="/nonexistent"):
+    env = {"PATH": "/usr/bin:/bin:/opt/homebrew/bin", "HOME": str(home)}
     if auth_list_output is not None:
         env["BASH_FUNC_opencode%%"] = (
             f'() {{ [ "$1 $2" = "auth list" ] && printf %b {auth_list_output!r}; }}'
@@ -42,6 +42,18 @@ class TestReportOpencodeLogin:
 
     def test_a_stored_credential_is_reported_as_configured(self, helper):
         result = _run(helper, "OpenCode Console  API key  stored\n")
+
+        assert "At least one provider is configured" in result.stdout
+        assert "No provider" not in result.stdout
+
+    def test_a_provider_set_up_only_in_the_config_needs_no_login(self, helper, tmp_path):
+        """A provider in opencode.json, such as a local Ollama, offers its
+        models without a login (OpenCode 2.4.1)."""
+        config = tmp_path / ".config" / "opencode" / "opencode.json"
+        config.parent.mkdir(parents=True)
+        config.write_text('{"provider": {"ollama": {"options": {"baseURL": "http://localhost:11434/v1"}}}}')
+
+        result = _run(helper, "No authenticated integrations\n", home=tmp_path)
 
         assert "At least one provider is configured" in result.stdout
         assert "No provider" not in result.stdout

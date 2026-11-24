@@ -33,7 +33,7 @@ for Claude Code, Codex, OpenCode and Copilot.
 2. **Codex** — second
 3. **OpenCode** — third. It brings no model of its own: every model is a
    provider's, named `provider/model`, and none is reachable until a
-   provider is logged in. Its implementation is thin because it scans
+   provider is logged in or set up in its config. Its implementation is thin because it scans
    `~/.agents/skills` and `~/.claude/skills` for skills itself.
 4. **Copilot** — fourth.
 

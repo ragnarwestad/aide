@@ -85,16 +85,18 @@ safety_flags=()
 # The turn runs with `--standalone` (below): OpenCode 2's background service
 # never sees OPENCODE_CONFIG_CONTENT, and a plan turn under the deny ran a
 # shell command through it (2.3.0).
+# Every mode turns automations off (2.4.0): one would run a prompt or a
+# shell command later, after the turn and outside its boundaries.
 opencode_config=""
 opencode_safety_flags() {
   local deny='{"edit":"deny","bash":"deny","task":"deny"}'
-  opencode_config=""
+  opencode_config='{"automations":false}'
   case "$1" in
     bypassPermissions) safety_flags=(--agent build --auto) ;;
     acceptEdits)       safety_flags=(--agent build) ;;
     plan|default)      safety_flags=(--agent plan)
-                       opencode_config="{\"permission\":$deny,\"agent\":{\"plan\":{\"permission\":$deny}}}" ;;
-    *) return 1 ;;
+                       opencode_config="{\"automations\":false,\"permission\":$deny,\"agent\":{\"plan\":{\"permission\":$deny}}}" ;;
+    *) opencode_config=""; return 1 ;;
   esac
 }
 
@@ -131,9 +133,11 @@ invocation_build() {  # <tool> <bin> <permission> <model> <effort> <requested-id
   case "$invocation_tool" in
     codex)
       if [ -n "$invocation_resume" ]; then
-        invocation_argv=("$invocation_bin" exec resume --json)
-        [ "$invocation_permission" = "bypassPermissions" ] \
-          && invocation_argv+=(--dangerously-bypass-approvals-and-sandbox)
+        # `exec resume` takes no --sandbox, and without an override keeps
+        # the sandbox the thread started with: the mode goes in as config.
+        codex_safety_flags "$invocation_permission" || return 1
+        [ "${safety_flags[0]}" = "--sandbox" ] && safety_flags=(-c "sandbox_mode=\"${safety_flags[1]}\"")
+        invocation_argv=("$invocation_bin" exec resume --json "${safety_flags[@]}")
       else
         codex_safety_flags "$invocation_permission" || return 1
         invocation_argv=("$invocation_bin" exec --json "${safety_flags[@]}")

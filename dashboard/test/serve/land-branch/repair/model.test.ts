@@ -20,3 +20,12 @@ test("a Claude repair neither takes nor sends messages from the user's other ses
   expect(settings.crossSessionInbound).toBe("refuse");
   expect(settings.permissions.deny).toEqual(["SendMessage", "ListAgents"]);
 });
+
+test("an OpenCode repair has automations off, which would run after the repair had ended", () => {
+  const board = {
+    model: { implement: "oc" }, modelChoices: { oc: { model: "opencode/some-model", tool: "opencode" } },
+  } as unknown as QueueDefaults;
+  const job = { project: "aide", model: {} } as unknown as Job;
+  const env: Record<string, string | undefined> = repairModel(board, job, "fix it")?.env ?? {};
+  expect(JSON.parse(env.OPENCODE_CONFIG_CONTENT ?? "{}")).toEqual({ automations: false });
+});

@@ -212,6 +212,11 @@ Verified on 2.1.270: `-p` already does exactly this without the flag — a
 tool that would prompt is denied and listed under `permission_denials`
 either way — so `aide-run-spec` leaves it out of its argv on purpose.
 `-p --resume <session-id>` continues a session the same run started.
+A `PermissionRequest` hook fires in `-p` too: outside `dontAsk` and with
+no permission host, a call that would prompt is denied unless such a hook
+answers `allow` (verified on 2.1.331, 2026-11-24: a Bash call in
+`default` mode was denied without the hook and ran with it). Aide
+installs no `PermissionRequest` hook.
 `defaultMode: "bypassPermissions"` is ignored in a project's
 `.claude/settings.json` (v2.1.257), and the permission-modes page says
 the same of `"auto"` — set either in user or managed settings. Aide
@@ -276,6 +281,41 @@ Auto mode and v2.1.304 to v2.1.309, against a `-p` run:
   prompt, skill or tool description asking it to write its reasoning in
   the response; a retry is usually refused again, so remove the
   instruction. Aide's skills and rules ask for no such thing.
+
+### Plugins, traces and responses (v2.1.331)
+
+- A plugin manifest may list `optionalDependencies`: plugins installed
+  with it that can be disabled or uninstalled on their own.
+- `CLAUDE_CODE_DISABLE_RESPONSE_COMPRESSION` asks for uncompressed
+  responses behind a proxy that cuts compressed ones off. Not advised yet
+  for self-hosted runners or Remote Control.
+- `claude_code.llm_request` trace spans carry `gen_ai.usage.*`,
+  `gen_ai.response.model` and `gen_ai.operation.name`;
+  `gen_ai.usage.input_tokens` includes prompt cache tokens.
+- On or after 2026-11-30, a marketplace in managed
+  `extraKnownMarketplaces` updates automatically by default;
+  `"autoUpdate": false` on its entry turns that off. Aide sets no managed
+  marketplaces.
+
+### Claude Ship and `/ship` (beta, 2026-11-23)
+
+[Source](https://claude.com/resources/articles/introducing-claude-ship).
+Claude Ship is three parts working on a GitHub pull request:
+
+- **Code Review** (generally available) reviews at a Quick, Standard or
+  Deep level and posts its findings.
+- **PR Steward** (beta) fixes failing checks, merge conflicts and review
+  findings, and comments after each push. It never approves or merges.
+- **Claude Approvals** (beta) approves or asks for a person by a policy
+  file in the repository, and can run in observe-only mode.
+
+`/ship` in Claude Code pushes the branch, opens the pull request, and
+works on findings and failing checks; it counts as ordinary Claude Code
+use. Claude Ship is for Team and Enterprise plans on GitHub, and is
+billed on tokens, with spend limits for Code Review and PR Steward. It is
+not offered with Zero Data Retention, the HIPAA configuration or
+customer-managed keys. Aide does not use it: Merge on the board tests the
+merged result and updates the default branch itself.
 
 ### Skill/Agent frontmatter
 
@@ -415,6 +455,14 @@ Key sections: `model`, `approval_policy`, `sandbox_mode`,
 `project_doc_fallback_filenames`. Supports profiles via
 `[profiles.<name>]`.
 
+From v0.172 ([source](https://github.com/openai/codex/releases/tag/rust-v0.172.0)):
+
+- An optional stdio MCP server whose tool list is cached starts on its
+  first tool call, not with the session.
+- A connected app's tools can each have their own approval reviewer.
+- `code_mode_host_grpc` is deprecated: Code Mode always uses gRPC. Aide
+  does not set it.
+
 **Turning skills off** ([source](https://learn.chatgpt.com/docs/build-skills),
 2026-11-03). A skill is disabled without being deleted by a
 `[[skills.config]]` entry in `~/.codex/config.toml`. Each entry takes
@@ -443,8 +491,11 @@ server instead of a local one; Aide does not use it.
 `codex exec resume <id> [prompt]` continues that thread and `codex exec fork <id>` branches it
 (v0.148); both take `--json`, `-m`, `--output-schema` and
 `--dangerously-bypass-approvals-and-sandbox`, but neither `--sandbox`
-nor `--add-dir` (verified on 0.154.0) — a resumed thread keeps what it
-started with. Hook trust granted once persists through `codex exec`
+nor `--add-dir` (verified on 0.154.0). From v0.172 a resumed thread
+keeps the sandbox, working directory and workspace roots it started with
+unless overridden, and `-c sandbox_mode="<mode>"` overrides the sandbox
+(verified on 0.172.0, 2026-11-24): `aide-run-spec` passes it on every
+resume outside `bypassPermissions`. Hook trust granted once persists through `codex exec`
 thread start and resume (v0.141). An untrusted project gets no
 project-level `AGENTS.md` (v0.150). Aide's own instructions are global
 (`~/.codex/AGENTS.md`), which trust does not gate; a project that ships

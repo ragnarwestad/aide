@@ -8,6 +8,8 @@ cannot be continued.
 
 import json
 
+import pytest
+
 from ...conftest import run
 from ..run_spec_results import RESULT_OK, RESULT_OVERLOADED
 
@@ -31,6 +33,19 @@ def test_an_implement_continues_the_analysis_thread_in_codex(runner, workspace, 
     assert argv[1:3] == ["exec", "resume"]
     assert argv[-2:] == [SESSION, "-"]
     assert "--sandbox" not in argv
+
+
+@pytest.mark.parametrize("mode,sandbox", [("acceptEdits", "workspace-write"), ("plan", "read-only")])
+def test_a_resumed_codex_thread_is_given_the_sandbox_of_this_step(runner, workspace, fake_codex, mode, sandbox):
+    """`codex exec resume` takes no `--sandbox`, and without an override it
+    keeps the sandbox the thread was started with (codex-cli 0.172.0): a
+    read-only analysis would leave the implement unable to write."""
+    codex = fake_codex("exit 1")
+    rc, out, _ = run(runner, workspace, tool="codex", codex=codex, command="implement",
+                     resume_session=SESSION, dry_run=True, permission_mode=mode)
+    assert rc == 0, out
+    argv = out["argv"]
+    assert argv[argv.index("-c") + 1] == f'sandbox_mode="{sandbox}"'
 
 
 def test_an_implement_continues_the_analysis_session_in_opencode(runner, workspace, fake_opencode):

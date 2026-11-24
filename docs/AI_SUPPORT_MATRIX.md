@@ -207,8 +207,16 @@ Which files each tool reads automatically:
   - Chromium cannot start inside it (`bootstrap_check_in … Permission
     denied`); `network.allowMachLookup` does not help, since it allows
     looking a service up, not registering one.
-- **Hooks:** Pre/post hooks for tool calls via `settings.json`
+- **Hooks:** Pre/post hooks for tool calls via `settings.json`. In a `-p`
+  run, a call that would ask for permission is denied unless a
+  `PermissionRequest` hook answers `allow` (verified 2.1.331). Aide
+  installs no such hook.
 - **Auto-apply edits:** Can be configured to write files without confirmation
+- **Claude Ship (beta, 2026-11-23):** Code Review, PR Steward and Claude
+  Approvals working on a GitHub pull request. `/ship` in Claude Code
+  pushes the branch, opens the pull request and works on review findings
+  and failing checks. Aide does not use it: Merge on the board tests and
+  merges a branch itself.
 
 ### Implementation
 
@@ -307,7 +315,8 @@ core/implementations/copilot/
 ### Features
 
 - **Aide skills** — read from `~/.agents/skills/`, where the installer puts `core/skills/`
-- **MCP:** Support via `~/.codex/config.toml`
+- **MCP:** Support via `~/.codex/config.toml`. From 0.172.0 an optional
+  stdio server with a cached tool list starts on its first tool call
 - **Parallel execution** — can work on several tasks at once
 - **Sandbox in a headless step:** `aide-run-spec` keeps
   `--dangerously-bypass-approvals-and-sandbox` for `bypassPermissions`.
@@ -315,6 +324,10 @@ core/implementations/copilot/
   `git` in a worktree, whose git directory lies in the main checkout,
   stops writes to `~/.cache`, and still lets a command read `~/.ssh`: its
   sandbox confines writing but cannot deny reading.
+- **Resumed thread:** from 0.172.0 `codex exec resume` keeps the sandbox
+  the thread started with. `aide-run-spec` passes the step's own as
+  `-c sandbox_mode=…`, so an implement that continues a read-only
+  analysis can still write.
 
 ### Implementation
 
@@ -334,9 +347,14 @@ core/implementations/codex/
 **Version and last verified:** see [Supported versions](#supported-versions)
 
 OpenCode reaches a model through a PROVIDER rather than bringing its own,
-so a model is named `provider/model` and no provider is configured until
-one is logged in (`opencode auth login`). The Claude Agent provider uses
-the machine's Claude Code login.
+so a model is named `provider/model`. A provider's models become available
+in one of two ways:
+
+- A hosted provider is logged in with `opencode auth login` (`/connect`
+  inside OpenCode). The Claude Agent provider uses the machine's Claude
+  Code login.
+- A provider set up only in `opencode.json`, such as a local Ollama, needs
+  no login: its models are listed from the config alone (2.4.1).
 
 ### Instruction files (read automatically)
 
@@ -412,6 +430,34 @@ MCP elicitation: `opencode run` does not tell a server it accepts
 elicitation (its `initialize` sends only `roots`), so a server that
 follows the MCP spec never asks, and the run never waits for an answer
 (verified 1.19.0).
+
+### Changes in 2.4.0
+
+[Source](https://github.com/anomalyco/opencode/releases/tag/v2.4.0). None
+of these names is used by Aide, which installs no OpenCode plugin or MCP
+server:
+
+- The GitHub Copilot provider reads `COPILOT_GITHUB_TOKEN`, or an OAuth
+  login, and no longer `GITHUB_TOKEN`.
+- An MCP server without a `protocol` setting is tried on the newest MCP
+  protocol first, then the legacy handshake. `protocol: "legacy"` on a
+  server skips the probe.
+- A plugin written to follow a version (`name@latest`, a version range, a
+  Git branch) is checked at startup and every 24 hours and updated in
+  place. A bare name or an exact version is not.
+- Right after startup the SDK's model and provider endpoints answer with
+  what has loaded so far, so a list can be empty or partial until the
+  plugins have loaded.
+- `experimental_image_generate` is now `generate_image`, and the Code Mode
+  paths `tools.opencode.session_rename` and `session_move` are now
+  `tools.opencode.session.rename` and `.move`.
+- Automations: an agent can schedule a prompt, script or shell command to
+  run later, on a timer, a cron schedule or an MCP event. `"automations":
+  false` in the config turns them off, and `aide-run-spec` and the merge's
+  repair session pass it in `OPENCODE_CONFIG_CONTENT` on every OpenCode
+  turn: an automation would run after the turn had ended and outside its
+  boundaries. 2.3.2 accepts the
+  key.
 
 ---
 

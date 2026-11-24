@@ -23,7 +23,9 @@ export function repairModel(board: QueueDefaults, job: Job, prompt: string) {
       "--settings", NO_SESSION_MESSAGES, "--model", model, prompt]
       : tool === "opencode" ? [binary, "run", "--standalone", "--format", "json", "--agent", "build", "--auto", "--model", model, prompt] : [];
   if (!argv.length) return undefined;
-  return { name, key: key ?? tool, argv, env: { ...(provider ? providerLoginEnv(provider, homedir()) : {}), AIDE_HEADLESS: "1", ENABLE_CLAUDEAI_MCP_SERVERS: "false" } };
+  // An OpenCode automation would run after the repair had ended, outside it.
+  const config: Record<string, string> = tool === "opencode" ? { OPENCODE_CONFIG_CONTENT: JSON.stringify({ automations: false }) } : {};
+  return { name, key: key ?? tool, argv, env: { ...(provider ? providerLoginEnv(provider, homedir()) : {}), ...config, AIDE_HEADLESS: "1", ENABLE_CLAUDEAI_MCP_SERVERS: "false" } };
 }
 
 /** Provider events can contain recoverable tool errors inside a successful turn. */
