@@ -81,6 +81,26 @@ export const MODELS: [string, string][] = [
   ["codex-fast", "codex"],
 ];
 
+/** Gives a fake select, in place, the two things a real one has over
+ *  its options: `selectedOptions`, and a `value` that IS its selected
+ *  option, so writing one moves the other, which is the whole of what
+ *  the reselection does. */
+export function withSelection<O extends { value: string; selected: boolean }, T extends object>(
+  options: O[], self: T,
+): T & { readonly selectedOptions: O[]; value: string } {
+  Object.defineProperties(self, {
+    selectedOptions: { get: () => options.filter((o) => o.selected), enumerable: true },
+    value: {
+      get: () => options.find((o) => o.selected)?.value ?? "",
+      set: (v: string) => {
+        for (const o of options) o.selected = o.value === v;
+      },
+      enumerable: true,
+    },
+  });
+  return self as T & { readonly selectedOptions: O[]; value: string };
+}
+
 /** `ran` is the server's own "this phase has history" marker
  *  (`data-ran="1"`, `specs-list.ts`): the select is showing what the
  *  phase really ran on. `formId` is the row's run-form id, so a write
@@ -95,7 +115,7 @@ export const modelSelect = (formId: string, step: string, chosen: string, ran = 
     disabled: false,
     selected: value === chosen,
   }));
-  const self = {
+  const self = withSelection(options, {
     name: `model.${step}`,
     options,
     dataset: ran ? { ran: "1" } : ({} as { ran?: string }),
@@ -125,17 +145,6 @@ export const modelSelect = (formId: string, step: string, chosen: string, ran = 
         : sel.includes("data-post-to")
           ? (live && sel.includes("select") ? self : null)
           : self,
-    get selectedOptions() {
-      return options.filter((o) => o.selected);
-    },
-    // A real select's value IS its selected option: writing one moves
-    // the other, which is the whole of what the reselection does.
-    get value() {
-      return options.find((o) => o.selected)?.value ?? "";
-    },
-    set value(v: string) {
-      for (const o of options) o.selected = o.value === v;
-    },
     /** What the SERVER drew, to go back to when the rows are
      *  replaced. A browser gets brand-new elements out of that swap;
      *  a fake that kept the old ones would prove nothing. */
@@ -145,7 +154,7 @@ export const modelSelect = (formId: string, step: string, chosen: string, ran = 
         o.hidden = false;
       }
     },
-  };
+  });
   return self;
 };
 
@@ -163,7 +172,7 @@ export const aiSelect = (formId: string, step: string, tool: string) => {
     hidden: false,
     selected: t === tool,
   }));
-  const self = {
+  const self = withSelection(options, {
     // Posts `provider.<step>` beside the model it is paired with.
     name: `provider.${step}`,
     options,
@@ -177,21 +186,12 @@ export const aiSelect = (formId: string, step: string, tool: string) => {
       sel.includes('name="steps"') || sel.includes("data-post-to") || sel.includes("aimodel")
         ? null
         : self,
-    get selectedOptions() {
-      return options.filter((o) => o.selected);
-    },
-    get value() {
-      return options.find((o) => o.selected)?.value ?? "";
-    },
-    set value(v: string) {
-      for (const o of options) o.selected = o.value === v;
-    },
     /** What the SERVER drew: the provider of the model the phase is
      *  actually on, which is where a swap puts this select back. */
     redraw: () => {
       for (const o of options) o.selected = o.value === tool;
     },
-  };
+  });
   return self;
 };
 

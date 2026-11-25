@@ -14,7 +14,8 @@ function sentence(s: unknown): string {
   return formatSentence("en", s as Parameters<typeof formatSentence>[1]) ?? "";
 }
 
-import { SPEC, AUTH, createOwnDirs, gitFor, repos, installs, serverWith, resultDir, runStep, settle, merges, repoOf, result, stepWithResult } from "./every-step-lands-fixtures.ts";
+import { SPEC, AUTH, createOwnDirs, gitFor, repos, installs, serverWith, resultDir, runStep, settle, merges, repoOf, result, stepWithResult,
+  codeAndSpecsBranches, implementDone, specsBranch } from "./every-step-lands-fixtures.ts";
 
 const { harness } = setupQueueRoutesHarness();
 const { own, cleanup: cleanupOwnDirs } = createOwnDirs();
@@ -85,9 +86,7 @@ describe("every step lands its own work", () => {
       const git = gitFor();
       const { base } = serverWithHarness(dir, paths, git);
 
-      const landed = await stepWithResult(base, dir, step, {
-        branchUrls: [{ root: paths.specs, url: "https://example.test/aide-specs" }],
-      });
+      const landed = await stepWithResult(base, dir, step, { branchUrls: specsBranch(paths) });
 
       expect(landed.error).toBeFalsy();
       expect(merges(git.calls, paths.specs).length).toBeGreaterThan(0);
@@ -135,23 +134,10 @@ describe("every step lands its own work", () => {
 
     // Implement first: it lands nothing, and its record is what carries
     // the project's branch forward.
-    await stepWithResult(
-      base,
-      dir,
-      "implement",
-      {
-        branchUrls: [
-          { root: paths.project, url: "https://example.test/aide" },
-          { root: paths.specs, url: "https://example.test/aide-specs" },
-        ],
-      },
-      (j) => j.state === "done",
-    );
+    await implementDone(base, dir, codeAndSpecsBranches(paths));
 
     // Archive's own run reports the specs repo alone.
-    const landed = await stepWithResult(base, dir, "archive", {
-      branchUrls: [{ root: paths.specs, url: "https://example.test/aide-specs" }],
-    });
+    const landed = await stepWithResult(base, dir, "archive", { branchUrls: specsBranch(paths) });
 
     expect(landed.error).toBeFalsy();
     expect(merges(git.calls, paths.project).length).toBeGreaterThan(0);
@@ -176,13 +162,7 @@ describe("every step lands its own work", () => {
     const git = gitFor();
     const { base } = serverWithHarness(dir, paths, git);
 
-    await stepWithResult(
-      base,
-      dir,
-      "implement",
-      { branchUrls: [{ root: paths.project, url: "https://example.test/aide" }] },
-      (j) => j.state === "done",
-    );
+    await implementDone(base, dir, [{ root: paths.project, url: "https://example.test/aide" }]);
     const job = await stepWithResult(base, dir, "archive", {
       terminalReason: "acceptance-criteria-unticked",
       branchUrls: [{ root: paths.specs, url: "https://example.test/aide-specs" }],
@@ -218,13 +198,7 @@ describe("every step lands its own work", () => {
     const { base } = serverWithHarness(dir, paths, git);
     const marker = installs(paths.project);
 
-    await stepWithResult(
-      base,
-      dir,
-      "implement",
-      { branchUrls: [{ root: paths.project, url: "https://example.test/aide" }] },
-      (j) => j.state === "done",
-    );
+    await implementDone(base, dir, [{ root: paths.project, url: "https://example.test/aide" }]);
     const archiving = await runStep(base, "archive");
     paths.archiveSpec();
     writeFileSync(
@@ -329,16 +303,8 @@ describe("every step lands its own work", () => {
     const git = gitFor();
     const { base } = serverWithHarness(dir, paths, git);
 
-    await stepWithResult(
-      base,
-      dir,
-      "implement",
-      { branchUrls: [{ root: paths.project, url: "https://example.test/aide" }] },
-      (j) => j.state === "done",
-    );
-    await stepWithResult(base, dir, "analyze", {
-      branchUrls: [{ root: paths.specs, url: "https://example.test/aide-specs" }],
-    });
+    await implementDone(base, dir, [{ root: paths.project, url: "https://example.test/aide" }]);
+    await stepWithResult(base, dir, "analyze", { branchUrls: specsBranch(paths) });
 
     expect(merges(git.calls, paths.specs).length).toBeGreaterThan(0);
     expect(merges(git.calls, paths.project)).toEqual([]);

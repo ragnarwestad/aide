@@ -9,13 +9,13 @@
 // actually accepts the sequence — a fake accepts any argv regardless of
 // whether the real spawn call could execute it.
 
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { describe, expect, test } from "bun:test";
+import { rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { GitRunner } from "../../../src/git/process/index.ts";
 import { createGitRunner } from "../../../src/git/process/index.ts";
 import { commitTimeOf, readStatusFromBranch, writeStatusToBranch } from "../../../src/git/branch-file.ts";
+import { tempDirs } from "../../helpers/setup/temp-dirs.ts";
 
 const BRANCH = "aide/291-example-spec";
 const REL_PATH = "aide/291-example-spec/4-status.md";
@@ -69,6 +69,10 @@ describe("writeStatusToBranch (fake GitRunner)", () => {
     return { run, calls };
   };
 
+  /** Writes "new content" to the status file as of `baseSha`, as a row's tick does. */
+  const tick = (run: GitRunner, baseSha = "based0n1234") =>
+    writeStatusToBranch(run, "/root", BRANCH, [{ relPath: REL_PATH, text: "new content\n" }], baseSha, "tick a row");
+
   const HAPPY_PATH = {
     "fetch --quiet origin": { code: 0 },
     "rev-parse tip1234567^{tree}": { code: 0, stdout: "tiptree1234\n" },
@@ -84,14 +88,7 @@ describe("writeStatusToBranch (fake GitRunner)", () => {
 
   test("the happy path pushes a new commit onto the branch, non-force", async () => {
     const { run, calls } = recording(HAPPY_PATH);
-    const result = await writeStatusToBranch(
-      run,
-      "/root",
-      BRANCH,
-      [{ relPath: REL_PATH, text: "new content\n" }],
-      "based0n1234",
-      "tick a row",
-    );
+    const result = await tick(run);
     expect(result.ok).toBe(true);
     const push = calls.find((c) => c.args[0] === "push");
     expect(push?.args).toContain(`newcommit1234:refs/heads/${BRANCH}`);
@@ -117,14 +114,7 @@ describe("writeStatusToBranch (fake GitRunner)", () => {
 
   test("refuses without writing anything when the row-level guard fails (baseSha stale)", async () => {
     const { run, calls } = recording(HAPPY_PATH);
-    const result = await writeStatusToBranch(
-      run,
-      "/root",
-      BRANCH,
-      [{ relPath: REL_PATH, text: "new content\n" }],
-      "some-other-sha",
-      "tick a row",
-    );
+    const result = await tick(run, "some-other-sha");
     expect(result.ok).toBe(false);
     expect(result.note).toContain("changed since you opened it");
     expect(calls.some((c) => c.args[0] === "hash-object")).toBe(false);
@@ -133,42 +123,20 @@ describe("writeStatusToBranch (fake GitRunner)", () => {
 
   test("refuses when the push is rejected (a headless run raced this write)", async () => {
     const { run } = recording({ ...HAPPY_PATH, push: { code: 1 } });
-    const result = await writeStatusToBranch(
-      run,
-      "/root",
-      BRANCH,
-      [{ relPath: REL_PATH, text: "new content\n" }],
-      "based0n1234",
-      "tick a row",
-    );
+    const result = await tick(run);
     expect(result.ok).toBe(false);
     expect(result.note).toMatch(/changed|reload|try again/i);
   });
 
   test("refuses when the branch is no longer on origin", async () => {
     const { run } = recording({ "fetch --quiet origin": { code: 0 }, "rev-parse refs/remotes/origin/": { code: 128 } });
-    const result = await writeStatusToBranch(
-      run,
-      "/root",
-      BRANCH,
-      [{ relPath: REL_PATH, text: "new content\n" }],
-      "based0n1234",
-      "tick a row",
-    );
+    const result = await tick(run);
     expect(result.ok).toBe(false);
   });
 });
 
 describe("branch-file real-repo suite (real git, no fakes)", () => {
-  const dirs: string[] = [];
-  const tmp = (prefix: string): string => {
-    const d = mkdtempSync(join(tmpdir(), prefix));
-    dirs.push(d);
-    return d;
-  };
-  afterEach(() => {
-    while (dirs.length) rmSync(dirs.pop()!, { recursive: true, force: true });
-  });
+  const { make: tmp } = tempDirs("aide-branch-file-");
 
   function git(cwd: string, ...args: string[]): string {
     const out = Bun.spawnSync({ cmd: ["git", "-C", cwd, ...args], stdout: "pipe", stderr: "pipe" });
@@ -223,7 +191,7 @@ describe("branch-file real-repo suite (real git, no fakes)", () => {
   }
 
   test("reads a branch's real content off origin, without checking it out", async () => {
-    const where = tmp("aide-branch-file-");
+    const where = tmp();
     const { origin, clone } = makeRepo(where);
     const branch = "aide/291-example";
     const relPath = "aide/291-example/4-status.md";
@@ -239,7 +207,7 @@ describe("branch-file real-repo suite (real git, no fakes)", () => {
   });
 
   test("writes a new commit straight onto the branch, leaving the clone's HEAD and index untouched", async () => {
-    const where = tmp("aide-branch-file-");
+    const where = tmp();
     const { origin, clone } = makeRepo(where);
     const branch = "aide/291-example";
     const relPath = "aide/291-example/4-status.md";
@@ -268,7 +236,7 @@ describe("branch-file real-repo suite (real git, no fakes)", () => {
   });
 
   test("two edits land as ONE commit, the second with no baseSha guard", async () => {
-    const where = tmp("aide-branch-file-");
+    const where = tmp();
     const { origin, clone } = makeRepo(where);
     const branch = "aide/291-example";
     const relPath = "aide/291-example/4-status.md";
@@ -307,7 +275,7 @@ describe("branch-file real-repo suite (real git, no fakes)", () => {
   // The same tick lands on main through saveSpecFiles, whose files end
   // with a newline; a branch copy without one conflicts with it at the merge.
   test("a file written to a branch ends with a newline, as one saved on main does", async () => {
-    const where = tmp("aide-branch-file-");
+    const where = tmp();
     const { origin, clone } = makeRepo(where);
     const branch = "aide/291-example";
     const relPath = "aide/291-example/4-status.md";
@@ -322,7 +290,7 @@ describe("branch-file real-repo suite (real git, no fakes)", () => {
   });
 
   test("refuses a write when another commit already landed on the branch (a headless run raced it)", async () => {
-    const where = tmp("aide-branch-file-");
+    const where = tmp();
     const { origin, clone } = makeRepo(where);
     const branch = "aide/291-example";
     const relPath = "aide/291-example/4-status.md";
@@ -347,7 +315,7 @@ describe("branch-file real-repo suite (real git, no fakes)", () => {
   });
 
   test("commitTimeOf gives a commit's author time, and null for a sha the repository does not know", async () => {
-    const where = tmp("aide-branch-file-");
+    const where = tmp();
     const { origin, clone } = makeRepo(where);
     const branch = "aide/291-example";
     const relPath = "aide/291-example/4-status.md";

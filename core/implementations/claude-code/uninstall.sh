@@ -9,6 +9,7 @@ WORKSPACE_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 source "$WORKSPACE_ROOT/core/scripts/_install-skills.sh"
 source "$WORKSPACE_ROOT/core/scripts/_install-rules.sh"
 source "$WORKSPACE_ROOT/core/scripts/_install-hooks.sh"
+source "$WORKSPACE_ROOT/core/scripts/_uninstall-confirm.sh"
 
 echo "🗑️  Claude Code Uninstall"
 echo "========================="
@@ -20,16 +21,7 @@ echo "   - Skills recorded in ~/.claude/skills/$AIDE_SKILL_MANIFEST_NAME"
 echo "   - Agents from ~/.claude/agents/ (task-analyzer.md)"
 echo "   - Rules recorded in ~/.claude/rules/$AIDE_RULE_MANIFEST_NAME"
 echo "   - aide's command-rule hooks from ~/.claude/settings.json (the rest of the file is kept)"
-echo ""
-read -r -p "Are you sure you want to continue? [y/N]: " CONFIRM
-
-if [[ ! "$CONFIRM" =~ ^[Yy]$ ]]; then
-  echo ""
-  echo "❌ Aborted"
-  exit 0
-fi
-
-echo ""
+aide_confirm_or_abort
 
 # 1. Shared scripts in ~/.local/bin are kept (other AI tools use them).
 #    They are only removed by uninstall-all.sh.

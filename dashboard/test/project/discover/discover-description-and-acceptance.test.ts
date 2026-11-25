@@ -2,33 +2,15 @@
 // discover-description-and-depends.test.ts's own `specDependsOn` suite,
 // for the other whole-spec fact that sits above the tabs.
 
-import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import {
   acceptanceNotRequiredIn, criteriaChecksIn, specAcceptanceNotRequired, stripAcceptanceLine, withAcceptanceLine,
 } from "../../../src/project/discover";
+import { DESC, TRACKING, useSpecFolders } from "./discover-fixtures.ts";
 
 describe("specAcceptanceNotRequired", () => {
-  let dir: string;
-
-  beforeAll(() => {
-    dir = mkdtempSync(join(tmpdir(), "aide-accept-"));
-  });
-
-  afterAll(() => rmSync(dir, { recursive: true, force: true }));
-
-  function spec(name: string, body: string): string {
-    const d = join(dir, name);
-    mkdirSync(d, { recursive: true });
-    writeFileSync(join(d, "1-description.md"), body);
-    return d;
-  }
-
-  const TRACKING = (line: string) =>
-    `# X - Description\n\n## Tracking info\n\n- **Task:** \`09-x/\`\n- **Created:** \`2026-08-19\`\n` +
-    `${line}\n\n---\n\n## Description\n\nprose\n`;
+  const { dir, spec } = useSpecFolders("aide-accept-");
 
   test("the line reads true", () => {
     expect(specAcceptanceNotRequired(spec("01-set", TRACKING("- **Acceptance:** not required")))).toBe(true);
@@ -38,7 +20,7 @@ describe("specAcceptanceNotRequired", () => {
   // today — absence means required, not "not required".
   test("no line, an empty file, or no file at all is false — never a throw", () => {
     expect(specAcceptanceNotRequired(spec("02-none", TRACKING("")))).toBe(false);
-    expect(specAcceptanceNotRequired(join(dir, "nowhere"))).toBe(false);
+    expect(specAcceptanceNotRequired(join(dir(), "nowhere"))).toBe(false);
   });
 
   test("acceptanceNotRequiredIn reads a description's text the way specAcceptanceNotRequired reads its file", () => {
@@ -48,11 +30,6 @@ describe("specAcceptanceNotRequired", () => {
     expect(acceptanceNotRequiredIn(TRACKING("- **Acceptance:** not required"))).toBe(true);
     expect(acceptanceNotRequiredIn(TRACKING(""))).toBe(false);
   });
-
-  const DESC = (line = "") =>
-    `# X - Description\n\n## Tracking info\n\n- **Task:** \`09-x/\`\n- **Created:** \`2026-08-19\`\n` +
-    (line ? `${line}\n` : "") +
-    `\n---\n\n## Description\n\nprose\n`;
 
   describe("stripAcceptanceLine", () => {
     test("takes the line out and leaves everything else where it was", () => {

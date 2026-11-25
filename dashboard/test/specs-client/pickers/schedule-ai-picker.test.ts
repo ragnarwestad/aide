@@ -12,6 +12,7 @@
 // inside `#jobrows`, so the row-swap harness has nothing to offer here.
 import { afterEach, describe, expect, test } from "bun:test";
 import { applyAiPick, offerEachToItsTool } from "../../../src/specs-client/ai-sync.ts";
+import { withSelection } from "../fixtures-controls.ts";
 
 const FORM = "schedule-form";
 const MODELS: [string, string][] = [
@@ -30,22 +31,13 @@ function modelSelect(chosen: string) {
     selected: value === chosen,
     parentElement: group,
   }));
-  return {
+  return withSelection(options, {
     // The bare name — one model for the whole entry.
     name: "model",
     options,
     tagName: "SELECT",
     getAttribute: (n: string) => (n === "form" ? FORM : null),
-    get selectedOptions() {
-      return options.filter((o) => o.selected);
-    },
-    get value() {
-      return options.find((o) => o.selected)?.value ?? "";
-    },
-    set value(v: string) {
-      for (const o of options) o.selected = o.value === v;
-    },
-  };
+  });
 }
 
 function aiSelect(tool: string) {
@@ -54,22 +46,13 @@ function aiSelect(tool: string) {
     dataset: { default: AI_DEFAULT[t]!, tool: t },
     selected: t === tool,
   }));
-  return {
+  return withSelection(options, {
     // The schedule form's provider posts a bare `provider`.
     name: "provider",
     options,
     tagName: "SELECT",
     getAttribute: (n: string) => (n === "form" ? FORM : n === "data-ai" ? "model" : null),
-    get selectedOptions() {
-      return options.filter((o) => o.selected);
-    },
-    get value() {
-      return options.find((o) => o.selected)?.value ?? "";
-    },
-    set value(v: string) {
-      for (const o of options) o.selected = o.value === v;
-    },
-  };
+  });
 }
 
 /** The document `applyAiPick` queries: `select[name="model"][form=…]`. */

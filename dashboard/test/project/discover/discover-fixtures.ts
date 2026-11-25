@@ -6,6 +6,9 @@
 // resolution via .aide/config AIDE_SPECS_PATH vs the specs/ default;
 // a manifest whose specs root does not exist yields zero specs, no
 // error.
+//
+// Also the spec folders and description texts the description,
+// acceptance and depends-on suites write their specs with.
 
 import { beforeAll, afterAll } from "bun:test";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
@@ -68,3 +71,36 @@ export function useDiscoverRoot(): { root: string; externalSpecs: string } {
 
   return state;
 }
+
+/** Registers a throwaway folder on the calling file's own
+ *  `beforeAll`/`afterAll`, and hands back `spec(name, body)`, which
+ *  writes `body` as a spec folder's `1-description.md` there and returns
+ *  the folder, and `dir()`, the folder itself. */
+export function useSpecFolders(prefix: string): { dir: () => string; spec: (name: string, body: string) => string } {
+  let dir = "";
+  beforeAll(() => {
+    dir = mkdtempSync(join(tmpdir(), prefix));
+  });
+  afterAll(() => rmSync(dir, { recursive: true, force: true }));
+  return {
+    dir: () => dir,
+    spec: (name, body) => {
+      const d = join(dir, name);
+      mkdirSync(d, { recursive: true });
+      writeFileSync(join(d, "1-description.md"), body);
+      return d;
+    },
+  };
+}
+
+/** A description whose tracking block ends with `line`, then a blank line. */
+export const TRACKING = (line: string) =>
+  `# X - Description\n\n## Tracking info\n\n- **Task:** \`09-x/\`\n- **Created:** \`2026-08-19\`\n` +
+  `${line}\n\n---\n\n## Description\n\nprose\n`;
+
+/** A description whose tracking block ends with `line` when one is given,
+ *  with no blank line left where it would be. */
+export const DESC = (line = "") =>
+  `# X - Description\n\n## Tracking info\n\n- **Task:** \`09-x/\`\n- **Created:** \`2026-08-19\`\n` +
+  (line ? `${line}\n` : "") +
+  `\n---\n\n## Description\n\nprose\n`;

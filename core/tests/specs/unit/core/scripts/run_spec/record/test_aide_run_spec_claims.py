@@ -14,6 +14,15 @@ from ..run_spec_project_state import CODE_LANDING, configure_code_landing
 from ..run_spec_results import RESULT_OK
 from ..run_spec_status_files import bullet, phase_file_text, write_raw_status
 
+
+def _status_after_an_analyze(runner, workspace, fake_claude):
+    """Runs an analyze that writes nothing itself and returns the
+    4-status.md the run leaves on the branch."""
+    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, command="analyze")
+    assert rc == 0, out
+    return phase_file_text(workspace, f"{workspace['folder']}/4-status.md")
+
 @pytest.mark.usefixtures("origin")
 @pytest.mark.parametrize("case", CODE_LANDING, ids=[c["name"] for c in CODE_LANDING])
 def test_the_code_landing_decides_the_default_push_mode(
@@ -80,10 +89,7 @@ def test_open_rows_recompute_the_header_percentage(runner, workspace, fake_claud
         "| three | ⬜ | |\n"
         "| four | ⬜ | |\n",
     )
-    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
-    rc, out, _ = run(runner, workspace, claude, command="analyze")
-    assert rc == 0, out
-    text = phase_file_text(workspace, f"{workspace['folder']}/4-status.md")
+    text = _status_after_an_analyze(runner, workspace, fake_claude)
     assert bullet(text, "Total progress") == "50% (2 of 4 completed)"
 
 def test_a_header_that_already_matches_is_not_rewritten(runner, workspace, fake_claude):
@@ -125,10 +131,7 @@ def test_both_numerator_and_denominator_are_corrected(runner, workspace, fake_cl
         "| Task | Status | Notes |\n|------|--------|-------|\n"
         f"{rows}\n",
     )
-    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
-    rc, out, _ = run(runner, workspace, claude, command="analyze")
-    assert rc == 0, out
-    text = phase_file_text(workspace, f"{workspace['folder']}/4-status.md")
+    text = _status_after_an_analyze(runner, workspace, fake_claude)
     assert bullet(text, "Total progress") == "100% (19 of 19 completed)"
 
 def test_a_fresh_status_file_with_no_rows_yet_is_left_untouched(runner, workspace, fake_claude):
@@ -176,10 +179,7 @@ def test_the_bare_unbolded_format_survives_the_rewrite(runner, workspace, fake_c
         "| Task | Status | Notes |\n|------|--------|-------|\n"
         f"{rows}\n",
     )
-    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
-    rc, out, _ = run(runner, workspace, claude, command="analyze")
-    assert rc == 0, out
-    text = phase_file_text(workspace, f"{workspace['folder']}/4-status.md")
+    text = _status_after_an_analyze(runner, workspace, fake_claude)
     assert "Total progress: 100% (19 of 19 completed)" in text
     assert "Estimate: 4-6 hours (AI-assisted)" in text
 
@@ -199,10 +199,7 @@ def test_the_bold_bulleted_format_survives_the_rewrite(runner, workspace, fake_c
         "| three | ⬜ | |\n"
         "| four | ⬜ | |\n",
     )
-    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
-    rc, out, _ = run(runner, workspace, claude, command="analyze")
-    assert rc == 0, out
-    text = phase_file_text(workspace, f"{workspace['folder']}/4-status.md")
+    text = _status_after_an_analyze(runner, workspace, fake_claude)
     assert bullet(text, "Total progress") == "50% (2 of 4 completed)"
 
 def test_a_non_checkbox_status_row_counts_as_one_task(runner, workspace, fake_claude):
@@ -219,8 +216,5 @@ def test_a_non_checkbox_status_row_counts_as_one_task(runner, workspace, fake_cl
         "| Plan review (feasibility, scope guardian, coherence) | ✅ | Three blind subagents; 2 must-fix |\n"
         "| ordinary task | ⬜ | |\n",
     )
-    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
-    rc, out, _ = run(runner, workspace, claude, command="analyze")
-    assert rc == 0, out
-    text = phase_file_text(workspace, f"{workspace['folder']}/4-status.md")
+    text = _status_after_an_analyze(runner, workspace, fake_claude)
     assert bullet(text, "Total progress") == "50% (1 of 2 completed)"

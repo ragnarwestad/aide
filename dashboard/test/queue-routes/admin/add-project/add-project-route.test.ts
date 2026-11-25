@@ -9,6 +9,7 @@ import { createGitRunner } from "../../../../src/git/process/index.ts";
 import { parseManifest } from "../../../../src/project/parse-manifest.ts";
 import { git, projectWithOrigin } from "../../../project/admin/git-fixture.ts";
 import { setupQueueRoutesHarness } from "../../fixtures.ts";
+import type { StepBody } from "./project-route-fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness();
 
@@ -20,18 +21,13 @@ afterEach(() => {
   while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
-interface StepBody {
-  ok: boolean;
-  project?: string;
-  results: { step: string; ok: boolean; error?: string; note?: string }[];
-  /** Whether `aide-run-spec` would START there — a separate
-   *  answer from `ok`, which only says the registration completed. */
-  readiness?: {
-    canRun: boolean;
-    note: string;
-    checks: { check: string; subject: string; ok: boolean; blocking: boolean; detail: string }[];
-  };
-}
+/** The real git, committing as a fixed author so a commit to a tracked
+ *  manifest needs no git identity on the machine. */
+const committingGit = (): ServerOptions["gitRun"] => {
+  const real = createGitRunner(30_000);
+  const committer = { GIT_AUTHOR_NAME: "T", GIT_AUTHOR_EMAIL: "t@example.com", GIT_COMMITTER_NAME: "T", GIT_COMMITTER_EMAIL: "t@example.com" };
+  return (cwd, args, timeout, env) => real(cwd, args, timeout, { ...committer, ...env });
+};
 
 /** A git that makes the directory a real clone would have made. Every
  *  step after the clone reads that directory, so a fake leaving nothing
@@ -252,9 +248,7 @@ describe("POST /api/queue/projects", () => {
     const manifest = "name: demo\ndeployment:\n  host: Cloudflare Pages\nlogging:\n  where: Cloudflare dashboard\n";
     const f = projectWithOrigin({ ".aide/project.yaml": manifest }, { clone: false });
     try {
-      const real = createGitRunner(30_000);
-      const committer = { GIT_AUTHOR_NAME: "T", GIT_AUTHOR_EMAIL: "t@example.com", GIT_COMMITTER_NAME: "T", GIT_COMMITTER_EMAIL: "t@example.com" };
-      const { base } = start({ gitRun: (cwd, args, timeout, env) => real(cwd, args, timeout, { ...committer, ...env }) });
+      const { base } = start({ gitRun: committingGit() });
       const res = await fetch(`${base}/api/queue/projects`, {
         method: "POST",
         headers: AUTH,
@@ -300,9 +294,7 @@ describe("POST /api/queue/projects", () => {
     const manifest = "name: demo\nlogging:\n  where: Cloudflare dashboard\n";
     const f = projectWithOrigin({ ".aide/project.yaml": manifest }, { clone: false });
     try {
-      const real = createGitRunner(30_000);
-      const committer = { GIT_AUTHOR_NAME: "T", GIT_AUTHOR_EMAIL: "t@example.com", GIT_COMMITTER_NAME: "T", GIT_COMMITTER_EMAIL: "t@example.com" };
-      const { base } = start({ gitRun: (cwd, args, timeout, env) => real(cwd, args, timeout, { ...committer, ...env }) });
+      const { base } = start({ gitRun: committingGit() });
       const res = await fetch(`${base}/api/queue/projects`, {
         method: "POST",
         headers: AUTH,

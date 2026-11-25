@@ -34,6 +34,7 @@ describe("detectProjectCommands reads the table in the skill doc", () => {
   // One row of the table per case: the file that decides, and what the
   // toolchain's three commands are (or are not — Gradle and Maven have
   // no lint in the table, and pytest has only a test command).
+  // Written out on purpose, mirroring src/project/detect-commands.ts: importing that table would pass whatever it says.
   const TABLE: {
     file: string;
     toolchain: string;

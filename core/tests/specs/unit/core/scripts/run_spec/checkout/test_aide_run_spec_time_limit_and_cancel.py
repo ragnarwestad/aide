@@ -6,10 +6,9 @@ step wrote.
 import json
 import os
 import signal
-import subprocess
 import time
 from ...conftest import git, run
-from ..run_spec_invoking import wait_until
+from ..run_spec_invoking import cancel_once, started_runner, wait_until
 from ..run_spec_results import RESULT_OK
 from ..run_spec_status_files import conflicting_branch, with_status
 from ..run_spec_result_fields import assert_written_as_in_fixture
@@ -66,29 +65,8 @@ def test_cancel_commits_what_the_step_wrote_before_the_worktree_goes(runner, wor
         f"touch {ready}\n"
         "sleep 60\n"
     )
-    env = {**os.environ, "AIDE_CLAUDE_BIN": str(claude)}
-    proc = subprocess.Popen(
-        [
-            str(runner),
-            "--project-dir", str(workspace["project"]),
-                "--project-name", "aide",
-            "--command", "implement",
-            "--spec", workspace["folder"],
-            "--timeout-sec", "120",
-            "--permission-mode", "acceptEdits",
-            "--result-file", str(tmp_path / "result.json"),
-            "--worktree-base", str(workspace["wtbase"]),
-        ],
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env,
-    )
-    try:
-        wait_until(ready.exists, 60, "the step never started writing")
-        proc.send_signal(signal.SIGTERM)
-        proc.wait(timeout=60)
-    finally:
-        if proc.poll() is None:
-            proc.kill()
-            proc.wait(timeout=10)
+    with started_runner(runner, workspace, claude, tmp_path, "implement") as proc:
+        cancel_once(proc, ready, "the step never started writing")
     assert git(workspace["project"], "show", f"{BRANCH}:cancelled-work.txt") == "half done"
 
 
@@ -106,23 +84,8 @@ def test_a_cancelled_steps_commit_waits_for_the_checkout_lock_and_lets_go_of_it_
         f"touch {ready}\n"
         "sleep 60\n"
     )
-    env = {**os.environ, "AIDE_CLAUDE_BIN": str(claude)}
-    proc = subprocess.Popen(
-        [
-            str(runner),
-            "--project-dir", str(workspace["project"]),
-                "--project-name", "aide",
-            "--command", "implement",
-            "--spec", workspace["folder"],
-            "--timeout-sec", "120",
-            "--permission-mode", "acceptEdits",
-            "--result-file", str(tmp_path / "result.json"),
-            "--worktree-base", str(workspace["wtbase"]),
-        ],
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env,
-    )
     lock = workspace["project"] / ".git" / "aide-run-spec-worktree.lock"
-    try:
+    with started_runner(runner, workspace, claude, tmp_path, "implement") as proc:
         wait_until(ready.exists, 60, "the step never started writing")
         # Another run holds the checkout: this process, alive.
         lock.mkdir()
@@ -134,10 +97,6 @@ def test_a_cancelled_steps_commit_waits_for_the_checkout_lock_and_lets_go_of_it_
         (lock / "pid").unlink()
         lock.rmdir()
         proc.wait(timeout=60)
-    finally:
-        if proc.poll() is None:
-            proc.kill()
-            proc.wait(timeout=10)
     assert git(workspace["project"], "show", f"{BRANCH}:cancelled-work.txt") == "half done"
     assert not lock.exists(), "the cancelled step left the checkout's lock behind"
 
@@ -151,28 +110,7 @@ def test_a_cancel_while_the_merge_is_still_open_commits_no_conflict_markers(runn
     before = git(workspace["project"], "rev-parse", branch)
     ready = tmp_path / "ready"
     claude = fake_claude("cat > /dev/null\n" f"touch {ready}\n" "sleep 60\n")
-    env = {**os.environ, "AIDE_CLAUDE_BIN": str(claude)}
-    proc = subprocess.Popen(
-        [
-            str(runner),
-            "--project-dir", str(workspace["project"]),
-                "--project-name", "aide",
-            "--command", "implement",
-            "--spec", workspace["folder"],
-            "--timeout-sec", "120",
-            "--permission-mode", "acceptEdits",
-            "--result-file", str(tmp_path / "result.json"),
-            "--worktree-base", str(workspace["wtbase"]),
-        ],
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env,
-    )
-    try:
-        wait_until(ready.exists, 60, "the session never started")
-        proc.send_signal(signal.SIGTERM)
-        proc.wait(timeout=60)
-    finally:
-        if proc.poll() is None:
-            proc.kill()
-            proc.wait(timeout=10)
+    with started_runner(runner, workspace, claude, tmp_path, "implement") as proc:
+        cancel_once(proc, ready, "the session never started")
     assert "<<<<<<<" not in git(workspace["project"], "show", f"{branch}:contested.txt")
     assert git(workspace["project"], "rev-parse", branch) == before

@@ -2,50 +2,26 @@
 // branch alone, without the spec. Red there too, the failure is main's, and
 // the sentence says so: a browser test broken on main stopped an archive
 // as if the spec had broken it (2026-09-27).
-import { afterEach, expect, test } from "bun:test";
-import { existsSync, readFileSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { expect, test } from "bun:test";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { runProjectSuiteBeforePush } from "../../../../src/serve/land-branch/test-gate.ts";
 import { namingRecorder } from "../../../helpers/naming-recorder.ts";
 
 import { cancelLanding, landingProcessGroups, takeLandingCancel } from "../../../../src/serve/land-branch/cancel-landing.ts";
 import { signalGroup } from "../../../../src/serve/serve-helpers/signal-group.ts";
+import { gateTemps, git, mergedRepo } from "./gate-fixtures.ts";
 
-const dirs: string[] = [];
-afterEach(() => {
-  while (dirs.length) rmSync(dirs.pop()!, { recursive: true, force: true });
-  delete process.env.AIDE_RESOLVE_TEST_CMD_BIN;
-  delete process.env.AIDE_RECORD_TEST_RUN_BIN;
-  delete process.env.AIDE_TEST_GATE_LOG;
-});
-
-function git(cwd: string, ...args: string[]): void {
-  const out = Bun.spawnSync({ cmd: ["git", "-C", cwd, ...args], stdout: "pipe", stderr: "pipe" });
-  if (out.exitCode !== 0) throw new Error(`git ${args.join(" ")} failed: ${out.stderr.toString()}`);
-}
+const { temp } = gateTemps();
 
 /** main, and the merge checked out on top of it carrying the spec's change. */
 function merged(): string {
-  const dir = mkdtempSync(join(tmpdir(), "aide-red-on-main-"));
-  dirs.push(dir);
-  writeFileSync(join(dir, "README.md"), "# p\n");
-  git(dir, "init", "-q", "-b", "main");
-  git(dir, "config", "user.name", "Test");
-  git(dir, "config", "user.email", "test@example.com");
-  git(dir, "add", "-A");
-  git(dir, "commit", "-qm", "main");
-  git(dir, "switch", "-q", "-c", "merge");
-  writeFileSync(join(dir, "spec-change"), "x\n");
-  git(dir, "add", "-A");
-  git(dir, "commit", "-qm", "the spec");
-  return dir;
+  return mergedRepo(temp("aide-red-on-main-"));
 }
 
 /** A recorder red wherever `redWhen` holds for the tree it is run in. */
 function recorder(redWhen: "always" | "with the spec" | "different" | "main unnamed"): void {
-  const bin = mkdtempSync(join(tmpdir(), "aide-red-on-main-bin-"));
-  dirs.push(bin);
+  const bin = temp("aide-red-on-main-bin-");
   writeFileSync(join(bin, "resolve"), `#!/bin/sh\nprintf '{"ok":true,"commands":["true"]}\\n'\n`, { mode: 0o755 });
   const test = redWhen === "always" ? 'echo "(fail) a test"; exit 1'
     : redWhen === "different" ? 'if [ -f "$2/spec-change" ]; then echo "(fail) merge only"; else echo "(fail) main only"; fi; exit 1'

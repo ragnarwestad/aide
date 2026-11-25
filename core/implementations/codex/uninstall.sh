@@ -15,22 +15,14 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 source "$SCRIPT_DIR/lib/doc-fallback.sh"
 source "$SCRIPT_DIR/../../scripts/_install-hooks.sh"
 source "$SCRIPT_DIR/../../scripts/_install-instructions.sh"
+source "$SCRIPT_DIR/../../scripts/_uninstall-confirm.sh"
 
 # Confirm uninstallation
 echo "⚠️  This will remove:"
 echo "   - aide's rules from ~/.codex/AGENTS.md (your own text there is kept)"
 echo "   - project_doc_fallback_filenames in ~/.codex/config.toml (if the installer wrote it)"
 echo "   - aide's hooks from ~/.codex/hooks.json (your own hooks are kept) + ~/.codex/hooks/aide-*.sh"
-echo ""
-read -r -p "Are you sure you want to continue? [y/N]: " CONFIRM
-
-if [[ ! "$CONFIRM" =~ ^[Yy]$ ]]; then
-  echo ""
-  echo "❌ Aborted"
-  exit 0
-fi
-
-echo ""
+aide_confirm_or_abort
 
 # 1. Shared scripts in ~/.local/bin are kept (other AI tools use them).
 #    They are only removed by uninstall-all.sh.

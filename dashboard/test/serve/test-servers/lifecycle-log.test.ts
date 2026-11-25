@@ -8,6 +8,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { TestServerStore } from "../../../src/serve/test-servers/store.ts";
 import { refreshTestServerStatus, startTestServer, stopTestServer, type TestServersContext } from "../../../src/serve/test-servers/lifecycle.ts";
+import { testServersCtx } from "./test-servers-fixtures.ts";
 
 let dir: string;
 let lines: string[];
@@ -22,14 +23,7 @@ afterEach(() => kill.mockRestore());
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
 function makeCtx(overrides: Partial<TestServersContext> = {}): TestServersContext {
-  return {
-    store: new TestServerStore(),
-    aideCheckout: () => "/checkout/aide",
-    startCommand: (_p, { branch, port }) => [
-      "/checkout/aide/dashboard/test/round/run", "/checkout/aide",
-      "--branch", branch, "--port", String(port), "--keep",
-    ],
-    previewAvailable: () => true,
+  return testServersCtx(new TestServerStore(), {
     gitRun: async (_dir, args) =>
       args[0] === "ls-remote"
         ? { code: 0, stdout: "abc1234567\trefs/heads/aide/spec-1\n", stderr: "" }
@@ -44,7 +38,7 @@ function makeCtx(overrides: Partial<TestServersContext> = {}): TestServersContex
     findFreePort: async () => 8801,
     log: (line) => lines.push(line),
     ...overrides,
-  };
+  });
 }
 
 describe("the board log says what a start did", () => {

@@ -72,3 +72,13 @@ def test_missing_md_to_pdf_exits_nonzero_with_the_existing_message(script, tmp_p
     proc = run(script, root, ["42-do-a-thing"], env=env)
     assert proc.returncode != 0
     assert "md-to-pdf is not installed" in proc.stdout
+
+
+@pytest.mark.parametrize("command", ["aide-generate-pdf", "aide-generate-html"])
+def test_an_unknown_spec_says_no_documentation_was_found(workspace_root, tmp_path, command):
+    root = tmp_path / "project"
+    make_spec(root / "specs", "42-do-a-thing")
+    proc = run(workspace_root / "core" / "scripts" / command, root, ["99"])
+    assert proc.returncode == 1
+    assert "No documentation found for: 99" in proc.stdout
+    assert "42-do-a-thing" in proc.stdout

@@ -52,20 +52,11 @@ done
 
 command -v jq >/dev/null 2>&1 || { echo '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"jq is required"}'; exit 2; }
 
-emit() {
-  printf '%s\n' "$1"
-  if [ -n "$result_file" ]; then printf '%s\n' "$1" > "$result_file"; fi
-  return 0
-}
-refuse() {
-  aide_spec_refuse "$1"
-}
-
-[ -n "$specs_root" ] || refuse "missing --specs-root"
-[ -n "$spec_arg" ] || refuse "missing --spec"
-[ -d "$specs_root" ] || refuse "no such specs root: $specs_root"
-declare -f aide_resolve_spec >/dev/null 2>&1 || refuse "_aide-spec-lib.sh is missing beside aide-reopen-spec — reinstall aide"
-declare -f apply_spec_transition >/dev/null 2>&1 || refuse "lib/spec-transitions.sh is missing beside aide-reopen-spec — reinstall aide"
+[ -n "$specs_root" ] || aide_spec_refuse "missing --specs-root"
+[ -n "$spec_arg" ] || aide_spec_refuse "missing --spec"
+[ -d "$specs_root" ] || aide_spec_refuse "no such specs root: $specs_root"
+declare -f aide_resolve_spec >/dev/null 2>&1 || aide_spec_refuse "_aide-spec-lib.sh is missing beside aide-reopen-spec — reinstall aide"
+declare -f apply_spec_transition >/dev/null 2>&1 || aide_spec_refuse "lib/spec-transitions.sh is missing beside aide-reopen-spec — reinstall aide"
 
 folder="$(aide_resolve_spec "$spec_arg" "$specs_root")"
 # A full folder name resolves to itself, whichever side of archive/ it is on.
@@ -75,24 +66,24 @@ case "$folder" in
 esac
 case "$folder" in
   archive/*) ;;
-  "") refuse "unknown spec: $spec_arg (not under $specs_root)" ;;
-  *) refuse "$folder is already active — nothing to reopen" ;;
+  "") aide_spec_refuse "unknown spec: $spec_arg (not under $specs_root)" ;;
+  *) aide_spec_refuse "$folder is already active — nothing to reopen" ;;
 esac
-[ -d "$specs_root/$folder" ] || refuse "unknown spec: $spec_arg (no folder $folder under $specs_root)"
+[ -d "$specs_root/$folder" ] || aide_spec_refuse "unknown spec: $spec_arg (no folder $folder under $specs_root)"
 name="${folder#archive/}"
-[ ! -e "$specs_root/$name" ] || refuse "$name already exists among the active specs"
-[ -f "$specs_root/$folder/4-status.md" ] || refuse "$folder has no 4-status.md"
+[ ! -e "$specs_root/$name" ] || aide_spec_refuse "$name already exists among the active specs"
+[ -f "$specs_root/$folder/4-status.md" ] || aide_spec_refuse "$folder has no 4-status.md"
 
 # Before the move, so a refusal leaves the folder where it was.
 if [ -n "$reset_files" ]; then
   [ -n "$boundary" ] || boundary="$(git -C "$specs_root" rev-parse --short HEAD 2>/dev/null)"
-  [ -n "$boundary" ] || refuse "no boundary: pass --boundary, or keep the specs root in git"
+  [ -n "$boundary" ] || aide_spec_refuse "no boundary: pass --boundary, or keep the specs root in git"
 fi
 
 if git -C "$specs_root" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  git -C "$specs_root" mv "$folder" "$name" || refuse "cannot move $folder out of archive/"
+  git -C "$specs_root" mv "$folder" "$name" || aide_spec_refuse "cannot move $folder out of archive/"
 else
-  mv "$specs_root/$folder" "$specs_root/$name" || refuse "cannot move $folder out of archive/"
+  mv "$specs_root/$folder" "$specs_root/$name" || aide_spec_refuse "cannot move $folder out of archive/"
 fi
 
 if [ -n "$reset_files" ]; then
@@ -100,7 +91,7 @@ if [ -n "$reset_files" ]; then
   trail="$(grep -E '^\*\*(Archived|Closed):\*\*' "$specs_root/$name/4-status.md" 2>/dev/null)"
   reset_result="$("$SCRIPT_DIR/aide-reset-spec" --specs-root "$specs_root" --spec "$name" 2>/dev/null)"
   [ "$(jq -r '.ok // false' <<<"$reset_result" 2>/dev/null)" = "true" ] \
-    || refuse "$(jq -r '.error // "aide-reset-spec refused"' <<<"$reset_result" 2>/dev/null)"
+    || aide_spec_refuse "$(jq -r '.error // "aide-reset-spec refused"' <<<"$reset_result" 2>/dev/null)"
   [ -n "$trail" ] && printf '\n%s\n' "$trail" >> "$specs_root/$name/4-status.md"
   apply_spec_transition "$specs_root/$name/4-status.md" reopen "$boundary"
 else
@@ -113,5 +104,5 @@ if git -C "$specs_root" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   git -C "$specs_root" add -A -- "$name" 2>/dev/null
 fi
 
-emit "$(jq -cn --arg f "$name" '{ok:true,exitCode:0,terminalReason:"reopened",specFolder:$f}')"
+aide_spec_emit_line "$(jq -cn --arg f "$name" '{ok:true,exitCode:0,terminalReason:"reopened",specFolder:$f}')"
 exit 0

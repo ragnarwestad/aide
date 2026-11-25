@@ -8,6 +8,7 @@ import { chmodSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { scriptArgv } from "../../src/integrations/script-argv.ts";
+import { FINISHED_EVENT as FINISHED } from "../integrations/notify-event.ts";
 
 const SCRIPT = join(import.meta.dir, "..", "..", "deploy", "notify-slack.sh");
 
@@ -51,17 +52,6 @@ async function run(payload: unknown, opts: { webhookUrl?: string } = {}): Promis
   });
   return await proc.exited;
 }
-
-const FINISHED = {
-  event: "finished",
-  project: "aide",
-  spec: "81-queue-and-runner",
-  step: "analyze",
-  jobId: "job-1",
-  costUsd: 2.1,
-  branchUrl: "https://github.com/example/aide/compare/main...aide/81-queue-and-runner",
-  at: "2026-08-16T22:00:00Z",
-};
 
 describe("the line a phone shows at 02:00", () => {
   test("a finished step says what is done, what it cost and where to look", async () => {

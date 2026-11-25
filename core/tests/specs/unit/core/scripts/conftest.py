@@ -42,28 +42,12 @@ import time
 
 import pytest
 
+from .spec.spec_repos import git, init_repo
+
 
 @pytest.fixture
 def runner(workspace_root):
     return workspace_root / "core" / "scripts" / "aide-run-spec"
-
-
-def git(repo, *args):
-    return subprocess.run(
-        ["git", "-C", str(repo), *args],
-        capture_output=True, text=True, check=True,
-    ).stdout.strip()
-
-
-def init_repo(path):
-    path.mkdir(parents=True, exist_ok=True)
-    subprocess.run(["git", "-C", str(path), "init", "-q", "-b", "main"], check=True)
-    subprocess.run(["git", "-C", str(path), "config", "user.name", "Test"], check=True)
-    subprocess.run(["git", "-C", str(path), "config", "user.email", "test@example.com"], check=True)
-    (path / "README.md").write_text("start\n")
-    subprocess.run(["git", "-C", str(path), "add", "README.md"], check=True)
-    subprocess.run(["git", "-C", str(path), "commit", "-qm", "init"], check=True)
-    return path
 
 
 @pytest.fixture

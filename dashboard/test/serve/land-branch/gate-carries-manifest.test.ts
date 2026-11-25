@@ -7,51 +7,33 @@
 // The rule is the runner's, stated once in core/tests/fixtures/manifest-carry.json
 // and tested on the bash side by test_aide_run_spec_manifest.py.
 
-import { afterEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { describe, expect, test } from "bun:test";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { runProjectSuiteBeforePush } from "../../../src/serve/land-branch/test-gate.ts";
+import { gateTemps, commitAll } from "./gate/gate-fixtures.ts";
 
 const ROWS = JSON.parse(readFileSync(join(import.meta.dir, "../../../../core/tests/fixtures/manifest-carry.json"), "utf-8"))
   .rows as { name: string; sourceHasManifest: boolean; trackedInTree: boolean; copied: boolean }[];
 const RESOLVER = join(import.meta.dir, "../../../../core/scripts/aide-resolve-test-cmd");
 const MANIFEST = "name: demo\nAIDE_TEST_CMD: make it\nworktreeLinks: deps\n";
 
-const dirs: string[] = [];
-afterEach(() => {
-  while (dirs.length) rmSync(dirs.pop()!, { recursive: true, force: true });
-  delete process.env.AIDE_RESOLVE_TEST_CMD_BIN;
-  delete process.env.AIDE_RECORD_TEST_RUN_BIN;
-  delete process.env.AIDE_TEST_GATE_LOG;
-});
-
-function git(cwd: string, ...args: string[]): string {
-  const out = Bun.spawnSync({ cmd: ["git", "-C", cwd, ...args], stdout: "pipe", stderr: "pipe" });
-  if (out.exitCode !== 0) throw new Error(`git ${args.join(" ")} failed: ${out.stderr.toString()}`);
-  return out.stdout.toString();
-}
+const { temp } = gateTemps();
 
 /** A project in the state one row of the table names, with a gitignored
  *  `deps/` the manifest links. Returns what the recorder saw, if it ran. */
 async function gate(row: (typeof ROWS)[number]): Promise<{ ran: boolean; manifest: string; deps: string }> {
-  const root = mkdtempSync(join(tmpdir(), "aide-gate-manifest-"));
-  dirs.push(root);
+  const root = temp("aide-gate-manifest-");
   writeFileSync(join(root, ".gitignore"), "deps/\n.aide/config\n");
   writeFileSync(join(root, "README.md"), "# demo\n");
   mkdirSync(join(root, ".aide"));
   if (row.sourceHasManifest && row.trackedInTree) writeFileSync(join(root, ".aide", "project.yaml"), MANIFEST);
-  git(root, "init", "-q", "-b", "main");
-  git(root, "config", "user.name", "Test");
-  git(root, "config", "user.email", "test@example.com");
-  git(root, "add", "-A");
-  git(root, "commit", "-qm", "first");
+  commitAll(root, "first");
   if (row.sourceHasManifest && !row.trackedInTree) writeFileSync(join(root, ".aide", "project.yaml"), MANIFEST);
   mkdirSync(join(root, "deps"));
   writeFileSync(join(root, "deps", "marker"), "installed\n");
 
-  const bin = mkdtempSync(join(tmpdir(), "aide-gate-manifest-bin-"));
-  dirs.push(bin);
+  const bin = temp("aide-gate-manifest-bin-");
   const record = join(bin, "record.txt");
   writeFileSync(
     join(bin, "record"),

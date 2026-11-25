@@ -5,6 +5,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
 import type * as RowSwap from "../../../src/specs-client/row-swap/index.ts";
+import { parseRowsInContext } from "../fixtures-tbody.ts";
 
 const KEY = "aide/81-x";
 const OTHER = "aide/82-y";
@@ -29,21 +30,6 @@ let mod: typeof RowSwap;
 let answer = "";
 const asked: string[] = [];
 const saved: Record<string, unknown> = {};
-
-/** happy-dom reads the markup `insertAdjacentHTML` is given without a table
- *  around it and drops its `<tr>`s, which a browser keeps. A template parses
- *  rows as rows, so the three positions the row swap uses go through one. */
-function parseRowsInContext(window: Window): void {
-  const proto = (window as unknown as { HTMLElement: { prototype: Record<string, unknown> } }).HTMLElement.prototype;
-  proto.insertAdjacentHTML = function (this: Element, where: string, html: string): void {
-    const template = this.ownerDocument.createElement("template");
-    template.innerHTML = html;
-    const rows = template.content;
-    if (where === "beforebegin") this.parentNode!.insertBefore(rows, this);
-    else if (where === "beforeend") this.appendChild(rows);
-    else if (where === "afterend") this.parentNode!.insertBefore(rows, this.nextSibling);
-  };
-}
 
 beforeEach(async () => {
   win = new Window();

@@ -7,11 +7,10 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { BranchFileStepsChecker } from "../../../src/git/workflow-history.ts";
-import type { OpenBranchTarget } from "../../../src/git/branch-file.ts";
-import type { GitRunner } from "../../../src/git/process/index.ts";
 import { approachChoiceHolds, notAnalyzedHolds, type ScheduleContext } from "../../../src/serve/schedules";
 import { formatSentence } from "../../../src/messages/format.ts";
 import { cleanupHarness, enqueue, makeRunner, resetHarness, spawns, store } from "../../queue/runner/runner-fixtures.ts";
+import { branchCheckerReading } from "./spec-fixtures.ts";
 
 const FOLDER = "590-choose-the-approach";
 const dirs: string[] = [];
@@ -62,26 +61,11 @@ const emptyChecker = (): BranchFileStepsChecker => new BranchFileStepsChecker({ 
 
 /** A checker that has read the spec's open branch, whose 3-solution.md is `solution`. */
 async function branchChecker(specDir: string, solution: string): Promise<BranchFileStepsChecker> {
-  const target: OpenBranchTarget = {
-    root: "/root",
-    branch: `aide/${FOLDER}`,
-    relPath: `aide/specs/${FOLDER}/4-status.md`,
-    archivedRelPath: `aide/specs/archive/${FOLDER}/4-status.md`,
-  };
-  const run: GitRunner = async (_dir, args) => {
-    const line = args.join(" ");
-    if (line.startsWith("fetch")) return { code: 0, stdout: "" };
-    if (line.startsWith("log -1")) return { code: 0, stdout: "deadbeef\n" };
-    if (line.endsWith("4-status.md")) return { code: 0, stdout: "# Status\n\n- **Workflow steps completed:** create, analyze\n" };
-    if (line.endsWith("4-status.json")) {
-      return { code: 0, stdout: JSON.stringify({ completedPhases: ["create", "analyze"], archived: null, reopened: null, acceptanceCriteria: [], phaseCounts: {} }) };
-    }
-    if (line.endsWith("3-solution.md")) return { code: 0, stdout: solution };
-    return { code: 1, stdout: "" };
-  };
-  const checker = new BranchFileStepsChecker({ run });
-  await checker.read(specDir, FOLDER, target);
-  return checker;
+  return branchCheckerReading(specDir, FOLDER, {
+    "4-status.md": "# Status\n\n- **Workflow steps completed:** create, analyze\n",
+    "4-status.json": JSON.stringify({ completedPhases: ["create", "analyze"], archived: null, reopened: null, acceptanceCriteria: [], phaseCounts: {} }),
+    "3-solution.md": solution,
+  });
 }
 
 type QueuedJob = { id: string; project: string; specFolder: string; state: string; steps: string[]; stepIndex: number };

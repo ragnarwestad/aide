@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { t } from "../../../../../src/i18n";
 import { renderSpecsRows, type SpecsPageOptions, type QueueRowView, type SpecTarget } from "../../../../../src/render";
-import { row, openKeys } from "../../fixtures.ts";
+import { row, specTarget, openRowsAt, runLine, phaseBox } from "../../fixtures.ts";
 
 // Split out of row-status-and-controls.test.ts by theme: the rest of
 // "a spec's row runs its own phases" that is not about ticking/locking
@@ -12,27 +12,9 @@ describe("a spec's row runs its own phases", () => {
   const job = (id: string, step: string, extra: Partial<QueueRowView> = {}): QueueRowView =>
     row({ id, specFolder: "94-row-runs-it", steps: [step], stepIndex: 0, state: "done", ...extra });
 
-  const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
-    project: "aide",
-    specFolder,
-    ...extra,
-  });
+  const target = specTarget;
 
-  const rows = (
-    list: QueueRowView[],
-    targets: SpecTarget[] = [],
-    opts: Partial<SpecsPageOptions> = {},
-  ) =>
-    renderSpecsRows(
-      list,
-      {
-        runnerAvailable: true,
-        targets,
-        filter: { open: openKeys(list, targets) },
-        ...opts,
-      },
-      Date.parse("2026-08-18T12:00:00Z"),
-    );
+  const rows = openRowsAt("2026-08-18T12:00:00Z");
 
   const head = (html: string, folder: string) =>
     html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>\\s*<tr class="specstate".*?</tr>`))?.[0] ?? "";
@@ -91,30 +73,10 @@ describe("a spec's row runs its own phases", () => {
 // step tickable, which promised a press the queue was going to refuse
 // anyway.
 describe("a busy job holds every step on the row", () => {
-  const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
-    project: "aide",
-    specFolder,
-    ...extra,
-  });
+  const target = specTarget;
   // The step boxes belong to the open row; which of them a
   // busy job holds is what this block is about.
-  const rows = (list: QueueRowView[], targets: SpecTarget[] = []) =>
-    renderSpecsRows(
-      list,
-      { runnerAvailable: true, targets, filter: { open: openKeys(list, targets) } },
-      Date.parse("2026-08-18T12:00:00Z"),
-    );
-  /** The line an open row reveals under its header, where the phase
-   *  boxes live. */
-  const runLine = (html: string, folder: string) =>
-    html.match(
-      new RegExp(
-        `<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">[\\s\\S]*?` +
-          `(?=<tr class="[^"]*spechead|</tbody>|$)`,
-      ),
-    )?.[0] ?? "";
-  const box = (line: string, step: string) =>
-    line.match(new RegExp(`<label class="phase[^"]*" data-phase="${step}"[^>]*>.*?</label>`))?.[0] ?? "";
+  const rows = openRowsAt("2026-08-18T12:00:00Z");
 
   /** One job holding two steps, to exercise the lock across a step
    *  boundary. */
@@ -134,8 +96,8 @@ describe("a busy job holds every step on the row", () => {
     // The server would refuse a second job naming EITHER of these
     // (`clashing()` tests the whole job), so the page must not offer
     // one of them as available.
-    expect(box(l, "analyze")).toContain("disabled");
-    expect(box(l, "implement")).toContain("disabled");
+    expect(phaseBox(l, "analyze")).toContain("disabled");
+    expect(phaseBox(l, "implement")).toContain("disabled");
   });
 
   // The step the job never named is locked too. The queue
@@ -145,25 +107,25 @@ describe("a busy job holds every step on the row", () => {
   // not keep.
   test("a step the running job never held is locked all the same", () => {
     const l = line(pair("running"));
-    expect(box(l, "archive")).toContain("disabled");
+    expect(phaseBox(l, "archive")).toContain("disabled");
   });
 
   test("a queued job holds its steps before it has started any of them", () => {
     const l = line(pair("queued"));
-    expect(box(l, "analyze")).toContain("disabled");
-    expect(box(l, "implement")).toContain("disabled");
+    expect(phaseBox(l, "analyze")).toContain("disabled");
+    expect(phaseBox(l, "implement")).toContain("disabled");
   });
 
   test("a queued job holds the steps it never named either", () => {
     const l = line(pair("queued"));
-    expect(box(l, "archive")).toContain("disabled");
+    expect(phaseBox(l, "archive")).toContain("disabled");
   });
 
   test("a finished job holds nothing — every box is offerable again", () => {
     const l = line(pair("done", 1));
     for (const step of ["analyze", "implement", "archive"]) {
-      expect(box(l, step)).not.toContain("disabled");
-      expect(box(l, step)).not.toContain("title=\"analyze");
+      expect(phaseBox(l, step)).not.toContain("disabled");
+      expect(phaseBox(l, step)).not.toContain("title=\"analyze");
     }
     expect(l).not.toContain("This phase can't be changed right now");
   });
@@ -171,8 +133,8 @@ describe("a busy job holds every step on the row", () => {
   test("a job that failed, stopped or was cancelled holds nothing either", () => {
     for (const state of ["failed", "waiting", "cancelled"] as const) {
       const l = line(pair(state, 1));
-      expect(box(l, "analyze")).not.toContain("disabled");
-      expect(box(l, "implement")).not.toContain("disabled");
+      expect(phaseBox(l, "analyze")).not.toContain("disabled");
+      expect(phaseBox(l, "implement")).not.toContain("disabled");
     }
   });
 });
@@ -183,11 +145,7 @@ describe("a busy job holds every step on the row", () => {
 // Automatic waiting uses Queued, with a position when one is known.
 
 describe("the State line says what is happening, or what is next", () => {
-  const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
-    project: "aide",
-    specFolder,
-    ...extra,
-  });
+  const target = specTarget;
   const rows = (list: QueueRowView[], targets: SpecTarget[] = [], opts: Partial<SpecsPageOptions> = {}) =>
     renderSpecsRows(
       list,

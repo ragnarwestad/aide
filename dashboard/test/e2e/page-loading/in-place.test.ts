@@ -1,6 +1,7 @@
-import { afterAll, beforeAll, expect, test } from "bun:test";
-import { chromium, type Browser } from "playwright";
+import { expect, test } from "bun:test";
+import type { Browser } from "playwright";
 import { browserDeadline, withBrowser } from "../../helpers/browser-deadline.ts";
+import { e2eBrowser } from "../../helpers/setup/e2e-browser.ts";
 import { createdJob, queueHarness } from "../../helpers/queue-server.ts";
 
 browserDeadline();
@@ -9,14 +10,9 @@ const harness = queueHarness("aide-e2e-page-change-");
 let browser: Browser;
 let base: string;
 
-beforeAll(async () => {
-  browser = await withBrowser(chromium.launch(), "chromium.launch()");
+e2eBrowser(harness, (launched) => {
+  browser = launched;
   base = harness.start({ queueMirror: JSON.stringify([createdJob()]) }).base;
-});
-
-afterAll(async () => {
-  await browser.close();
-  harness.cleanup();
 });
 
 test("a board link changes the page without replacing the header (AC-1, AC-3, AC-4, AC-8, AC-10)", async () => {

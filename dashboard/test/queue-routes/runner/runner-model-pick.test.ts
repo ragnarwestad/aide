@@ -23,6 +23,17 @@ describe("picking a model for a job", () => {
   // every page here opens the one spec it renders.
   const OPEN = { open: "aide/81-queue-and-runner" };
 
+  /** Posts `body` to the queue as the page's form does, on a server
+   *  configured with CHOICES. */
+  async function postForm(body: string): Promise<Response> {
+    const { base } = start({ queueDefaults: CHOICES });
+    const headers = { "content-type": "application/x-www-form-urlencoded", accept: "application/json" };
+    return fetch(`${base}/api/queue`, { method: "POST", headers, body });
+  }
+
+  const modelOf = async (res: Response): Promise<Record<string, string>> =>
+    ((await res.json()) as { job: { model: Record<string, string> } }).job.model;
+
   test("a row says which model it ran on — as the select's pre-filled value", () => {
     const html = renderSpecsPage(
       [
@@ -44,41 +55,23 @@ describe("picking a model for a job", () => {
   });
 
   test("posting a chosen model runs every step on it", async () => {
-    const { base } = start({ queueDefaults: CHOICES });
-    const res = await fetch(`${base}/api/queue`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/x-www-form-urlencoded",
-        accept: "application/json",
-      },
-      body: new URLSearchParams({
-        target: "aide/81-queue-and-runner",
-        steps: "implement",
-        model: "fable",
-      }).toString(),
-    });
+    const res = await postForm(new URLSearchParams({
+      target: "aide/81-queue-and-runner",
+      steps: "implement",
+      model: "fable",
+    }).toString());
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { job: { model: Record<string, string> } };
-    expect(body.job.model).toEqual({ implement: "fable" });
+    expect(await modelOf(res)).toEqual({ implement: "fable" });
   });
 
   test("an empty model field means 'use the configuration', not an error", async () => {
-    const { base } = start({ queueDefaults: CHOICES });
-    const res = await fetch(`${base}/api/queue`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/x-www-form-urlencoded",
-        accept: "application/json",
-      },
-      body: new URLSearchParams({
-        target: "aide/81-queue-and-runner",
-        steps: "implement",
-        model: "",
-      }).toString(),
-    });
+    const res = await postForm(new URLSearchParams({
+      target: "aide/81-queue-and-runner",
+      steps: "implement",
+      model: "",
+    }).toString());
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { job: { model: Record<string, string> } };
-    expect(body.job.model).toEqual({ implement: "opus" });
+    expect(await modelOf(res)).toEqual({ implement: "opus" });
   });
 
   // The choice moved onto the phase lines, so a form now
@@ -89,22 +82,13 @@ describe("picking a model for a job", () => {
   // only proven to AGREE if something drives an actual wire body from
   // one end to the other.
   test("one press can run two phases on two different models", async () => {
-    const { base } = start({ queueDefaults: CHOICES });
-    const res = await fetch(`${base}/api/queue`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/x-www-form-urlencoded",
-        accept: "application/json",
-      },
-      body: new URLSearchParams({
-        target: "aide/81-queue-and-runner",
-        steps: "analyze",
-        "model.analyze": "sonnet",
-      }).toString() + "&steps=implement&model.implement=fable",
-    });
+    const res = await postForm(new URLSearchParams({
+      target: "aide/81-queue-and-runner",
+      steps: "analyze",
+      "model.analyze": "sonnet",
+    }).toString() + "&steps=implement&model.implement=fable");
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { job: { model: Record<string, string> } };
-    expect(body.job.model).toEqual({ analyze: "sonnet", implement: "fable" });
+    expect(await modelOf(res)).toEqual({ analyze: "sonnet", implement: "fable" });
   });
 
   // Every select on the page posts, including the ones left alone —
@@ -112,47 +96,22 @@ describe("picking a model for a job", () => {
   // reads "default". Passed through as an empty string it would be
   // refused as an invalid model name; it has to be dropped instead.
   test("a phase left on 'default' posts a blank that is dropped, not refused", async () => {
-    const { base } = start({ queueDefaults: CHOICES });
-    const res = await fetch(`${base}/api/queue`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/x-www-form-urlencoded",
-        accept: "application/json",
-      },
-      body:
-        "target=aide%2F81-queue-and-runner&steps=analyze&steps=implement" +
-        "&model.analyze=fable&model.implement=",
-    });
+    const res = await postForm(
+      "target=aide%2F81-queue-and-runner&steps=analyze&steps=implement" +
+      "&model.analyze=fable&model.implement=",
+    );
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { job: { model: Record<string, string> } };
-    expect(body.job.model).toEqual({ analyze: "fable", implement: "opus" });
+    expect(await modelOf(res)).toEqual({ analyze: "fable", implement: "opus" });
   });
 
   test("every phase left on 'default' queues no override at all", async () => {
-    const { base } = start({ queueDefaults: CHOICES });
-    const res = await fetch(`${base}/api/queue`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/x-www-form-urlencoded",
-        accept: "application/json",
-      },
-      body: "target=aide%2F81-queue-and-runner&steps=implement&model.implement=",
-    });
+    const res = await postForm("target=aide%2F81-queue-and-runner&steps=implement&model.implement=");
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { job: { model: Record<string, string> } };
-    expect(body.job.model).toEqual({ implement: "opus" });
+    expect(await modelOf(res)).toEqual({ implement: "opus" });
   });
 
   test("a per-phase field naming a model the config does not list is refused", async () => {
-    const { base } = start({ queueDefaults: CHOICES });
-    const res = await fetch(`${base}/api/queue`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/x-www-form-urlencoded",
-        accept: "application/json",
-      },
-      body: "target=aide%2F81-queue-and-runner&steps=implement&model.implement=gpt-9",
-    });
+    const res = await postForm("target=aide%2F81-queue-and-runner&steps=implement&model.implement=gpt-9");
     expect(res.status).toBe(400);
     expect(await res.text()).toContain("gpt-9");
   });

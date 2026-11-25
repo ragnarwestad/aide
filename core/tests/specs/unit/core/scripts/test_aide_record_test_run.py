@@ -12,32 +12,18 @@ import subprocess
 
 import pytest
 
+from .spec.spec_repos import project  # noqa: F401
+
 
 @pytest.fixture
 def script(workspace_root):
     return workspace_root / "core" / "scripts" / "aide-record-test-run"
 
 
-def init_repo(path):
-    path.mkdir(parents=True, exist_ok=True)
-    subprocess.run(["git", "-C", str(path), "init", "-q", "-b", "main"], check=True)
-    subprocess.run(["git", "-C", str(path), "config", "user.name", "Test"], check=True)
-    subprocess.run(["git", "-C", str(path), "config", "user.email", "test@example.com"], check=True)
-    (path / "README.md").write_text("start\n")
-    subprocess.run(["git", "-C", str(path), "add", "README.md"], check=True)
-    subprocess.run(["git", "-C", str(path), "commit", "-qm", "init"], check=True)
-    return path
-
-
 def head_commit(repo):
     return subprocess.run(
         ["git", "-C", str(repo), "rev-parse", "HEAD"], capture_output=True, text=True, check=True,
     ).stdout.strip()
-
-
-@pytest.fixture
-def project(tmp_path):
-    return init_repo(tmp_path / "proj")
 
 
 @pytest.fixture

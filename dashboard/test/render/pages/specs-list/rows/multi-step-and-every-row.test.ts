@@ -1,10 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-  renderSpecsRows,
-  type SpecsPageOptions,
-  type QueueRowView,
-  type SpecTarget,
-} from "../../../../../src/render";
+import { renderSpecsRows, type SpecsPageOptions, type QueueRowView, type SpecTarget } from "../../../../../src/render";
 import { row, openKeys } from "../../fixtures.ts";
 
 // The › that opens a phase's messages is a link in the cell; the name beside it is still plain text.

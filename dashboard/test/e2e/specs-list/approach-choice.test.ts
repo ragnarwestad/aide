@@ -1,11 +1,12 @@
 // The approach warning on the Specs list, in a real browser: Cancel puts
 // the recommended approach back, and an approach's link opens the
 // Solution tab with that approach's lead in view.
-import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { chromium, type Browser, type Page } from "playwright";
+import { describe, expect, test } from "bun:test";
+import type { Page } from "playwright";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { browserDeadline, withBrowser } from "../../helpers/browser-deadline.ts";
+import { e2eBrowser, waitUntil } from "../../helpers/setup/e2e-browser.ts";
 import { queueHarness, statusSaying } from "../../helpers/queue-server.ts";
 import { recording } from "../../spec-page/spec-checks-fixtures.ts";
 
@@ -25,21 +26,10 @@ const SOLUTION =
   `### Recommended: Approach A\n\nWhy.\n\n${FILLER}\n`;
 
 const harness = queueHarness("aide-e2e-approach-choice-");
-let browser: Browser;
 let page: Page;
 let base: string;
 
-async function waitUntil(cond: () => Promise<boolean>, ms: number, label: string): Promise<void> {
-  const deadline = Date.now() + ms;
-  for (;;) {
-    if (await cond()) return;
-    if (Date.now() >= deadline) throw new Error(`${label} did not happen within ${ms}ms`);
-    await new Promise((r) => setTimeout(r, 50));
-  }
-}
-
-beforeAll(async () => {
-  browser = await withBrowser(chromium.launch(), "chromium.launch()");
+e2eBrowser(harness, async (browser) => {
   page = await browser.newPage();
   const started = harness.start({
     extra: { gitRun: recording().run },
@@ -53,11 +43,6 @@ beforeAll(async () => {
     10_000,
     "the specs list to carry the approach warning",
   );
-});
-
-afterAll(async () => {
-  await browser.close();
-  harness.cleanup();
 });
 
 const notice = () => page.locator(`tr.specnotice[data-folder="${FOLDER}"]`);

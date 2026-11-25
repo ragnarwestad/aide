@@ -8,27 +8,8 @@ import {
   PHASE_STEPS,
   currentWorkRoundJobs,
   parseJobRequest,
-  type QueueDefaults,
 } from "../../../src/queue/queue.ts";
-
-const DEFAULTS: QueueDefaults = {
-  // Per step: an implement is not an analyze, and one number for both
-  // stopped an implement mid-sentence with its tests green.
-  timeoutSec: { default: 1200, implement: 5400 },
-  permissionMode: { implement: "bypassPermissions", default: "acceptEdits" },
-  model: { implement: "opus", default: "sonnet" },
-};
-
-// The server resolves a project NAME to its real spec folders; the
-// request never carries a path. Two allowlisted projects here.
-const resolve = (project: string) =>
-  project === "aide"
-    ? { specFolders: ["81-queue-and-runner"] }
-    : project === "aide-dashboard"
-      ? { specFolders: ["01-first"] }
-      : null;
-
-const REQ = { project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"] };
+import { DEFAULTS, resolve, REQ } from "../queue-fixtures.ts";
 
 test("one record supplies every property and derived view (AC-1, AC-2, AC-3, AC-4)", () => {
   const records = parseWorkflowSteps({

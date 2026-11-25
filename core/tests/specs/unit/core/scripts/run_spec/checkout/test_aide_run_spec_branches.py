@@ -16,7 +16,35 @@ from ...conftest import READ_SPECS, git, run
 from ..run_spec_fakes import conflicting_race_claude, git_on_path, project_only_claude, race_pushing_claude, self_pushing_claude, specs_only_claude, writing_claude
 from ..run_spec_origins import fetchable_origin, fetchable_origin_both_roots, is_ancestor, origin
 from ..run_spec_results import RESULT_OK
-from ..run_spec_status_files import already_ran, with_status
+from ..run_spec_status_files import already_ran, conflicting_branch, with_status
+
+
+def commit_on_branch(project, branch, name, text, message):
+    """Cuts `branch` from where the project stands and commits `name` on
+    it; returns that commit, with the branch still checked out."""
+    git(project, "switch", "-q", "-c", branch)
+    (project / name).write_text(text)
+    git(project, "add", "-A")
+    git(project, "commit", "-q", "-m", message)
+    return git(project, "rev-parse", "HEAD")
+
+
+def land_elsewhere(project, branch, squash):
+    """Lands `branch` on origin's main as another checkout would — a merge,
+    or one squashed commit — deletes it on origin, then erases every trace
+    of the landing from this checkout, so its knowledge of origin stays
+    stale."""
+    git(project, "switch", "-q", "-c", "throwaway-landing", "main")
+    if squash:
+        git(project, "merge", "-q", "--squash", branch)
+        git(project, "commit", "-q", "-m", "Squashed landing")
+    else:
+        git(project, "merge", "-q", "--no-edit", branch)
+    git(project, "push", "-q", "origin", "throwaway-landing:main")
+    git(project, "push", "-q", "origin", "--delete", branch)
+    git(project, "switch", "-q", "main")
+    git(project, "branch", "-D", "throwaway-landing")
+    git(project, "update-ref", "-d", "refs/remotes/origin/main")
 
 
 def test_a_reused_branch_is_brought_up_to_the_default_branch(runner, workspace, fake_claude):
@@ -57,11 +85,7 @@ def test_the_code_an_earlier_implement_wrote_outlives_a_new_analysis_and_starts_
     already_ran(workspace, ["create", "analyze", "implement"])
     project = workspace["project"]
     branch = "aide/81-queue-and-runner"
-    git(project, "switch", "-q", "-c", branch)
-    (project / "from-the-earlier-implement.txt").write_text("implement wrote this\n")
-    git(project, "add", "-A")
-    git(project, "commit", "-q", "-m", "an earlier implement")
-    earlier = git(project, "rev-parse", "HEAD")
+    earlier = commit_on_branch(project, branch, "from-the-earlier-implement.txt", "implement wrote this\n", "an earlier implement")
     git(project, "switch", "-q", "main")
 
     rc, out, _ = run(runner, workspace, specs_only_claude(fake_claude, workspace))
@@ -84,11 +108,7 @@ def test_a_reused_branch_keeps_its_own_work(runner, workspace, fake_claude):
     step's commits — that is the whole reason the branch is reused."""
     project = workspace["project"]
     branch = "aide/81-queue-and-runner"
-    git(project, "switch", "-q", "-c", branch)
-    (project / "from-the-earlier-step.txt").write_text("analyze wrote this\n")
-    git(project, "add", "-A")
-    git(project, "commit", "-q", "-m", "an earlier step")
-    earlier = git(project, "rev-parse", "HEAD")
+    earlier = commit_on_branch(project, branch, "from-the-earlier-step.txt", "analyze wrote this\n", "an earlier step")
     git(project, "switch", "-q", "main")
     (project / "moved-on.txt").write_text("meanwhile\n")
     git(project, "add", "-A")
@@ -110,11 +130,7 @@ def test_a_held_back_specs_implement_reuses_the_existing_branch(runner, workspac
     specs = workspace["specs"]
     folder = workspace["folder"]
     branch = f"aide/{folder}"
-    git(project, "switch", "-q", "-c", branch)
-    (project / "from-implement.txt").write_text("implement wrote this\n")
-    git(project, "add", "-A")
-    git(project, "commit", "-q", "-m", "implement's own commit")
-    earlier = git(project, "rev-parse", "HEAD")
+    earlier = commit_on_branch(project, branch, "from-implement.txt", "implement wrote this\n", "implement's own commit")
     git(project, "switch", "-q", "main")
 
     (specs / folder / "4-status.md").write_text(
@@ -295,11 +311,7 @@ def test_a_reused_branch_is_taken_from_origin_not_from_this_checkout(
     Runs refused for a conflict fixed and pushed an hour earlier."""
     project = workspace["project"]
     branch = "aide/81-queue-and-runner"
-    git(project, "switch", "-q", "-c", branch)
-    (project / "first.txt").write_text("the tip this machine knows\n")
-    git(project, "add", "-A")
-    git(project, "commit", "-q", "-m", "branch side")
-    behind = git(project, "rev-parse", "HEAD")
+    behind = commit_on_branch(project, branch, "first.txt", "the tip this machine knows\n", "branch side")
     (project / "resolved-elsewhere.txt").write_text("pushed from another machine\n")
     git(project, "add", "-A")
     git(project, "commit", "-q", "-m", "work done elsewhere")
@@ -326,11 +338,7 @@ def test_a_branch_that_has_diverged_from_origin_refuses_by_name(
     that away — so the run says which branch and why instead."""
     project = workspace["project"]
     branch = "aide/81-queue-and-runner"
-    git(project, "switch", "-q", "-c", branch)
-    (project / "shared.txt").write_text("common\n")
-    git(project, "add", "-A")
-    git(project, "commit", "-q", "-m", "common ancestor")
-    common = git(project, "rev-parse", "HEAD")
+    common = commit_on_branch(project, branch, "shared.txt", "common\n", "common ancestor")
     (project / "theirs.txt").write_text("pushed elsewhere\n")
     git(project, "add", "-A")
     git(project, "commit", "-q", "-m", "their side")
@@ -367,11 +375,7 @@ def test_a_local_branch_that_only_merged_main_takes_origins_copy(
     from origin instead of refused as diverged (woodstack 43, 2026-10-08)."""
     project = workspace["project"]
     branch = "aide/81-queue-and-runner"
-    git(project, "switch", "-q", "-c", branch)
-    (project / "shared.txt").write_text("common\n")
-    git(project, "add", "-A")
-    git(project, "commit", "-q", "-m", "common ancestor")
-    common = git(project, "rev-parse", "HEAD")
+    common = commit_on_branch(project, branch, "shared.txt", "common\n", "common ancestor")
     (project / "theirs.txt").write_text("saved from the board\n")
     git(project, "add", "-A")
     git(project, "commit", "-q", "-m", "their side")
@@ -402,11 +406,7 @@ def test_a_local_merge_that_resolved_a_conflict_is_still_refused_as_diverged(
     and is never thrown away for origin's copy."""
     project = workspace["project"]
     branch = "aide/81-queue-and-runner"
-    git(project, "switch", "-q", "-c", branch)
-    (project / "shared.txt").write_text("the branch's line\n")
-    git(project, "add", "-A")
-    git(project, "commit", "-q", "-m", "common ancestor")
-    common = git(project, "rev-parse", "HEAD")
+    common = commit_on_branch(project, branch, "shared.txt", "the branch's line\n", "common ancestor")
     (project / "theirs.txt").write_text("saved from the board\n")
     git(project, "add", "-A")
     git(project, "commit", "-q", "-m", "their side")
@@ -496,15 +496,7 @@ def test_a_branch_that_cannot_be_updated_refuses_rather_than_running(runner, wor
     the step anyway would spend money producing work on a tree nobody can
     merge."""
     project = workspace["project"]
-    branch = "aide/81-queue-and-runner"
-    git(project, "switch", "-q", "-c", branch)
-    (project / "contested.txt").write_text("the branch's version\n")
-    git(project, "add", "-A")
-    git(project, "commit", "-q", "-m", "branch side")
-    git(project, "switch", "-q", "main")
-    (project / "contested.txt").write_text("main's version\n")
-    git(project, "add", "-A")
-    git(project, "commit", "-q", "-m", "main side")
+    branch = conflicting_branch(workspace)
 
     claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
     rc, out, _ = run(runner, workspace, claude)
@@ -528,15 +520,7 @@ def test_a_close_is_not_stopped_by_a_code_branch_that_conflicts_with_main(runner
     that branch and main is nothing it has to settle. Refusing on it left
     exactly the spec that had to be closed impossible to close."""
     project = workspace["project"]
-    branch = "aide/81-queue-and-runner"
-    git(project, "switch", "-q", "-c", branch)
-    (project / "contested.txt").write_text("the branch's version\n")
-    git(project, "add", "-A")
-    git(project, "commit", "-q", "-m", "branch side")
-    git(project, "switch", "-q", "main")
-    (project / "contested.txt").write_text("main's version\n")
-    git(project, "add", "-A")
-    git(project, "commit", "-q", "-m", "main side")
+    branch = conflicting_branch(workspace)
 
     claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
     rc, out, _ = run(runner, workspace, claude, command="close", reason="the idea does not hold")
@@ -555,11 +539,7 @@ def test_a_branch_already_landed_on_origin_is_not_reused(
     """
     project = workspace["project"]
     branch = "aide/81-queue-and-runner"
-    git(project, "switch", "-q", "-c", branch)
-    (project / "landed.txt").write_text("this reached main\n")
-    git(project, "add", "-A")
-    git(project, "commit", "-q", "-m", "the spec's own work")
-    before = git(project, "rev-parse", branch)
+    before = commit_on_branch(project, branch, "landed.txt", "this reached main\n", "the spec's own work")
     git(project, "push", "-q", "origin", branch)
     git(project, "switch", "-q", "main")
 
@@ -567,13 +547,7 @@ def test_a_branch_already_landed_on_origin_is_not_reused(
     # that as origin's main, delete the branch on origin — then erase
     # every trace of it from THIS checkout, so its knowledge stays as
     # stale as a real reopened spec's.
-    git(project, "switch", "-q", "-c", "throwaway-landing", "main")
-    git(project, "merge", "-q", "--no-edit", branch)
-    git(project, "push", "-q", "origin", "throwaway-landing:main")
-    git(project, "push", "-q", "origin", "--delete", branch)
-    git(project, "switch", "-q", "main")
-    git(project, "branch", "-D", "throwaway-landing")
-    git(project, "update-ref", "-d", "refs/remotes/origin/main")
+    land_elsewhere(project, branch, squash=False)
 
     # The step writes in the PROJECT, which is where the stale branch is:
     # a branch carrying nothing does not outlive the run
@@ -597,22 +571,11 @@ def test_a_branch_landed_as_one_squashed_commit_is_not_reused(
     by its content being on main already."""
     project = workspace["project"]
     branch = "aide/81-queue-and-runner"
-    git(project, "switch", "-q", "-c", branch)
-    (project / "landed.txt").write_text("this reached main\n")
-    git(project, "add", "-A")
-    git(project, "commit", "-q", "-m", "the spec's own work")
-    before = git(project, "rev-parse", branch)
+    before = commit_on_branch(project, branch, "landed.txt", "this reached main\n", "the spec's own work")
     git(project, "push", "-q", "origin", branch)
     git(project, "switch", "-q", "main")
 
-    git(project, "switch", "-q", "-c", "throwaway-landing", "main")
-    git(project, "merge", "-q", "--squash", branch)
-    git(project, "commit", "-q", "-m", "Squashed landing")
-    git(project, "push", "-q", "origin", "throwaway-landing:main")
-    git(project, "push", "-q", "origin", "--delete", branch)
-    git(project, "switch", "-q", "main")
-    git(project, "branch", "-D", "throwaway-landing")
-    git(project, "update-ref", "-d", "refs/remotes/origin/main")
+    land_elsewhere(project, branch, squash=True)
 
     claude = project_only_claude(fake_claude)
     rc, out, _ = run(runner, workspace, claude)
@@ -628,11 +591,7 @@ def test_a_branch_that_has_not_landed_is_still_reused(
     branch is left exactly as it was found."""
     project = workspace["project"]
     branch = "aide/81-queue-and-runner"
-    git(project, "switch", "-q", "-c", branch)
-    (project / "still-unlanded.txt").write_text("only on the branch\n")
-    git(project, "add", "-A")
-    git(project, "commit", "-q", "-m", "unlanded work")
-    unlanded = git(project, "rev-parse", "HEAD")
+    unlanded = commit_on_branch(project, branch, "still-unlanded.txt", "only on the branch\n", "unlanded work")
     git(project, "switch", "-q", "main")
 
     claude = specs_only_claude(fake_claude, workspace)
@@ -650,11 +609,7 @@ def test_an_unreachable_origin_leaves_a_local_branch_reused_as_before(
     """
     project = workspace["project"]
     branch = "aide/81-queue-and-runner"
-    git(project, "switch", "-q", "-c", branch)
-    (project / "from-the-earlier-step.txt").write_text("analyze wrote this\n")
-    git(project, "add", "-A")
-    git(project, "commit", "-q", "-m", "an earlier step")
-    earlier = git(project, "rev-parse", "HEAD")
+    earlier = commit_on_branch(project, branch, "from-the-earlier-step.txt", "analyze wrote this\n", "an earlier step")
     git(project, "switch", "-q", "main")
 
     claude = specs_only_claude(fake_claude, workspace)

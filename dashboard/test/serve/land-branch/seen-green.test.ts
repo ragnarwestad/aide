@@ -3,44 +3,26 @@
 // archive's own run on the merged result (an archive once ran the
 // suite four times). Anything short of an exact match runs.
 
-import { afterEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { describe, expect, test } from "bun:test";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { runProjectSuiteBeforePush } from "../../../src/serve/land-branch/test-gate.ts";
 import { greenResultsForLand } from "../../../src/serve/land-branch/seen-green.ts";
 import type { StepResult } from "../../../src/queue/queue.ts";
+import { gateTemps, commitAll } from "./gate/gate-fixtures.ts";
 
 const LIB = join(import.meta.dir, "..", "..", "..", "..", "core", "scripts", "_aide-spec-lib.sh");
 
-const dirs: string[] = [];
-afterEach(() => {
-  while (dirs.length) rmSync(dirs.pop()!, { recursive: true, force: true });
-  delete process.env.AIDE_RESOLVE_TEST_CMD_BIN;
-  delete process.env.AIDE_RECORD_TEST_RUN_BIN;
-  delete process.env.AIDE_TEST_GATE_LOG;
-  delete process.env.AIDE_SPEC_LIB;
-});
-
-function git(cwd: string, ...args: string[]): string {
-  const out = Bun.spawnSync({ cmd: ["git", "-C", cwd, ...args], stdout: "pipe", stderr: "pipe" });
-  if (out.exitCode !== 0) throw new Error(`git ${args.join(" ")} failed: ${out.stderr.toString()}`);
-  return out.stdout.toString();
-}
+const { temp } = gateTemps(["AIDE_SPEC_LIB"]);
 
 /** A committed project linking `deps`, the way the gate meets one. */
 function project(): string {
-  const dir = mkdtempSync(join(tmpdir(), "aide-seen-green-"));
-  dirs.push(dir);
+  const dir = temp("aide-seen-green-");
   mkdirSync(join(dir, ".aide"), { recursive: true });
   writeFileSync(join(dir, ".aide", "project.yaml"), "name: aide\nworktreeLinks: deps\n");
   writeFileSync(join(dir, ".gitignore"), "deps/\n.aide/config\n");
   writeFileSync(join(dir, "README.md"), "# aide\n");
-  git(dir, "init", "-q", "-b", "main");
-  git(dir, "config", "user.name", "Test");
-  git(dir, "config", "user.email", "test@example.com");
-  git(dir, "add", "-A");
-  git(dir, "commit", "-qm", "first");
+  commitAll(dir, "first");
   mkdirSync(join(dir, "deps"));
   writeFileSync(join(dir, "deps", "marker"), "installed\n");
   return dir;
@@ -58,8 +40,7 @@ function hashOf(dir: string): string {
 /** A resolver answering `true`, and a recorder that leaves a mark when
  *  it is run at all. */
 function scripts(): { ran: string; log: string } {
-  const bin = mkdtempSync(join(tmpdir(), "aide-seen-green-bin-"));
-  dirs.push(bin);
+  const bin = temp("aide-seen-green-bin-");
   const ran = join(bin, "ran");
   writeFileSync(
     join(bin, "resolve"),

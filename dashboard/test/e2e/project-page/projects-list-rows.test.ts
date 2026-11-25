@@ -3,27 +3,21 @@
 // what a press on the row lands on.
 //
 // By hand: `cd dashboard && bun test --timeout 20000 test/e2e/project-page/projects-list-rows.test.ts`.
-import { afterAll, beforeAll, test } from "bun:test";
-import { rmSync } from "node:fs";
-import { chromium, type Browser } from "playwright";
+import { test } from "bun:test";
+import type { Browser } from "playwright";
 import { browserDeadline, withBrowser } from "../../helpers/browser-deadline.ts";
-import { harness, ownDirs, projectsRoot, settled, serve } from "../../project/detail/project-detail-route-fixtures.ts";
+import { e2eBrowser } from "../../helpers/setup/e2e-browser.ts";
+import { projectsRoot, routeBoard, serve, settled } from "../../project/detail/project-detail-route-fixtures.ts";
 
 browserDeadline();
 
 let browser: Browser;
 let base: string;
 
-beforeAll(async () => {
-  browser = await withBrowser(chromium.launch(), "chromium.launch()");
+e2eBrowser(routeBoard, (launched) => {
+  browser = launched;
   const root = projectsRoot({ aide: "" });
   base = serve(root, settled(root, "aide"));
-});
-
-afterAll(async () => {
-  await browser.close();
-  harness.cleanup();
-  while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
 test("a press on a row's description opens that project's page (AC-2)", async () => {

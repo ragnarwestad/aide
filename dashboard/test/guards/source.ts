@@ -16,3 +16,12 @@ export const code = (text: string): string =>
 /** Every file under `glob` (from the dashboard's root), as its code. */
 export const read = (glob: string): { file: string; text: string }[] =>
   [...new Bun.Glob(glob).scanSync(ROOT)].map((file) => ({ file, text: code(readFileSync(join(ROOT, file), "utf8")) }));
+
+/** The sources that write a page: the server's renderers and routes and
+ *  the specs list's browser script, each set on its own and all three. */
+export const pageSources = () => {
+  const render = read("src/render/**/*.ts");
+  const serve = read("src/serve/**/*.ts");
+  const client = read("src/specs-client/**/*.ts");
+  return { render, serve, client, all: [...render, ...serve, ...client] };
+};

@@ -18,7 +18,7 @@
 // hedged as a default rather than shown as a promise, and that a git
 // which cannot answer leaves a page behind rather than a stack trace.
 
-import { mkdirSync, mkdtempSync, writeFileSync, readFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { GitRunner } from "../../../src/git/process/index.ts";
@@ -27,6 +27,14 @@ import { fakeGit } from "../../helpers/fake-git.ts";
 
 export const harness = queueHarness("aide-project-detail-");
 export const ownDirs: string[] = [];
+
+/** Stops every board `serve` started and removes every folder this suite made. */
+export const routeBoard = {
+  cleanup(): void {
+    harness.cleanup();
+    while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
+  },
+};
 
 /** A projects root this suite owns, so the paths git is asked about are
  *  the paths the test names. Each project is discoverable (a manifest
@@ -139,6 +147,31 @@ export const unanswerable = (root: string, name: string) =>
   });
 
 export const INSTALLS = "AIDE_INSTALL_CMD=deploy/install-after-merge.sh\n";
+
+/** A board serving `aide`, one commit behind origin and the checkout the
+ *  board runs from, so its Deploy is a job. The fast-forward never
+ *  answers: the deploy stays at its first step. The job's results go to
+ *  a folder named from `resultsPrefix`. Returns the board's address. */
+export function heldDeployBoard(resultsPrefix: string): string {
+  const root = projectsRoot({ aide: INSTALLS });
+  const results = mkdtempSync(join(tmpdir(), resultsPrefix));
+  ownDirs.push(results);
+  const inner = behindBy(root, "aide", 1);
+  const run: GitRunner = async (dir, args) =>
+    args[0] === "merge" ? new Promise<never>(() => {}) : inner.run(dir, args);
+  return harness.start({
+    extra: {
+      projectRoot: root,
+      queueProjectRoot: root,
+      gitRun: run,
+      driftPollMs: 600_000,
+      dashboardRoot: join(root, "aide"),
+      queueRunnerBin: "/usr/bin/true",
+      queueResultDir: results,
+      restart: { registered: async () => false, fire: () => {} },
+    },
+  }).base;
+}
 
 /** Poll a project's own page until it says `text`, or give up — the
  *  drift check runs on a schedule of its own, so the answer

@@ -15,7 +15,37 @@ from ...conftest import READ_SPECS, STOP_DEADLINE_SEC, git, run
 from ..run_spec_invoking import CREATE_KEY, create
 from ..run_spec_fakes import analyzing_claude
 from ..run_spec_results import CODEX_STREAM_FAILED, CODEX_STREAM_OK, CODEX_USAGE, FLAT_USAGE, RESULT_OK, emits, init_event
-from ..run_spec_status_files import TIME_OF_DAY_RE, TIME_SPENT_RE, already_ran, bullet, phase_file_text, recorded_line, tracking_block, with_analysis, with_analysis_attempts, with_solution, with_status
+from ..run_spec_status_files import TIME_OF_DAY_RE, TIME_SPENT_RE, acceptance_section, already_ran, bullet, phase_file_text, recorded_line, tracking_block, with_analysis, with_acceptance, with_analysis_attempts, with_solution, with_status
+
+
+def _creating_claude(fake_claude, made):
+    """A stand-in create step that writes the new spec's 1-description.md
+    with a `Created:` date and no time of day."""
+    return fake_claude(
+        "cat > /dev/null\n"
+        + READ_SPECS
+        + f'mkdir -p "$specs/{made}"\n'
+        + f'printf "%s\\n" "# New - Description" "" "## Tracking info" "" '
+        + f'"- **Task:** \\`{made}/\\`" "- **Created:** \\`2026-08-01\\`" '
+        + f'> "$specs/{made}/1-description.md"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+
+
+def _analyze_twice(runner, workspace, fake_claude):
+    """Runs analyze twice, on haiku and then on opus, and returns the
+    branch's 2-analysis.md. The second run leaves the file untouched, so
+    it already carries the first run's block when this run's own writer
+    processes it — the shape a real re-run has, since the file is not
+    rewritten from scratch every time."""
+    with_status(workspace)
+    claude1 = analyzing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude1, model="claude-haiku-4-5")
+    assert rc == 0, out
+    claude2 = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude2, model="claude-opus-5")
+    assert rc == 0, out
+    return phase_file_text(workspace, f"{workspace['folder']}/2-analysis.md")
 
 
 def test_a_create_run_records_its_own_outcome_and_no_repo_line(
@@ -25,15 +55,7 @@ def test_a_create_run_records_its_own_outcome_and_no_repo_line(
     a model was named), `Result: completed` and `Time spent` — but no
     `Repo` line, since nothing was yet analyzed against."""
     made = CREATE_KEY
-    claude = fake_claude(
-        "cat > /dev/null\n"
-        + READ_SPECS
-        + f'mkdir -p "$specs/{made}"\n'
-        + f'printf "%s\\n" "# New - Description" "" "## Tracking info" "" '
-        + f'"- **Task:** \\`{made}/\\`" "- **Created:** \\`2026-08-01\\`" '
-        + f'> "$specs/{made}/1-description.md"\n'
-        + f"echo '{json.dumps(RESULT_OK)}'"
-    )
+    claude = _creating_claude(fake_claude, made)
     rc, out, _ = create(runner, workspace, claude,
                      model="claude-sonnet-5")
     assert rc == 0, out
@@ -50,15 +72,7 @@ def test_a_create_run_with_an_effort_records_it_beside_the_model(runner, workspa
     """An `--effort` a run was given lands as its own bullet in the
     phase file's own Tracking info, beside `- **Model:**`."""
     made = CREATE_KEY
-    claude = fake_claude(
-        "cat > /dev/null\n"
-        + READ_SPECS
-        + f'mkdir -p "$specs/{made}"\n'
-        + f'printf "%s\\n" "# New - Description" "" "## Tracking info" "" '
-        + f'"- **Task:** \\`{made}/\\`" "- **Created:** \\`2026-08-01\\`" '
-        + f'> "$specs/{made}/1-description.md"\n'
-        + f"echo '{json.dumps(RESULT_OK)}'"
-    )
+    claude = _creating_claude(fake_claude, made)
     rc, out, _ = create(runner, workspace, claude,
                      model="claude-sonnet-5", effort="high")
     assert rc == 0, out
@@ -181,18 +195,7 @@ def test_a_re_run_of_the_same_step_replaces_the_block_not_duplicates_it(
     """Running the same step twice leaves the phase file's block
     reflecting only the newest run — no duplicate lines, and the date
     field's time is overwritten rather than duplicated."""
-    with_status(workspace)
-    claude1 = analyzing_claude(fake_claude, workspace)
-    rc, out, _ = run(runner, workspace, claude1, model="claude-haiku-4-5")
-    assert rc == 0, out
-    # The second run leaves 2-analysis.md untouched — a re-run whose
-    # file already carries the first run's block by the time THIS run's
-    # own writer processes it, which is exactly the shape a real re-run
-    # has (the file is not rewritten from scratch every time).
-    claude2 = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")
-    rc, out, _ = run(runner, workspace, claude2, model="claude-opus-5")
-    assert rc == 0, out
-    text = phase_file_text(workspace, f"{workspace['folder']}/2-analysis.md")
+    text = _analyze_twice(runner, workspace, fake_claude)
     assert text.count("- **Model:**") == 1, text
     assert text.count("- **Result:**") == 1, text
     assert text.count("- **Time spent:**") == 1, text
@@ -316,14 +319,7 @@ def test_a_re_run_increments_the_stamped_attempts_count(runner, workspace, fake_
     """And the same replace-not-duplicate guarantee Model/Result/Time
     spent already give: running the same step twice takes the
     bullet from 1 to 2, never duplicating the line."""
-    with_status(workspace)
-    claude1 = analyzing_claude(fake_claude, workspace)
-    rc, out, _ = run(runner, workspace, claude1, model="claude-haiku-4-5")
-    assert rc == 0, out
-    claude2 = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")
-    rc, out, _ = run(runner, workspace, claude2, model="claude-opus-5")
-    assert rc == 0, out
-    text = phase_file_text(workspace, f"{workspace['folder']}/2-analysis.md")
+    text = _analyze_twice(runner, workspace, fake_claude)
     assert text.count("- **Attempts:**") == 1, text
     assert bullet(text, "Attempts") == "2"
 
@@ -332,15 +328,7 @@ def test_an_archive_the_gates_refused_is_not_counted_as_an_attempt(runner, works
     guard, not an attempt (2026-09-11): `Attempts:` is not written for a
     refusal with no prior count, and stays what it was otherwise."""
     with_status(workspace, done=True)
-    status_path = workspace["specs"] / workspace["folder"] / "4-status.md"
-    status_path.write_text(
-        status_path.read_text()
-        + "\n## Acceptance criteria\n\n"
-        + "| Task | Status | Notes |\n|------|--------|-------|\n"
-        + "| REQ-1: does the thing | ⬜ | |\n"
-    )
-    git(workspace["specs"], "add", "-A")
-    git(workspace["specs"], "commit", "-qm", "add acceptance criteria")
+    with_acceptance(workspace, acceptance_section(["| REQ-1: does the thing | ⬜ | |"]), {})
     claude = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")
     rc, out, _ = run(runner, workspace, claude, command="archive")
     assert rc == 0, out

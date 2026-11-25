@@ -95,6 +95,7 @@ describe("workflow steps completed", () => {
   // The field is an ADDITION to 4-status.md. Everything the
   // parser already answered out of that file must answer the same.
   test("progress, phase and the held-back reason are untouched by the new field", () => {
+    // Written out in full on purpose: this text is the input of the parser under test.
     const content = [
       "# 139 - Status",
       "",
@@ -185,6 +186,7 @@ describe("step models", () => {
   });
 
   test("progress, phase and workflowSteps are untouched by the new field", () => {
+    // Written out in full on purpose: this text is the input of the parser under test.
     const content = [
       "# 244 - Status",
       "",

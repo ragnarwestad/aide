@@ -1,9 +1,10 @@
 // The count of waiting specs reaches the app's icon when a page loads. Only a
 // browser has `navigator.setAppBadge`, so a recording one stands in for it
 // before the page is drawn.
-import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { chromium, type Browser } from "playwright";
+import { describe, expect, test } from "bun:test";
+import type { Browser } from "playwright";
 import { browserDeadline, withBrowser } from "../../helpers/browser-deadline.ts";
+import { e2eBrowser } from "../../helpers/setup/e2e-browser.ts";
 import { queueHarness } from "../../helpers/queue-server.ts";
 
 browserDeadline();
@@ -18,14 +19,9 @@ const failedJob = {
   createdAt: "2026-09-01T10:00:00.000Z", results: [], spentUsd: 0,
 };
 
-beforeAll(async () => {
-  browser = await withBrowser(chromium.launch(), "chromium.launch()");
+e2eBrowser(harness, (launched) => {
+  browser = launched;
   base = harness.start({ queueMirror: JSON.stringify([failedJob]) }).base;
-});
-
-afterAll(async () => {
-  await browser.close();
-  harness.cleanup();
 });
 
 describe("a page sets the app's icon count when it loads", () => {

@@ -13,6 +13,18 @@ import type { createRootLock } from "../serve-helpers";
 import type { TestServersContext } from "../test-servers/lifecycle.ts";
 import type { GateVerdict } from "./test-gate.ts";
 
+/** Renames a `create` job's spec folder off its provisional key to its
+ *  real `NN-slug` inside the merge worktree `work`. */
+export type FinalizeCreateSpec = (
+  work: string,
+  repoRoot: string,
+  specsRootAbs: string,
+  provisionalFolder: string,
+) => Promise<
+  { ok: true; specFolder: string } |
+  { ok: false; reason: "create-number"; error: Sentence; detail?: string }
+>;
+
 /** Everything `landBranch` and its helpers read off `createServer`'s
  *  closure, bundled the same way `RoutesContext` and
  *  `SpecViewsContext` bundle theirs. `invalidateScan` is the same
@@ -62,15 +74,7 @@ export interface LandContext {
    *  checkout — the fixed offset between them is how the real
    *  implementation finds the specs root inside `work`. Absent means no
    *  finalize step (tests, and any step but `create`). */
-  finalizeCreateSpec?: (
-    work: string,
-    repoRoot: string,
-    specsRootAbs: string,
-    provisionalFolder: string,
-  ) => Promise<
-    { ok: true; specFolder: string } |
-    { ok: false; reason: "create-number"; error: Sentence; detail?: string }
-  >;
+  finalizeCreateSpec?: FinalizeCreateSpec;
   /** The `git -c` arguments that make a merge in `work` merge the
    *  translation files the manifest in `root` names, key by key; empty
    *  when it names none. Absent means git's own merge (tests). */

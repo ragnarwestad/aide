@@ -52,38 +52,28 @@ class TestInstallMiseDeclaredTools:
             tmp_path,
             '[ "$1" = "which" ] && exit 1\nexit 0',
         )
-        installer = workspace_root / "core" / "scripts" / "_install-bin.sh"
-        result = subprocess.run(
-            ["bash", "-c", f'source "{installer}"; install_mise_declared_tools'],
-            capture_output=True,
-            text=True,
-            env={"PATH": f"{fake_bin}:{os.environ['PATH']}", "HOME": str(tmp_path)},
-        )
+        result = _run_declared(workspace_root, tmp_path, fake_bin, os.environ["PATH"])
         assert result.returncode == 0, result.stderr
         assert "node" in (result.stdout + result.stderr).lower()
 
     def test_declares_markdownlint_via_mise(self, workspace_root, tmp_path):
         calls = tmp_path / "mise-calls.txt"
         fake_bin = _fake_mise(tmp_path, f'printf "%s\\n" "$*" >> {calls}\nexit 0')
-        installer = workspace_root / "core" / "scripts" / "_install-bin.sh"
-        result = subprocess.run(
-            ["bash", "-c", f'source "{installer}"; install_mise_declared_tools'],
-            capture_output=True,
-            text=True,
-            env={"PATH": f"{fake_bin}:{os.environ['PATH']}", "HOME": str(tmp_path)},
-        )
+        result = _run_declared(workspace_root, tmp_path, fake_bin, os.environ["PATH"])
         assert result.returncode == 0, result.stderr
         logged = calls.read_text() if calls.exists() else ""
         assert "use -g npm:markdownlint-cli2@latest" in logged, logged
 
 
-def _run_declared(workspace_root, tmp_path, fake_bin):
+def _run_declared(workspace_root, tmp_path, fake_bin, rest_of_path="/usr/bin:/bin"):
+    """Runs install_mise_declared_tools with `fake_bin` ahead of
+    `rest_of_path` on PATH and `tmp_path` as HOME."""
     installer = workspace_root / "core" / "scripts" / "_install-bin.sh"
     return subprocess.run(
         ["bash", "-c", f'source "{installer}"; install_mise_declared_tools'],
         capture_output=True,
         text=True,
-        env={"PATH": f"{fake_bin}:/usr/bin:/bin", "HOME": str(tmp_path)},
+        env={"PATH": f"{fake_bin}:{rest_of_path}", "HOME": str(tmp_path)},
     )
 
 
@@ -184,12 +174,7 @@ class TestMiseDeclaredToolsCoversTheSixNamedTools:
         # install as a side effect of running the tests.
         fake_bin = _fake_mise(tmp_path, f'printf "%s\\n" "$*" >> {calls}\nexit 0')
         installer = workspace_root / "core" / "scripts" / "_install-bin.sh"
-        result = subprocess.run(
-            ["bash", "-c", f'source "{installer}"; install_mise_declared_tools'],
-            capture_output=True,
-            text=True,
-            env={"PATH": f"{fake_bin}:{os.environ['PATH']}", "HOME": str(tmp_path)},
-        )
+        result = _run_declared(workspace_root, tmp_path, fake_bin, os.environ["PATH"])
         assert result.returncode == 0, result.stderr
         logged = calls.read_text() if calls.exists() else ""
 

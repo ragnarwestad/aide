@@ -1,5 +1,5 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { rmSync, existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { describe, expect, test } from "bun:test";
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -8,19 +8,11 @@ import {
 import { createGitRunner, type GitRunner } from "../../../src/git/process/index.ts";
 import { ensureDashboardCheckout } from "../../../src/git/dashboard-checkout.ts";
 import { statusSaying } from "../../helpers/queue-server.ts";
-import { setupQueueRoutesHarness } from "../fixtures.ts";
-import { checkoutSafetyHelpers } from "./checkout-safety-fixtures.ts";
+import { checkoutSafetySuite } from "./checkout-safety-fixtures.ts";
 
-const { harness } = setupQueueRoutesHarness();
-
-/** Temp directories this suite makes for itself, outside the harness. */
-const ownDirs: string[] = [];
-const { git, realProject, recording } = checkoutSafetyHelpers(ownDirs);
-
-afterEach(() => {
-  harness.cleanup();
-  while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
-});
+/** The temp directories this suite makes for itself, outside the harness,
+ *  cleared after each test, and the helpers that fill them. */
+const { ownDirs, git, realProject, recording } = checkoutSafetySuite();
 
 // The dashboard works in checkouts of its own.
 //

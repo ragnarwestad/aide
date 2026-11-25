@@ -2,12 +2,13 @@
 // there, so a unit test can say what the markup carries but not what
 // happens.
 
-import { afterAll, beforeAll, expect, test } from "bun:test";
+import { expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { chromium, type Browser, type Page } from "playwright";
+import type { Page } from "playwright";
 import { browserDeadline } from "../helpers/browser-deadline.ts";
+import { e2eBrowser } from "../helpers/setup/e2e-browser.ts";
 import { scheduleRunOutputDir } from "../../src/queue/schedule.ts";
 import { queueHarness } from "../helpers/queue-server.ts";
 
@@ -28,11 +29,10 @@ const REPORT =
   `</table></body></html>`;
 
 const harness = queueHarness("aide-e2e-report-frame-");
-let browser: Browser;
 let page: Page;
 let base: string;
 
-beforeAll(async () => {
+e2eBrowser(harness, async (browser) => {
   const scratch = mkdtempSync(join(tmpdir(), "aide-e2e-report-"));
   const outputRoot = join(scratch, "out");
   const dir = scheduleRunOutputDir(outputRoot, "aide", KEY, "run1");
@@ -56,13 +56,7 @@ beforeAll(async () => {
     extra: { scheduleOutputRoot: outputRoot, queueMirrorPath: join(scratch, "queue.json"), queueConfigFile },
   });
   base = started.base;
-  browser = await chromium.launch();
   page = await browser.newPage();
-});
-
-afterAll(async () => {
-  await browser.close();
-  harness.cleanup();
 });
 
 test("a script in the report does not run, and a click on its link opens a new tab", async () => {

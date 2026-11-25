@@ -11,10 +11,9 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { BranchFileStepsChecker } from "../../../src/git/workflow-history.ts";
-import type { OpenBranchTarget } from "../../../src/git/branch-file.ts";
-import type { GitRunner } from "../../../src/git/process/index.ts";
 import { blockedDependencies } from "../../../src/serve/schedules/blocked.ts";
 import { targets, type SpecLookupContext } from "../../../src/serve/spec-lookup.ts";
+import { branchCheckerReading } from "./spec-fixtures.ts";
 
 const FOLDER = "81-dependent";
 const NEW_DEPENDENCY = "99-a-second-spec";
@@ -48,23 +47,10 @@ function projectsRoot(onDisk: string[]): { root: string; specs: string; specDir:
 
 /** A checker that has read the branch, whose description names `onBranch`. */
 async function warmedChecker(specDir: string, onBranch: string[]): Promise<BranchFileStepsChecker> {
-  const target: OpenBranchTarget = {
-    root: "/root",
-    branch: `aide/${FOLDER}`,
-    relPath: `aide/specs/${FOLDER}/4-status.md`,
-    archivedRelPath: `aide/specs/archive/${FOLDER}/4-status.md`,
-  };
-  const run: GitRunner = async (_dir, args) => {
-    const line = args.join(" ");
-    if (line.startsWith("fetch")) return { code: 0, stdout: "" };
-    if (line.startsWith("log -1")) return { code: 0, stdout: "deadbeef\n" };
-    if (line.endsWith("1-description.md")) return { code: 0, stdout: described(onBranch) };
-    if (line.endsWith("4-status.md")) return { code: 0, stdout: "# Status\n\n## Tracking info\n\n- **Workflow steps completed:** create\n" };
-    return { code: 1, stdout: "" };
-  };
-  const checker = new BranchFileStepsChecker({ run });
-  await checker.read(specDir, FOLDER, target);
-  return checker;
+  return branchCheckerReading(specDir, FOLDER, {
+    "1-description.md": described(onBranch),
+    "4-status.md": "# Status\n\n## Tracking info\n\n- **Workflow steps completed:** create\n",
+  });
 }
 
 function lookupCtx(root: string, checker: BranchFileStepsChecker | undefined): SpecLookupContext {

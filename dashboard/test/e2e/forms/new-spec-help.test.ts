@@ -1,27 +1,21 @@
 // Each of the New spec form's three spec settings carries a
 // "(?)" of its own, and a press on it opens what that control does. Only a
 // real browser opens a `<details>` on a press.
-import { afterAll, beforeAll, expect, test } from "bun:test";
-import { chromium, type Browser, type Page } from "playwright";
+import { expect, test } from "bun:test";
+import type { Page } from "playwright";
 import { browserDeadline, withBrowser } from "../../helpers/browser-deadline.ts";
+import { e2eBrowser } from "../../helpers/setup/e2e-browser.ts";
 import { queueHarness } from "../../helpers/queue-server.ts";
 
 browserDeadline();
 
 const harness = queueHarness("aide-e2e-new-spec-help-");
-let browser: Browser;
 let page: Page;
 let base: string;
 
-beforeAll(async () => {
-  browser = await withBrowser(chromium.launch(), "chromium.launch()");
+e2eBrowser(harness, async (browser) => {
   page = await browser.newPage();
   base = harness.start().base;
-});
-
-afterAll(async () => {
-  await browser.close();
-  harness.cleanup();
 });
 
 async function openForm(): Promise<void> {

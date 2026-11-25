@@ -79,6 +79,55 @@ const warmerCalls = (calls: GitCall[]) =>
 
 const lsRemotes = (calls: GitCall[]) => calls.filter((c) => c.args[0] === "ls-remote");
 
+/** A `ScheduleContext` for calling `refreshSpecCaches` directly: git is
+ *  `run` behind a `BranchStatusChecker` with no cache window, every other
+ *  checker answers nothing, no spec is live or archived, and each
+ *  `notifyQueueChanged` is counted. `overrides` sets what a case is about. */
+function sweepContext(run: GitRunner, overrides: Partial<ScheduleContext> = {}) {
+  let notifyCount = 0;
+  const ctx: ScheduleContext = {
+    projectRoot: undefined,
+    machineryProjectDir: (p) => `/fake/${p}`,
+    scheduleStore: createScheduleStore(undefined),
+    branchStatus: new BranchStatusChecker({ run, ttlMs: 0 }),
+    readWorkflowHistory: () => ({}) as unknown as WorkflowHistoryChecker,
+    readFreshness: () => ({}) as unknown as DescriptionFreshnessChecker,
+    readSpecCreatedAt: () => ({}) as unknown as SpecCreatedAtChecker,
+    readSpecFileCommits: () => ({}) as unknown as SpecFileCommitChecker,
+    specsRoot: async (dir) => dir,
+    readBranchFileSteps: () => ({}) as unknown as BranchFileStepsChecker,
+    targets: () => [],
+    readScan: () => ({ archived: [], dirs: new Map() }),
+    invalidateScan: () => {},
+    allowed: new Set(),
+    ensureCheckout: async () => undefined,
+    queue: {} as unknown as QueueStore,
+    specRoots: () => [],
+    readRunner: () => null,
+    checkoutEnsurer: {} as unknown as CheckoutEnsurer,
+    notifyQueueChanged: () => {
+      notifyCount += 1;
+    },
+    ...overrides,
+  };
+  return { ctx, notifyCount: () => notifyCount };
+}
+
+/** A runner whose `ls-remote` reports `branch` on origin while
+ *  `branchOpen.value` is true, and nothing once a case flips it. */
+function branchOpenGit(branch: string) {
+  const branchOpen = { value: true };
+  const calls: GitCall[] = [];
+  const run: GitRunner = async (dir, args) => {
+    calls.push({ dir, args });
+    if (args[0] === "ls-remote") {
+      return { code: 0, stdout: branchOpen.value ? `sha\trefs/heads/${branch}\n` : "" };
+    }
+    return { code: 1, stdout: "" };
+  };
+  return { run, calls, branchOpen };
+}
+
 /** Wait until `check` holds, or give up — the same bounded-loop idiom
  *  `projects-route.test.ts` uses for the drift poll, never an open-
  *  ended wait. */
@@ -273,44 +322,12 @@ describe("refreshSpecCaches tells an open tab when its answer changes", () => {
   /** One archived spec, one root, and a `branchOpen` flag the test
    *  flips between calls — the fake's only job is to report it. */
   function singleRootCtx() {
-    const branchOpen = { value: true };
-    const calls: GitCall[] = [];
-    const run: GitRunner = async (dir, args) => {
-      calls.push({ dir, args });
-      if (args[0] === "ls-remote") {
-        return {
-          code: 0,
-          stdout: branchOpen.value ? "sha\trefs/heads/aide/77-old-thing\n" : "",
-        };
-      }
-      return { code: 1, stdout: "" };
-    };
-    let notifyCount = 0;
-    const ctx: ScheduleContext = {
-      projectRoot: undefined,
-      machineryProjectDir: (p) => `/fake/${p}`,
-      scheduleStore: createScheduleStore(undefined),
-      branchStatus: new BranchStatusChecker({ run, ttlMs: 0 }),
-      readWorkflowHistory: () => ({}) as unknown as WorkflowHistoryChecker,
-      readFreshness: () => ({}) as unknown as DescriptionFreshnessChecker,
-      readSpecCreatedAt: () => ({}) as unknown as SpecCreatedAtChecker,
-      readSpecFileCommits: () => ({}) as unknown as SpecFileCommitChecker,
-      specsRoot: async (dir) => dir,
-      readBranchFileSteps: () => ({}) as unknown as BranchFileStepsChecker,
-      targets: () => [],
+    const { run, calls, branchOpen } = branchOpenGit("aide/77-old-thing");
+    const { ctx, notifyCount } = sweepContext(run, {
       readScan: () => ({ archived: ["aide/77-old-thing"], dirs: new Map() }),
-      invalidateScan: () => {},
-      allowed: new Set(),
-      ensureCheckout: async () => undefined,
-      queue: {} as unknown as QueueStore,
       specRoots: () => ["/fake/root/aide"],
-      readRunner: () => null,
-      checkoutEnsurer: {} as unknown as CheckoutEnsurer,
-      notifyQueueChanged: () => {
-        notifyCount += 1;
-      },
-    };
-    return { ctx, branchOpen, calls, notifyCount: () => notifyCount };
+    });
+    return { ctx, branchOpen, calls, notifyCount };
   }
 
   // Single root.
@@ -338,51 +355,19 @@ describe("refreshSpecCaches tells an open tab when its answer changes", () => {
 
   // Multi-root: "exactly once — not once per root".
   test("several roots flipping in the same tick still fire exactly one `changed` event", async () => {
-    const branchOpen = { value: true };
-    const calls: GitCall[] = [];
-    const run: GitRunner = async (dir, args) => {
-      calls.push({ dir, args });
-      if (args[0] === "ls-remote") {
-        return {
-          code: 0,
-          stdout: branchOpen.value ? "sha\trefs/heads/aide/77-old-thing\n" : "",
-        };
-      }
-      return { code: 1, stdout: "" };
-    };
-    let notifyCount = 0;
-    const ctx: ScheduleContext = {
-      projectRoot: undefined,
-      machineryProjectDir: (p) => `/fake/${p}`,
-      scheduleStore: createScheduleStore(undefined),
-      branchStatus: new BranchStatusChecker({ run, ttlMs: 0 }),
-      readWorkflowHistory: () => ({}) as unknown as WorkflowHistoryChecker,
-      readFreshness: () => ({}) as unknown as DescriptionFreshnessChecker,
-      readSpecCreatedAt: () => ({}) as unknown as SpecCreatedAtChecker,
-      readSpecFileCommits: () => ({}) as unknown as SpecFileCommitChecker,
-      specsRoot: async (dir) => dir,
-      readBranchFileSteps: () => ({}) as unknown as BranchFileStepsChecker,
-      targets: () => [],
+    const { run, calls, branchOpen } = branchOpenGit("aide/77-old-thing");
+    const { ctx, notifyCount } = sweepContext(run, {
       // Two projects, two roots, both watched by the same tick.
       readScan: () => ({ archived: ["aide/77-old-thing", "atlasaurus/78-other"], dirs: new Map() }),
-      invalidateScan: () => {},
-      allowed: new Set(),
-      ensureCheckout: async () => undefined,
-      queue: {} as unknown as QueueStore,
       specRoots: (project) => [`/fake/root/${project}`],
-      readRunner: () => null,
-      checkoutEnsurer: {} as unknown as CheckoutEnsurer,
-      notifyQueueChanged: () => {
-        notifyCount += 1;
-      },
-    };
+    });
     await refreshSpecCaches(ctx); // tick 0: both roots discover the branch open
-    expect(notifyCount).toBe(1);
+    expect(notifyCount()).toBe(1);
     branchOpen.value = false; // both roots flip together
     await refreshSpecCaches(ctx); // tick 1
     // One tick, one event, however many roots moved inside it — not
     // one per root.
-    expect(notifyCount).toBe(2);
+    expect(notifyCount()).toBe(2);
     expect(calls.filter((c) => c.args[0] === "ls-remote")).toHaveLength(4);
   });
 });
@@ -407,28 +392,11 @@ describe("the code checkout's branches are asked for a live spec", () => {
       }
       return { code: 1, stdout: "" };
     };
-    const ctx: ScheduleContext = {
-      projectRoot: undefined,
+    const { ctx } = sweepContext(run, {
       machineryProjectDir: () => CODE,
-      scheduleStore: createScheduleStore(undefined),
-      branchStatus: new BranchStatusChecker({ run, ttlMs: 0 }),
-      readWorkflowHistory: () => ({}) as unknown as WorkflowHistoryChecker,
-      readFreshness: () => ({}) as unknown as DescriptionFreshnessChecker,
-      readSpecCreatedAt: () => ({}) as unknown as SpecCreatedAtChecker,
-      readSpecFileCommits: () => ({}) as unknown as SpecFileCommitChecker,
-      specsRoot: async (dir) => dir,
-      readBranchFileSteps: () => ({}) as unknown as BranchFileStepsChecker,
       targets: () => [{ project: "aide", specFolder: FOLDER }],
-      readScan: () => ({ archived: [], dirs: new Map() }),
-      invalidateScan: () => {},
-      allowed: new Set(),
-      ensureCheckout: async () => undefined,
-      queue: {} as unknown as QueueStore,
       specRoots: () => [CODE, SPECS],
-      readRunner: () => null,
-      checkoutEnsurer: {} as unknown as CheckoutEnsurer,
-      notifyQueueChanged: () => {},
-    };
+    });
     return { ctx, originHas, calls };
   }
 
@@ -474,34 +442,12 @@ describe("refreshSpecCaches asks whether an open archived branch is merged", () 
       if (args[0] === "fetch") return { code: 0, stdout: "" };
       return { code: 1, stdout: "" };
     };
-    let notifyCount = 0;
-    const branchStatus = new BranchStatusChecker({ run, ttlMs: 0 });
-    const ctx: ScheduleContext = {
-      projectRoot: undefined,
-      machineryProjectDir: (p) => `/fake/${p}`,
-      scheduleStore: createScheduleStore(undefined),
-      branchStatus,
-      readWorkflowHistory: () => ({}) as unknown as WorkflowHistoryChecker,
-      readFreshness: () => ({}) as unknown as DescriptionFreshnessChecker,
-      readSpecCreatedAt: () => ({}) as unknown as SpecCreatedAtChecker,
-      readSpecFileCommits: () => ({}) as unknown as SpecFileCommitChecker,
-      specsRoot: async (dir) => dir,
-      readBranchFileSteps: () => ({}) as unknown as BranchFileStepsChecker,
-      targets: () => [],
+    const { ctx, notifyCount } = sweepContext(run, {
       // The second branch is gone from origin: nothing about it is asked.
       readScan: () => ({ archived: ["aide/77-old-thing", "aide/78-gone"], dirs: new Map() }),
-      invalidateScan: () => {},
-      allowed: new Set(),
-      ensureCheckout: async () => undefined,
-      queue: {} as unknown as QueueStore,
       specRoots: () => [ROOT],
-      readRunner: () => null,
-      checkoutEnsurer: {} as unknown as CheckoutEnsurer,
-      notifyQueueChanged: () => {
-        notifyCount += 1;
-      },
-    };
-    return { ctx, ancestor, calls, branchStatus, notifyCount: () => notifyCount };
+    });
+    return { ctx, ancestor, calls, branchStatus: ctx.branchStatus, notifyCount };
   }
 
   test("for an archived spec whose branch is open, and not for one whose branch is gone", async () => {
@@ -552,35 +498,15 @@ describe("refreshSpecCaches asks GitHub whether an archived spec's pull request 
       return { code: gh.code, stdout: gh.stdout };
     };
     const pullRequests = new Map<string, PullRequestAnswer>();
-    let notifyCount = 0;
-    const ctx: ScheduleContext = {
-      projectRoot: undefined,
+    const { ctx, notifyCount } = sweepContext(run, {
       machineryProjectDir: () => CODE,
-      scheduleStore: createScheduleStore(undefined),
-      branchStatus: new BranchStatusChecker({ run, ttlMs: 0 }),
-      readWorkflowHistory: () => ({}) as unknown as WorkflowHistoryChecker,
-      readFreshness: () => ({}) as unknown as DescriptionFreshnessChecker,
-      readSpecCreatedAt: () => ({}) as unknown as SpecCreatedAtChecker,
-      readSpecFileCommits: () => ({}) as unknown as SpecFileCommitChecker,
-      specsRoot: async (dir) => dir,
-      readBranchFileSteps: () => ({}) as unknown as BranchFileStepsChecker,
-      targets: () => [],
       readScan: () => ({ archived: [OPEN_KEY, GONE_KEY], dirs: new Map() }),
-      invalidateScan: () => {},
-      allowed: new Set(),
-      ensureCheckout: async () => undefined,
-      queue: {} as unknown as QueueStore,
       specRoots: () => [CODE],
-      readRunner: () => null,
-      checkoutEnsurer: {} as unknown as CheckoutEnsurer,
-      notifyQueueChanged: () => {
-        notifyCount += 1;
-      },
       codeLanding: () => landing,
       ghRun,
       pullRequests,
-    };
-    return { ctx, gh, asked, pullRequests, notifyCount: () => notifyCount };
+    });
+    return { ctx, gh, asked, pullRequests, notifyCount };
   }
 
   test("for a pr project's archived spec whose branch is on origin, and for no other", async () => {
@@ -646,30 +572,19 @@ describe("the first sweep that read every listed spec sets the board's mark", ()
     let notified = 0;
     const mark = firstSweepMark(() => { notified += 1; });
     const none = async () => null;
-    const ctx: ScheduleContext = {
-      projectRoot: undefined,
-      machineryProjectDir: (p) => `/fake/${p}`,
-      scheduleStore: createScheduleStore(undefined),
-      branchStatus: new BranchStatusChecker({ run: async () => ({ code: 1, stdout: "" }), ttlMs: 0 }),
+    const { ctx } = sweepContext(async () => ({ code: 1, stdout: "" }), {
       readWorkflowHistory: () => ({ read: none, readSucceeded: () => historySucceeded }) as unknown as WorkflowHistoryChecker,
       readFreshness: () => ({ isStale: none }) as unknown as DescriptionFreshnessChecker,
       readSpecCreatedAt: () => ({ createdAt: none }) as unknown as SpecCreatedAtChecker,
       readSpecFileCommits: () => ({ commitFor: none }) as unknown as SpecFileCommitChecker,
-      specsRoot: async (dir) => dir,
       readBranchFileSteps: () => ({ read: none }) as unknown as BranchFileStepsChecker,
       targets: () => { events.push("list"); return list(); },
-      readScan: () => ({ archived: [], dirs: new Map() }),
-      invalidateScan: () => {},
       allowed: new Set(["aide"]),
       ensureCheckout: async () => { events.push("checkout"); return undefined; },
-      queue: {} as unknown as QueueStore,
-      specRoots: () => [],
-      readRunner: () => null,
-      checkoutEnsurer: {} as unknown as CheckoutEnsurer,
       notifyQueueChanged: () => {},
       specsScanned: mark.scanned,
       markSpecsScanned: mark.mark,
-    };
+    });
     return { ctx, mark, events, notified: () => notified };
   }
   const spec = (folder: string) => ({ project: "aide", specFolder: folder, dir: `/fake/specs/${folder}` });

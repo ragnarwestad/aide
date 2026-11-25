@@ -16,6 +16,37 @@ export async function showRefusal(why: string, spec: string | undefined): Promis
   await swapRows();
 }
 
+/** Locks the row `control` sits on while its press is out: every control
+ *  the form it names holds (or the control alone) is disabled, the banner
+ *  is cleared and the press is counted. Returns what puts each control
+ *  back as it was. */
+function lockRow(control: HTMLInputElement | HTMLSelectElement): () => void {
+  const formId = control.getAttribute("form") ?? "";
+  const form = formId
+    ? (document.querySelector(`form[id="${attrValue(formId)}"]`) as HTMLFormElement | null)
+    : null;
+  const controls = form ? rowControls(form) : [control as Control];
+  const before = controls.map((el) => [el, el.disabled] as const);
+  clearRefusal();
+  press.inFlight += 1;
+  press.pressGen += 1;
+  for (const el of controls) el.disabled = true;
+  return () => {
+    press.inFlight -= 1;
+    for (const [el, was] of before) if (el.isConnected) el.disabled = was;
+  };
+}
+
+/** POSTs `body` as a form to the row's own route, asking for JSON back. */
+async function postToRow(to: string, body: URLSearchParams): Promise<{ res: Response; answer: ActionResult | null }> {
+  const res = await fetch(new URL(to, location.href).toString(), {
+    method: "POST",
+    headers: { accept: "application/json", "content-type": "application/x-www-form-urlencoded" },
+    body,
+  });
+  return { res, answer: (await res.json().catch(() => null)) as ActionResult | null };
+}
+
 /** A phase box that posts itself. While a job runs, the
  *  boxes for phases it has not reached stay live — and there is nothing
  *  to submit them with: a busy row draws Cancel where Run would be, and
@@ -35,28 +66,13 @@ export async function showRefusal(why: string, spec: string | undefined): Promis
  *  every control written outside that form carries. */
 export async function postTailStep(box: HTMLInputElement): Promise<void> {
   const to = box.getAttribute("data-post-to") ?? "";
-  const formId = box.getAttribute("form") ?? "";
-  const form = formId
-    ? (document.querySelector(`form[id="${attrValue(formId)}"]`) as HTMLFormElement | null)
-    : null;
-  const controls = form ? rowControls(form) : [box as Control];
   const wanted = box.checked;
-  const before = controls.map((el) => [el, el.disabled] as const);
-  clearRefusal();
-  press.inFlight += 1;
-  press.pressGen += 1;
-  for (const el of controls) el.disabled = true;
+  const unlock = lockRow(box);
   try {
-    const url = new URL(to, location.href);
     const body = new URLSearchParams();
     body.append("step", box.value);
     body.append("checked", wanted ? "1" : "0");
-    const res = await fetch(url.toString(), {
-      method: "POST",
-      headers: { accept: "application/json", "content-type": "application/x-www-form-urlencoded" },
-      body,
-    });
-    const answer = (await res.json().catch(() => null)) as ActionResult | null;
+    const { res, answer } = await postToRow(to, body);
     if (res.ok && answer?.ok) {
       await swapRows();
       return;
@@ -70,8 +86,7 @@ export async function postTailStep(box: HTMLInputElement): Promise<void> {
   } catch {
     location.href = location.pathname + location.search;
   } finally {
-    press.inFlight -= 1;
-    for (const [el, was] of before) if (el.isConnected) el.disabled = was;
+    unlock();
   }
 }
 
@@ -96,28 +111,13 @@ export async function postTailModel(select: HTMLSelectElement, model: string, pr
   const to = select.getAttribute("data-post-to") ?? "";
   const step = select.name.startsWith("model.") ? select.name.slice("model.".length) : "";
   if (!to || !step) return;
-  const formId = select.getAttribute("form") ?? "";
-  const form = formId
-    ? (document.querySelector(`form[id="${attrValue(formId)}"]`) as HTMLFormElement | null)
-    : null;
-  const controls = form ? rowControls(form) : [select as Control];
-  const before = controls.map((el) => [el, el.disabled] as const);
-  clearRefusal();
-  press.inFlight += 1;
-  press.pressGen += 1;
-  for (const el of controls) el.disabled = true;
+  const unlock = lockRow(select);
   try {
-    const url = new URL(to, location.href);
     const body = new URLSearchParams();
     body.append("step", step);
     body.append("model", model);
     if (provider) body.append("provider", provider);
-    const res = await fetch(url.toString(), {
-      method: "POST",
-      headers: { accept: "application/json", "content-type": "application/x-www-form-urlencoded" },
-      body,
-    });
-    const answer = (await res.json().catch(() => null)) as ActionResult | null;
+    const { res, answer } = await postToRow(to, body);
     if (res.ok && answer?.ok) {
       // Remembered like any other hand-made pick: a phase still ahead
       // has no history for the server to draw the value back from, so
@@ -132,7 +132,6 @@ export async function postTailModel(select: HTMLSelectElement, model: string, pr
   } catch {
     location.href = location.pathname + location.search;
   } finally {
-    press.inFlight -= 1;
-    for (const [el, was] of before) if (el.isConnected) el.disabled = was;
+    unlock();
   }
 }

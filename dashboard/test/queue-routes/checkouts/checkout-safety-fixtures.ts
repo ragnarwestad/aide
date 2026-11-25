@@ -6,11 +6,26 @@
 // `checkoutSafetyHelpers` rebuilds that closure so each test file's own
 // `ownDirs` tracker still catches everything `realProject` makes.
 
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { afterEach } from "bun:test";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createGitRunner, type GitRunner } from "../../../src/git/process/index.ts";
 import { statusSaying } from "../../helpers/queue-server.ts";
+import { setupQueueRoutesHarness } from "../fixtures.ts";
+
+/** A test file's harness, its own temp directories (`ownDirs`) and the
+ *  helpers that fill them, with the `afterEach` that clears both
+ *  registered in the calling file. */
+export function checkoutSafetySuite() {
+  const { harness } = setupQueueRoutesHarness();
+  const ownDirs: string[] = [];
+  afterEach(() => {
+    harness.cleanup();
+    while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
+  });
+  return { harness, ownDirs, ...checkoutSafetyHelpers(ownDirs) };
+}
 
 export function checkoutSafetyHelpers(ownDirs: string[]) {
   function git(cwd: string, ...args: string[]): string {

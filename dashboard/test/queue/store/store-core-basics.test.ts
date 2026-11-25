@@ -3,27 +3,9 @@ import { rmSync, mkdirSync, mkdtempSync, existsSync, readFileSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ERROR_REASONS } from "../../../src/job-states.ts";
-import { QueueStore, type QueueDefaults } from "../../../src/queue/queue.ts";
+import { QueueStore } from "../../../src/queue/queue.ts";
 import { clearAllStorageFaults } from "../../../src/queue/store/storage-faults.ts";
-
-const DEFAULTS: QueueDefaults = {
-  // Per step: an implement is not an analyze, and one number for both
-  // stopped an implement mid-sentence with its tests green.
-  timeoutSec: { default: 1200, implement: 5400 },
-  permissionMode: { implement: "bypassPermissions", default: "acceptEdits" },
-  model: { implement: "opus", default: "sonnet" },
-};
-
-// The server resolves a project NAME to its real spec folders; the
-// request never carries a path. Two allowlisted projects here.
-const resolve = (project: string) =>
-  project === "aide"
-    ? { specFolders: ["81-queue-and-runner"] }
-    : project === "aide-dashboard"
-      ? { specFolders: ["01-first"] }
-      : null;
-
-const REQ = { project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"] };
+import { DEFAULTS, resolve, REQ } from "../queue-fixtures.ts";
 
 let dir: string;
 let mirrorPath: string;
@@ -37,7 +19,6 @@ afterEach(() => {
   clearAllStorageFaults();
   rmSync(dir, { recursive: true, force: true });
 });
-
 
 describe("QueueStore", () => {
   test("enqueue lists the job, mirrors it, and a new instance reloads it", () => {

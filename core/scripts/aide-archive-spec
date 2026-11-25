@@ -40,6 +40,8 @@
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Kept in each spec command, not sourced: it runs with nothing loaded, so
+# --help answers and a missing library is refused into --result-file.
 bootstrap_result_file=""
 bootstrap_value=""
 for arg in "$@"; do
@@ -64,7 +66,8 @@ require_library() {
   exit 2
 }
 for library in _aide-spec-lib.sh lib/config/aide-config.sh lib/spec-result.sh \
-  lib/spec-state.sh lib/status-progress.sh lib/spec-transitions.sh; do
+  lib/spec-state.sh lib/status-progress.sh lib/spec-transitions.sh \
+  lib/spec-reference.sh lib/spec-commands/find-spec.sh; do
   require_library "$library"
 done
 # shellcheck source=/dev/null
@@ -74,6 +77,10 @@ source "$SCRIPT_DIR/lib/spec-result.sh"
 source "$SCRIPT_DIR/lib/spec-state.sh"
 # shellcheck source=/dev/null
 source "$SCRIPT_DIR/lib/spec-transitions.sh"
+# shellcheck source=/dev/null
+source "$SCRIPT_DIR/lib/spec-reference.sh"
+# shellcheck source=/dev/null
+source "$SCRIPT_DIR/lib/spec-commands/find-spec.sh"
 
 project_dir=""; spec_arg=""; specs_dir=""; result_file=""; group_members=""
 
@@ -103,28 +110,8 @@ command -v jq >/dev/null 2>&1 || { echo '{"ok":false,"exitCode":2,"terminalReaso
 [ -n "$spec_arg" ] || aide_spec_refuse "missing --spec"
 [ -d "$project_dir" ] || aide_spec_refuse "no such --project-dir: $project_dir"
 
-# `--specs-dir`, when the caller names one, IS the specs root — not
-# merely one more place the conflict check below also looks. A headless
-# run passes its own per-run WORKTREE here (already rebased onto the
-# latest base by `update_branch_to_base`), which is where `implement`'s
-# real commits and a person's Overview ticks actually live. Falling
-# through to `aide_specs_root`'s CONFIGURED path instead reads the
-# shared, un-rebased checkout every other command reads for display —
-# so every check below (`Workflow steps completed`, the Acceptance
-# criteria gate) was silently answering from stale content, wrongly
-# refusing with `not-implemented-yet` or `acceptance-criteria-unticked`
-# for work that had genuinely happened (found 2026-08-31 — the same
-# one-line bug behind four archives). Untested
-# until now because every existing fixture pointed `--specs-dir` and
-# the configured `AIDE_SPECS_PATH` at the very same directory.
-if [ -n "$specs_dir" ] && [ -d "$specs_dir" ]; then
-  specs_root="$specs_dir"
-elif declare -f aide_specs_root >/dev/null 2>&1; then
-  specs_root="$(aide_specs_root "$project_dir")"
-else
-  specs_root="$project_dir/specs"
-fi
-[ -d "$specs_root" ] || aide_spec_refuse "no specs root at $specs_root"
+# --specs-dir, when given, is the specs root (find-spec.sh says why).
+aide_spec_command_root "$project_dir" "$specs_dir"
 
 # A group is validated whole before the first move. The ordinary single-spec
 # path below then moves the owner; the tail moves the remaining members. A
@@ -150,35 +137,7 @@ if [ -n "$group_members" ]; then
   done
 fi
 
-spec_folder=""
-if declare -f aide_resolve_spec >/dev/null 2>&1; then
-  spec_folder="$(aide_resolve_spec "$spec_arg" "$specs_root")"
-fi
-# aide_resolve_spec's own "assume a full folder ID" branch (the one a
-# spelled-out `NN-slug` falls into, as opposed to a bare number or an
-# issue key) never checks archive/ — it only ever echoes the input back. A
-# folder that exists only under archive/, given by its full name, comes
-# out here as a guess that does not exist, so it is checked and — for
-# exactly this case — looked up under archive/ directly, the same way
-# aide-run-spec's own inline resolver already does for its recovery path.
-if [ -n "$spec_folder" ] && [ ! -d "$specs_root/$spec_folder" ]; then
-  spec_folder=""
-fi
-if [ -z "$spec_folder" ] && [ -d "$specs_root/archive" ]; then
-  if [ -d "$specs_root/archive/$spec_arg" ]; then
-    spec_folder="archive/$spec_arg"
-  else
-    for candidate in "$specs_root/archive"/*/; do
-      base="$(basename "$candidate")"
-      case "$base" in "$spec_arg"-*) spec_folder="archive/$base"; break ;; esac
-    done
-  fi
-fi
-if [ -z "$spec_folder" ]; then
-  active="$(find "$specs_root" -maxdepth 1 -mindepth 1 -type d ! -name archive \
-    -exec basename {} \; 2>/dev/null | sort | paste -sd', ' -)"
-  aide_spec_refuse "unknown spec: $spec_arg (not under $specs_root)${active:+ — active folders: $active}"
-fi
+aide_spec_command_folder "$specs_root" "$spec_arg"
 
 # --- already archived ---------------------------------------------------
 # Covers a genuine re-run against finished work AND the dual-call-site

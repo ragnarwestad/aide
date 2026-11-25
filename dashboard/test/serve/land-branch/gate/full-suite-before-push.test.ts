@@ -1,46 +1,29 @@
 // Land and Archive resolve the tests the way Implement does: what the branch
 // changed beyond the default branch picks the command.
 
-import { afterEach, describe, expect, test } from "bun:test";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { describe, expect, test } from "bun:test";
+import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { runProjectSuiteBeforePush } from "../../../../src/serve/land-branch/test-gate.ts";
+import { gateTemps, git, commitAll } from "./gate-fixtures.ts";
 
 const RESOLVER = join(import.meta.dir, "../../../../../core/scripts/aide-resolve-test-cmd");
 
-const dirs: string[] = [];
-afterEach(() => {
-  while (dirs.length) rmSync(dirs.pop()!, { recursive: true, force: true });
-  delete process.env.AIDE_RESOLVE_TEST_CMD_BIN;
-  delete process.env.AIDE_RECORD_TEST_RUN_BIN;
-  delete process.env.AIDE_TEST_GATE_LOG;
-});
-
-function git(cwd: string, ...args: string[]): void {
-  const out = Bun.spawnSync({ cmd: ["git", "-C", cwd, ...args], stdout: "pipe", stderr: "pipe" });
-  if (out.exitCode !== 0) throw new Error(`git ${args.join(" ")} failed: ${out.stderr.toString()}`);
-}
+const { temp } = gateTemps();
 
 /** The commands the landing handed its test run, for a branch that
  *  changes the files named. */
 async function commandsRunFor(files: Record<string, string>, manifest = "", withOrigin = false): Promise<string> {
-  const root = mkdtempSync(join(tmpdir(), "aide-gate-docs-"));
-  dirs.push(root);
+  const root = temp("aide-gate-docs-");
   mkdirSync(join(root, ".aide"));
   writeFileSync(join(root, ".aide", "project.yaml"), `name: demo\nAIDE_TEST_CMD: make it\n${manifest}`);
   writeFileSync(join(root, "README.md"), "# demo\n");
   mkdirSync(join(root, "scripts"));
   writeFileSync(join(root, "scripts", "check-docs"), "#!/bin/sh\nexit 0\n");
   chmodSync(join(root, "scripts", "check-docs"), 0o755);
-  git(root, "init", "-q", "-b", "main");
-  git(root, "config", "user.name", "Test");
-  git(root, "config", "user.email", "test@example.com");
-  git(root, "add", "-A");
-  git(root, "commit", "-qm", "first");
+  commitAll(root, "first");
   if (withOrigin) {
-    const origin = mkdtempSync(join(tmpdir(), "aide-gate-docs-origin-"));
-    dirs.push(origin);
+    const origin = temp("aide-gate-docs-origin-");
     git(origin, "init", "-q", "--bare", "-b", "main");
     git(root, "remote", "add", "origin", origin);
     git(root, "push", "-q", "origin", "main");
@@ -51,8 +34,7 @@ async function commandsRunFor(files: Record<string, string>, manifest = "", with
   git(root, "add", "-A");
   git(root, "commit", "-qm", "the spec's change");
 
-  const bin = mkdtempSync(join(tmpdir(), "aide-gate-docs-bin-"));
-  dirs.push(bin);
+  const bin = temp("aide-gate-docs-bin-");
   const seen = join(bin, "seen.txt");
   writeFileSync(
     join(bin, "record"),

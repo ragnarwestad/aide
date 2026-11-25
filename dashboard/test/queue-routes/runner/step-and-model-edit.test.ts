@@ -11,6 +11,28 @@ const { harness, start } = setupQueueRoutesHarness(undefined, IMPLEMENTED);
 
 afterEach(() => harness.cleanup());
 
+/** Queues `steps` on the server `first`, then rewrites that job in its
+ *  queue mirror as RUNNING the step at `stepIndex`. Returns the mirror,
+ *  for a second server to start on, and the job's id. */
+async function queuedAsRunning(
+  first: { base: string; dir: string }, steps: string[], stepIndex: number,
+): Promise<{ mirror: string; id: string }> {
+  const made = (await (
+    await fetch(`${first.base}/api/queue`, {
+      method: "POST",
+      headers: { "content-type": "application/json", accept: "application/json" },
+      body: JSON.stringify({ ...JOB, steps }),
+    })
+  ).json()) as { job: { id: string } };
+  const mirror = join(first.dir, "queue.json");
+  const jobs = JSON.parse(readFileSync(mirror, "utf-8")) as Record<string, unknown>[];
+  const job = jobs.find((j) => j.id === made.job.id)!;
+  job.state = "running";
+  job.stepIndex = stepIndex;
+  writeFileSync(mirror, JSON.stringify(jobs));
+  return { mirror, id: made.job.id };
+}
+
 // --- A later phase can be added while the job runs ------------------
 
 // Not a second job for the same spec — the clash check refuses that,
@@ -31,25 +53,13 @@ describe("POST /api/queue/:id/steps", () => {
     opts: { description?: string; alsoSpecs?: string[] } = {},
   ): Promise<{ base: string; id: string }> {
     const first = start();
-    const made = (await (
-      await fetch(`${first.base}/api/queue`, {
-        method: "POST",
-        headers: JSON_HEADERS,
-        body: JSON.stringify({ ...JOB, steps }),
-      })
-    ).json()) as { job: { id: string } };
-    const mirror = join(first.dir, "queue.json");
-    const jobs = JSON.parse(readFileSync(mirror, "utf-8")) as Record<string, unknown>[];
-    const job = jobs.find((j) => j.id === made.job.id)!;
-    job.state = "running";
-    job.stepIndex = stepIndex;
-    writeFileSync(mirror, JSON.stringify(jobs));
+    const { mirror, id } = await queuedAsRunning(first, steps, stepIndex);
     const second = harness.start({
       extra: { queueMirrorPath: mirror },
       ...(opts.description ? { description: opts.description } : {}),
       ...(opts.alsoSpecs ? { alsoSpecs: opts.alsoSpecs } : {}),
     });
-    return { base: second.base, id: made.job.id };
+    return { base: second.base, id };
   }
 
   const edit = (base: string, id: string, step: string, checked: boolean, body?: BodyInit) =>
@@ -152,23 +162,11 @@ describe("POST /api/queue/:id/model", () => {
     pendingModelsPath?: string,
   ): Promise<{ base: string; id: string }> {
     const first = start({ queueDefaults: DEFAULTS });
-    const made = (await (
-      await fetch(`${first.base}/api/queue`, {
-        method: "POST",
-        headers: JSON_HEADERS,
-        body: JSON.stringify({ ...JOB, steps }),
-      })
-    ).json()) as { job: { id: string } };
-    const mirror = join(first.dir, "queue.json");
-    const jobs = JSON.parse(readFileSync(mirror, "utf-8")) as Record<string, unknown>[];
-    const job = jobs.find((j) => j.id === made.job.id)!;
-    job.state = "running";
-    job.stepIndex = stepIndex;
-    writeFileSync(mirror, JSON.stringify(jobs));
+    const { mirror, id } = await queuedAsRunning(first, steps, stepIndex);
     const second = harness.start({
       extra: { queueMirrorPath: mirror, queueDefaults: DEFAULTS, pendingModelsPath },
     });
-    return { base: second.base, id: made.job.id };
+    return { base: second.base, id };
   }
 
   const pick = (base: string, id: string, step: string, model: string, body?: BodyInit) =>

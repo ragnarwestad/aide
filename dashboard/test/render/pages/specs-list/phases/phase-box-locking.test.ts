@@ -1,11 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import {
-  renderSpecsRows,
-  type SpecsPageOptions,
-  type QueueRowView,
-  type SpecTarget,
-} from "../../../../../src/render";
-import { row, openKeys } from "../../fixtures.ts";
+import { renderSpecsRows, type SpecsPageOptions, type QueueRowView, type SpecTarget } from "../../../../../src/render";
+import { row, openKeys, specTarget, openRowsAt, runLine, phaseBox } from "../../fixtures.ts";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../../../src/project/parse-status";
 
 // --- A spec's phases are ticked and run from its own row ------------
@@ -26,47 +21,17 @@ describe("a spec's row runs its own phases", () => {
   const job = (id: string, step: string, extra: Partial<QueueRowView> = {}): QueueRowView =>
     row({ id, specFolder: "94-row-runs-it", steps: [step], stepIndex: 0, state: "done", ...extra });
 
-  const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
-    project: "aide",
-    specFolder,
-    ...extra,
-  });
+  const target = specTarget;
 
   // The run control belongs to an OPEN row, so this
   // block opens every spec it renders unless a test says otherwise —
   // it is about what that control holds, which has not changed.
-  const rows = (
-    list: QueueRowView[],
-    targets: SpecTarget[] = [],
-    opts: Partial<SpecsPageOptions> = {},
-  ) =>
-    renderSpecsRows(
-      list,
-      {
-        runnerAvailable: true,
-        targets,
-        filter: { open: openKeys(list, targets) },
-        ...opts,
-      },
-      Date.parse("2026-08-18T12:00:00Z"),
-    );
+  const rows = openRowsAt("2026-08-18T12:00:00Z");
 
-  /** The line the run control is on — a `<tr>` of its
-   *  own under the header, rather than the header's last cell. */
-  const runLine = (html: string, folder: string) =>
-    html.match(
-      new RegExp(
-        `<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">[\\s\\S]*?` +
-          `(?=<tr class="[^"]*spechead|</tbody>|$)`,
-      ),
-    )?.[0] ?? "";
   /** A phase's own line — an ordinary row of six cells,
    *  with nothing spanning it. */
   const subRow = (html: string, phase: string) =>
     html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
-  /** One phase's checkbox and its label, from the row it sits on. */
-  const box = (line: string, step: string) =>
-    line.match(new RegExp(`<label class="phase[^"]*" data-phase="${step}"[^>]*>.*?</label>`))?.[0] ?? "";
 
   // A phase that has run can be run again: its box is tickable, and it
   // starts unticked, so a press runs it only when the reader asks. The
@@ -78,11 +43,11 @@ describe("a spec's row runs its own phases", () => {
     );
     const line = runLine(html, "94-row-runs-it");
     for (const step of ["analyze", "implement"]) {
-      expect(box(line, step)).toContain(`name="steps" value="${step}"`);
-      expect(box(line, step)).not.toContain("checked");
-      expect(box(line, step)).not.toContain("disabled");
+      expect(phaseBox(line, step)).toContain(`name="steps" value="${step}"`);
+      expect(phaseBox(line, step)).not.toContain("checked");
+      expect(phaseBox(line, step)).not.toContain("disabled");
     }
-    expect(box(line, "archive")).toContain('value="archive" checked');
+    expect(phaseBox(line, "archive")).toContain('value="archive" checked');
   });
 
   // The choice a row remembers is the one its last press was made with,
@@ -95,8 +60,8 @@ describe("a spec's row runs its own phases", () => {
       { pendingSteps: { "aide/94-row-runs-it": ["analyze", "implement", "archive"] } },
     );
     const line = runLine(html, "94-row-runs-it");
-    expect(box(line, "analyze")).not.toContain("checked");
-    expect(box(line, "implement")).toContain('value="implement" checked');
+    expect(phaseBox(line, "analyze")).not.toContain("checked");
+    expect(phaseBox(line, "implement")).toContain('value="implement" checked');
   });
 
   // A press takes the spec as far as it can go, so every
@@ -111,9 +76,9 @@ describe("a spec's row runs its own phases", () => {
       runLine(rows([job("j1", "explore")], [target("94-row-runs-it")]), "94-row-runs-it"),
     ];
     for (const line of lines) {
-      expect(box(line, "analyze")).toContain('value="analyze" checked');
-      expect(box(line, "implement")).toContain('value="implement" checked');
-      expect(box(line, "archive")).toContain('value="archive" checked');
+      expect(phaseBox(line, "analyze")).toContain('value="analyze" checked');
+      expect(phaseBox(line, "implement")).toContain('value="implement" checked');
+      expect(phaseBox(line, "archive")).toContain('value="archive" checked');
     }
   });
 
@@ -124,9 +89,9 @@ describe("a spec's row runs its own phases", () => {
     // after it are — every phase that has not run, not the next one
     // only.
     const line = runLine(rows([], [target("94-never-run", { done: ["analyze"] })]), "94-never-run");
-    expect(box(line, "analyze")).not.toContain("checked");
-    expect(box(line, "implement")).toContain('value="implement" checked');
-    expect(box(line, "archive")).toContain('value="archive" checked');
+    expect(phaseBox(line, "analyze")).not.toContain("checked");
+    expect(phaseBox(line, "implement")).toContain('value="implement" checked');
+    expect(phaseBox(line, "archive")).toContain('value="archive" checked');
   });
 
   // The siblings lock too. The
@@ -139,7 +104,7 @@ describe("a spec's row runs its own phases", () => {
         "94-row-runs-it",
       );
       for (const step of ["analyze", "implement", "archive"]) {
-        expect(box(line, step)).toContain("disabled");
+        expect(phaseBox(line, step)).toContain("disabled");
       }
     }
   });
@@ -159,13 +124,13 @@ describe("a spec's row runs its own phases", () => {
       "94-row-runs-it",
     );
     // The running step and everything behind it: closed, as before.
-    expect(box(line, "analyze")).toContain("disabled");
+    expect(phaseBox(line, "analyze")).toContain("disabled");
     for (const step of ["implement", "archive"]) {
-      expect(box(line, step)).not.toContain("disabled");
+      expect(phaseBox(line, step)).not.toContain("disabled");
       // Never the Run form's: while a job is running, that form's
       // submit target creates a SECOND job and the queue refuses it.
-      expect(box(line, step)).toContain('data-post-to="/api/queue/j1/steps"');
-      expect(box(line, step)).not.toContain('name="steps"');
+      expect(phaseBox(line, step)).toContain('data-post-to="/api/queue/j1/steps"');
+      expect(phaseBox(line, step)).not.toContain('name="steps"');
     }
   });
 
@@ -185,9 +150,9 @@ describe("a spec's row runs its own phases", () => {
     );
     // analyze ranks earlier than the step now running: adding it would
     // run it afterwards, which is not what "a LATER phase" means.
-    expect(box(line, "analyze")).toContain("disabled");
-    expect(box(line, "analyze")).not.toContain("data-post-to");
-    expect(box(line, "archive")).not.toContain("disabled");
+    expect(phaseBox(line, "analyze")).toContain("disabled");
+    expect(phaseBox(line, "analyze")).not.toContain("data-post-to");
+    expect(phaseBox(line, "archive")).not.toContain("disabled");
   });
 
   // The window between two steps is under two seconds long and is not a
@@ -199,8 +164,8 @@ describe("a spec's row runs its own phases", () => {
       "94-row-runs-it",
     );
     for (const step of ["analyze", "implement", "archive"]) {
-      expect(box(line, step)).toContain("disabled");
-      expect(box(line, step)).not.toContain("data-post-to");
+      expect(phaseBox(line, step)).toContain("disabled");
+      expect(phaseBox(line, step)).not.toContain("data-post-to");
     }
   });
 
@@ -324,18 +289,18 @@ describe("a spec's row runs its own phases", () => {
       rows([job("j1", "analyze", { state: "running" })], [target("94-row-runs-it")]),
       "94-row-runs-it",
     );
-    expect(box(line, "analyze")).toContain("disabled");
+    expect(phaseBox(line, "analyze")).toContain("disabled");
     // Its own job named it, so it reads as ticked — and
     // that is ALL it reads as: the running phase's box looks exactly
     // like every other locked-but-ticked phase behind it, because the
     // "this phase is running" signal moved to the row's pip.
-    expect(box(line, "analyze")).toContain('class="phase checked"');
-    expect(box(line, "analyze")).not.toContain('class="spin"');
+    expect(phaseBox(line, "analyze")).toContain('class="phase checked"');
+    expect(phaseBox(line, "analyze")).not.toContain('class="spin"');
     // The one that is NOT in this job stays untouched by that. It is
     // locked here because the server named no editable step — that
     // is what decides it, and this test is about the tick.
-    expect(box(line, "implement")).not.toContain("checked");
-    expect(box(line, "implement")).toContain("disabled");
+    expect(phaseBox(line, "implement")).not.toContain("checked");
+    expect(phaseBox(line, "implement")).toContain("disabled");
   });
 
   // The held-back-archive exception: `archive` ran and committed but
@@ -351,9 +316,9 @@ describe("a spec's row runs its own phases", () => {
       ),
       "94-row-runs-it",
     );
-    expect(box(line, "archive")).toContain('name="steps" value="archive"');
-    expect(box(line, "archive")).toContain("checked");
-    expect(box(line, "archive")).not.toContain("disabled");
+    expect(phaseBox(line, "archive")).toContain('name="steps" value="archive"');
+    expect(phaseBox(line, "archive")).toContain("checked");
+    expect(phaseBox(line, "archive")).not.toContain("disabled");
   });
 
   // A phase already in `g.done` can still be genuinely re-running (e.g.
@@ -368,10 +333,10 @@ describe("a spec's row runs its own phases", () => {
       ),
       "94-row-runs-it",
     );
-    expect(box(line, "analyze")).toContain("disabled");
+    expect(phaseBox(line, "analyze")).toContain("disabled");
     // The box's own `title` is gone.
-    expect(box(line, "analyze")).not.toContain('title="Analyze is running"');
-    expect(box(line, "analyze")).not.toContain("already done");
+    expect(phaseBox(line, "analyze")).not.toContain('title="Analyze is running"');
+    expect(phaseBox(line, "analyze")).not.toContain("already done");
   });
 });
 
@@ -453,22 +418,7 @@ describe("a held-back spec's row offers the round again", () => {
     ...extra,
   });
 
-  const rows = (list: QueueRowView[], targets: SpecTarget[], opts: Partial<SpecsPageOptions> = {}) =>
-    renderSpecsRows(
-      list,
-      { runnerAvailable: true, targets, filter: { open: openKeys(list, targets) }, ...opts },
-      Date.parse("2026-09-16T12:00:00Z"),
-    );
-
-  const runLine = (html: string, folder: string) =>
-    html.match(
-      new RegExp(
-        `<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">[\\s\\S]*?` +
-          `(?=<tr class="[^"]*spechead|</tbody>|$)`,
-      ),
-    )?.[0] ?? "";
-  const box = (line: string, step: string) =>
-    line.match(new RegExp(`<label class="phase[^"]*" data-phase="${step}"[^>]*>.*?</label>`))?.[0] ?? "";
+  const rows = openRowsAt("2026-09-16T12:00:00Z");
 
   const done = ["analyze", "implement"];
   const ran = [job("j1", "analyze"), job("j2", "implement")];
@@ -477,8 +427,8 @@ describe("a held-back spec's row offers the round again", () => {
     const html = rows(ran, [target({ done, archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE } })]);
     const line = runLine(html, "471-another-round");
     for (const step of done) {
-      expect(box(line, step)).toContain(`value="${step}"`);
-      expect(box(line, step)).not.toContain("disabled");
+      expect(phaseBox(line, step)).toContain(`value="${step}"`);
+      expect(phaseBox(line, step)).not.toContain("disabled");
     }
   });
 
@@ -503,7 +453,7 @@ describe("a held-back spec's row offers the round again", () => {
     });
     const html = rows([...ran, archiveRefused], [target({ done: [...done, "archive"] })]);
     const line = runLine(html, "471-another-round");
-    for (const step of done) expect(box(line, step)).not.toContain("disabled");
+    for (const step of done) expect(phaseBox(line, step)).not.toContain("disabled");
   });
 
   // The round is offered, never started by default. The choice the row
@@ -518,10 +468,10 @@ describe("a held-back spec's row offers the round again", () => {
     );
     const line = runLine(html, "471-another-round");
     for (const step of done) {
-      expect(box(line, step)).not.toContain("disabled");
-      expect(box(line, step)).not.toContain(" checked");
+      expect(phaseBox(line, step)).not.toContain("disabled");
+      expect(phaseBox(line, step)).not.toContain(" checked");
     }
-    expect(box(line, "archive")).toContain(" checked");
+    expect(phaseBox(line, "archive")).toContain(" checked");
     expect(line).toContain(">Archive</button>");
   });
 });

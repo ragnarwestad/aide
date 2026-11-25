@@ -10,6 +10,28 @@ from ..run_spec_results import RESULT_OK
 from ..run_spec_status_files import status_with_phase, tracked_specs_inside_project_workspace
 
 
+def _add_neighbour(workspace):
+    """Commits another spec, 80-neighbour, beside the run's own."""
+    other = workspace["specs"] / "80-neighbour"
+    other.mkdir()
+    (other / "1-description.md").write_text("# 80\n")
+    git(workspace["specs"], "add", "-A")
+    git(workspace["specs"], "commit", "-qm", "add a neighbour")
+
+
+def _add_grouped_member(workspace):
+    """Commits a second group member, 82-second, implemented and ready to
+    archive."""
+    other = workspace["specs"] / "82-second"
+    other.mkdir()
+    (other / "1-description.md").write_text("# Second\n")
+    (other / "4-status.md").write_text(
+        "# Status\n\n## Tracking info\n\n- **Workflow steps completed:** create, analyze, implement\n"
+    )
+    git(workspace["specs"], "add", "-A")
+    git(workspace["specs"], "commit", "-qm", "add grouped member")
+
+
 def test_a_run_that_creates_another_spec_folder_is_downgraded_and_the_folder_discarded(
     runner, workspace, fake_claude
 ):
@@ -29,11 +51,7 @@ def test_a_run_that_creates_another_spec_folder_is_downgraded_and_the_folder_dis
 def test_a_run_that_deletes_another_spec_folder_is_downgraded_and_the_folder_restored(
     runner, workspace, fake_claude
 ):
-    other = workspace["specs"] / "80-neighbour"
-    other.mkdir()
-    (other / "1-description.md").write_text("# 80\n")
-    git(workspace["specs"], "add", "-A")
-    git(workspace["specs"], "commit", "-qm", "add a neighbour")
+    _add_neighbour(workspace)
     status_with_phase(workspace, "create, analyze", ["| a | ⬜ | |"])
     claude = fake_claude(
         "cat > /dev/null\n"
@@ -51,11 +69,7 @@ def test_a_run_that_deletes_another_spec_folder_is_downgraded_and_the_folder_res
     assert "80-neighbour/1-description.md" in tree, tree
 
 def test_a_change_to_another_spec_folder_the_session_committed_is_undone(runner, workspace, fake_claude):
-    other = workspace["specs"] / "80-neighbour"
-    other.mkdir()
-    (other / "1-description.md").write_text("# 80\n")
-    git(workspace["specs"], "add", "-A")
-    git(workspace["specs"], "commit", "-qm", "add a neighbour")
+    _add_neighbour(workspace)
     status_with_phase(workspace, "create, analyze", ["| a | ⬜ | |"])
     claude = fake_claude(
         "cat > /dev/null\n"
@@ -79,11 +93,7 @@ def test_a_neighbour_archived_on_main_and_merged_in_is_not_the_steps_own_write(
     """Another spec is archived on the default branch while this step
     runs, and the step merges that branch in: the neighbour's move comes
     with the merge, and is the default branch's, not this step's."""
-    other = workspace["specs"] / "80-neighbour"
-    other.mkdir()
-    (other / "1-description.md").write_text("# 80\n")
-    git(workspace["specs"], "add", "-A")
-    git(workspace["specs"], "commit", "-qm", "add a neighbour")
+    _add_neighbour(workspace)
     status_with_phase(workspace, "create, analyze", ["| a | ⬜ | |"])
     main_specs = workspace["specs"]
     claude = fake_claude(
@@ -118,14 +128,7 @@ def test_group_archive_may_move_every_named_member_without_a_scope_violation(
 ):
     folder = workspace["folder"]
     status_with_phase(workspace, "create, analyze, implement", ["| a | ✅ | |"])
-    other = workspace["specs"] / "82-second"
-    other.mkdir()
-    (other / "1-description.md").write_text("# Second\n")
-    (other / "4-status.md").write_text(
-        "# Status\n\n## Tracking info\n\n- **Workflow steps completed:** create, analyze, implement\n"
-    )
-    git(workspace["specs"], "add", "-A")
-    git(workspace["specs"], "commit", "-qm", "add grouped member")
+    _add_grouped_member(workspace)
     claude = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")
     rc, out, _ = run(
         runner, workspace, claude, command="archive",
@@ -145,14 +148,7 @@ def test_group_archive_moves_a_member_the_session_left_active(runner, workspace,
     runner moves it before the commit."""
     folder = workspace["folder"]
     status_with_phase(workspace, "create, analyze, implement", ["| a | ✅ | |"])
-    other = workspace["specs"] / "82-second"
-    other.mkdir()
-    (other / "1-description.md").write_text("# Second\n")
-    (other / "4-status.md").write_text(
-        "# Status\n\n## Tracking info\n\n- **Workflow steps completed:** create, analyze, implement\n"
-    )
-    git(workspace["specs"], "add", "-A")
-    git(workspace["specs"], "commit", "-qm", "add grouped member")
+    _add_grouped_member(workspace)
     claude = fake_claude(
         "cat > /dev/null\n"
         + READ_SPECS

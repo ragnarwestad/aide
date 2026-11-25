@@ -17,6 +17,7 @@ REQUIRED_LIBRARIES = {
     "aide-archive-spec": (
         "_aide-spec-lib.sh", "lib/config/aide-config.sh", "lib/spec-result.sh",
         "lib/spec-state.sh", "lib/status-progress.sh", "lib/spec-transitions.sh",
+        "lib/spec-reference.sh", "lib/spec-commands/find-spec.sh",
     ),
     "aide-spec-overlap": (
         "_aide-spec-lib.sh", "lib/config/aide-config.sh",
@@ -27,6 +28,7 @@ REQUIRED_LIBRARIES = {
     "aide-close-spec": (
         "_aide-spec-lib.sh", "lib/config/aide-config.sh", "lib/spec-result.sh",
         "lib/spec-state.sh", "lib/status-progress.sh", "lib/spec-transitions.sh",
+        "lib/spec-reference.sh", "lib/spec-commands/find-spec.sh",
     ),
     "aide-write-spec": (
         "lib/spec-state.sh", "lib/status-progress.sh", "lib/spec-result.sh",

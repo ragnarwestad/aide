@@ -9,6 +9,7 @@ import type { QueueDefaults } from "../queue/queue.ts";
 import type { GitRunner } from "../git/process/index.ts";
 import type { GhRunner } from "../integrations/pull-requests.ts";
 import type { RestartHook } from "./deployment";
+import type { FinalizeCreateSpec } from "./land-branch/types.ts";
 import type { PortProbe, Spawner } from "./test-servers/lifecycle.ts";
 import type { watch } from "node:fs";
 
@@ -155,15 +156,7 @@ export interface ServerOptions {
   ) => Promise<{ ok: boolean; error?: Sentence; detail?: string; retriedAfter?: string }>;
   /** Landing's own finalize step for a `create` job; the real
    *  one calls `aide-create-spec --assign-number`. Tests pass a stub. */
-  finalizeCreateSpec?: (
-    work: string,
-    repoRoot: string,
-    specsRootAbs: string,
-    provisionalFolder: string,
-  ) => Promise<
-    { ok: true; specFolder: string } |
-    { ok: false; reason: "create-number"; error: Sentence; detail?: string }
-  >;
+  finalizeCreateSpec?: FinalizeCreateSpec;
   /** How often the drift check asks origin how far each project's
    *  checkout has fallen behind. It is a SCHEDULE, not a
    *  cache window: the page render reads the last answer and never

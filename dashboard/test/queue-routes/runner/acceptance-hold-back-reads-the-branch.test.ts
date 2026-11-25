@@ -10,13 +10,12 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { BranchFileStepsChecker, WorkflowHistoryChecker } from "../../../src/git/workflow-history.ts";
-import type { OpenBranchTarget } from "../../../src/git/branch-file.ts";
-import type { GitRunner } from "../../../src/git/process/index.ts";
 import { archiveWithOpenAcceptance, blockedForMissingAnalyze, type ScheduleContext } from "../../../src/serve/schedules";
 import { targets, type SpecLookupContext } from "../../../src/serve/spec-lookup.ts";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../src/project/parse-status";
 import { withSpecFacts } from "../../../src/project/spec-facts.ts";
 import { fakeGit } from "../../helpers/fake-git.ts";
+import { branchCheckerReading } from "./spec-fixtures.ts";
 
 const FOLDER = "81-queue-and-runner";
 const dirs: string[] = [];
@@ -63,24 +62,11 @@ async function warmedChecker(specDir: string, done: boolean, phases = ["analyze"
 
 /** A checker that has read this branch copy of 4-status.md and 4-status.json. */
 async function warmedWith(specDir: string, prose: string, stateFile: string, solution?: string): Promise<BranchFileStepsChecker> {
-  const target: OpenBranchTarget = {
-    root: "/root",
-    branch: `aide/${FOLDER}`,
-    relPath: `aide/specs/${FOLDER}/4-status.md`,
-    archivedRelPath: `aide/specs/archive/${FOLDER}/4-status.md`,
-  };
-  const run: GitRunner = async (_dir, args) => {
-    const line = args.join(" ");
-    if (line.startsWith("fetch")) return { code: 0, stdout: "" };
-    if (line.startsWith("log -1")) return { code: 0, stdout: "deadbeef\n" };
-    if (line.endsWith("4-status.md")) return { code: 0, stdout: prose };
-    if (line.endsWith("4-status.json")) return { code: 0, stdout: stateFile };
-    if (solution && line.endsWith("3-solution.md")) return { code: 0, stdout: solution };
-    return { code: 1, stdout: "" };
-  };
-  const checker = new BranchFileStepsChecker({ run });
-  await checker.read(specDir, FOLDER, target);
-  return checker;
+  return branchCheckerReading(specDir, FOLDER, {
+    "4-status.md": prose,
+    "4-status.json": stateFile,
+    ...(solution ? { "3-solution.md": solution } : {}),
+  });
 }
 
 function lookupCtx(root: string, checker: BranchFileStepsChecker | undefined): SpecLookupContext {

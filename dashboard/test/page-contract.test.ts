@@ -2,41 +2,14 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import {
-  ACTION_FORM_SELECTOR,
-  FORM_ACTION_PREFIXES,
-  LIST_REFUSED_ID,
-  PAGE_DRAWN,
-  PAGE_FETCHING,
-  PAGE_LEAVE,
-  REFUSAL_ROW_TEMPLATE_ID,
-  SERVED_BY_META,
-  SPEC_DETAIL_DRAWN,
-  SPEC_HEAD_CLASS,
-  SPEC_LOADING_ROW_ID,
-  SPINNER,
-  TRACKED_FORM_SELECTOR,
-} from "../src/page-contract.ts";
+import * as contract from "../src/page-contract.ts";
 
 const contractFile = join(import.meta.dir, "..", "src", "page-contract.ts");
 
 describe("the page contract", () => {
   test("is import-free and owns the page names (AC-1, AC-4, AC-5)", () => {
     expect(readFileSync(contractFile, "utf-8")).not.toMatch(/^\s*import\s/m);
-    expect({
-      ACTION_FORM_SELECTOR,
-      LIST_REFUSED_ID,
-      PAGE_DRAWN,
-      PAGE_FETCHING,
-      PAGE_LEAVE,
-      REFUSAL_ROW_TEMPLATE_ID,
-      SERVED_BY_META,
-      SPEC_DETAIL_DRAWN,
-      SPEC_HEAD_CLASS,
-      SPEC_LOADING_ROW_ID,
-      SPINNER,
-      TRACKED_FORM_SELECTOR,
-    }).toEqual({
+    expect({ ...contract }).toMatchObject({
       ACTION_FORM_SELECTOR: "form.rowrun, form.actionform",
       LIST_REFUSED_ID: "list-refused",
       PAGE_DRAWN: "aide-page-drawn",
@@ -50,7 +23,7 @@ describe("the page contract", () => {
       SPINNER: '<span class="spin" aria-hidden="true"></span>',
       TRACKED_FORM_SELECTOR: ".specform, .settingsform, .providerform, .pageform, .scheduleform",
     });
-    expect(FORM_ACTION_PREFIXES).toEqual([
+    expect(contract.FORM_ACTION_PREFIXES).toEqual([
       "specform", "settingsform", "providerform", "projectsettingsform", "scheduleform",
     ]);
   });

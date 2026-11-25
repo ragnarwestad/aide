@@ -14,8 +14,9 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { writeFileSync } from "node:fs";
-import { createGitRunner, type GitRunner } from "../../../src/git/process/index.ts";
+import type { GitRunner } from "../../../src/git/process/index.ts";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
+import { branchReadingGit } from "../checkouts/branch-reading-fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness("aide-spec-page-checks-phase-");
 
@@ -30,36 +31,8 @@ const statusWithOpenRow = (task: string): string =>
   "# Status\n\n## Acceptance criteria\n\n| Task | Status | Notes |\n|------|--------|-------|\n" +
   `| ${task} | ⬜ | |\n`;
 
-/** Real git for everything except the branch-read calls
- *  `resolveOpenBranchTarget`/`readStatusFromBranch` make — reproduced
- *  from `committed-history-freshness.test.ts`'s branch-reading suite, whose
- *  own `branchReadingGitRun` is local to that file's `describe` block
- *  and not exported. */
-const branchReadingGitRun = (opts: { open: boolean; branchText?: string }): GitRunner => {
-  const real = createGitRunner();
-  const branch = `aide/${FOLDER}`;
-  const relPath = `aide/specs/${FOLDER}/4-status.md`;
-  const ref = `refs/remotes/origin/${branch}`;
-  const specFolderSuffix = join("aide", "specs", FOLDER);
-  return async (dir, args, timeoutMs, env) => {
-    const line = args.join(" ");
-    if (line === "rev-parse --show-toplevel" && dir.endsWith(specFolderSuffix)) {
-      return { code: 0, stdout: `${dir.slice(0, dir.length - specFolderSuffix.length - 1)}\n` };
-    }
-    if (line === "ls-remote --heads origin refs/heads/aide/*") {
-      return {
-        code: 0,
-        stdout: opts.open ? `deadbeef0000000000000000000000000000000\trefs/heads/${branch}\n` : "",
-      };
-    }
-    if (line === `fetch --quiet origin ${branch}`) return { code: 0, stdout: "" };
-    if (line === `log -1 --format=%H ${ref} -- ${relPath}`) {
-      return { code: 0, stdout: "cafebabe000000000000000000000000000000\n" };
-    }
-    if (line === `show ${ref}:${relPath}`) return { code: 0, stdout: opts.branchText ?? "" };
-    return real(dir, args, timeoutMs, env);
-  };
-};
+/** Real git, except for the reads of this spec's open branch. */
+const branchReadingGitRun = (opts: { open: boolean; branchText?: string }): GitRunner => branchReadingGit(FOLDER, opts);
 
 const specDir = (dir: string) => join(dir, "root", "aide", "specs", FOLDER);
 

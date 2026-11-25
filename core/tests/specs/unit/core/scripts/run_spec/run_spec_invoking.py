@@ -5,10 +5,13 @@ afterwards.
 Split out of conftest.py 2026-09-04; unchanged, and each keeps its name.
 """
 
+import contextlib
 import json
 import os
 import pathlib
 import shutil
+import signal
+import subprocess
 import time
 from ..conftest import git, run
 def _standalone_runner_copy(runner, tmp_path, name="aide-run-spec-under-test"):
@@ -140,3 +143,39 @@ def schedule(runner, ws, claude, **kwargs):
     return run(runner, ws, claude, **kwargs)
 
 
+
+
+@contextlib.contextmanager
+def started_runner(runner, workspace, claude, tmp_path, command):
+    """The runner started on the workspace's spec without waiting for it,
+    the way the board starts a step it may cancel; killed on the way out
+    if it is still running."""
+    proc = subprocess.Popen(
+        [
+            str(runner),
+            "--project-dir", str(workspace["project"]),
+            "--project-name", "aide",
+            "--command", command,
+            "--spec", workspace["folder"],
+            "--timeout-sec", "120",
+            "--permission-mode", "acceptEdits",
+            "--result-file", str(tmp_path / "result.json"),
+            "--worktree-base", str(workspace["wtbase"]),
+        ],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+        env={**os.environ, "AIDE_CLAUDE_BIN": str(claude)},
+    )
+    try:
+        yield proc
+    finally:
+        if proc.poll() is None:
+            proc.kill()
+            proc.wait(timeout=10)
+
+
+def cancel_once(proc, ready, message):
+    """Cancels a started runner the way the board does — SIGTERM — once
+    `ready` exists, and waits for it to end."""
+    wait_until(ready.exists, 60, message)
+    proc.send_signal(signal.SIGTERM)
+    proc.wait(timeout=60)

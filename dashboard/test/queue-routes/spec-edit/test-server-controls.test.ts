@@ -2,35 +2,33 @@
 // `run-controls.ts`'s own reset-route suite already tests against —
 // a real `createServer`, real fixture files, real HTTP.
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { writeFileSync } from "node:fs";
+import type { ServerOptions } from "../../../src/serve/serve.ts";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
 import { WAITING_RUNNER } from "../../helpers/waiting-runner.ts";
+import { tempDirs } from "../../helpers/setup/temp-dirs.ts";
+import { branchOnOrigin, branchOpenGit, fakeSpawn, folder, postEmpty, settledBranchJob } from "./test-server-fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness("aide-board-routes-");
-const ownDirs: string[] = [];
-afterEach(() => {
-  harness.cleanup();
-  while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
-});
+const results = tempDirs("aide-board-results-");
+afterEach(() => harness.cleanup());
 
-/** The job's own record, polled until `done` holds (the same idiom
- *  `landing-window-and-repo-lock.test.ts` uses) — `branchUrls` only
- *  reaches `ctx.queue.branchesFor()` once the step's result has landed
- *  on the job. */
-async function settleDone(base: string, id: string): Promise<void> {
-  for (let n = 0; n < 100; n++) {
-    const body = (await (await fetch(`${base}/api/queue/${id}`)).json()) as {
-      job: { state: string };
-    };
-    if (body.job.state === "done") return;
-    await new Promise((r) => setTimeout(r, 50));
-  }
-  throw new Error("the job never settled");
+/** A board whose spec has a finished step and a branch still open on
+ *  origin — what the spec page's `capable` check needs before it starts
+ *  a test server. */
+async function startWithOpenBranch(extra: Partial<ServerOptions>): Promise<string> {
+  const queueResultDir = results.make();
+  const { base, dir } = start({
+    testServersAvailable: true,
+    gitRun: branchOpenGit as never,
+    queueRunnerBin: WAITING_RUNNER,
+    queueResultDir,
+    ...extra,
+  });
+  await settledBranchJob(base, dir, queueResultDir);
+  return base;
 }
 
-const folder = "81-queue-and-runner";
 
 describe("the board start/stop routes", () => {
   test("404 for an unknown spec", async () => {
@@ -48,11 +46,7 @@ describe("the board start/stop routes", () => {
       archivedSpecs: { [archivedFolder]: {} },
     });
     for (const path of [`test-server`, `test-server/stop`]) {
-      const res = await fetch(`${base}/api/queue/specs/aide/${archivedFolder}/${path}`, {
-        method: "POST",
-        headers: { accept: "application/json", "content-type": "application/json" },
-        body: "{}",
-      });
+      const res = await postEmpty(`${base}/api/queue/specs/aide/${archivedFolder}/${path}`);
       if (path === "test-server") {
         expect(res.status).toBe(400);
         const body = (await res.json()) as { error: string };
@@ -69,11 +63,7 @@ describe("the board start/stop routes", () => {
 
   test("a spec whose branch never made it to origin refuses without starting a process", async () => {
     const { base } = start({ testServersAvailable: true });
-    const res = await fetch(`${base}/api/queue/specs/aide/${folder}/test-server`, {
-      method: "POST",
-      headers: { accept: "application/json", "content-type": "application/json" },
-      body: "{}",
-    });
+    const res = await postEmpty(`${base}/api/queue/specs/aide/${folder}/test-server`);
     expect(res.status).toBe(400);
     const body = (await res.json()) as { error: string; spec: string };
     expect(body.error).toContain("no such branch on origin");
@@ -100,11 +90,7 @@ describe("the board start/stop routes", () => {
 
   test("the round being unavailable on this host refuses cleanly", async () => {
     const { base } = start({ testServersAvailable: false });
-    const res = await fetch(`${base}/api/queue/specs/aide/${folder}/test-server`, {
-      method: "POST",
-      headers: { accept: "application/json", "content-type": "application/json" },
-      body: "{}",
-    });
+    const res = await postEmpty(`${base}/api/queue/specs/aide/${folder}/test-server`);
     expect(res.status).toBe(400);
     const body = (await res.json()) as { error: string };
     expect(body.error).toContain("says nothing about how to start a board");
@@ -117,8 +103,7 @@ describe("the board start/stop routes", () => {
     // `process.kill(-pid, "SIGTERM")` has an actual, self-owned process
     // group to reach rather than an arbitrary pid this test does not
     // own.
-    const spawnCalls: { cmd: string[] }[] = [];
-    const spawned: number[] = [];
+    const board = fakeSpawn();
     // Which ports the search asked about, and the answer it got. The
     // port search is the harness's to answer, not this machine's
     // (`testServersPortProbe`, queue-server.ts): its default says the pool is
@@ -134,70 +119,33 @@ describe("the board start/stop routes", () => {
         probed.push(port);
         return true;
       },
-      testServersSpawn: (cmd) => {
-        spawnCalls.push({ cmd });
-        const proc = Bun.spawn({ cmd: ["sleep", "60"], stdio: ["ignore", "ignore", "ignore"], detached: true });
-        proc.unref();
-        spawned.push(proc.pid);
-        return { pid: proc.pid };
-      },
+      testServersSpawn: board.spawn,
     });
-    // Give the fixture's own project root an `aide/<folder>` branch on
-    // "origin" — `startTestServer`'s own `headCommit` reads `git ls-remote
-    // --heads origin`, so the branch has to actually exist there.
-    const root = `${dir}/root/aide`;
-    Bun.spawnSync({ cmd: ["git", "-C", root, "init", "-q", "-b", "main"] });
-    Bun.spawnSync({ cmd: ["git", "-C", root, "add", "-A"] });
-    Bun.spawnSync({
-      cmd: ["git", "-C", root, "-c", "user.name=t", "-c", "user.email=t@localhost", "commit", "-qm", "baseline"],
-    });
-    Bun.spawnSync({ cmd: ["git", "-C", root, "checkout", "-q", "-b", `aide/${folder}`] });
-    const bare = `${dir}/origin.git`;
-    Bun.spawnSync({ cmd: ["git", "init", "-q", "--bare", "-b", "main", bare] });
-    Bun.spawnSync({ cmd: ["git", "-C", root, "remote", "add", "origin", bare] });
-    Bun.spawnSync({ cmd: ["git", "-C", root, "push", "-q", "origin", "main", `aide/${folder}`] });
+    branchOnOrigin(dir);
 
     try {
-      const startRes = await fetch(`${base}/api/queue/specs/aide/${folder}/test-server`, {
-        method: "POST",
-        headers: { accept: "application/json", "content-type": "application/json" },
-        body: "{}",
-      });
+      const startRes = await postEmpty(`${base}/api/queue/specs/aide/${folder}/test-server`);
       expect(startRes.status).toBe(200);
       const started = (await startRes.json()) as { ok: boolean; testServer: { status: string; wrapperPid: number } };
       expect(started.ok).toBe(true);
       expect(started.testServer.status).toBe("starting");
-      expect(started.testServer.wrapperPid).toBe(spawned[0]);
-      expect(spawnCalls).toHaveLength(1);
-      expect(spawnCalls[0]!.cmd).toContain(`aide/${folder}`);
+      expect(started.testServer.wrapperPid).toBe(board.spawned[0]);
+      expect(board.calls).toHaveLength(1);
+      expect(board.calls[0]!.cmd).toContain(`aide/${folder}`);
       // The injected probe decided the port, so nothing was bound on
       // this machine to find one.
       expect(probed).toContain(8801);
 
-      const stopRes = await fetch(`${base}/api/queue/specs/aide/${folder}/test-server/stop`, {
-        method: "POST",
-        headers: { accept: "application/json", "content-type": "application/json" },
-        body: "{}",
-      });
+      const stopRes = await postEmpty(`${base}/api/queue/specs/aide/${folder}/test-server/stop`);
       expect(stopRes.status).toBe(200);
 
       // A second start after the stop spawns again — the registry entry
       // was cleared.
-      const restartRes = await fetch(`${base}/api/queue/specs/aide/${folder}/test-server`, {
-        method: "POST",
-        headers: { accept: "application/json", "content-type": "application/json" },
-        body: "{}",
-      });
+      const restartRes = await postEmpty(`${base}/api/queue/specs/aide/${folder}/test-server`);
       expect(restartRes.status).toBe(200);
-      expect(spawnCalls).toHaveLength(2);
+      expect(board.calls).toHaveLength(2);
     } finally {
-      for (const pid of spawned) {
-        try {
-          process.kill(-pid, "SIGKILL");
-        } catch {
-          // already gone, which is the outcome either way
-        }
-      }
+      board.killAll();
     }
   });
 
@@ -248,23 +196,9 @@ describe("the board start/stop routes", () => {
       testServersAvailable: true,
       testServersPortProbe: () => false,
     });
-    const root = `${dir}/root/aide`;
-    Bun.spawnSync({ cmd: ["git", "-C", root, "init", "-q", "-b", "main"] });
-    Bun.spawnSync({ cmd: ["git", "-C", root, "add", "-A"] });
-    Bun.spawnSync({
-      cmd: ["git", "-C", root, "-c", "user.name=t", "-c", "user.email=t@localhost", "commit", "-qm", "baseline"],
-    });
-    Bun.spawnSync({ cmd: ["git", "-C", root, "checkout", "-q", "-b", `aide/${folder}`] });
-    const bare = `${dir}/origin.git`;
-    Bun.spawnSync({ cmd: ["git", "init", "-q", "--bare", "-b", "main", bare] });
-    Bun.spawnSync({ cmd: ["git", "-C", root, "remote", "add", "origin", bare] });
-    Bun.spawnSync({ cmd: ["git", "-C", root, "push", "-q", "origin", "main", `aide/${folder}`] });
+    branchOnOrigin(dir);
 
-    const res = await fetch(`${base}/api/queue/specs/aide/${folder}/test-server`, {
-      method: "POST",
-      headers: { accept: "application/json", "content-type": "application/json" },
-      body: "{}",
-    });
+    const res = await postEmpty(`${base}/api/queue/specs/aide/${folder}/test-server`);
     expect(res.status).toBe(400);
     const body = (await res.json()) as { error: string };
     expect(body.error).toContain("Test servers");
@@ -281,84 +215,8 @@ describe("the board start/stop routes", () => {
 // `target="_blank"` link can never reach.
 describe("the spec page's own ?startTestServer=1 trigger", () => {
   test("starts a board and 303s to the clean Steps-tab URL, once", async () => {
-    const spawnCalls: { cmd: string[] }[] = [];
-    const spawned: number[] = [];
-    let boardLog = "";
-    const results = mkdtempSync(join(tmpdir(), "aide-411-board-trigger-"));
-    ownDirs.push(results);
-    // Every git call this harness's own job-and-landing pipeline makes
-    // succeeds trivially, except: `ls-remote --heads origin aide/<folder>`,
-    // which needs a real SHA back for `startTestServer()`'s own `headCommit()`
-    // not to refuse "no such branch on origin"; and the merge itself,
-    // held open the same way `landing-window-and-repo-lock.test.ts` holds
-    // it (never released) — a landing that actually finished would merge
-    // this very branch into the default one and wipe `branchUrls` behind
-    // it (`land-branch/merge.ts`'s own "Landed" branch), and this test's
-    // whole point is a spec whose code branch is still open.
-    const gitRun = async (_dir: string, args: string[]) => {
-      const a = args.join(" ");
-      if (a.startsWith(`ls-remote --heads origin aide/${folder}`)) {
-        return { code: 0, stdout: `abc123deadbeef1234567890abcdef123456789\trefs/heads/aide/${folder}\n` };
-      }
-      if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
-      if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
-      if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
-      if (a.startsWith("merge -q --ff-only") || a.startsWith("merge -q --no-edit")) {
-        return new Promise(() => {
-          // Never resolves — held for the life of the test.
-        });
-      }
-      return { code: 0, stdout: "" };
-    };
-    const { base, dir } = start({
-      testServersAvailable: true,
-      gitRun: gitRun as never,
-      queueRunnerBin: WAITING_RUNNER,
-      queueResultDir: results,
-      testServersSpawn: (cmd, logPath) => {
-        spawnCalls.push({ cmd });
-        // What a round that got its board up actually writes. Without
-        // it the board stays "starting" for ever, and the click that
-        // follows has no address to be sent to.
-        boardLog = logPath;
-        const proc = Bun.spawn({ cmd: ["sleep", "60"], stdio: ["ignore", "ignore", "ignore"], detached: true });
-        proc.unref();
-        spawned.push(proc.pid);
-        return { pid: proc.pid };
-      },
-    });
-    // `ctx.testServers.aideCheckout("aide")` resolves to this same path (no
-    // owned checkout exists in this fixture, so it falls back to the
-    // display checkout, `queueProjectRoot/aide`) — `branchesFor()` has
-    // to report a branch open on exactly this root for the GET route's
-    // capability check to pass.
-    const root = join(dir, "root", "aide");
-
-    // A real step, run straight through the fake runner binary, so its
-    // result lands on the job the same way a real `aide-run-spec` run
-    // would — `branchesFor()` reads `job.branchUrls`, set only once a
-    // step's own result has actually settled.
-    const made = (await (
-      await fetch(`${base}/api/queue`, {
-        method: "POST",
-        headers: { "content-type": "application/json", accept: "application/json" },
-        body: JSON.stringify({ project: "aide", specFolder: folder, steps: ["analyze"] }),
-      })
-    ).json()) as { job: { id: string } };
-    await Bun.write(
-      join(results, `${made.job.id}.json`),
-      JSON.stringify({
-        ok: true,
-        exitCode: 0,
-        costUsd: 0.1,
-        costMeasured: true,
-        terminalReason: "completed",
-        branch: `aide/${folder}`,
-        branchUrls: [{ root, url: "https://example.test/aide" }],
-        repos: [],
-      }),
-    );
-    await settleDone(base, made.job.id);
+    const board = fakeSpawn();
+    const base = await startWithOpenBranch({ testServersSpawn: board.spawn });
 
     try {
       const res = await fetch(`${base}/specs/aide/${folder}?tab=steps&startTestServer=1`, {
@@ -371,7 +229,7 @@ describe("the spec page's own ?startTestServer=1 trigger", () => {
       expect(waiting).toContain("Starting a test server");
       expect(waiting).toContain("data-reload-every=");
       expect(waiting).toContain("spin");
-      expect(spawnCalls).toHaveLength(1);
+      expect(board.calls).toHaveLength(1);
 
       // A repeat GET while it is still STARTING reaches the same,
       // still-alive entry (`startTestServer()`'s own dedup) rather than
@@ -386,7 +244,7 @@ describe("the spec page's own ?startTestServer=1 trigger", () => {
       // board here starts one every few seconds.
       expect(res2.status).toBe(200);
       expect(await res2.text()).toContain("Starting a test server");
-      expect(spawnCalls).toHaveLength(1);
+      expect(board.calls).toHaveLength(1);
 
       // Ten more reloads, and still one round.
       for (let i = 0; i < 10; i++) {
@@ -394,13 +252,13 @@ describe("the spec page's own ?startTestServer=1 trigger", () => {
           redirect: "manual",
         });
       }
-      expect(spawnCalls).toHaveLength(1);
+      expect(board.calls).toHaveLength(1);
 
       // Once the round says the board is up, the click ends at
       // the BOARD. It could not on the first one — a board takes
       // minutes and has no address until it has started.
       writeFileSync(
-        boardLog,
+        board.boardLog(),
         `left running: pid 4242, http://127.0.0.1:8801/?token=t0ken — serving aide/${folder} @ abc1234\n`,
       );
       const res3 = await fetch(`${base}/specs/aide/${folder}?tab=steps&startTestServer=1`, {
@@ -410,15 +268,9 @@ describe("the spec page's own ?startTestServer=1 trigger", () => {
       expect(res3.headers.get("location")).toBe("http://127.0.0.1:8801/?token=t0ken");
       // And nothing was started for it: the redirect happens before
       // `startTestServer()` is reached at all.
-      expect(spawnCalls).toHaveLength(1);
+      expect(board.calls).toHaveLength(1);
     } finally {
-      for (const pid of spawned) {
-        try {
-          process.kill(-pid, "SIGKILL");
-        } catch {
-          // already gone, which is the outcome either way
-        }
-      }
+      board.killAll();
     }
   });
 
@@ -440,54 +292,7 @@ describe("the spec page's own ?startTestServer=1 trigger", () => {
   // fake-runner scaffolding the sibling "starts a board and 303s" test
   // above already builds, with `testServersPortProbe` the one thing changed.
   test("every test-server port already in use shows testServerFailedPage, not an endless wait", async () => {
-    const results = mkdtempSync(join(tmpdir(), "aide-411-board-ports-full-"));
-    ownDirs.push(results);
-    const gitRun = async (_dir: string, args: string[]) => {
-      const a = args.join(" ");
-      if (a.startsWith(`ls-remote --heads origin aide/${folder}`)) {
-        return { code: 0, stdout: `abc123deadbeef1234567890abcdef123456789\trefs/heads/aide/${folder}\n` };
-      }
-      if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
-      if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
-      if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
-      if (a.startsWith("merge -q --ff-only") || a.startsWith("merge -q --no-edit")) {
-        return new Promise(() => {
-          // Never resolves — held for the life of the test, the same
-          // as the sibling test above.
-        });
-      }
-      return { code: 0, stdout: "" };
-    };
-    const { base, dir } = start({
-      testServersAvailable: true,
-      testServersPortProbe: () => false,
-      gitRun: gitRun as never,
-      queueRunnerBin: WAITING_RUNNER,
-      queueResultDir: results,
-    });
-    const root = join(dir, "root", "aide");
-
-    const made = (await (
-      await fetch(`${base}/api/queue`, {
-        method: "POST",
-        headers: { "content-type": "application/json", accept: "application/json" },
-        body: JSON.stringify({ project: "aide", specFolder: folder, steps: ["analyze"] }),
-      })
-    ).json()) as { job: { id: string } };
-    await Bun.write(
-      join(results, `${made.job.id}.json`),
-      JSON.stringify({
-        ok: true,
-        exitCode: 0,
-        costUsd: 0.1,
-        costMeasured: true,
-        terminalReason: "completed",
-        branch: `aide/${folder}`,
-        branchUrls: [{ root, url: "https://example.test/aide" }],
-        repos: [],
-      }),
-    );
-    await settleDone(base, made.job.id);
+    const base = await startWithOpenBranch({ testServersPortProbe: () => false });
 
     const res = await fetch(`${base}/specs/aide/${folder}?tab=steps&startTestServer=1`, {
       redirect: "manual",
@@ -509,63 +314,8 @@ describe("the spec page's own ?startTestServer=1 trigger", () => {
   // test above builds, since the retry has to reach a real `capable`
   // spec and a real branch on origin the same way a first start does.
   test("a failed board's retry link clears it and starts a new one, landing on the waiting page", async () => {
-    const spawnCalls: { cmd: string[] }[] = [];
-    const spawned: number[] = [];
-    let boardLog = "";
-    const results = mkdtempSync(join(tmpdir(), "aide-489-retry-"));
-    ownDirs.push(results);
-    const gitRun = async (_dir: string, args: string[]) => {
-      const a = args.join(" ");
-      if (a.startsWith(`ls-remote --heads origin aide/${folder}`)) {
-        return { code: 0, stdout: `abc123deadbeef1234567890abcdef123456789\trefs/heads/aide/${folder}\n` };
-      }
-      if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
-      if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
-      if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
-      if (a.startsWith("merge -q --ff-only") || a.startsWith("merge -q --no-edit")) {
-        return new Promise(() => {
-          // Held open for the life of the test, as the sibling tests do.
-        });
-      }
-      return { code: 0, stdout: "" };
-    };
-    const { base, dir } = start({
-      testServersAvailable: true,
-      gitRun: gitRun as never,
-      queueRunnerBin: WAITING_RUNNER,
-      queueResultDir: results,
-      testServersSpawn: (cmd, logPath) => {
-        spawnCalls.push({ cmd });
-        boardLog = logPath;
-        const proc = Bun.spawn({ cmd: ["sleep", "60"], stdio: ["ignore", "ignore", "ignore"], detached: true });
-        proc.unref();
-        spawned.push(proc.pid);
-        return { pid: proc.pid };
-      },
-    });
-    const root = join(dir, "root", "aide");
-
-    const made = (await (
-      await fetch(`${base}/api/queue`, {
-        method: "POST",
-        headers: { "content-type": "application/json", accept: "application/json" },
-        body: JSON.stringify({ project: "aide", specFolder: folder, steps: ["analyze"] }),
-      })
-    ).json()) as { job: { id: string } };
-    await Bun.write(
-      join(results, `${made.job.id}.json`),
-      JSON.stringify({
-        ok: true,
-        exitCode: 0,
-        costUsd: 0.1,
-        costMeasured: true,
-        terminalReason: "completed",
-        branch: `aide/${folder}`,
-        branchUrls: [{ root, url: "https://example.test/aide" }],
-        repos: [],
-      }),
-    );
-    await settleDone(base, made.job.id);
+    const board = fakeSpawn();
+    const base = await startWithOpenBranch({ testServersSpawn: board.spawn });
 
     try {
       // The first attempt: starts a board.
@@ -573,12 +323,12 @@ describe("the spec page's own ?startTestServer=1 trigger", () => {
         redirect: "manual",
       });
       expect(first.status).toBe(200);
-      expect(spawnCalls).toHaveLength(1);
+      expect(board.calls).toHaveLength(1);
 
       // It dies without ever reporting an address — the round's own log
       // has no "left running" line, and its wrapper has exited.
-      writeFileSync(boardLog, "boom: the round never started a listener\n");
-      process.kill(-spawned[0]!, "SIGKILL");
+      writeFileSync(board.boardLog(), "boom: the round never started a listener\n");
+      process.kill(-board.spawned[0]!, "SIGKILL");
       await new Promise((r) => setTimeout(r, 100));
 
       // The plain URL now shows the failed page, carrying its own
@@ -591,15 +341,15 @@ describe("the spec page's own ?startTestServer=1 trigger", () => {
       expect(failedHtml).toContain('Could not start a test server for "aide:81"');
       expect(failedHtml).toContain('href="');
       expect(failedHtml).toContain("retryTestServer=1");
-      expect(spawnCalls).toHaveLength(1);
+      expect(board.calls).toHaveLength(1);
 
       // Following the retry link — built from known parts,
       // never scraped out of `esc()`'s escaped HTML — clears the failed
       // entry and starts a new one for the SAME branch.
       const retryUrl = `${base}/specs/aide/${folder}?tab=steps&startTestServer=1&retryTestServer=1`;
       const retryRes = await fetch(retryUrl, { redirect: "manual" });
-      expect(spawnCalls).toHaveLength(2);
-      expect(spawnCalls[1]!.cmd).toContain(`aide/${folder}`);
+      expect(board.calls).toHaveLength(2);
+      expect(board.calls[1]!.cmd).toContain(`aide/${folder}`);
       expect(retryRes.status).toBe(303);
       expect(retryRes.headers.get("location")).toBe(`/specs/aide/${folder}?tab=steps&startTestServer=1`);
 
@@ -611,13 +361,7 @@ describe("the spec page's own ?startTestServer=1 trigger", () => {
       expect(waitingRes.status).toBe(200);
       expect(await waitingRes.text()).toContain("Starting a test server");
     } finally {
-      for (const pid of spawned) {
-        try {
-          process.kill(-pid, "SIGKILL");
-        } catch {
-          // already gone, which is the outcome either way
-        }
-      }
+      board.killAll();
     }
   });
 
@@ -659,79 +403,24 @@ describe("the spec page's own ?startTestServer=1 trigger", () => {
   // retry must stop and offer its own fresh "Try again", not be cleared
   // and respawned on every poll forever.
   test("a board that fails again after a retry is never auto-retried by the waiting page's own refresh", async () => {
-    const spawnCalls: { cmd: string[] }[] = [];
-    const spawned: number[] = [];
-    let boardLog = "";
-    const results = mkdtempSync(join(tmpdir(), "aide-489-loop-safety-"));
-    ownDirs.push(results);
-    const gitRun = async (_dir: string, args: string[]) => {
-      const a = args.join(" ");
-      if (a.startsWith(`ls-remote --heads origin aide/${folder}`)) {
-        return { code: 0, stdout: `abc123deadbeef1234567890abcdef123456789\trefs/heads/aide/${folder}\n` };
-      }
-      if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
-      if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
-      if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
-      if (a.startsWith("merge -q --ff-only") || a.startsWith("merge -q --no-edit")) {
-        return new Promise(() => {
-          // Held open for the life of the test, as the sibling tests do.
-        });
-      }
-      return { code: 0, stdout: "" };
-    };
-    const { base, dir } = start({
-      testServersAvailable: true,
-      gitRun: gitRun as never,
-      queueRunnerBin: WAITING_RUNNER,
-      queueResultDir: results,
-      testServersSpawn: (cmd, logPath) => {
-        spawnCalls.push({ cmd });
-        boardLog = logPath;
-        const proc = Bun.spawn({ cmd: ["sleep", "60"], stdio: ["ignore", "ignore", "ignore"], detached: true });
-        proc.unref();
-        spawned.push(proc.pid);
-        return { pid: proc.pid };
-      },
-    });
-    const root = join(dir, "root", "aide");
-
-    const made = (await (
-      await fetch(`${base}/api/queue`, {
-        method: "POST",
-        headers: { "content-type": "application/json", accept: "application/json" },
-        body: JSON.stringify({ project: "aide", specFolder: folder, steps: ["analyze"] }),
-      })
-    ).json()) as { job: { id: string } };
-    await Bun.write(
-      join(results, `${made.job.id}.json`),
-      JSON.stringify({
-        ok: true,
-        exitCode: 0,
-        costUsd: 0.1,
-        costMeasured: true,
-        terminalReason: "completed",
-        branch: `aide/${folder}`,
-        branchUrls: [{ root, url: "https://example.test/aide" }],
-        repos: [],
-      }),
-    );
-    await settleDone(base, made.job.id);
+    const board = fakeSpawn();
+    const base = await startWithOpenBranch({ testServersSpawn: board.spawn });
 
     try {
       // First attempt, first failure, one retry — the same round-trip
       // the test above pins, brought here only far enough to reach a
       // SECOND failure to test the loop-safety guarantee against.
       await fetch(`${base}/specs/aide/${folder}?tab=steps&startTestServer=1`, { redirect: "manual" });
-      writeFileSync(boardLog, "boom: the round never started a listener\n");
-      process.kill(-spawned[0]!, "SIGKILL");
+      writeFileSync(board.boardLog(), "boom: the round never started a listener\n");
+      process.kill(-board.spawned[0]!, "SIGKILL");
       await new Promise((r) => setTimeout(r, 100));
       const retryUrl = `${base}/specs/aide/${folder}?tab=steps&startTestServer=1&retryTestServer=1`;
       await fetch(retryUrl, { redirect: "manual" });
-      expect(spawnCalls).toHaveLength(2);
+      expect(board.calls).toHaveLength(2);
 
       // The retried board fails too.
-      writeFileSync(boardLog, "boom again: still no listener\n");
-      process.kill(-spawned[1]!, "SIGKILL");
+      writeFileSync(board.boardLog(), "boom again: still no listener\n");
+      process.kill(-board.spawned[1]!, "SIGKILL");
       await new Promise((r) => setTimeout(r, 100));
 
       // Ten reloads of the PLAIN URL — the waiting page's own refresh,
@@ -745,15 +434,9 @@ describe("the spec page's own ?startTestServer=1 trigger", () => {
         expect(html).toContain('Could not start a test server for "aide:81"');
         expect(html).toContain("retryTestServer=1");
       }
-      expect(spawnCalls).toHaveLength(2);
+      expect(board.calls).toHaveLength(2);
     } finally {
-      for (const pid of spawned) {
-        try {
-          process.kill(-pid, "SIGKILL");
-        } catch {
-          // already gone, which is the outcome either way
-        }
-      }
+      board.killAll();
     }
   });
 });

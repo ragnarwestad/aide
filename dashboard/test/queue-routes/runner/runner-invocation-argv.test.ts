@@ -29,6 +29,14 @@ afterEach(() => {
   while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
+/** Queues an implement of the harness's spec on the server at `base`. */
+const queueImplement = (base: string): Promise<Response> =>
+  fetch(`${base}/api/queue`, {
+    method: "POST",
+    headers: { "content-type": "application/json", accept: "application/json" },
+    body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"] }),
+  });
+
 // Slice 81c: what the server actually hands the runner. The binary is a
 // recording stub — one tiny local process, no claude, no network.
 describe("the runner invocation", () => {
@@ -87,11 +95,7 @@ describe("the runner invocation", () => {
       queueResultDir: join(dir, "jobs"),
       queuePush: "branch",
     });
-    const res = await fetch(`${base}/api/queue`, {
-      method: "POST",
-      headers: { "content-type": "application/json", accept: "application/json" },
-      body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"] }),
-    });
+    const res = await queueImplement(base);
     expect(res.status).toBe(200);
     // `port: 0` above means "let the OS pick", so the bound port is the
     // only one worth asserting against — and a server that never bound
@@ -113,11 +117,7 @@ describe("the runner invocation", () => {
     const { base } = start({
       queueRunnerBin: bin, queueResultDir: join(dir, "jobs"), queuePush: "branch", queueConfigFile, dashboardCheckoutRoot,
     });
-    const res = await fetch(`${base}/api/queue`, {
-      method: "POST",
-      headers: { "content-type": "application/json", accept: "application/json" },
-      body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"] }),
-    });
+    const res = await queueImplement(base);
     expect(res.status).toBe(200);
     const env = await envOf(envFile);
     expect(env.queueConfig).toBe(queueConfigFile);
@@ -134,11 +134,7 @@ describe("the runner invocation", () => {
     const { base } = start({
       queueRunnerBin: bin, queueResultDir: join(dir, "jobs"), queuePush: "branch", queueMirrorPath,
     });
-    const res = await fetch(`${base}/api/queue`, {
-      method: "POST",
-      headers: { "content-type": "application/json", accept: "application/json" },
-      body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"] }),
-    });
+    const res = await queueImplement(base);
     expect(res.status).toBe(200);
     expect((await envOf(envFile)).queueMirror).toBe(queueMirrorPath);
   });
@@ -150,11 +146,7 @@ describe("the runner invocation", () => {
     writeFileSync(bin, `#!/usr/bin/env bash\necho "aide-run-spec 10:45:08 +0s fetching main" >&2\n`, { mode: 0o755 });
     const jobs = join(dir, "jobs");
     const { base } = start({ queueRunnerBin: bin, queueResultDir: jobs, queuePush: "branch" });
-    const res = await fetch(`${base}/api/queue`, {
-      method: "POST",
-      headers: { "content-type": "application/json", accept: "application/json" },
-      body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"] }),
-    });
+    const res = await queueImplement(base);
     expect(res.status).toBe(200);
     let log = "";
     for (let i = 0; i < 200 && !log.includes("fetching main"); i++) {
@@ -174,11 +166,7 @@ describe("the runner invocation", () => {
       queueResultDir: join(dir, "jobs"),
       queuePush: "branch",
     });
-    const res = await fetch(`${base}/api/queue`, {
-      method: "POST",
-      headers: { "content-type": "application/json", accept: "application/json" },
-      body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"] }),
-    });
+    const res = await queueImplement(base);
     expect(res.status).toBe(200);
     const argv = await argvOf(argvFile);
     expect(argv).toContain("--push branch");
@@ -287,11 +275,7 @@ describe("the runner invocation", () => {
       queueProjectRoot: root,
       dashboardCheckoutRoot: join(dir, "owned"),
     });
-    const res = await fetch(`${base}/api/queue`, {
-      method: "POST",
-      headers: { "content-type": "application/json", accept: "application/json" },
-      body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"] }),
-    });
+    const res = await queueImplement(base);
     expect(res.status).toBe(200);
     return (await argvOf(argvFile)).match(/--push (\S+)/)![1]!;
   }
@@ -363,11 +347,7 @@ describe("the schedule step's output directory", () => {
       queuePush: "branch",
       scheduleOutputRoot: join(dir, "schedule-output"),
     });
-    const res = await fetch(`${base}/api/queue`, {
-      method: "POST",
-      headers: { "content-type": "application/json", accept: "application/json" },
-      body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"] }),
-    });
+    const res = await queueImplement(base);
     expect(res.status).toBe(200);
     const env = await fileOnceWritten(envFile, "the runner was never invoked");
     expect(env.trim()).toBe("<unset>");
@@ -547,11 +527,7 @@ describe("the provider folders handed to the runner's environment", () => {
     const bin = join(dir, "fake-run-spec");
     writeFileSync(bin, `#!/usr/bin/env bash\nprintf '<%s>\\n<%s>\\n' "\${AIDE_CLAUDE_CONFIG_DIRS-unset}" "\${AIDE_CODEX_HOMES-unset}" > ${envFile}\n`, { mode: 0o755 });
     const { base } = start({ queueRunnerBin: bin, queueResultDir: join(dir, "jobs"), queuePush: "branch", queueDefaults } as never);
-    const res = await fetch(`${base}/api/queue`, {
-      method: "POST",
-      headers: { "content-type": "application/json", accept: "application/json" },
-      body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"] }),
-    });
+    const res = await queueImplement(base);
     expect(res.status).toBe(200);
     return (await fileOnceWritten(envFile, "the runner was never invoked")).trimEnd();
   }
@@ -593,11 +569,7 @@ describe("a project's own choice for a side part", () => {
       projectModels: { aide: { model: { review: "Sonnet" }, provider: { review: "Work" } } },
     };
     const { base } = start({ queueRunnerBin: bin, queueResultDir: join(dir, "jobs"), queuePush: "branch", queueDefaults } as never);
-    const res = await fetch(`${base}/api/queue`, {
-      method: "POST",
-      headers: { "content-type": "application/json", accept: "application/json" },
-      body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"] }),
-    });
+    const res = await queueImplement(base);
     expect(res.status).toBe(200);
     const argv = await fileOnceWritten(argvFile, "the runner was never invoked");
     expect(argv).toContain("--review-model sonnet --review-tool claude --review-claude-config-dir /opt/claude-work");

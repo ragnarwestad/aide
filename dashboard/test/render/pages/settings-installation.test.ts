@@ -3,23 +3,13 @@
 // for what is wrong. The login answers the check also holds are not drawn
 // there: the provider's page shows the login above the tab.
 
-import { afterEach, describe, expect, test } from "bun:test";
-import { Window } from "happy-dom";
+import { describe, expect, test } from "bun:test";
 import { installationBlock, type ToolCheck } from "../../../src/render";
+import { documents } from "./fixtures.ts";
 
 const AT = "2026-10-03T13:30:00.000Z";
 
-const windows: Window[] = [];
-afterEach(async () => {
-  while (windows.length) await windows.pop()!.happyDOM.close();
-});
-
-function parse(html: string): Document {
-  const win = new Window();
-  windows.push(win);
-  win.document.write(html);
-  return win.document as unknown as Document;
-}
+const parse = documents();
 
 const installation = (check: ToolCheck) => parse(installationBlock(check, "en"));
 

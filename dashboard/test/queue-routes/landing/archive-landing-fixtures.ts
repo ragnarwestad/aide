@@ -5,9 +5,9 @@
 // Split out of archive-landing.test.ts 2026-09-04 (777 lines).
 
 import { IMPLEMENTED } from "../../helpers/queue-server.ts";
-import { repoOf } from "./every-step-lands-fixtures.ts";
+import { mergeAnswer, settle as settleFor } from "./every-step-lands-fixtures.ts";
 import { afterEach } from "bun:test";
-import { rmSync, mkdtempSync } from "node:fs";
+import { rmSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { formatSentence } from "../../../src/messages/format.ts";
@@ -64,15 +64,8 @@ export function gitFor({
       }
       return { code: 0, stdout: "" };
     }
-    if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
-    if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
-    if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
-    if (a.startsWith("merge -q --ff-only origin/")) return { code: 0, stdout: "" };
-    if (a.startsWith("merge -q --ff-only")) {
-      return { code: conflicting.includes(repoOf(dir)) || needsRealMerge.includes(repoOf(dir)) ? 1 : 0, stdout: "" };
-    }
-    if (a.startsWith("merge -q --no-edit")) return { code: conflicting.includes(repoOf(dir)) ? 1 : 0, stdout: "" };
-    if (a.startsWith("merge-base")) return { code: 1, stdout: "" };
+    const merge = mergeAnswer(a, dir, conflicting, needsRealMerge);
+    if (merge) return merge;
     if (a.startsWith("push -q origin --delete") && deleteFails.includes(dir)) {
       return { code: 1, stdout: "", stderr: "remote rejected: hook declined" };
     }
@@ -98,19 +91,9 @@ export function serverWithRunner(
   return { base, dir, results };
 }
 
-export async function settle(
-  base: string,
-  id: string,
-  done: (job: Record<string, unknown>) => boolean,
-): Promise<Record<string, unknown>> {
-  for (let n = 0; n < 100; n++) {
-    const res = await fetch(`${base}/api/queue/${id}`, { headers: AUTH });
-    const body = (await res.json()) as { job: Record<string, unknown> };
-    if (done(body.job)) return body.job;
-    await new Promise((r) => setTimeout(r, 100));
-  }
-  throw new Error("the job never settled");
-}
+/** The job polled until `done` holds, for up to ten seconds. */
+export const settle = (base: string, id: string, done: (job: Record<string, unknown>) => boolean) =>
+  settleFor(base, id, done, 200);
 
 afterEach(() => {
   harness.cleanup();
@@ -159,3 +142,38 @@ export async function runStep(base: string, step: string): Promise<{ id: string;
 
 export const merges = (calls: { dir: string; args: string[] }[]) =>
   calls.filter((c) => c.args[0] === "merge" && c.args.includes(`refs/remotes/origin/${BRANCH}`));
+
+/** Both of the project's repos as a result's `branchUrls`: the specs
+ *  root first, then the code root. */
+export const bothRoots = (specsRoot: string, codeRoot: string) => [
+  { root: specsRoot, url: "https://example.test/aide-specs" },
+  { root: codeRoot, url: "https://example.test/aide" },
+];
+
+/** Writes the archive result `aide-run-spec` leaves for job `id`, with
+ *  `over` on top of `ARCHIVE_RESULT`. */
+export function writeArchiveResult(results: string, id: string, over: Record<string, unknown> = {}): void {
+  writeFileSync(join(results, `${id}.json`), JSON.stringify({ ...ARCHIVE_RESULT, ...over }));
+}
+
+/** What `ls-remote --heads` answers on an origin still holding the spec branch. */
+export const STILL_OPEN = { code: 0, stdout: `abc123\trefs/heads/${BRANCH}\n` };
+
+type GitAnswer = { code: number; stdout: string; stderr?: string };
+
+/** `inner` with `answer` asked first: a call it answers is recorded in
+ *  `inner.calls` and answered so; every other call goes to `inner`. */
+export function gitAnswering(
+  inner: { calls: { dir: string; args: string[] }[]; run: (dir: string, args: string[]) => Promise<unknown> },
+  answer: (dir: string, a: string) => GitAnswer | undefined,
+) {
+  return {
+    calls: inner.calls,
+    run: async (dir: string, args: string[]) => {
+      const answered = answer(dir, args.join(" "));
+      if (!answered) return inner.run(dir, args);
+      inner.calls.push({ dir, args });
+      return answered;
+    },
+  };
+}

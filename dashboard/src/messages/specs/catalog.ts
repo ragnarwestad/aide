@@ -1,4 +1,6 @@
 import type { MessageEntry } from "../types.ts";
+import { SHARED_FILES_STOPPED } from "../jobs/analysis.ts";
+import { MODEL_REFUSED } from "../jobs/provider.ts";
 
 export const SPECS_CATALOG = {
   "wordPhase.stopNotImplementedYet": {
@@ -65,20 +67,7 @@ export const SPECS_CATALOG = {
       fr: "archive le résout, cliquez donc de nouveau sur {button}",
     },
   },
-  "wordPhase.stopModelRefused": {
-    en: "the model declined to continue",
-    nb: "modellen ville ikke fortsette",
-    es: "el modelo se negó a continuar",
-    de: "das Modell hat sich geweigert fortzufahren",
-    fr: "le modèle a refusé de continuer",
-    solution: {
-      en: "choose another model for this step, then press {button}",
-      nb: "velg en annen modell for dette steget, og trykk så {button}",
-      es: "elige otro modelo para este paso y luego pulsa {button}",
-      de: "wähle für diesen Schritt ein anderes Modell und klicke dann auf {button}",
-      fr: "choisissez un autre modèle pour cette étape, puis cliquez sur {button}",
-    },
-  },
+  "wordPhase.stopModelRefused": MODEL_REFUSED,
   "wordPhase.stopModelAtCapacity": {
     en: "the model was at capacity",
     nb: "modellen hadde ikke kapasitet",
@@ -157,20 +146,7 @@ export const SPECS_CATALOG = {
       fr: "cliquez de nouveau sur Analyser pour un nouveau plan",
     },
   },
-  "wordPhase.stopSharedFilesNamed": {
-    en: "{button} stopped: other open specs plan to change the same files as this spec — {message}",
-    nb: "{button} stoppet: andre åpne specs planlegger å endre de samme filene som denne specen — {message}",
-    es: "{button} se detuvo: otras specs abiertas planean cambiar los mismos archivos que esta spec — {message}",
-    de: "{button} angehalten: andere offene Specs planen, dieselben Dateien wie diese Spec zu ändern — {message}",
-    fr: "{button} interrompu : d'autres specs ouvertes prévoient de modifier les mêmes fichiers que cette spec — {message}",
-    solution: {
-      en: "add them to this spec's Depends on",
-      nb: "legg dem til under Avhenger av på denne specen",
-      es: "añádelas a Depende de en esta spec",
-      de: "trage sie bei dieser Spec unter Hängt ab von ein",
-      fr: "ajoutez-les à Dépend de sur cette spec",
-    },
-  },
+  "wordPhase.stopSharedFilesNamed": SHARED_FILES_STOPPED,
   "wordPhase.stopSharedFilesArchived": {
     en: "{button} stopped on files other open specs changed, and every one of them has been archived or removed since",
     nb: "{button} stoppet på filer andre åpne specs endret, og alle er arkivert eller fjernet siden",

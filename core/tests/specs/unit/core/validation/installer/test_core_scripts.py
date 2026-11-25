@@ -53,6 +53,18 @@ class TestCoreScriptsAreWellFormed:
                 f"{script.name} still contains template placeholders: {found}"
 
 
+def _install_common_bin(workspace_root, home):
+    """Runs the shared bin installer with `home` as HOME, so it installs
+    into `home`/.local/bin, and asserts that it succeeded."""
+    installer = workspace_root / "core" / "scripts" / "_install-bin.sh"
+    result = subprocess.run(
+        ["bash", "-c", f'source "{installer}"; install_common_bin'],
+        capture_output=True, text=True,
+        env={"PATH": os.environ["PATH"], "HOME": str(home)},
+    )
+    assert result.returncode == 0, result.stderr
+
+
 @pytest.mark.validation
 class TestInstallCommonBin:
     """The shared bin installer must ship every user-facing CLI script."""
@@ -62,15 +74,7 @@ class TestInstallCommonBin:
         COMMON_BIN_SCRIPTS, so the serving host never had it: the gate
         could not make the record it refuses for the lack of, and every
         archive was refused with nothing to show for it."""
-        installer = workspace_root / "core" / "scripts" / "_install-bin.sh"
-        env = {"PATH": os.environ["PATH"], "HOME": str(tmp_path)}
-        result = subprocess.run(
-            ["bash", "-c", f'source "{installer}"; install_common_bin'],
-            capture_output=True,
-            text=True,
-            env=env,
-        )
-        assert result.returncode == 0, result.stderr
+        _install_common_bin(workspace_root, tmp_path)
         assert (tmp_path / ".local" / "bin" / "aide-record-test-run").is_file(), \
             "aide-record-test-run is not in COMMON_BIN_SCRIPTS, so the archive gate cannot run it"
 
@@ -79,26 +83,14 @@ class TestInstallCommonBin:
         aide-archive-spec sources when present — and treats every spec as
         not implemented when absent. It shipped without being in the
         installer's lists, so the serving host refused every archive."""
-        installer = workspace_root / "core" / "scripts" / "_install-bin.sh"
-        env = {"PATH": os.environ["PATH"], "HOME": str(tmp_path)}
-        result = subprocess.run(
-            ["bash", "-c", f'source "{installer}"; install_common_bin'],
-            capture_output=True, text=True, env=env,
-        )
-        assert result.returncode == 0, result.stderr
+        _install_common_bin(workspace_root, tmp_path)
         assert (tmp_path / ".local" / "bin" / "lib" / "spec-state.sh").is_file(), \
             "lib/spec-state.sh is not in COMMON_BIN_LIB_SCRIPTS"
 
     def test_the_aide_command_and_its_sentence_library_are_installed_AC_1(self, workspace_root, tmp_path):
         """`aide` is the command a terminal or an AI session queues steps
         with; it refuses to run without lib/board-answer.sh beside it."""
-        installer = workspace_root / "core" / "scripts" / "_install-bin.sh"
-        env = {"PATH": os.environ["PATH"], "HOME": str(tmp_path)}
-        result = subprocess.run(
-            ["bash", "-c", f'source "{installer}"; install_common_bin'],
-            capture_output=True, text=True, env=env,
-        )
-        assert result.returncode == 0, result.stderr
+        _install_common_bin(workspace_root, tmp_path)
         command = tmp_path / ".local" / "bin" / "aide"
         assert command.is_file() and os.access(command, os.X_OK), \
             "core/scripts/aide did not reach ~/.local/bin as an executable"
@@ -111,15 +103,7 @@ class TestInstallCommonBin:
         step lists from — if it drops out of COMMON_BIN_LIB_SCRIPTS, a
         freshly installed runner has no file to read and refuses every
         command."""
-        installer = workspace_root / "core" / "scripts" / "_install-bin.sh"
-        env = {"PATH": os.environ["PATH"], "HOME": str(tmp_path)}
-        result = subprocess.run(
-            ["bash", "-c", f'source "{installer}"; install_common_bin'],
-            capture_output=True,
-            text=True,
-            env=env,
-        )
-        assert result.returncode == 0, result.stderr
+        _install_common_bin(workspace_root, tmp_path)
         assert (tmp_path / ".local" / "bin" / "lib" / "workflow-steps.json").is_file(), \
             "workflow-steps.json is not in COMMON_BIN_LIB_SCRIPTS, so it never reaches ~/.local/bin/lib"
         assert (tmp_path / ".local" / "bin" / "lib" / "step-endings" / "catalog.json").is_file(), \
@@ -150,14 +134,7 @@ class TestInstalledVersionStamp:
     the repo's current HEAD."""
 
     def test_install_common_bin_writes_a_stamp_with_named_fields_AC_6(self, workspace_root, tmp_path):
-        installer = workspace_root / "core" / "scripts" / "_install-bin.sh"
-        result = subprocess.run(
-            ["bash", "-c", f'source "{installer}"; install_common_bin'],
-            capture_output=True,
-            text=True,
-            env={"PATH": os.environ["PATH"], "HOME": str(tmp_path)},
-        )
-        assert result.returncode == 0, result.stderr
+        _install_common_bin(workspace_root, tmp_path)
         stamp = tmp_path / ".local" / "bin" / ".aide-installed-version"
         assert stamp.is_file(), "install_common_bin did not write a version stamp"
         lines = stamp.read_text().splitlines()

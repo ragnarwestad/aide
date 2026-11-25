@@ -5,21 +5,11 @@
 // stays; a success loads it again, unless it changed nothing and the
 // form names a line to say so in.
 
-import { afterEach, describe, expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { submitReloadForm, type ReloadIo } from "../../../src/specs-client/reload-form";
+import { restoreStubbedGlobals } from "../fixtures-runtime.ts";
 
-const realGlobals = {
-  fetch: globalThis.fetch,
-  FormData: globalThis.FormData,
-  location: (globalThis as { location?: unknown }).location,
-  document: (globalThis as { document?: unknown }).document,
-};
-afterEach(() => {
-  globalThis.fetch = realGlobals.fetch;
-  globalThis.FormData = realGlobals.FormData;
-  (globalThis as { location?: unknown }).location = realGlobals.location;
-  (globalThis as { document?: unknown }).document = realGlobals.document;
-});
+restoreStubbedGlobals();
 
 /** The server's answer, and what the page asked it. */
 function stubPost(status: number, body: unknown) {

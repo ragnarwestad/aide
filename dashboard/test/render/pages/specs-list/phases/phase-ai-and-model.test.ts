@@ -1,16 +1,8 @@
 // Split out of phase-controls-and-progress.test.ts by theme.
 
 import { describe, expect, test } from "bun:test";
-import {
-  renderSpecsRows,
-  type SpecsPageOptions,
-  type QueueRowView,
-  type SpecTarget,
-} from "../../../../../src/render";
-import {
-  row,
-  openKeys,
-} from "../../fixtures.ts";
+import { renderSpecsRows, type SpecsPageOptions, type QueueRowView, type SpecTarget } from "../../../../../src/render";
+import { row, pickerRowsAt } from "../../fixtures.ts";
 import { TOOL_ICONS } from "../../../../../src/render/ui/components/icons.ts";
 
 // --- An AI and a model on every phase line -------------------------
@@ -44,27 +36,11 @@ describe("an AI and a model on every phase line", () => {
     { name: "fable" },
   ];
 
-  const rows = (
-    list: QueueRowView[] = [],
-    opts: Partial<SpecsPageOptions> = {},
-    targets: SpecTarget[] = [target()],
-  ) =>
-    renderSpecsRows(
-      list,
-      {
-        runnerAvailable: true,
-        targets,
-        modelChoices: BOTH,
-        providerChoices: [CLAUDE, CODEX],
-        filter: { open: openKeys(list, targets) },
-        ...opts,
-      },
-      Date.parse("2026-08-21T12:00:00Z"),
-    );
-
   const CLAUDE = { key: "Claude", name: "Claude", tool: "claude" as const };
   const CAPRA = { key: "capra", name: "Claude-Capra", tool: "claude" as const };
   const CODEX = { key: "Codex", name: "Codex", tool: "codex" as const };
+
+  const rows = pickerRowsAt("2026-08-21T12:00:00Z", { modelChoices: BOTH, providerChoices: [CLAUDE, CODEX] }, [target()]);
   const STEPS = ["create", "analyze", "implement", "archive"];
   const aiSelect = (html: string, step: string) =>
     html.match(new RegExp(`<select[^>]*data-ai="model\\.${step}"[\\s\\S]*?</select>`))?.[0] ?? "";

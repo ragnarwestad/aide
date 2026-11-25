@@ -16,6 +16,19 @@ from ..run_spec_invoking import BRANCH, _standalone_runner_copy
 from ..run_spec_project_state import BASH_UNTESTABLE, PRECEDENCE, READINESS_FIXTURE, READINESS_SCENARIOS, configure_links
 from ..run_spec_results import RESULT_OK
 
+
+def _land_from_another_clone(tmp_path, bare):
+    """Pushes a commit adding from-elsewhere.txt to `bare`'s main through
+    a clone of its own, as another machine would."""
+    other = init_repo(tmp_path / "other-clone")
+    git(other, "remote", "add", "origin", str(bare))
+    git(other, "fetch", "-q", "origin")
+    git(other, "reset", "-q", "--hard", "origin/main")
+    (other / "from-elsewhere.txt").write_text("landed on main from another machine\n")
+    git(other, "add", "-A")
+    git(other, "commit", "-q", "-m", "elsewhere")
+    git(other, "push", "-q", "origin", "main")
+
 def test_a_worktree_base_inside_a_root_is_refused(runner, workspace, fake_claude):
     """A worktree inside a root would be untracked, and `git add -A`
     would commit a whole second checkout onto the spec branch."""
@@ -310,14 +323,7 @@ def test_the_pull_advances_the_default_branch_not_whatever_was_checked_out(
     git(workspace["project"], "remote", "add", "origin", str(bare))
     git(workspace["project"], "push", "-q", "-u", "origin", "main")
     # Someone else lands a commit on main.
-    other = init_repo(tmp_path / "other-clone")
-    git(other, "remote", "add", "origin", str(bare))
-    git(other, "fetch", "-q", "origin")
-    git(other, "reset", "-q", "--hard", "origin/main")
-    (other / "from-elsewhere.txt").write_text("landed on main from another machine\n")
-    git(other, "add", "-A")
-    git(other, "commit", "-q", "-m", "elsewhere")
-    git(other, "push", "-q", "origin", "main")
+    _land_from_another_clone(tmp_path, bare)
     # And this checkout is sitting on a stale spec branch.
     git(workspace["project"], "switch", "-q", "-c", "aide/79-yesterdays-spec")
 
@@ -344,14 +350,7 @@ def test_a_new_branch_is_cut_from_origin_not_from_this_checkouts_stale_tracking_
     # Someone else lands a commit on main, through a different clone —
     # this checkout's own refs/remotes/origin/main never learns about it
     # until (and unless) a fetch is actually attempted.
-    other = init_repo(tmp_path / "other-clone")
-    git(other, "remote", "add", "origin", str(bare))
-    git(other, "fetch", "-q", "origin")
-    git(other, "reset", "-q", "--hard", "origin/main")
-    (other / "from-elsewhere.txt").write_text("landed on main from another machine\n")
-    git(other, "add", "-A")
-    git(other, "commit", "-q", "-m", "elsewhere")
-    git(other, "push", "-q", "origin", "main")
+    _land_from_another_clone(tmp_path, bare)
 
     rc, out, _ = run(runner, workspace, writing_claude(fake_claude, workspace), pull=True)
     assert rc == 0, out

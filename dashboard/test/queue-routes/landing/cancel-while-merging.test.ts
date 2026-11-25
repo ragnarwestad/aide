@@ -6,26 +6,18 @@
 // job ends cancelled.
 
 import { describe, expect, test } from "bun:test";
-import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { repoOf } from "./every-step-lands-fixtures.ts";
-import { ARCHIVE_RESULT, AUTH, BRANCH, gitFor, runStep, serverWithRunner, settle, start } from "./archive-landing-fixtures.ts";
+import {
+  AUTH, BRANCH, bothRoots, gitAnswering, gitFor, runStep, serverWithRunner, settle, start, writeArchiveResult,
+} from "./archive-landing-fixtures.ts";
 
 describe("Cancel while a finished step's work is merged and tested", () => {
   test("stops the test run and ends the job cancelled", async () => {
     let codeRoot = "";
     const needsRealMerge: string[] = [];
-    const inner = gitFor({ needsRealMerge });
-    const git = {
-      calls: inner.calls,
-      run: async (dir: string, args: string[]) => {
-        if (repoOf(dir) === codeRoot && args.join(" ").startsWith("diff --quiet")) {
-          inner.calls.push({ dir, args });
-          return { code: 1, stdout: "" };
-        }
-        return inner.run(dir, args);
-      },
-    };
+    const git = gitAnswering(gitFor({ needsRealMerge }), (dir, a) =>
+      repoOf(dir) === codeRoot && a.startsWith("diff --quiet") ? { code: 1, stdout: "" } : undefined);
     // The test run, the way the real one is started: a script of its own,
     // for this job, that would take a minute.
     const { base, dir, results } = serverWithRunner(start, "aide-cancel-merging-", git as never, {
@@ -41,16 +33,7 @@ describe("Cancel while a finished step's work is merged and tested", () => {
     codeRoot = join(dir, "root", "aide");
     needsRealMerge.push(codeRoot);
     const job = await runStep(base, "archive");
-    writeFileSync(
-      join(results, `${job.id}.json`),
-      JSON.stringify({
-        ...ARCHIVE_RESULT,
-        branchUrls: [
-          { root: specsRoot, url: "https://example.test/aide-specs" },
-          { root: codeRoot, url: "https://example.test/aide" },
-        ],
-      }),
-    );
+    writeArchiveResult(results, job.id, { branchUrls: bothRoots(specsRoot, codeRoot) });
     await settle(base, job.id, (j) => j.state === "done" && j.landing === true);
 
     const began = Date.now();

@@ -4,28 +4,17 @@
 // each page carries the marker the timer reads.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import { Window } from "happy-dom";
 import { modelsBlock, renderProjectPage, type ProjectView } from "../../../src/render";
 import { pageShell } from "../../../src/render/ui/shell.ts";
 import { setBoardInfo } from "../../../src/render/ui/board-info.ts";
 import { waitingForTestServerPage } from "../../../src/serve/routes/spec-edit/test-server-waiting.ts";
 import { AWAITING_DRIFT_REFRESH_SECONDS } from "../../../src/render/pages/projects-page/project-page.ts";
 import { page, view } from "./spec-page-fixtures.ts";
-import { NAV } from "./fixtures.ts";
+import { NAV, documents } from "./fixtures.ts";
 
 afterEach(() => setBoardInfo(undefined));
 
-const windows: Window[] = [];
-afterEach(async () => {
-  while (windows.length) await windows.pop()!.happyDOM.close();
-});
-
-function parse(html: string): Document {
-  const win = new Window();
-  windows.push(win);
-  win.document.write(html);
-  return win.document as unknown as Document;
-}
+const parse = documents();
 
 /** The form posting to `action` on the page, and where its refusal goes. */
 function reloadForm(html: string, action: string): { hooked: boolean; line: boolean } {

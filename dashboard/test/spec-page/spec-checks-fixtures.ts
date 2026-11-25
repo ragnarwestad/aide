@@ -38,10 +38,9 @@ export const HEADER = ["| Task | Status | Notes |", "|------|--------|-------|"]
 export const phaseSection = (heading: string, rows: string[]) =>
   [`## ${heading}`, "", "### Tasks", "", ...HEADER, ...rows, ""].join("\n");
 
-/** Three phases: one settled, the current one, and one the workflow
- *  has not reached. `parseStatus` calls the first section still
- *  carrying an open mark the current phase, which is Phase 4 here. */
-export const STATUS = [
+/** The lines every `4-status.md` here opens with, before its sections:
+ *  the title and a tracking line naming create, analyze and implement. */
+export const STATUS_HEAD = [
   "# Queue - Status",
   "",
   "## Tracking info",
@@ -50,6 +49,13 @@ export const STATUS = [
   "",
   "---",
   "",
+];
+
+/** Three phases: one settled, the current one, and one the workflow
+ *  has not reached. `parseStatus` calls the first section still
+ *  carrying an open mark the current phase, which is Phase 4 here. */
+export const STATUS = [
+  ...STATUS_HEAD,
   phaseSection(EARLIER_PHASE, [EARLIER_DONE_ROW]),
   phaseSection(PHASE, [DONE_ROW, OPEN_ROW, SECOND_OPEN_ROW]),
   phaseSection(LATER_PHASE, [LATER_ROW]),
@@ -57,14 +63,7 @@ export const STATUS = [
 
 /** Only the Acceptance section, holding a ✅ row and a Not verified one. */
 export const NV_STATUS = [
-  "# Queue - Status",
-  "",
-  "## Tracking info",
-  "",
-  "- **Workflow steps completed:** create, analyze, implement",
-  "",
-  "---",
-  "",
+  ...STATUS_HEAD,
   phaseSection(PHASE, [DONE_ROW, NV_ROW]),
 ].join("\n");
 
@@ -76,14 +75,7 @@ export const ACCEPTANCE_OPEN_ROW = "| REQ-1: something testable | ⬜ | |";
 export const TDD_PHASE = "Phase 4: REFACTOR - Test suite";
 export const TDD_OPEN_ROW = "| Re-read the whole diff once | ⬜ | |";
 export const STATUS_WITH_OPEN_ACCEPTANCE = [
-  "# Queue - Status",
-  "",
-  "## Tracking info",
-  "",
-  "- **Workflow steps completed:** create, analyze, implement",
-  "",
-  "---",
-  "",
+  ...STATUS_HEAD,
   phaseSection(TDD_PHASE, [TDD_OPEN_ROW]),
   phaseSection(ACCEPTANCE_PHASE, [ACCEPTANCE_OPEN_ROW]),
 ].join("\n");
@@ -100,14 +92,7 @@ export const CHECKLIST_PHASE = "Checklist";
 export const CHECKLIST_OPEN_ROW = "| Run the manual browser check | ⬜ | |";
 export const checklistSection = (rows: string[]) => ["## Checklist", "", ...HEADER, ...rows, ""].join("\n");
 export const CHECKLIST_STATUS = [
-  "# Queue - Status",
-  "",
-  "## Tracking info",
-  "",
-  "- **Workflow steps completed:** create, analyze, implement",
-  "",
-  "---",
-  "",
+  ...STATUS_HEAD,
   checklistSection([CHECKLIST_OPEN_ROW]),
 ].join("\n");
 
@@ -116,14 +101,7 @@ export const CHECKLIST_STATUS = [
 export const HELD_BACK_REASON = "- the manual browser check (Phase 4, still unchecked) — tick it on the spec's page";
 export const heldBack = (rows: string[]) =>
   [
-    "# Queue - Status",
-    "",
-    "## Tracking info",
-    "",
-    "- **Workflow steps completed:** create, analyze, implement",
-    "",
-    "---",
-    "",
+    ...STATUS_HEAD,
     "## Archive held back",
     "",
     HELD_BACK_REASON,

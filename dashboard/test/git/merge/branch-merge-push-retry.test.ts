@@ -13,23 +13,8 @@
 import { describe, expect, test } from "bun:test";
 import { runSpecSource } from "../../helpers/run-spec-source.ts";
 import { LANDING_RETRIES, mergeBranchIntoDefault } from "../../../src/git/branch-merge/index.ts";
-import { fakeGit, CLEAN_MASTER, type GitCall } from "../../helpers/fake-git.ts";
-import { formatSentence } from "../../../src/messages/format.ts";
-
-/** What a reader would see: a message is stored as
- *  its key and the values that fill its blanks, and composed when
- *  the page is drawn. */
-function sentence(s: unknown): string {
-  return formatSentence("en", s as Parameters<typeof formatSentence>[1]) ?? "";
-}
-
-
-const BRANCH = "aide/89-merge-from-the-dashboard";
-const ROOT = "/repos/aide";
-const noWait = async (_ms: number): Promise<void> => {};
-
-const argv = (calls: GitCall[]): string[] => calls.map((c) => c.args.join(" "));
-const ran = (calls: GitCall[], prefix: string): boolean => argv(calls).some((a) => a.startsWith(prefix));
+import { fakeGit, CLEAN_MASTER } from "../../helpers/fake-git.ts";
+import { argv, BRANCH, noWait, ran, ROOT, sentence } from "./merge-fixtures.ts";
 
 /** The table every test below starts from: a clean checkout that
  *  reaches step 6 and attempts the push — steps 1-5 all succeed so the
@@ -283,7 +268,6 @@ describe("the bash and TypeScript retry bounds agree", () => {
   });
 });
 
-
 describe("a dirty test-run.json in the checkout never blocks the fast-forward", () => {
   test("it is discarded before the checkout catches up, and nothing else is", async () => {
     // A gate's record left dirty in the dashboard's own specs checkout
@@ -307,7 +291,6 @@ describe("a dirty test-run.json in the checkout never blocks the fast-forward", 
     expect(seq.filter((a) => a.startsWith("checkout"))).toEqual(["checkout -q -- :(top,glob)**/test-run.json"]);
   });
 });
-
 
 describe("the landing's test gate: the suite runs once on the merge, before the push", () => {
   test("red drops the local merge, pushes nothing, and says so", async () => {

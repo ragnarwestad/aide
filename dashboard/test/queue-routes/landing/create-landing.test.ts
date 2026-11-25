@@ -1,6 +1,6 @@
 // Split out of create-and-archive.test.ts by theme.
 
-import { repoOf } from "./every-step-lands-fixtures.ts";
+import { mergeAnswer, repoOf, settle as settleFor } from "./every-step-lands-fixtures.ts";
 import { afterEach, describe, expect, test } from "bun:test";
 import { rmSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -24,7 +24,6 @@ const { harness, start } = setupQueueRoutesHarness();
 /** Temp directories this suite makes for itself, outside the harness. */
 const ownDirs: string[] = [];
 
-const AUTH = { "content-type": "application/json", accept: "application/json" };
 const SPECS_REPO = "/repos/aide-specs";
 
 const legacyCreateJob = (title = "A new spec", extra: Record<string, unknown> = {}) => ({
@@ -58,15 +57,8 @@ function gitFor({
     calls.push({ dir, args });
     const a = args.join(" ");
     if (a.startsWith("ls-remote") && gone.includes(dir)) return { code: 2, stdout: "" };
-    if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
-    if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
-    if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
-    if (a.startsWith("merge -q --ff-only origin/")) return { code: 0, stdout: "" };
-    if (a.startsWith("merge -q --ff-only")) {
-      return { code: conflicting.includes(repoOf(dir)) || needsRealMerge.includes(repoOf(dir)) ? 1 : 0, stdout: "" };
-    }
-    if (a.startsWith("merge -q --no-edit")) return { code: conflicting.includes(repoOf(dir)) ? 1 : 0, stdout: "" };
-    if (a.startsWith("merge-base")) return { code: 1, stdout: "" };
+    const merge = mergeAnswer(a, dir, conflicting, needsRealMerge);
+    if (merge) return merge;
     return { code: 0, stdout: "" };
   };
   return { run, calls };
@@ -114,19 +106,9 @@ function serverWithRunner(
   return { base, dir, results, job };
 }
 
-async function settle(
-  base: string,
-  id: string,
-  done: (job: Record<string, unknown>) => boolean,
-): Promise<Record<string, unknown>> {
-  for (let n = 0; n < 100; n++) {
-    const res = await fetch(`${base}/api/queue/${id}`, { headers: AUTH });
-    const body = (await res.json()) as { job: Record<string, unknown> };
-    if (done(body.job)) return body.job;
-    await new Promise((r) => setTimeout(r, 100));
-  }
-  throw new Error("the job never settled");
-}
+/** The job polled until `done` holds, for up to ten seconds. */
+const settle = (base: string, id: string, done: (job: Record<string, unknown>) => boolean) =>
+  settleFor(base, id, done, 200);
 
 afterEach(() => {
   harness.cleanup();

@@ -8,6 +8,10 @@ import { createRootLock } from "../../../src/serve/serve-helpers/config.ts";
 // every other file in the same run — which is how one such mock took 54
 // tests in the merge suite with it (2026-09-09).
 
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { landBranch } from "../../../src/serve/land-branch";
 import { CLEAN_MASTER, fakeGit, type Answer } from "../../helpers/fake-git.ts";
 
 export const ROOT = "/repos/aide";
@@ -81,3 +85,38 @@ export function landCtx(
 }
 
 export const REPOS = [{ root: ROOT, url: "" }];
+
+/** Lands `job`'s analyze branch into one fresh root, with the queue
+ *  holding `job` merged with `current`, and returns the landing's own
+ *  success patch: the update that names the branch. */
+export async function landAnalyzeWhile(
+  job: { id: string; project: string; specFolder: string },
+  current: Record<string, unknown>,
+  prefix: string,
+): Promise<Record<string, unknown>> {
+  const updates: Record<string, unknown>[] = [];
+  const { ctx } = landCtx(landingGit().run, {
+    queue: {
+      get: () => ({ ...job, ...current }),
+      update: (_id: string, patch: Record<string, unknown>) => void updates.push(patch),
+      transition: (_id: string, event: string, patch?: Record<string, unknown>) => {
+        updates.push({ event, ...(patch ?? {}) });
+        return { ok: true };
+      },
+      branchesFor: () => [],
+    },
+    branchStatus: { defaultBranch: async () => "master", invalidate: () => {}, forgetOpenSpecBranch: () => {} },
+  });
+  const here = mkdtempSync(join(tmpdir(), prefix));
+  await landBranch(
+    ctx as unknown as Parameters<typeof landBranch>[0],
+    job as unknown as Parameters<typeof landBranch>[1],
+    { branch: BRANCH },
+    {
+      step: "analyze" as const,
+      repos: [{ root: here, url: "" }],
+      failedNote: (why: string) => ({ key: "landing.analyzeLandingFailed" as const, values: { why } }),
+    } as unknown as Parameters<typeof landBranch>[3],
+  );
+  return updates.find((u) => "branchUrls" in u)!;
+}

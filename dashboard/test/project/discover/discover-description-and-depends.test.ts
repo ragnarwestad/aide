@@ -1,13 +1,11 @@
 // Split out of discover.test.ts by theme.
 
-import { describe, expect, test, beforeAll, afterAll } from "bun:test";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import {
   dependsOnIn, discoverProjects, specDependsOn, specDescription, stripDependsOnLine, withDependsOnLine,
 } from "../../../src/project/discover";
-import { useDiscoverRoot } from "./discover-fixtures.ts";
+import { DESC, TRACKING, useDiscoverRoot, useSpecFolders } from "./discover-fixtures.ts";
 
 const fx = useDiscoverRoot();
 
@@ -15,20 +13,7 @@ const fx = useDiscoverRoot();
 // project-jobs"; the description says what that spec is about, and
 // today a reader has to leave the dashboard to read it.
 describe("specDescription", () => {
-  let dir: string;
-
-  beforeAll(() => {
-    dir = mkdtempSync(join(tmpdir(), "aide-desc-"));
-  });
-
-  afterAll(() => rmSync(dir, { recursive: true, force: true }));
-
-  function spec(name: string, body: string): string {
-    const d = join(dir, name);
-    mkdirSync(d, { recursive: true });
-    writeFileSync(join(d, "1-description.md"), body);
-    return d;
-  }
+  const { dir, spec } = useSpecFolders("aide-desc-");
 
   test("returns the prose under ## Description, up to the next heading", () => {
     const d = spec(
@@ -63,7 +48,7 @@ describe("specDescription", () => {
 
   test("no Description heading, or no file at all, is null rather than a throw", () => {
     expect(specDescription(spec("04-noheading", "# X - Description\n\nloose prose\n"))).toBeNull();
-    expect(specDescription(join(dir, "nowhere"))).toBeNull();
+    expect(specDescription(join(dir(), "nowhere"))).toBeNull();
   });
 
   test("discoverProjects carries the description alongside the title", () => {
@@ -78,24 +63,7 @@ describe("specDescription", () => {
 // row says what the spec builds on, in the same words the run's own
 // refusal uses.
 describe("specDependsOn", () => {
-  let dir: string;
-
-  beforeAll(() => {
-    dir = mkdtempSync(join(tmpdir(), "aide-deps-"));
-  });
-
-  afterAll(() => rmSync(dir, { recursive: true, force: true }));
-
-  function spec(name: string, body: string): string {
-    const d = join(dir, name);
-    mkdirSync(d, { recursive: true });
-    writeFileSync(join(d, "1-description.md"), body);
-    return d;
-  }
-
-  const TRACKING = (line: string) =>
-    `# X - Description\n\n## Tracking info\n\n- **Task:** \`09-x/\`\n- **Created:** \`2026-08-19\`\n` +
-    `${line}\n\n---\n\n## Description\n\nprose\n`;
+  const { dir, spec } = useSpecFolders("aide-deps-");
 
   test("every identifier on the line, in the order written, backticks stripped", () => {
     const d = spec("01-two", TRACKING("- **Depends on:** `105`, `92-a-spec-can-depend`"));
@@ -109,7 +77,7 @@ describe("specDependsOn", () => {
   test("no line, an empty one, or no file at all is an empty list — never a throw", () => {
     expect(specDependsOn(spec("03-none", TRACKING("")))).toEqual([]);
     expect(specDependsOn(spec("04-empty", TRACKING("- **Depends on:**")))).toEqual([]);
-    expect(specDependsOn(join(dir, "nowhere"))).toEqual([]);
+    expect(specDependsOn(join(dir(), "nowhere"))).toEqual([]);
   });
 
   test("dependsOnIn reads a description's text the way specDependsOn reads its file", () => {
@@ -129,15 +97,10 @@ describe("specDependsOn", () => {
   // already owns the line's shape — the Edit page's Save is what calls
   // it, and the runtime gate reads the result unchanged.
   //
-  // Its own fixture rather than `TRACKING`: that one leaves a blank
+  // `DESC` rather than `TRACKING`: the latter leaves a blank
   // line where the dependency line would be, which is fine for a reader
   // asserting a parsed list but would make every exact-text assertion
   // here about the blank line instead of the write.
-  const DESC = (line = "") =>
-    `# X - Description\n\n## Tracking info\n\n- **Task:** \`09-x/\`\n- **Created:** \`2026-08-19\`\n` +
-    (line ? `${line}\n` : "") +
-    `\n---\n\n## Description\n\nprose\n`;
-
   describe("stripDependsOnLine", () => {
     test("takes the line out and leaves everything else where it was", () => {
       expect(stripDependsOnLine(DESC("- **Depends on:** `105`"))).toBe(DESC());

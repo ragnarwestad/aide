@@ -82,6 +82,28 @@ export function gitFor({
   return { run, calls };
 }
 
+/** What a fake git answers for the default-branch checks and the merge:
+ *  a root in `conflicting` fails both merges, one in `needsRealMerge`
+ *  fails only the fast-forward. `undefined` for every other call, which
+ *  the caller answers itself. */
+export function mergeAnswer(
+  a: string,
+  dir: string,
+  conflicting: string[],
+  needsRealMerge: string[],
+): { code: number; stdout: string } | undefined {
+  if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
+  if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
+  if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
+  if (a.startsWith("merge -q --ff-only origin/")) return { code: 0, stdout: "" };
+  if (a.startsWith("merge -q --ff-only")) {
+    return { code: conflicting.includes(repoOf(dir)) || needsRealMerge.includes(repoOf(dir)) ? 1 : 0, stdout: "" };
+  }
+  if (a.startsWith("merge -q --no-edit")) return { code: conflicting.includes(repoOf(dir)) ? 1 : 0, stdout: "" };
+  if (a.startsWith("merge-base")) return { code: 1, stdout: "" };
+  return undefined;
+}
+
 /** A discoverable project root with a real directory for the project's
  *  own checkout, plus the specs repo the run pushes to.
  *
@@ -225,3 +247,16 @@ export async function stepWithResult(
   writeFileSync(join(resultDir(dir), `${job.id}.json`), JSON.stringify(result(over)));
   return settle(base, job.id, settled);
 }
+
+/** A result's `branchUrls` naming the specs repo alone. */
+export const specsBranch = (paths: { specs: string }) => [{ root: paths.specs, url: "https://example.test/aide-specs" }];
+
+/** A result's `branchUrls` naming the project's code, then the specs repo. */
+export const codeAndSpecsBranches = (paths: { project: string; specs: string }) => [
+  { root: paths.project, url: "https://example.test/aide" },
+  ...specsBranch(paths),
+];
+
+/** Runs `implement` to `done`, its work left on the branches `branchUrls` names. */
+export const implementDone = (base: string, dir: string, branchUrls: { root: string; url: string }[]) =>
+  stepWithResult(base, dir, "implement", { branchUrls }, (j) => j.state === "done");

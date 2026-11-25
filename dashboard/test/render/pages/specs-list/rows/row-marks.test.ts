@@ -55,6 +55,25 @@ const noticeCellHtml = (html: string, folder: string): string =>
 // finds out — the same line that carries the compare links — and a `gh`
 // that could not open the request has to say so there too, or an
 // orphaned open branch looks exactly like a reviewed one.
+/** The list filtered to archived specs, holding `folder` archived after
+ *  all four phases ran. */
+const archivedRowHtml = (folder: string): string =>
+  renderSpecsRows([], {
+    runnerAvailable: true,
+    targets: [],
+    archived: [`aide/${folder}`],
+    archivedSpecs: [
+      {
+        project: "aide",
+        folder,
+        done: ["create", "analyze", "implement", "archive"],
+        models: {},
+        phaseOutcomes: {},
+      },
+    ],
+    filter: { state: "archived" },
+  });
+
 describe("a row shows the pull request its run opened", () => {
   const FOLDER = "81-queue-and-runner";
   const open = (extra: Partial<QueueRowView>): string =>
@@ -318,21 +337,7 @@ describe("a spec held for Checks, or with implement done, carries a link to a bo
   // An archived row never carries the test-server link — proved
   // directly rather than only inferred from `isArchivedRow`'s routing.
   test("an archived row carries no test-server link", () => {
-    const html = renderSpecsRows([], {
-      runnerAvailable: true,
-      targets: [],
-      archived: [`aide/${FOLDER}`],
-      archivedSpecs: [
-        {
-          project: "aide",
-          folder: FOLDER,
-          done: ["create", "analyze", "implement", "archive"],
-          models: {},
-          phaseOutcomes: {},
-        },
-      ],
-      filter: { state: "archived" },
-    });
+    const html = archivedRowHtml(FOLDER);
     expect(noticeCellHtml(html, FOLDER)).not.toContain("startTestServer=1");
   });
 
@@ -718,21 +723,7 @@ describe("the row says what to do once every check is ticked", () => {
   // before the folder moves" — an archived row must never show the
   // sentence either.
   test("an archived row never shows the ready-to-archive sentence", () => {
-    const html = renderSpecsRows([], {
-      runnerAvailable: true,
-      targets: [],
-      archived: [`aide/${FOLDER}`],
-      archivedSpecs: [
-        {
-          project: "aide",
-          folder: FOLDER,
-          done: ["create", "analyze", "implement", "archive"],
-          models: {},
-          phaseOutcomes: {},
-        },
-      ],
-      filter: { state: "archived" },
-    });
+    const html = archivedRowHtml(FOLDER);
     expect(noticeCellHtml(html, FOLDER)).not.toContain("All checks ticked");
   });
 });

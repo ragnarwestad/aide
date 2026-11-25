@@ -2,13 +2,13 @@
 // three steps, the ID made from the name, only the chosen tool's fields
 // posted, the login command written as they are typed, a refusal kept in
 // the dialog, and Cancel starting it over.
-import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from "bun:test";
-import { mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, expect, test } from "bun:test";
 import { join } from "node:path";
-import { chromium, type Browser, type Page } from "playwright";
+import type { Browser, Page } from "playwright";
 import { browserDeadline, withBrowser } from "../../helpers/browser-deadline.ts";
+import { e2eBrowser } from "../../helpers/setup/e2e-browser.ts";
 import { queueHarness } from "../../helpers/queue-server.ts";
+import { startProviderBoard } from "./provider-fixtures.ts";
 
 browserDeadline();
 
@@ -17,28 +17,9 @@ let browser: Browser;
 let page: Page;
 let base: string;
 
-const PROVIDERS = {
-  Claude: { name: "Claude", tool: "claude" as const },
-  OpenCode: { name: "OpenCode", tool: "opencode" as const },
-};
-const AT = "2026-11-05T09:00:00.000Z";
-
-beforeAll(async () => {
-  scratch = mkdtempSync(join(tmpdir(), "aide-e2e-provider-add-config-"));
-  const file = join(scratch, "queue-config.json");
-  writeFileSync(file, JSON.stringify({ providers: PROVIDERS }, null, 2));
-  browser = await withBrowser(chromium.launch(), "chromium.launch()");
-  base = harness.start({
-    extra: {
-      queueConfigFile: file,
-      queueDefaults: {
-        timeoutSec: { default: 1200 }, permissionMode: { default: "acceptEdits" }, model: { default: "sonnet" },
-        providers: structuredClone(PROVIDERS),
-      },
-      providerProbe: async (key: string) => ({ key, at: AT, installed: true }),
-      usageProbe: async (_key: string, provider: { tool: "claude" | "codex" | "opencode" }) => ({ tool: provider.tool, at: AT, windows: [] }),
-    },
-  }).base;
+e2eBrowser(harness, (launched) => {
+  browser = launched;
+  ({ base, scratch } = startProviderBoard(harness, "aide-e2e-provider-add-config-"));
 });
 
 beforeEach(async () => {
@@ -46,10 +27,6 @@ beforeEach(async () => {
 });
 afterEach(async () => {
   await page.close();
-});
-afterAll(async () => {
-  await browser.close();
-  harness.cleanup();
 });
 
 let scratch = "";

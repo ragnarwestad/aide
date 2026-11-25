@@ -16,25 +16,7 @@ import {
 } from "../../../src/queue/queue.ts";
 import { resolveStepModel } from "../../../src/serve/serve-helpers";
 import { stepTool } from "../../../src/serve/serve-helpers/runner-argv.ts";
-
-const DEFAULTS: QueueDefaults = {
-  // Per step: an implement is not an analyze, and one number for both
-  // stopped an implement mid-sentence with its tests green.
-  timeoutSec: { default: 1200, implement: 5400 },
-  permissionMode: { implement: "bypassPermissions", default: "acceptEdits" },
-  model: { implement: "opus", default: "sonnet" },
-};
-
-// The server resolves a project NAME to its real spec folders; the
-// request never carries a path. Two allowlisted projects here.
-const resolve = (project: string) =>
-  project === "aide"
-    ? { specFolders: ["81-queue-and-runner"] }
-    : project === "aide-dashboard"
-      ? { specFolders: ["01-first"] }
-      : null;
-
-const REQ = { project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"] };
+import { DEFAULTS, resolve, REQ } from "../queue-fixtures.ts";
 
 let dir: string;
 
@@ -43,7 +25,6 @@ beforeEach(() => {
 });
 
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
-
 
 // The model is chosen ON THE PHASE LINE, so one Run press can
 // carry a DIFFERENT model for each phase it ticks. The whole-job string

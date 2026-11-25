@@ -1,18 +1,12 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { Window } from "happy-dom";
+import { describe, expect, test } from "bun:test";
 import { renderNewSpecPage, type NewSpecPageOptions } from "../../../src/render";
+import { documents } from "./fixtures.ts";
 
-const windows: Window[] = [];
-afterEach(async () => {
-  while (windows.length) await windows.pop()!.happyDOM.close();
-});
+const parse = documents();
 
 /** The New spec page as the server draws it, in a document. */
 function page(opts: Partial<NewSpecPageOptions> = {}): Document {
-  const win = new Window();
-  windows.push(win);
-  win.document.write(renderNewSpecPage([], "2026-10-03T00:00:00Z", { createProjects: ["aide"], ...opts }));
-  return win.document as unknown as Document;
+  return parse(renderNewSpecPage([], "2026-10-03T00:00:00Z", { createProjects: ["aide"], ...opts }));
 }
 
 describe("what the New spec form posts", () => {

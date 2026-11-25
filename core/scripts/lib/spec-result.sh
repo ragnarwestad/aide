@@ -48,3 +48,11 @@ aide_spec_emit_ok() {
   [ -n "$result_file" ] && printf '%s\n' "$line" > "$result_file" 2>/dev/null
   exit 0
 }
+
+# A finished JSON line out, to stdout and to result_file when set; the
+# command goes on.
+aide_spec_emit_line() {
+  printf '%s\n' "$1"
+  if [ -n "$result_file" ]; then printf '%s\n' "$1" > "$result_file"; fi
+  return 0
+}

@@ -4,29 +4,21 @@
 // posts, and the form reset that Cancel is.
 //
 // By hand: `cd dashboard && bun test --timeout 20000 test/e2e/project-page/config-cards.test.ts`.
-import { afterAll, beforeAll, expect, test } from "bun:test";
-import { rmSync } from "node:fs";
-import { chromium, type Browser, type Page } from "playwright";
+import { expect, test } from "bun:test";
+import type { Page } from "playwright";
 import { browserDeadline, withBrowser } from "../../helpers/browser-deadline.ts";
-import { harness, ownDirs, projectsRoot, settled, serve } from "../../project/detail/project-detail-route-fixtures.ts";
+import { e2eBrowser } from "../../helpers/setup/e2e-browser.ts";
+import { projectsRoot, routeBoard, serve, settled } from "../../project/detail/project-detail-route-fixtures.ts";
 
 browserDeadline();
 
-let browser: Browser;
 let page: Page;
 let base: string;
 
-beforeAll(async () => {
-  browser = await withBrowser(chromium.launch(), "chromium.launch()");
+e2eBrowser(routeBoard, async (browser) => {
   page = await browser.newPage();
   const root = projectsRoot({ aide: "AIDE_SPECS_PATH=/srv/specs\n" });
   base = serve(root, settled(root, "aide"));
-});
-
-afterAll(async () => {
-  await browser.close();
-  harness.cleanup();
-  while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
 const configCard = () => page.locator('form.projectsettingsform:has([name="specsPath"])');

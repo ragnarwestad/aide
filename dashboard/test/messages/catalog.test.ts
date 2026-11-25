@@ -150,3 +150,15 @@ describe("registered error sentences hold a fix apart from the problem", () => {
     }
   });
 });
+
+// Two keys that say the same thing in two places share one entry, so a
+// translation fixed under one key cannot drift from the other.
+describe("keys that say the same thing carry the same entry", () => {
+  test.each([
+    ["runner.scopeSpecs", "runner.scopeSpecsNamed"],
+    ["runner.sharedFilesStopped", "wordPhase.stopSharedFilesNamed"],
+    ["runner.modelRefused", "wordPhase.stopModelRefused"],
+  ] as [MessageKey, MessageKey][])("%s and %s", (one, other) => {
+    expect(MESSAGES[one]).toBe(MESSAGES[other]);
+  });
+});

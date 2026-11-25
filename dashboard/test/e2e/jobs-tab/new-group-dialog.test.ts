@@ -4,9 +4,10 @@
 // tab. The tab is opened without live updates, so the card can only come
 // from the redraw the dialog's own close makes.
 
-import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from "bun:test";
-import { chromium, type Browser, type Locator, type Page } from "playwright";
+import { afterEach, beforeEach, expect, test } from "bun:test";
+import type { Browser, Locator, Page } from "playwright";
 import { browserDeadline, withBrowser } from "../../helpers/browser-deadline.ts";
+import { e2eBrowser } from "../../helpers/setup/e2e-browser.ts";
 import { queueHarness } from "../../helpers/queue-server.ts";
 import { makeSpecsRepo } from "../../helpers/specs-repo.ts";
 import { t } from "../../../src/i18n";
@@ -22,18 +23,14 @@ const FIRST = "81-queue-and-runner";
 const SECOND = "82-next";
 const description = (folder: string) => `# ${folder}\n\n## Tracking info\n\n- **Created:** \`2026-11-11\`\n`;
 
-beforeAll(async () => {
-  browser = await withBrowser(chromium.launch(), "chromium.launch()");
+e2eBrowser(harness, (launched) => {
+  browser = launched;
 });
 beforeEach(async () => {
   page = await browser.newPage();
 });
 afterEach(async () => {
   await page.close();
-});
-afterAll(async () => {
-  await browser.close();
-  harness.cleanup();
 });
 
 const dialog = (): Locator => page.locator(`dialog#${NEW_GROUP_DIALOG}`);

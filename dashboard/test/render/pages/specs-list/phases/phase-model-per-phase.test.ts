@@ -1,16 +1,8 @@
 // Split out of phase-controls-and-progress.test.ts by theme.
 
 import { describe, expect, test } from "bun:test";
-import {
-  renderSpecsRows,
-  type SpecsPageOptions,
-  type QueueRowView,
-  type SpecTarget,
-} from "../../../../../src/render";
-import {
-  row,
-  openKeys,
-} from "../../fixtures.ts";
+import { renderSpecsRows, type SpecTarget } from "../../../../../src/render";
+import { row, pickerRowsAt } from "../../fixtures.ts";
 import { TOOL_ICONS } from "../../../../../src/render/ui/components/icons.ts";
 import { phaseLine } from "../../../../../src/render/pages/specs-list/model-resolve.ts";
 import { sidePickers } from "../../../../../src/render/pages/specs-list/model-picker";
@@ -50,26 +42,13 @@ describe("one picker per phase", () => {
     { name: "sonnet" },
   ];
 
-  const rows = (
-    list: QueueRowView[] = [],
-    opts: Partial<SpecsPageOptions> = {},
-    targets: SpecTarget[] = [target()],
-  ) =>
-    renderSpecsRows(
-      list,
-      {
-        runnerAvailable: true,
-        targets,
-        modelChoices: BOTH,
-        providerChoices: [
-          { key: "Claude", name: "Claude", tool: "claude" as const },
-          { key: "Codex", name: "Codex", tool: "codex" as const },
-        ],
-        filter: { open: openKeys(list, targets) },
-        ...opts,
-      },
-      Date.parse("2026-08-21T12:00:00Z"),
-    );
+  const rows = pickerRowsAt("2026-08-21T12:00:00Z", {
+    modelChoices: BOTH,
+    providerChoices: [
+      { key: "Claude", name: "Claude", tool: "claude" as const },
+      { key: "Codex", name: "Codex", tool: "codex" as const },
+    ],
+  }, [target()]);
 
   const STEPS = ["create", "analyze", "implement", "archive"];
   const phaseSelect = (html: string, step: string) =>

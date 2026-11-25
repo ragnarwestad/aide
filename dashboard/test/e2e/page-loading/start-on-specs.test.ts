@@ -3,9 +3,10 @@
 // while a click on Jobs and a reload later in the same tab show the
 // Jobs tab as asked. Only a real browser keeps a tab's storage from one
 // load to the next and records its history, so this is a browser test.
-import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { chromium, type Browser } from "playwright";
+import { describe, expect, test } from "bun:test";
+import type { Browser } from "playwright";
 import { browserDeadline, withBrowser } from "../../helpers/browser-deadline.ts";
+import { e2eBrowser } from "../../helpers/setup/e2e-browser.ts";
 import { queueHarness } from "../../helpers/queue-server.ts";
 
 browserDeadline();
@@ -14,14 +15,9 @@ const harness = queueHarness("aide-e2e-start-on-specs-");
 let browser: Browser;
 let base: string;
 
-beforeAll(async () => {
-  browser = await withBrowser(chromium.launch(), "chromium.launch()");
+e2eBrowser(harness, (launched) => {
+  browser = launched;
   base = harness.start({ extra: { queueProjects: [] } }).base;
-});
-
-afterAll(async () => {
-  await browser.close();
-  harness.cleanup();
 });
 
 // No service worker: a page load over half a second is answered by its wait

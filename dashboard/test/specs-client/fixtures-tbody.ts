@@ -1,4 +1,6 @@
-// The fake #jobrows table, extracted out of fixtures.ts.
+// The fake #jobrows table, extracted out of fixtures.ts, and the patch
+// that lets a happy-dom table take rows the way a browser's does.
+import type { Window } from "happy-dom";
 
 /** One `<tr>` of the fake `#jobrows`. Only the surface the
  *  per-group diff actually calls — an anchor's id, the class that says
@@ -114,5 +116,20 @@ export function fakeTbody(onMutate: () => void) {
     /** The FIRST row wearing this id, the way `getElementById` answers. */
     byId: (id: string): FakeRow | null => list.find((r) => r.id === id) ?? null,
     ids: (): string[] => list.map((r) => r.id),
+  };
+}
+
+/** happy-dom reads the markup `insertAdjacentHTML` is given without a table
+ *  around it and drops its `<tr>`s, which a browser keeps. A template parses
+ *  rows as rows, so the three positions the row swap uses go through one. */
+export function parseRowsInContext(window: Window): void {
+  const proto = (window as unknown as { HTMLElement: { prototype: Record<string, unknown> } }).HTMLElement.prototype;
+  proto.insertAdjacentHTML = function (this: Element, where: string, html: string): void {
+    const template = this.ownerDocument.createElement("template");
+    template.innerHTML = html;
+    const rows = template.content;
+    if (where === "beforebegin") this.parentNode!.insertBefore(rows, this);
+    else if (where === "beforeend") this.appendChild(rows);
+    else if (where === "afterend") this.parentNode!.insertBefore(rows, this.nextSibling);
   };
 }

@@ -5,16 +5,8 @@ import { groupBySpec } from "../../../../../src/render/pages/specs-list/data-mod
 import { actionState, chosenSteps, nextPhase, specRunChoices } from "../../../../../src/render/pages/specs-list/row-state";
 import { phasesAhead, RUN_STEPS } from "../../../../../src/render/pages/specs-list/data-model/phase.ts";
 import { stepButton } from "../../../../../src/format/step-label.ts";
-import {
-  renderSpecsRows,
-  type SpecsPageOptions,
-  type QueueRowView,
-  type SpecTarget,
-} from "../../../../../src/render";
-import {
-  row,
-  openKeys,
-} from "../../fixtures.ts";
+import { renderSpecsRows, type SpecsPageOptions, type QueueRowView, type SpecTarget } from "../../../../../src/render";
+import { row, openKeys } from "../../fixtures.ts";
 
 // --- One action per row, and the phases hard left -----------------
 //
@@ -339,7 +331,6 @@ describe("a recorded phase choice survives the render", () => {
     expect(labels(action(html))).toEqual(["Archive"]);
   });
 });
-
 
 test("an active spec offers Archive again after a stopped archive", () => {
   const specFolder = "664-archive";

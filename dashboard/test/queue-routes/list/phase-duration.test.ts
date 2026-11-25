@@ -8,6 +8,7 @@ import {
   type QueueRowView,
   type SpecTarget,
 } from "../../../src/render";
+import { row as queueRow } from "../../design/row-fixtures.ts";
 import { durationLabel } from "../../../src/render/ui/job-state";
 import { phaseDuration } from "../../../src/render/pages/specs-list/data-model";
 
@@ -22,18 +23,8 @@ import { phaseDuration } from "../../../src/render/pages/specs-list/data-model";
 describe("a phase says how long it took", () => {
   const NOW = "2026-08-16T12:00:00Z";
 
-  const job = (id: string, spec: string, extra: Partial<QueueRowView> = {}): QueueRowView => ({
-    id,
-    project: "aide",
-    specFolder: spec,
-    steps: ["analyze"],
-    stepIndex: 0,
-    state: "done",
-    spentUsd: 0,
-    timeoutSec: 1200,
-    createdAt: "2026-08-16T08:00:00Z",
-    ...extra,
-  });
+  const job = (id: string, spec: string, extra: Partial<QueueRowView> = {}): QueueRowView =>
+    queueRow({ id, specFolder: spec, state: "done", createdAt: "2026-08-16T08:00:00Z", ...extra });
 
   const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
     project: "aide",
@@ -248,18 +239,8 @@ describe("a phase says how long it took", () => {
 // Called directly rather than through a page: what is under test is the
 // math, and a route test proves nothing about it that this doesn't.
 describe("computeSpecTotalDurationMs", () => {
-  const row = (id: string, extra: Partial<QueueRowView>): QueueRowView => ({
-    id,
-    project: "aide",
-    specFolder: "aa-spec",
-    steps: ["analyze"],
-    stepIndex: 0,
-    state: "done",
-    spentUsd: 0,
-    timeoutSec: 1200,
-    createdAt: "2026-08-13T08:00:00Z",
-    ...extra,
-  });
+  const row = (id: string, extra: Partial<QueueRowView>): QueueRowView =>
+    queueRow({ id, specFolder: "aa-spec", state: "done", createdAt: "2026-08-13T08:00:00Z", ...extra });
 
   /** The same three jobs the list's own "sum, not span" test uses: five
    *  minutes of analyze, ten of implement, five of archive, three days
@@ -422,18 +403,8 @@ describe("an archived row reads a still-remembered queue job the same way a live
   const NOW = Date.parse("2026-08-16T12:00:00Z");
   const KEY = "aide/aa-spec";
 
-  const job = (id: string, extra: Partial<QueueRowView> = {}): QueueRowView => ({
-    id,
-    project: "aide",
-    specFolder: "aa-spec",
-    steps: ["analyze"],
-    stepIndex: 0,
-    state: "done",
-    spentUsd: 0,
-    timeoutSec: 1200,
-    createdAt: "2026-08-16T08:00:00Z",
-    ...extra,
-  });
+  const job = (id: string, extra: Partial<QueueRowView> = {}): QueueRowView =>
+    queueRow({ id, specFolder: "aa-spec", state: "done", createdAt: "2026-08-16T08:00:00Z", ...extra });
 
   const archived = (extra: Partial<ArchivedSpecView> = {}): ArchivedSpecView => ({
     project: "aide",

@@ -1,12 +1,33 @@
 // Shared fixtures for the render.test.ts split (7646 lines, 68
 // describe blocks) into test/render/pages/, one file per theme.
 
+import { afterEach } from "bun:test";
+import { Window } from "happy-dom";
 import {
   navEntries,
   renderProjectsPage,
+  renderSpecsRows,
   type ProjectView,
   type QueueRowView,
+  type SpecsPageOptions,
+  type SpecTarget,
 } from "../../../src/render";
+
+/** Registers the `afterEach` that closes every window it opened, in the
+ *  calling file, and returns `parse(html)`: the document a browser
+ *  builds from that HTML. */
+export function documents(): (html: string) => Document {
+  const windows: Window[] = [];
+  afterEach(async () => {
+    while (windows.length) await windows.pop()!.happyDOM.close();
+  });
+  return (html) => {
+    const win = new Window();
+    windows.push(win);
+    win.document.write(html);
+    return win.document as unknown as Document;
+  };
+}
 
 /** Every <link> on a page that is a second REQUEST rather than a data
  *  URI — what "self-contained" means here, since the site is published
@@ -122,3 +143,40 @@ export const openKeys = (
       ...targets.map((t) => `${t.project}/${t.specFolder}`),
     ]),
   ].join(",");
+
+/** A spec on the specs list, in project aide. */
+export const specTarget = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
+  project: "aide",
+  specFolder,
+  ...extra,
+});
+
+/** The specs list's rows as drawn at `at`, with the runner available and
+ *  every spec they name opened; `defaultTargets` when a test names none. */
+export const openRowsAt = (at: string, defaultTargets: SpecTarget[] = []) =>
+  (list: QueueRowView[], targets: SpecTarget[] = defaultTargets, opts: Partial<SpecsPageOptions> = {}): string =>
+    renderSpecsRows(list, { runnerAvailable: true, targets, filter: { open: openKeys(list, targets) }, ...opts }, Date.parse(at));
+
+/** `openRowsAt` for the tests that read the pickers: every render starts
+ *  from `base`, and takes its own options before its targets. */
+export const pickerRowsAt = (at: string, base: Partial<SpecsPageOptions>, defaultTargets: SpecTarget[]) =>
+  (list: QueueRowView[] = [], opts: Partial<SpecsPageOptions> = {}, targets: SpecTarget[] = defaultTargets): string =>
+    renderSpecsRows(
+      list,
+      { runnerAvailable: true, targets, ...base, filter: { open: openKeys(list, targets) }, ...opts },
+      Date.parse(at),
+    );
+
+/** An open row's header and the lines it reveals under it, up to the
+ *  next spec's header: where the run control and the phase boxes are. */
+export const runLine = (html: string, folder: string): string =>
+  html.match(
+    new RegExp(
+      `<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">[\\s\\S]*?` +
+        `(?=<tr class="[^"]*spechead|</tbody>|$)`,
+    ),
+  )?.[0] ?? "";
+
+/** One phase's checkbox and its label, from the line it sits on. */
+export const phaseBox = (line: string, step: string): string =>
+  line.match(new RegExp(`<label class="phase[^"]*" data-phase="${step}"[^>]*>.*?</label>`))?.[0] ?? "";

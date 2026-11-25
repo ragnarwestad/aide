@@ -4,35 +4,28 @@
 // on it is the row the Specs list draws.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { t } from "../../../src/i18n";
 import type { FailedCreate } from "../../../src/push/failed-creates.ts";
 import { renderFailedCreateNotices } from "../../../src/render/pages/specs-list/failed-create-notices.ts";
 import { newSpecLink } from "../../../src/render/pages/specs-list/filter-bar.ts";
-import { pageUntil, ran, statusSaying } from "../../helpers/queue-server.ts";
+import { createdJob, pageUntil, ran, statusSaying } from "../../helpers/queue-server.ts";
+import { tempDirs } from "../../helpers/setup/temp-dirs.ts";
 import { dated, group, setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness } = setupQueueRoutesHarness();
-const tmp: string[] = [];
+const tmp = tempDirs("aide-jobs-");
 
-afterEach(() => {
-  harness.cleanup();
-  while (tmp.length) rmSync(tmp.pop()!, { recursive: true, force: true });
-});
+afterEach(() => harness.cleanup());
 
+/** A running analyze of the example spec: the shared Create job, with `o` on top. */
+const { finishedAt: _finished, ...created } = createdJob();
 const job = (o: Record<string, unknown>) => ({
+  ...created,
   id: "j1",
-  project: "aide",
-  specFolder: "81-queue-and-runner",
   steps: ["analyze"],
-  stepIndex: 0,
   state: "running",
-  timeoutSec: {},
-  permissionMode: {},
-  model: {},
-  results: [],
   createdAt: "2026-10-08T10:00:00Z",
   startedAt: "2026-10-08T10:00:00Z",
   ...o,
@@ -42,8 +35,7 @@ const job = (o: Record<string, unknown>) => ({
  *  `report` for other, so a waiting scheduled job of either keeps its row.
  *  Switched off, so the scheduler queues no run of its own beside them. */
 function scheduleConfig(): string {
-  const dir = mkdtempSync(join(tmpdir(), "aide-jobs-schedule-"));
-  tmp.push(dir);
+  const dir = tmp.make();
   const file = join(dir, "queue-config.json");
   const entry = (name: string) => ({ name, cron: "0 3 * * *", prompt: `docs/${name}.md`, enabled: false });
   writeFileSync(file, JSON.stringify({ schedules: { aide: [entry("nightly"), entry("report")], other: [entry("report")] } }));
@@ -245,8 +237,7 @@ describe("a create that ended without a spec shows as the Specs list's message",
   };
 
   function withRecord() {
-    const dir = mkdtempSync(join(tmpdir(), "aide-jobs-failed-create-"));
-    tmp.push(dir);
+    const dir = tmp.make();
     const failedCreatesPath = join(dir, "failed-creates.json");
     writeFileSync(failedCreatesPath, JSON.stringify([record]));
     return board([failed], { failedCreatesPath, queueProjects: [] });

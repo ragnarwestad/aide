@@ -1,6 +1,7 @@
-import { afterAll, beforeAll, expect, test } from "bun:test";
-import { chromium, type Browser, type Page } from "playwright";
+import { expect, test } from "bun:test";
+import type { Browser, Page } from "playwright";
 import { browserDeadline, withBrowser } from "../../helpers/browser-deadline.ts";
+import { e2eBrowser } from "../../helpers/setup/e2e-browser.ts";
 import { queueHarness } from "../../helpers/queue-server.ts";
 import { makeSpecsRepo } from "../../helpers/specs-repo.ts";
 
@@ -14,8 +15,8 @@ let startedMember: string;
 const description = (folder: string, position: number) =>
   `# ${folder}\n\n## Tracking info\n\n- **Created:** \`2026-11-11\`\n- **Group:** \`Release\`\n- **Group position:** ${position}\n`;
 
-beforeAll(async () => {
-  browser = await withBrowser(chromium.launch(), "chromium.launch()");
+e2eBrowser(harness, async (launched) => {
+  browser = launched;
   page = await browser.newPage();
   const started = harness.start({
     description: description("81-queue-and-runner", 2),
@@ -38,11 +39,6 @@ beforeAll(async () => {
   const body = await response.json() as { job: { specFolder: string } };
   startedMember = body.job.specFolder;
   await page.getByRole("button", { name: "Release", exact: true }).click();
-});
-
-afterAll(async () => {
-  await browser.close();
-  harness.cleanup();
 });
 
 test("Running keeps one group card and its member detail open in place (AC-1, AC-2, AC-5)", async () => {

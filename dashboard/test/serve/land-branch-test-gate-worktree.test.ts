@@ -5,14 +5,14 @@
 // already loaded. The worktree carries the project's worktreeLinks and
 // its .aide/config, and is gone when the gate is over.
 
-import { afterEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { describe, expect, test } from "bun:test";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { timeoutVerdict } from "../../src/serve/land-branch/test-gate.ts";
 import { runProjectSuiteBeforePush } from "../../src/serve/land-branch/test-gate.ts";
 import { formatSentence } from "../../src/messages/format.ts";
 import { namingRecorder } from "../helpers/naming-recorder.ts";
+import { gateTemps, git, commitAll } from "./land-branch/gate/gate-fixtures.ts";
 
 /** What a reader would see: a message is stored as
  *  its key and the values that fill its blanks, and composed when
@@ -21,35 +21,17 @@ function sentence(s: unknown): string {
   return formatSentence("en", s as Parameters<typeof formatSentence>[1]) ?? "";
 }
 
-
-const dirs: string[] = [];
-afterEach(() => {
-  while (dirs.length) rmSync(dirs.pop()!, { recursive: true, force: true });
-  delete process.env.AIDE_RESOLVE_TEST_CMD_BIN;
-  delete process.env.AIDE_RECORD_TEST_RUN_BIN;
-  delete process.env.AIDE_TEST_GATE_LOG;
-});
-
-function git(cwd: string, ...args: string[]): string {
-  const out = Bun.spawnSync({ cmd: ["git", "-C", cwd, ...args], stdout: "pipe", stderr: "pipe" });
-  if (out.exitCode !== 0) throw new Error(`git ${args.join(" ")} failed: ${out.stderr.toString()}`);
-  return out.stdout.toString();
-}
+const { temp, dirs } = gateTemps();
 
 /** A committed project whose manifest links `deps/` and whose config
  *  carries a test command, with a gitignored `deps/` directory. */
 function project(): string {
-  const dir = mkdtempSync(join(tmpdir(), "aide-gate-tree-"));
-  dirs.push(dir);
+  const dir = temp("aide-gate-tree-");
   mkdirSync(join(dir, ".aide"), { recursive: true });
   writeFileSync(join(dir, ".aide", "project.yaml"), "name: aide\nworktreeLinks: deps\n");
   writeFileSync(join(dir, ".gitignore"), "deps/\n.aide/config\n");
   writeFileSync(join(dir, "README.md"), "# aide\n");
-  git(dir, "init", "-q", "-b", "main");
-  git(dir, "config", "user.name", "Test");
-  git(dir, "config", "user.email", "test@example.com");
-  git(dir, "add", "-A");
-  git(dir, "commit", "-qm", "first");
+  commitAll(dir, "first");
   mkdirSync(join(dir, "deps"));
   writeFileSync(join(dir, "deps", "marker"), "installed\n");
   writeFileSync(join(dir, ".aide", "config"), "AIDE_TEST_CMD=true\n");
@@ -59,8 +41,7 @@ function project(): string {
 /** Fake resolver and recorder: the recorder writes where it ran and
  *  what it saw there. */
 function fakeScripts(record: string): void {
-  const bin = mkdtempSync(join(tmpdir(), "aide-gate-bin-"));
-  dirs.push(bin);
+  const bin = temp("aide-gate-bin-");
   writeFileSync(join(bin, "resolve"), '#!/bin/sh\nprintf \'{"ok":true,"commands":["true"]}\\n\'\n', { mode: 0o755 });
   writeFileSync(
     join(bin, "record"),

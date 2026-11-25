@@ -6,9 +6,10 @@
 // form submit, and presses the row's real Run/Archive control to prove
 // the hold is actually gone — the other half of the proof
 // `dashboard/test/round`'s sixth fixture gives on the machine side.
-import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { chromium, type Browser, type Page } from "playwright";
+import { describe, expect, test } from "bun:test";
+import type { Page } from "playwright";
 import { browserDeadline, withBrowser } from "../helpers/browser-deadline.ts";
+import { e2eBrowser, waitUntil } from "../helpers/setup/e2e-browser.ts";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { queueHarness, ran } from "../helpers/queue-server.ts";
@@ -39,26 +40,10 @@ const STATE_JSON = JSON.stringify({
 });
 
 const harness = queueHarness("aide-e2e-acceptance-");
-let browser: Browser;
 let page: Page;
 let base: string;
 
-/** Poll until a condition holds, or give up saying which one did not.
- *  For anything the board reaches by its OWN poll rather than by the
- *  write that caused it: a fixed sleep has to guess how long that poll
- *  takes, and a guess that is long enough on an idle machine is not long
- *  enough on a loaded one. */
-async function waitUntil(cond: () => Promise<boolean>, ms: number, label: string): Promise<void> {
-  const deadline = Date.now() + ms;
-  for (;;) {
-    if (await cond()) return;
-    if (Date.now() >= deadline) throw new Error(`${label} did not happen within ${ms}ms`);
-    await new Promise((r) => setTimeout(r, 50));
-  }
-}
-
-beforeAll(async () => {
-  browser = await withBrowser(chromium.launch(), "chromium.launch()");
+e2eBrowser(harness, async (browser) => {
   page = await browser.newPage();
   const started = harness.start({
     extra: { gitRun: recording().run },
@@ -87,8 +72,6 @@ beforeAll(async () => {
     "the specs list to carry the acceptance hold-back message",
   );
 });
-
-afterAll(async () => { await browser.close(); harness.cleanup(); });
 
 describe("the acceptance gate, on a page a person could click", () => {
 

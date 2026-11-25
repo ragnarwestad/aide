@@ -5,30 +5,23 @@
 // and checks the replacement dialog leaves none of nav-busy.ts's/
 // nav-overlay.ts's own side effects behind once the reader chooses to
 // stay, and follows the link once the reader chooses to leave.
-import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { chromium, type Browser, type Page } from "playwright";
+import { describe, expect, test } from "bun:test";
+import type { Page } from "playwright";
 import { browserDeadline, withBrowser } from "../helpers/browser-deadline.ts";
+import { e2eBrowser } from "../helpers/setup/e2e-browser.ts";
 import { queueHarness, ran } from "../helpers/queue-server.ts";
 
 browserDeadline();
 
-
 const harness = queueHarness("aide-e2e-leave-app-");
-let browser: Browser;
 let page: Page;
 let base: string;
 
-beforeAll(async () => {
-  browser = await withBrowser(chromium.launch(), "chromium.launch()");
+e2eBrowser(harness, async (browser) => {
   page = await browser.newPage();
   const started = harness.start();
   base = started.base;
   ran(started.dir, []);
-});
-
-afterAll(async () => {
-  await browser.close();
-  harness.cleanup();
 });
 
 /** Dirties the page through the Settings page's own tracked form: a time

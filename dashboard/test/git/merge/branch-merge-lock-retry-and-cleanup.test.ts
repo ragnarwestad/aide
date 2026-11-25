@@ -7,26 +7,7 @@
 import { describe, expect, test } from "bun:test";
 import { mergeBranchIntoDefault } from "../../../src/git/branch-merge/index.ts";
 import { fakeGit, CLEAN_MASTER, type GitCall } from "../../helpers/fake-git.ts";
-import { formatSentence } from "../../../src/messages/format.ts";
-
-/** What a reader would see: a message is stored as
- *  its key and the values that fill its blanks, and composed when
- *  the page is drawn. */
-function sentence(s: unknown): string {
-  return formatSentence("en", s as Parameters<typeof formatSentence>[1]) ?? "";
-}
-
-
-const BRANCH = "aide/89-merge-from-the-dashboard";
-const ROOT = "/repos/aide";
-const noWait = async (_ms: number): Promise<void> => {};
-
-/** The whole argv of every call, in order — the sequence is the thing
- *  under test, not any single command. */
-const argv = (calls: GitCall[]): string[] => calls.map((c) => c.args.join(" "));
-
-const ran = (calls: GitCall[], prefix: string): boolean =>
-  argv(calls).some((a) => a.startsWith(prefix));
+import { argv, BRANCH, noWait, ran, ROOT, sentence } from "./merge-fixtures.ts";
 
 // --- The catch-up and git's own lock ---------------------------------
 

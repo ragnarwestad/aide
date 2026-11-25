@@ -4,7 +4,7 @@
 // "Starting…" — so the sources are scanned for markup only the component
 // may write.
 import { describe, expect, test } from "bun:test";
-import { read } from "./source.ts";
+import { pageSources } from "./source.ts";
 
 const MESSAGE = "src/render/ui/components/message.ts";
 
@@ -12,10 +12,7 @@ const matching = (files: { file: string; text: string }[], needle: RegExp, excep
   files.filter((f) => f.file !== except && needle.test(f.text)).map((f) => f.file);
 
 describe("one button, one button link, one message line", () => {
-  const render = read("src/render/**/*.ts");
-  const serve = read("src/serve/**/*.ts");
-  const client = read("src/specs-client/**/*.ts");
-  const all = [...render, ...serve, ...client];
+  const { render, serve, client, all } = pageSources();
 
   test("the globs found the sources at all", () => {
     // A guard that silently matches nothing passes forever.

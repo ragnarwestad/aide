@@ -1,8 +1,9 @@
 // An approach's address, in a real browser: the Solution tab opens with the
 // editor scrolled to the approach's lead, so it is in view without the reader
 // scrolling to it.
-import { afterAll, beforeAll, test } from "bun:test";
-import { chromium, type Browser } from "playwright";
+import { test } from "bun:test";
+import type { Browser } from "playwright";
+import { e2eBrowser } from "../../helpers/setup/e2e-browser.ts";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { browserDeadline, withBrowser } from "../../helpers/browser-deadline.ts";
@@ -26,19 +27,14 @@ const harness = queueHarness("aide-e2e-approach-address-");
 let browser: Browser;
 let base: string;
 
-beforeAll(async () => {
-  browser = await withBrowser(chromium.launch(), "chromium.launch()");
+e2eBrowser(harness, (launched) => {
+  browser = launched;
   const started = harness.start({
     extra: { gitRun: recording().run },
     status: statusSaying(["create", "analyze"]),
   });
   base = started.base;
   writeFileSync(join(started.dir, "root", "aide", "specs", FOLDER, "3-solution.md"), SOLUTION);
-});
-
-afterAll(async () => {
-  await browser.close();
-  harness.cleanup();
 });
 
 test("an approach's address shows its lead by scrolling the editor", async () => {

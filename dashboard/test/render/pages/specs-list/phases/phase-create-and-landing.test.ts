@@ -1,11 +1,8 @@
 // Split out of phase-rules.test.ts by theme.
 
 import { describe, expect, test } from "bun:test";
-import { renderSpecsRows, type SpecsPageOptions, type QueueRowView, type SpecTarget } from "../../../../../src/render";
-import {
-  row,
-  openKeys,
-} from "../../fixtures.ts";
+import { renderSpecsRows, type QueueRowView } from "../../../../../src/render";
+import { row, specTarget, openRowsAt } from "../../fixtures.ts";
 
 // The › that opens a phase's messages is a link in the cell; the name beside it is still plain text.
 const noFold = (html: string): string => html.replace(/<a class="fold[^>]*>[\s\S]*?<\/a>/, "");
@@ -22,11 +19,7 @@ const stateCell = (line: string): string =>
   line.match(/<td data-col="state">.*?<\/td>/)?.[0] ?? "";
 
 describe("create is the first phase line", () => {
-  const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
-    project: "aide",
-    specFolder,
-    ...extra,
-  });
+  const target = specTarget;
   const createJob = (specFolder: string, extra: Partial<QueueRowView> = {}): QueueRowView =>
     row({
       id: "c1",
@@ -37,12 +30,7 @@ describe("create is the first phase line", () => {
       startedAt: "2026-08-19T10:00:00Z",
       ...extra,
     });
-  const rows = (list: QueueRowView[], targets: SpecTarget[], opts: Partial<SpecsPageOptions> = {}) =>
-    renderSpecsRows(
-      list,
-      { runnerAvailable: true, targets, filter: { open: openKeys(list, targets) }, ...opts },
-      Date.parse("2026-08-19T12:00:00Z"),
-    );
+  const rows = openRowsAt("2026-08-19T12:00:00Z");
   const head = (html: string) => html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>\s*<tr class="specstate"[\s\S]*?<\/tr>/)?.[0] ?? "";
   /** Everything one row draws: its header line and, when it is open,
    *  the phase lines under it — where the boxes live. */
@@ -284,24 +272,11 @@ describe("create is the first phase line", () => {
 // finishes, well before the merge settles, and offers "ready" with a
 // Run/Analyze button for a spec whose files do not exist yet.
 describe("a step still landing reads busy, not ready", () => {
-  const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
-    project: "aide",
-    specFolder,
-    ...extra,
-  });
+  const target = specTarget;
   // Open: these read the row's one control, which rides the caption
   // line the fold opens (2026-09-08). The head line they also read is
   // drawn the same way either way.
-  const rows = (
-    list: QueueRowView[],
-    targets: SpecTarget[] = [],
-    opts: Partial<SpecsPageOptions> = {},
-  ) =>
-    renderSpecsRows(
-      list,
-      { runnerAvailable: true, targets, filter: { open: openKeys(list, targets) }, ...opts },
-      Date.parse("2026-08-26T12:00:00Z"),
-    );
+  const rows = openRowsAt("2026-08-26T12:00:00Z");
   const head = (html: string, folder: string) =>
     html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>\\s*<tr class="specstate".*?</tr>`))?.[0] ?? "";
   /** The row's own controls line: the run form and
@@ -392,17 +367,8 @@ describe("a step still landing reads busy, not ready", () => {
 // (`notice-row.ts`) could let an earlier, unrelated phase's own softer
 // qualifier hide archive's real one.
 describe("an unlanded archive failure names itself, not an unrelated phase", () => {
-  const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
-    project: "aide",
-    specFolder,
-    ...extra,
-  });
-  const rows = (list: QueueRowView[], targets: SpecTarget[]) =>
-    renderSpecsRows(
-      list,
-      { runnerAvailable: true, targets, filter: { open: openKeys(list, targets) } },
-      Date.parse("2026-08-30T12:00:00Z"),
-    );
+  const target = specTarget;
+  const rows = openRowsAt("2026-08-30T12:00:00Z");
   const panel = (html: string) => html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "";
   const BUILT = ["create", "analyze", "implement", "archive"];
 
@@ -527,7 +493,6 @@ describe("a landing marks only the step being landed, not every finished step", 
     const html = openRows([chained]);
     expect(badgeLabel(html, "archive")).toBe("Running");
   });
-
 
   // The rule holds for every step that lands its own
   // work, not only archive.

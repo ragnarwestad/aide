@@ -2,7 +2,7 @@ import { groupBySpec } from "../../../../../src/render/pages/specs-list/data-mod
 import { describe, expect, test } from "bun:test";
 import { renderSpecsRows, type ArchivedSpecView, type QueueRowView, type SpecsPageOptions, type SpecTarget } from "../../../../../src/render";
 import { t } from "../../../../../src/i18n";
-import { row, openKeys } from "../../fixtures.ts";
+import { row, specTarget, openRowsAt, runLine } from "../../fixtures.ts";
 
 // Split out of grouping.test.ts by theme.
 
@@ -14,29 +14,11 @@ describe("a description changed since the analysis", () => {
   const job = (id: string, step: string, extra: Partial<QueueRowView> = {}): QueueRowView =>
     row({ id, specFolder: "97-stale", steps: [step], stepIndex: 0, state: "done", ...extra });
 
-  const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
-    project: "aide",
-    specFolder,
-    ...extra,
-  });
+  const target = specTarget;
 
   // The run controls sit on the phase lines, which a collapsed row does
   // not draw at all — so every example here opens its spec.
-  const rows = (list: QueueRowView[], targets: SpecTarget[]) =>
-    renderSpecsRows(
-      list,
-      { runnerAvailable: true, targets, filter: { open: openKeys(list, targets) } },
-      Date.parse("2026-08-18T12:00:00Z"),
-    );
-
-  /** The line the phase boxes are on, under the header. */
-  const runLine = (html: string, folder: string) =>
-    html.match(
-      new RegExp(
-        `<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">[\\s\\S]*?` +
-          `(?=<tr class="[^"]*spechead|</tbody>|$)`,
-      ),
-    )?.[0] ?? "";
+  const rows = openRowsAt("2026-08-18T12:00:00Z");
 
   // `done` is what the server has already stripped `analyze`
   // out of; the row's job is to pre-tick the first phase

@@ -35,25 +35,8 @@ import {
 import { createGitRunner } from "../../../src/git/process/index.ts";
 import type { OpenBranchTarget } from "../../../src/git/branch-file.ts";
 import { fakeGit } from "../../helpers/fake-git.ts";
+import { DIR, FOLDER, gitLogging, subject } from "./workflow-history-fixtures.ts";
 
-const FOLDER = "154-the-runner-owns-the-record-of-what-has-run";
-const DIR = `/specs/aide/${FOLDER}`;
-
-const subject = (
-  step: string,
-  opts: { headless?: boolean; stopped?: string; folder?: string; model?: string } = {},
-) =>
-  `Run /aide-${step} for ${opts.folder ?? FOLDER}` +
-  (opts.headless === false ? "" : " (headless)") +
-  // The model suffix sits BEFORE the stop reason, which is read
-  // greedily to the end of the subject — a suffix after it would be
-  // swallowed into the reason.
-  (opts.model ? ` (model: ${opts.model})` : "") +
-  (opts.stopped ? ` (stopped: ${opts.stopped})` : "");
-
-/** git log prints NEWEST FIRST, and every case here depends on that. */
-const gitLogging = (...subjects: string[]) =>
-  fakeGit({ log: { code: 0, stdout: subjects.join("\n") + "\n" } });
 
 // The one canonical `{ done, stopped, fileDisagrees, fileSteps }`
 // a spec's steps resolve to, built from the same two peeks `withFreshness`
@@ -364,18 +347,24 @@ describe("completedPhasesOf", () => {
 const gitIn = (dir: string, ...args: string[]) =>
   Bun.spawnSync({ cmd: ["git", "-C", dir, ...args], stdout: "pipe", stderr: "pipe" });
 
+/** A repository on main whose spec folder has had its create and analyze commits. */
+function analyzedSpecRepo(prefix: string): { repo: string; specDir: string } {
+  const repo = mkdtempSync(join(tmpdir(), prefix));
+  gitIn(repo, "init", "-q", "-b", "main");
+  gitIn(repo, "config", "user.name", "Test");
+  gitIn(repo, "config", "user.email", "test@example.com");
+  const specDir = join(repo, FOLDER);
+  mkdirSync(specDir);
+  writeFileSync(join(specDir, "1-description.md"), "# spec\n");
+  gitIn(repo, "add", "-A");
+  gitIn(repo, "commit", "-qm", subject("create"));
+  gitIn(repo, "commit", "-q", "--allow-empty", "-m", subject("analyze"));
+  return { repo, specDir };
+}
+
 describe("WorkflowHistoryChecker against real git", () => {
   test("finds a stopped implement commit that never left the spec's branch", async () => {
-    const repo = mkdtempSync(join(tmpdir(), "aide-history-"));
-    gitIn(repo, "init", "-q", "-b", "main");
-    gitIn(repo, "config", "user.name", "Test");
-    gitIn(repo, "config", "user.email", "test@example.com");
-    const specDir = join(repo, FOLDER);
-    mkdirSync(specDir);
-    writeFileSync(join(specDir, "1-description.md"), "# spec\n");
-    gitIn(repo, "add", "-A");
-    gitIn(repo, "commit", "-qm", subject("create"));
-    gitIn(repo, "commit", "-q", "--allow-empty", "-m", subject("analyze"));
+    const { repo, specDir } = analyzedSpecRepo("aide-history-");
     // The implement step's own commit, on the branch archive has not
     // landed yet — invisible to a HEAD-only search, which is the whole
     // reason the query names every ref.
@@ -442,16 +431,7 @@ describe("WorkflowHistoryChecker with a reopen boundary", () => {
 
 describe("WorkflowHistoryChecker boundary against real git", () => {
   test("the earlier round is not counted, and the new round still is", async () => {
-    const repo = mkdtempSync(join(tmpdir(), "aide-reopen-"));
-    gitIn(repo, "init", "-q", "-b", "main");
-    gitIn(repo, "config", "user.name", "Test");
-    gitIn(repo, "config", "user.email", "test@example.com");
-    const specDir = join(repo, FOLDER);
-    mkdirSync(specDir);
-    writeFileSync(join(specDir, "1-description.md"), "# spec\n");
-    gitIn(repo, "add", "-A");
-    gitIn(repo, "commit", "-qm", subject("create"));
-    gitIn(repo, "commit", "-q", "--allow-empty", "-m", subject("analyze"));
+    const { repo, specDir } = analyzedSpecRepo("aide-reopen-");
     gitIn(repo, "commit", "-q", "--allow-empty", "-m", subject("implement"));
     gitIn(repo, "commit", "-q", "--allow-empty", "-m", subject("archive"));
     const boundary = gitIn(repo, "rev-parse", "HEAD").stdout.toString().trim();

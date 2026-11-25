@@ -5,7 +5,7 @@
 // an English title where every other arrow's was translated — so the sources
 // are scanned for markup only the component may write.
 import { describe, expect, test } from "bun:test";
-import { read } from "./source.ts";
+import { pageSources } from "./source.ts";
 
 const FOLD = "src/render/ui/components/fold-arrow.ts";
 const TABS = "src/render/ui/tabs.ts";
@@ -68,10 +68,7 @@ const writesLabelledCheckbox = (text: string): boolean =>
 const writesDisclosure = (text: string): boolean => /<details(?![^>]*class=\\?"menu\b)[\s>]/.test(text);
 
 describe("one fold arrow, one disclosure, one tab strip, one table of facts, one one-button form, one labelled checkbox", () => {
-  const render = read("src/render/**/*.ts");
-  const serve = read("src/serve/**/*.ts");
-  const client = read("src/specs-client/**/*.ts");
-  const all = [...render, ...serve, ...client];
+  const { render, serve, client, all } = pageSources();
 
   test("the globs found the sources at all", () => {
     // A guard that silently matches nothing passes forever.

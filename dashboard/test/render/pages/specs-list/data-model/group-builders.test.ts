@@ -4,9 +4,7 @@
 
 import { describe, expect, test } from "bun:test";
 import type { QueueRowView } from "../../../../../src/render";
-import {
-  groupBySpec, groupKey, type ArchivedSpecView, type SpecTarget,
-} from "../../../../../src/render/pages/specs-list/data-model";
+import { groupBySpec, groupKey, type ArchivedSpecView, type SpecTarget } from "../../../../../src/render/pages/specs-list/data-model";
 
 const NOW = Date.parse("2026-11-12T12:00:00Z");
 const job = (o: Partial<QueueRowView>): QueueRowView => ({

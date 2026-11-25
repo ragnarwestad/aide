@@ -13,12 +13,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import {
-  renderSpecsRows,
-  type ArchivedSpecView,
-  type QueueRowView,
-  type SpecTarget,
-} from "../../../../../src/render";
+import { renderSpecsRows, type ArchivedSpecView, type QueueRowView, type SpecTarget } from "../../../../../src/render";
 
 const NOW = "2026-09-02T12:00:00Z";
 

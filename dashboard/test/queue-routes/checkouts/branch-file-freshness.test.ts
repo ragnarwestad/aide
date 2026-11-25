@@ -10,11 +10,12 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { createdJob, ran, statusSaying } from "../../helpers/queue-server.ts";
-import { createGitRunner, type GitRunner } from "../../../src/git/process/index.ts";
+import type { GitRunner } from "../../../src/git/process/index.ts";
 import { withFreshness } from "../../../src/serve/land-branch";
 import type { LandContext } from "../../../src/serve/land-branch";
 import type { SpecTarget } from "../../../src/render";
 import { specControls, phaseDone, listUntil, dated, setupQueueRoutesHarness } from "../fixtures.ts";
+import { branchReadingGit, type BranchReadingOpts } from "./branch-reading-fixtures.ts";
 
 const { harness, start: startServer } = setupQueueRoutesHarness();
 const start: typeof startServer = (extra, projects, specs, status, state, mirror) =>
@@ -46,63 +47,8 @@ describe("the file is read from the branch a still-open spec is on", () => {
   const FOLDER = "81-queue-and-runner";
   const specDir = (dir: string) => join(dir, "root", "aide", "specs", FOLDER);
 
-  /** Real git for everything (workflow history), except the branch-read
-   *  calls `resolveOpenBranchTarget`/`readStatusFromBranch` make — there
-   *  is no real `origin` remote in this harness, so those calls are
-   *  simulated, scoped to this spec's own branch and path.
-   *
-   *  `rev-parse --show-toplevel` is intercepted too, the same way
-   *  `branchAwareGitRunner` (`spec-checks-fixtures.ts`) already does:
-   *  real git resolves macOS's `/tmp` → `/private/tmp` symlink, which
-   *  makes its answer a different STRING than the literal `dir` this
-   *  fixture was handed even though both name the same directory — and
-   *  `relative(root, ...)` then builds a `../../..` path instead of a
-   *  clean relative one. Slicing the known suffix off `d` keeps `root`
-   *  in the same string family `dir` already is. */
-  const branchReadingGitRun = (
-    opts: { open: boolean; branchText?: string; archivedText?: string; stateText?: string },
-  ): GitRunner => {
-    const real = createGitRunner();
-    const branch = `aide/${FOLDER}`;
-    const relPath = `aide/specs/${FOLDER}/4-status.md`;
-    // Where `archive` moves the folder ON THE BRANCH once it has run
-    // there — the active path above then names nothing at all, and git
-    // answers a `log` for it with no sha, exactly as modelled below.
-    const archivedRelPath = `aide/specs/archive/${FOLDER}/4-status.md`;
-    // The branch's own sibling state file — read alongside
-    // `relPath`, at the same active-folder path `4-status.md` sits at.
-    const jsonRelPath = `aide/specs/${FOLDER}/4-status.json`;
-    const ref = `refs/remotes/origin/${branch}`;
-    const specFolderSuffix = join("aide", "specs", FOLDER);
-    return async (dir, args, timeoutMs, env) => {
-      const line = args.join(" ");
-      if (line === "rev-parse --show-toplevel" && dir.endsWith(specFolderSuffix)) {
-        return { code: 0, stdout: `${dir.slice(0, dir.length - specFolderSuffix.length - 1)}\n` };
-      }
-      if (line === "ls-remote --heads origin refs/heads/aide/*") {
-        return {
-          code: 0,
-          stdout: opts.open ? `deadbeef0000000000000000000000000000000\trefs/heads/${branch}\n` : "",
-        };
-      }
-      if (line === `fetch --quiet origin ${branch}`) return { code: 0, stdout: "" };
-      if (line === `log -1 --format=%H ${ref} -- ${relPath}`) {
-        return { code: 0, stdout: opts.archivedText === undefined ? "cafebabe000000000000000000000000000000\n" : "" };
-      }
-      if (line === `show ${ref}:${relPath}`) return { code: 0, stdout: opts.branchText ?? "" };
-      if (line === `log -1 --format=%H ${ref} -- ${archivedRelPath}`) {
-        return { code: 0, stdout: opts.archivedText === undefined ? "" : "cafebabe000000000000000000000000000000\n" };
-      }
-      if (line === `show ${ref}:${archivedRelPath}`) return { code: 0, stdout: opts.archivedText ?? "" };
-      if (opts.stateText !== undefined) {
-        if (line === `log -1 --format=%H ${ref} -- ${jsonRelPath}`) {
-          return { code: 0, stdout: "cafef00d000000000000000000000000000000\n" };
-        }
-        if (line === `show ${ref}:${jsonRelPath}`) return { code: 0, stdout: opts.stateText };
-      }
-      return real(dir, args, timeoutMs, env);
-    };
-  };
+  /** Real git, except for the reads of this spec's open branch. */
+  const branchReadingGitRun = (opts: BranchReadingOpts): GitRunner => branchReadingGit(FOLDER, opts);
 
   /** Same wait as the other freshness suites: the schedule has to warm
    *  this spec at least once, and the disk scan has to catch up with

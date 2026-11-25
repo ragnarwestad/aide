@@ -1,5 +1,42 @@
 import type { MessageEntry } from "../types.ts";
 
+// The way on from a step whose result was thrown away: run it again.
+const AGAIN_FOR_THIS_STEP = {
+  en: "press {button} again for this step",
+  nb: "trykk {button} igjen for dette steget",
+  es: "pulsa {button} de nuevo para este paso",
+  de: "klicke erneut auf {button} für diesen Schritt",
+  fr: "cliquez de nouveau sur {button} pour cette étape",
+} as const;
+
+// A step that wrote outside its own spec folder, with or without the paths
+// it wrote named after the sentence.
+const SCOPE_SPECS = {
+  en: "it reported success, but wrote outside its own spec folder in the specs repo, and those changes were thrown away",
+  nb: "steget meldte at det gikk bra, men skrev utenfor sin egen spec-mappe i spec-repoet, og de endringene ble forkastet",
+  es: "informó de éxito, pero escribió fuera de su propia carpeta de spec en el repo de specs, y esos cambios se descartaron",
+  de: "der Schritt meldete Erfolg, hat aber außerhalb seines eigenen Spec-Ordners im Spec-Repo geschrieben, und diese Änderungen wurden verworfen",
+  fr: "l'étape a signalé un succès, mais a écrit hors de son propre dossier de spec dans le repo de specs, et ces modifications ont été abandonnées",
+  solution: AGAIN_FOR_THIS_STEP,
+} as const satisfies MessageEntry;
+
+// A step stopped on files other open specs plan to change: said by the
+// runner's outcome and by the specs list's phase word alike.
+export const SHARED_FILES_STOPPED = {
+  en: "{button} stopped: other open specs plan to change the same files as this spec — {message}",
+  nb: "{button} stoppet: andre åpne specs planlegger å endre de samme filene som denne specen — {message}",
+  es: "{button} se detuvo: otras specs abiertas planean cambiar los mismos archivos que esta spec — {message}",
+  de: "{button} angehalten: andere offene Specs planen, dieselben Dateien wie diese Spec zu ändern — {message}",
+  fr: "{button} interrompu : d'autres specs ouvertes prévoient de modifier les mêmes fichiers que cette spec — {message}",
+  solution: {
+    en: "add them to this spec's Depends on",
+    nb: "legg dem til under Avhenger av på denne specen",
+    es: "añádelas a Depende de en esta spec",
+    de: "trage sie bei dieser Spec unter Hängt ab von ein",
+    fr: "ajoutez-les à Dépend de sur cette spec",
+  },
+} as const satisfies MessageEntry;
+
 export const JOBS_ANALYSIS = {
   "runner.dependenciesAdded": {
     en: "dependencies added automatically",
@@ -33,47 +70,15 @@ export const JOBS_ANALYSIS = {
     fr: "la mise à jour automatique des dépendances n’a pas pu aboutir : {reason}",
     solution: { en: "review Depends on, then run Analyze again", nb: "se over Depends on, og kjør Analyser igjen", es: "revisa Depends on y ejecuta Analyze de nuevo", de: "prüfe Depends on und starte Analyze erneut", fr: "vérifiez Depends on puis relancez Analyze" },
   },
-  "runner.scopeSpecs": {
-    en: "it reported success, but wrote outside its own spec folder in the specs repo, and those changes were thrown away",
-    nb: "steget meldte at det gikk bra, men skrev utenfor sin egen spec-mappe i spec-repoet, og de endringene ble forkastet",
-    es: "informó de éxito, pero escribió fuera de su propia carpeta de spec en el repo de specs, y esos cambios se descartaron",
-    de: "der Schritt meldete Erfolg, hat aber außerhalb seines eigenen Spec-Ordners im Spec-Repo geschrieben, und diese Änderungen wurden verworfen",
-    fr: "l'étape a signalé un succès, mais a écrit hors de son propre dossier de spec dans le repo de specs, et ces modifications ont été abandonnées",
-    solution: {
-      en: "press {button} again for this step",
-      nb: "trykk {button} igjen for dette steget",
-      es: "pulsa {button} de nuevo para este paso",
-      de: "klicke erneut auf {button} für diesen Schritt",
-      fr: "cliquez de nouveau sur {button} pour cette étape",
-    },
-  },
-  "runner.scopeSpecsNamed": {
-    en: "it reported success, but wrote outside its own spec folder in the specs repo, and those changes were thrown away",
-    nb: "steget meldte at det gikk bra, men skrev utenfor sin egen spec-mappe i spec-repoet, og de endringene ble forkastet",
-    es: "informó de éxito, pero escribió fuera de su propia carpeta de spec en el repo de specs, y esos cambios se descartaron",
-    de: "der Schritt meldete Erfolg, hat aber außerhalb seines eigenen Spec-Ordners im Spec-Repo geschrieben, und diese Änderungen wurden verworfen",
-    fr: "l'étape a signalé un succès, mais a écrit hors de son propre dossier de spec dans le repo de specs, et ces modifications ont été abandonnées",
-    solution: {
-      en: "press {button} again for this step",
-      nb: "trykk {button} igjen for dette steget",
-      es: "pulsa {button} de nuevo para este paso",
-      de: "klicke erneut auf {button} für diesen Schritt",
-      fr: "cliquez de nouveau sur {button} pour cette étape",
-    },
-  },
+  "runner.scopeSpecs": SCOPE_SPECS,
+  "runner.scopeSpecsNamed": SCOPE_SPECS,
   "runner.scopeAnalyze": {
     en: "it reported success, but changed what an analysis may not change",
     nb: "steget meldte at det gikk bra, men endret noe en analyse ikke får endre",
     es: "informó de éxito, pero cambió algo que un análisis no puede cambiar",
     de: "der Schritt meldete Erfolg, hat aber etwas geändert, das eine Analyse nicht ändern darf",
     fr: "l'étape a signalé un succès, mais a modifié ce qu'une analyse ne peut pas modifier",
-    solution: {
-      en: "press {button} again for this step",
-      nb: "trykk {button} igjen for dette steget",
-      es: "pulsa {button} de nuevo para este paso",
-      de: "klicke erneut auf {button} für diesen Schritt",
-      fr: "cliquez de nouveau sur {button} pour cette étape",
-    },
+    solution: AGAIN_FOR_THIS_STEP,
   },
   "runner.scopeAnalyzeLegacy": {
     en: "it reported success, but changed something an analysis may not change",
@@ -81,13 +86,7 @@ export const JOBS_ANALYSIS = {
     es: "informó de éxito, pero cambió algo que un análisis no puede cambiar",
     de: "der Schritt meldete Erfolg, hat aber etwas geändert, das eine Analyse nicht ändern darf",
     fr: "l'étape a signalé un succès, mais a modifié ce qu'une analyse ne peut pas modifier",
-    solution: {
-      en: "press {button} again for this step",
-      nb: "trykk {button} igjen for dette steget",
-      es: "pulsa {button} de nuevo para este paso",
-      de: "klicke erneut auf {button} für diesen Schritt",
-      fr: "cliquez de nouveau sur {button} pour cette étape",
-    },
+    solution: AGAIN_FOR_THIS_STEP,
   },
   "runner.shortAnalysisOverLimit": {
     en: "it wrote a short analysis for a spec that needs a full one",
@@ -190,20 +189,7 @@ export const JOBS_ANALYSIS = {
     solution: null,
     exempt: "a part of runner.criteriaStopped, which carries the resolution",
   },
-  "runner.sharedFilesStopped": {
-    en: "{button} stopped: other open specs plan to change the same files as this spec — {message}",
-    nb: "{button} stoppet: andre åpne specs planlegger å endre de samme filene som denne specen — {message}",
-    es: "{button} se detuvo: otras specs abiertas planean cambiar los mismos archivos que esta spec — {message}",
-    de: "{button} angehalten: andere offene Specs planen, dieselben Dateien wie diese Spec zu ändern — {message}",
-    fr: "{button} interrompu : d'autres specs ouvertes prévoient de modifier les mêmes fichiers que cette spec — {message}",
-    solution: {
-      en: "add them to this spec's Depends on",
-      nb: "legg dem til under Avhenger av på denne specen",
-      es: "añádelas a Depende de en esta spec",
-      de: "trage sie bei dieser Spec unter Hängt ab von ein",
-      fr: "ajoutez-les à Dépend de sur cette spec",
-    },
-  },
+  "runner.sharedFilesStopped": SHARED_FILES_STOPPED,
   "runner.sharedFilesSpec": {
     en: "{spec}: {files}",
     nb: "{spec}: {files}",

@@ -3,8 +3,9 @@
 // has the job the page goes to the Running page with the spec's row open. A
 // refusal lifts the cover and asks again with the reason.
 
-import { afterEach, describe, expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { coverWhile, submitProgress, type ProgressIo } from "../../../src/specs-client/progress-dialog";
+import { restoreStubbedGlobals } from "../fixtures-runtime.ts";
 
 type Listener = (e: { preventDefault(): void; defaultPrevented: boolean }) => void;
 
@@ -48,18 +49,7 @@ function fakeIo(): Io {
   return io;
 }
 
-const realGlobals = {
-  fetch: globalThis.fetch,
-  FormData: globalThis.FormData,
-  location: (globalThis as { location?: unknown }).location,
-  document: (globalThis as { document?: unknown }).document,
-};
-afterEach(() => {
-  globalThis.fetch = realGlobals.fetch;
-  globalThis.FormData = realGlobals.FormData;
-  (globalThis as { location?: unknown }).location = realGlobals.location;
-  (globalThis as { document?: unknown }).document = realGlobals.document;
-});
+restoreStubbedGlobals();
 
 /** The post: what the server answers, and the requests it received. */
 function stubPost(status: number, body: unknown) {

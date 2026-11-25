@@ -1,7 +1,6 @@
 import { dashboardSettingsFile } from "../../../src/git/dashboard-checkout.ts";
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync, existsSync, lstatSync, mkdirSync, readFileSync, readlinkSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { describe, expect, test } from "bun:test";
+import { existsSync, lstatSync, mkdirSync, readFileSync, readlinkSync } from "node:fs";
 import { join } from "node:path";
 import {
   addProject,
@@ -11,17 +10,9 @@ import {
 import { parseManifest } from "../../../src/project/parse-manifest.ts";
 import { configValue } from "../../../src/project/discover";
 import { cloningGit, fakeGit } from "../../helpers/fake-git.ts";
+import { tempDirs } from "../../helpers/setup/temp-dirs.ts";
 
-const dirs: string[] = [];
-const root = (): string => {
-  const d = mkdtempSync(join(tmpdir(), "aide-project-admin-"));
-  dirs.push(d);
-  return d;
-};
-
-afterEach(() => {
-  while (dirs.length) rmSync(dirs.pop()!, { recursive: true, force: true });
-});
+const root = tempDirs("aide-project-admin-").make;
 
 describe("a project name has to be safe before anything is touched", () => {
   // The name becomes a directory under the projects root

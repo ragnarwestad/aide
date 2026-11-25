@@ -1,9 +1,10 @@
 // Opening a row pushes the spec's own address and draws the spec in its row, so
 // the browser's history is what shuts it again. Pressing the chevron, a tab
 // inside the row and Back only a browser answers.
-import { afterAll, beforeAll, expect, test } from "bun:test";
-import { chromium, type Browser, type Page } from "playwright";
+import { expect, test } from "bun:test";
+import type { Browser, Page } from "playwright";
 import { browserDeadline, withBrowser } from "../../helpers/browser-deadline.ts";
+import { e2eBrowser } from "../../helpers/setup/e2e-browser.ts";
 import { queueHarness } from "../../helpers/queue-server.ts";
 
 browserDeadline();
@@ -13,8 +14,8 @@ let browser: Browser;
 let page: Page;
 let base: string;
 
-beforeAll(async () => {
-  browser = await withBrowser(chromium.launch(), "chromium.launch()");
+e2eBrowser(harness, async (launched) => {
+  browser = launched;
   page = await browser.newPage();
   // Model choices, so the open row's phase table draws its pickers.
   const queueDefaults = {
@@ -24,11 +25,6 @@ beforeAll(async () => {
     modelChoices: { sonnet: {}, fable: {} },
   };
   base = harness.start({ extra: { queueDefaults }, alsoSpecs: ["82-second", "83-third"] }).base;
-});
-
-afterAll(async () => {
-  await browser.close();
-  harness.cleanup();
 });
 
 const fold = (folder: string) => `tr.spechead[data-folder="${folder}"] a.fold`;

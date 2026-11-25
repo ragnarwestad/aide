@@ -1,13 +1,7 @@
 // Split out of phase-controls-and-progress.test.ts by theme.
 
 import { describe, expect, test } from "bun:test";
-import {
-  renderSpecsRows,
-  type SpecsPageOptions,
-  type QueueRowView,
-  type SpecTarget,
-} from "../../../../../src/render";
-import { row, openKeys } from "../../fixtures.ts";
+import { row, specTarget, openRowsAt } from "../../fixtures.ts";
 
 // --- A phase line shows its mark and nothing else -------------------
 //
@@ -22,26 +16,8 @@ import { row, openKeys } from "../../fixtures.ts";
 // The sentence is not lost: it goes into the panel built for
 // "a sentence too long for a cell", named for the phase it is about.
 describe("a phase line shows its mark and nothing else", () => {
-  const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
-    project: "aide",
-    specFolder,
-    ...extra,
-  });
-  const rows = (
-    list: QueueRowView[],
-    targets: SpecTarget[] = [],
-    extra: Partial<SpecsPageOptions> = {},
-  ) =>
-    renderSpecsRows(
-      list,
-      {
-        runnerAvailable: true,
-        targets,
-        filter: { open: openKeys(list, targets) },
-        ...extra,
-      },
-      Date.parse("2026-08-22T12:00:00Z"),
-    );
+  const target = specTarget;
+  const rows = openRowsAt("2026-08-22T12:00:00Z");
   const panel = (html: string) => html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "";
   const subRow = (html: string, phase: string) =>
     html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
@@ -107,26 +83,8 @@ describe("a phase line shows its mark and nothing else", () => {
 // own width never changes — a pip that grew would move everything on the
 // line beside it.
 describe("a running implement says which third it is in", () => {
-  const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
-    project: "aide",
-    specFolder,
-    ...extra,
-  });
-  const rows = (
-    list: QueueRowView[],
-    targets: SpecTarget[] = [],
-    extra: Partial<SpecsPageOptions> = {},
-  ) =>
-    renderSpecsRows(
-      list,
-      {
-        runnerAvailable: true,
-        targets,
-        filter: { open: openKeys(list, targets) },
-        ...extra,
-      },
-      Date.parse("2026-08-23T12:00:00Z"),
-    );
+  const target = specTarget;
+  const rows = openRowsAt("2026-08-23T12:00:00Z");
   const subRow = (html: string, phase: string) =>
     html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
 /** The pips came off the specs list on 2026-09-07: what a running

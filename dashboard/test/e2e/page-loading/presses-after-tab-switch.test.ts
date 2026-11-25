@@ -1,9 +1,10 @@
 // A list reached through a tab is drawn in place, with a new `<main>`: its
 // row presses must still be posted from the page, not by the browser,
 // which would leave the reader on the server's JSON answer.
-import { afterAll, beforeAll, expect, test } from "bun:test";
-import { chromium, type Browser } from "playwright";
+import { expect, test } from "bun:test";
+import type { Browser } from "playwright";
 import { browserDeadline, withBrowser } from "../../helpers/browser-deadline.ts";
+import { e2eBrowser } from "../../helpers/setup/e2e-browser.ts";
 import { createdJob, queueHarness } from "../../helpers/queue-server.ts";
 
 browserDeadline();
@@ -12,14 +13,9 @@ const harness = queueHarness("aide-e2e-presses-after-tab-");
 let browser: Browser;
 let base: string;
 
-beforeAll(async () => {
-  browser = await withBrowser(chromium.launch(), "chromium.launch()");
+e2eBrowser(harness, (launched) => {
+  browser = launched;
   base = harness.start({ queueMirror: JSON.stringify([createdJob()]) }).base;
-});
-
-afterAll(async () => {
-  await browser.close();
-  harness.cleanup();
 });
 
 test("a row's press on the Specs list reached from Running is posted by the page, not the browser", async () => {

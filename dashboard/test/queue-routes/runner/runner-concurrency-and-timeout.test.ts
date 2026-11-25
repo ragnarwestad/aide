@@ -20,6 +20,25 @@ afterEach(() => {
   while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
+/** A stand-in runner in a folder of its own that waits until the file
+ *  `go` appears. Bounded, not just "wait for the file": `afterEach`
+ *  removes the folder the moment the test ends, and a stand-in that has
+ *  not noticed the go file by then would wait on a path that no longer
+ *  exists, forever. The ceiling (20 s) is under the tests' own 30 s
+ *  timeout, so a stand-in never outlives the test that made it. */
+function waitingRunner(): { own: string; go: string; fakeRunner: string } {
+  const own = mkdtempSync(join(tmpdir(), "aide-concurrency-"));
+  ownDirs.push(own);
+  const go = join(own, "go");
+  const fakeRunner = join(own, "fake-run-spec");
+  writeFileSync(
+    fakeRunner,
+    `#!/bin/sh\nn=0\nwhile [ ! -f ${go} ] && [ $n -lt 400 ]; do sleep 0.05; n=$((n+1)); done\n`,
+    { mode: 0o755 },
+  );
+  return { own, go, fakeRunner };
+}
+
 // --- How many at once -------------------------------
 // The slot count is a number, and a number that turns out wrong should
 // cost a config edit and a restart, not a release (`queue.ts:325-327`).
@@ -65,21 +84,7 @@ describe("the queue config decides how many run at once", () => {
     // Not a unit test of the option: this starts three real runner
     // processes through the server's own spawn path, because "the number
     // reaches the runner" is not the same claim as "three run".
-    const own = mkdtempSync(join(tmpdir(), "aide-concurrency-"));
-    ownDirs.push(own);
-    const go = join(own, "go");
-    const fakeRunner = join(own, "fake-run-spec");
-    // Bounded, not just "wait for the file". `afterEach` removes this
-    // directory the moment the test ends, and a stand-in that has not
-    // noticed the go file by then waits on a path that no longer exists
-    // — forever. Twenty-seven of these were found alive on the serving
-    // host, the oldest two days old. The ceiling is under the test's own
-    // 30s timeout, so a stand-in can never outlive the test that made it.
-    writeFileSync(
-      fakeRunner,
-      `#!/bin/sh\nn=0\nwhile [ ! -f ${go} ] && [ $n -lt 400 ]; do sleep 0.05; n=$((n+1)); done\n`,
-      { mode: 0o755 },
-    );
+    const { own, go, fakeRunner } = waitingRunner();
     const specs = ["82-second", "83-third"];
     const { base } = start({
       queueRunnerBin: fakeRunner,
@@ -114,17 +119,8 @@ describe("the queue config decides how many run at once", () => {
   }, 30000);
 
   test("a count saved from Settings starts the next step without a restart", async () => {
-    // The same bounded stand-in as the test above: one runs, a second
-    // waits for a slot, and the save gives it one.
-    const own = mkdtempSync(join(tmpdir(), "aide-concurrency-"));
-    ownDirs.push(own);
-    const go = join(own, "go");
-    const fakeRunner = join(own, "fake-run-spec");
-    writeFileSync(
-      fakeRunner,
-      `#!/bin/sh\nn=0\nwhile [ ! -f ${go} ] && [ $n -lt 400 ]; do sleep 0.05; n=$((n+1)); done\n`,
-      { mode: 0o755 },
-    );
+    // One runs, a second waits for a slot, and the save gives it one.
+    const { own, go, fakeRunner } = waitingRunner();
     const configFile = join(own, "queue-config.json");
     writeFileSync(configFile, `{\n  // how many at once\n  "concurrency": 1\n}\n`);
     const { base } = start({

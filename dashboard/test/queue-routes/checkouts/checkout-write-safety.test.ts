@@ -1,23 +1,15 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { rmSync, existsSync, readFileSync, writeFileSync } from "node:fs";
+import { describe, expect, test } from "bun:test";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   createServer,
 } from "../../../src/serve/serve.ts";
 import { parseArgs, runnerArgv } from "../../../src/serve/serve-helpers";
-import { setupQueueRoutesHarness } from "../fixtures.ts";
-import { checkoutSafetyHelpers } from "./checkout-safety-fixtures.ts";
+import { checkoutSafetySuite } from "./checkout-safety-fixtures.ts";
 
-const { harness } = setupQueueRoutesHarness();
-
-/** Temp directories this suite makes for itself, outside the harness. */
-const ownDirs: string[] = [];
-const { git, realProject, recording } = checkoutSafetyHelpers(ownDirs);
-
-afterEach(() => {
-  harness.cleanup();
-  while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
-});
+/** The temp directories this suite makes for itself, outside the harness,
+ *  cleared after each test, and the helpers that fill them. */
+const { git, realProject, recording } = checkoutSafetySuite();
 
 // The dashboard works in checkouts of its own.
 //

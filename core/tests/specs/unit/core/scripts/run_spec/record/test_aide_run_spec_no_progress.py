@@ -12,7 +12,7 @@ from ...conftest import READ_SPECS, git, run
 from ..run_spec_fakes import analyze_claude_advancing_row, analyze_claude_naming_implement, analyze_claude_renaming_the_header, analyze_claude_writing_the_line_from_nothing, project_only_claude, specs_only_claude, writing_claude
 from ..run_spec_origins import origin
 from ..run_spec_results import RESULT_OK
-from ..run_spec_status_files import conflicting_branch, recorded_line, status_with_phase, with_status, write_raw_status
+from ..run_spec_status_files import acceptance_section, conflicting_branch, recorded_line, status_with_phase, with_acceptance, with_status, write_raw_status
 from ..run_spec_result_fields import assert_written_as_in_fixture
 
 
@@ -165,15 +165,7 @@ def test_an_archive_claim_over_unticked_acceptance_criteria_is_that_refusal(
     way — never a red `no-progress` beside a held-back row (427,
     2026-09-09)."""
     status_with_phase(workspace, "create, analyze, implement", ["| a | ✅ | |"])
-    status_path = workspace["specs"] / workspace["folder"] / "4-status.md"
-    status_path.write_text(
-        status_path.read_text()
-        + "\n## Acceptance criteria\n\n"
-        + "| Task | Status | Notes |\n|------|--------|-------|\n"
-        + "| REQ-1: does the thing | ⬜ | |\n"
-    )
-    git(workspace["specs"], "add", "-A")
-    git(workspace["specs"], "commit", "-qm", "add acceptance criteria")
+    with_acceptance(workspace, acceptance_section(["| REQ-1: does the thing | ⬜ | |"]), {})
     rc, out, _ = _archive_claim_after_resolving_a_conflict(runner, workspace, fake_claude)
     assert rc == 0, out
     assert out["ok"] is True, out
@@ -417,15 +409,7 @@ def test_an_archive_claim_over_not_verified_acceptance_rows_is_not_refused(
     """The runner's archive pre-check reads a Not verified Acceptance row
     as done, so it does not answer `acceptance-criteria-unticked`."""
     status_with_phase(workspace, "create, analyze, implement", ["| a | ✅ | |"])
-    status_path = workspace["specs"] / workspace["folder"] / "4-status.md"
-    status_path.write_text(
-        status_path.read_text()
-        + "\n## Acceptance criteria\n\n"
-        + "| Task | Status | Notes |\n|------|--------|-------|\n"
-        + "| REQ-1: does the thing | Not verified | Not tested: x |\n"
-    )
-    git(workspace["specs"], "add", "-A")
-    git(workspace["specs"], "commit", "-qm", "add acceptance criteria")
+    with_acceptance(workspace, acceptance_section(["| REQ-1: does the thing | Not verified | Not tested: x |"]), {})
     rc, out, _ = _archive_claim_after_resolving_a_conflict(runner, workspace, fake_claude)
     assert out["terminalReason"] != "acceptance-criteria-unticked", out
 

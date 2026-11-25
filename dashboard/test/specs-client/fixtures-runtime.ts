@@ -3,6 +3,7 @@
 // extracted out of fixtures.ts. Each is built fresh per harness() call
 // via a factory rather than a shared class, so `FakeEventSource.made`
 // never leaks between tests.
+import { afterEach } from "bun:test";
 
 /** The form serializer the browser owns. Injected rather than reached
  *  for as a global, because a fake form is not an HTMLFormElement and
@@ -109,4 +110,22 @@ export function makeFakeDate() {
   const clock = { at: Date.parse("2026-08-23T12:00:00Z") };
   const FakeDate = { now: () => clock.at, parse: (iso: string) => Date.parse(iso) };
   return { clock, FakeDate };
+}
+
+/** Registers, in the calling file, an `afterEach` that puts back the
+ *  real globals a test stubs to post a form: `fetch`, `FormData`,
+ *  `location` and `document`. */
+export function restoreStubbedGlobals(): void {
+  const realGlobals = {
+    fetch: globalThis.fetch,
+    FormData: globalThis.FormData,
+    location: (globalThis as { location?: unknown }).location,
+    document: (globalThis as { document?: unknown }).document,
+  };
+  afterEach(() => {
+    globalThis.fetch = realGlobals.fetch;
+    globalThis.FormData = realGlobals.FormData;
+    (globalThis as { location?: unknown }).location = realGlobals.location;
+    (globalThis as { document?: unknown }).document = realGlobals.document;
+  });
 }

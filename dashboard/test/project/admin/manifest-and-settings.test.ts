@@ -1,7 +1,6 @@
 import { dashboardSettingsFile } from "../../../src/git/dashboard-checkout.ts";
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { describe, expect, test } from "bun:test";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   addProject,
@@ -15,17 +14,9 @@ import { parseManifest } from "../../../src/project/parse-manifest.ts";
 import { configValue, resolveWorktreeLinks } from "../../../src/project/discover";
 import { messageDetail } from "../../../src/messages/format.ts";
 import { cloningGit, fakeGit } from "../../helpers/fake-git.ts";
+import { tempDirs } from "../../helpers/setup/temp-dirs.ts";
 
-const dirs: string[] = [];
-const root = (): string => {
-  const d = mkdtempSync(join(tmpdir(), "aide-project-admin-"));
-  dirs.push(d);
-  return d;
-};
-
-afterEach(() => {
-  while (dirs.length) rmSync(dirs.pop()!, { recursive: true, force: true });
-});
+const root = tempDirs("aide-project-admin-").make;
 
 /** A checkout under a projects root of its own — the same shape the
  *  readiness tests above build, at module scope because the settings-file

@@ -1,9 +1,10 @@
 // Edit on a group's card: the shared menu opens and closes like the header's,
 // and Edit saves the filled member list.
 
-import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from "bun:test";
-import { chromium, type Browser, type Locator, type Page } from "playwright";
+import { afterEach, beforeEach, expect, test } from "bun:test";
+import type { Browser, Locator, Page } from "playwright";
 import { browserDeadline, withBrowser } from "../../helpers/browser-deadline.ts";
+import { e2eBrowser } from "../../helpers/setup/e2e-browser.ts";
 import { queueHarness } from "../../helpers/queue-server.ts";
 import { makeSpecsRepo } from "../../helpers/specs-repo.ts";
 import { t } from "../../../src/i18n";
@@ -20,18 +21,14 @@ const ADDED = "83-added";
 const plain = (folder: string) => `# ${folder}\n\n## Tracking info\n\n- **Created:** \`2026-11-11\`\n`;
 const grouped = (folder: string, position: number) => `${plain(folder)}- **Group:** \`Release\`\n- **Group position:** ${position}\n`;
 
-beforeAll(async () => {
-  browser = await withBrowser(chromium.launch(), "chromium.launch()");
+e2eBrowser(harness, (launched) => {
+  browser = launched;
 });
 beforeEach(async () => {
   page = await browser.newPage();
 });
 afterEach(async () => {
   await page.close();
-});
-afterAll(async () => {
-  await browser.close();
-  harness.cleanup();
 });
 
 const card = (): Locator => page.locator("tr.execution-group");
@@ -129,7 +126,6 @@ test(`at ${width}px Remove covers the pending request and removes the group with
   expect(await page.evaluate(() => (window as unknown as { sameDocument?: boolean }).sameDocument)).toBe(true);
 });
 }
-
 
 test("the running group keeps Edit and Remove visible but disabled", async () => {
   const state = "running";

@@ -18,6 +18,7 @@ import {
 // counterpart, and the two share one idea of where the section ends.
 
 describe("clearArchiveHeldBack", () => {
+  // Written out in full on purpose: this text is the input of the parser under test.
   const withSection = (reason: string) =>
     [
       "# 190 - Status",

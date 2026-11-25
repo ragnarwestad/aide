@@ -12,6 +12,7 @@
 // the New page has none of.
 import { afterEach, describe, expect, test } from "bun:test";
 import { applyAiPick } from "../../../src/specs-client/ai-sync.ts";
+import { withSelection } from "../fixtures-controls.ts";
 
 const FORM = "new-spec-form";
 
@@ -20,21 +21,12 @@ function modelSelect(step: string, chosen: string) {
     { value: "sonnet", dataset: { tool: "claude" }, hidden: false, disabled: false, selected: chosen === "sonnet" },
     { value: "codex-fast", dataset: { tool: "codex" }, hidden: false, disabled: false, selected: chosen === "codex-fast" },
   ];
-  return {
+  return withSelection(options, {
     name: `model.${step}`,
     options,
     tagName: "SELECT",
     getAttribute: (n: string) => (n === "form" ? FORM : null),
-    get selectedOptions() {
-      return options.filter((o) => o.selected);
-    },
-    get value() {
-      return options.find((o) => o.selected)?.value ?? "";
-    },
-    set value(v: string) {
-      for (const o of options) o.selected = o.value === v;
-    },
-  };
+  });
 }
 
 function aiSelect(step: string, tool: string) {
@@ -42,21 +34,12 @@ function aiSelect(step: string, tool: string) {
     { value: "claude", dataset: { default: "sonnet", tool: "claude" }, selected: tool === "claude" },
     { value: "codex", dataset: { default: "codex-fast", tool: "codex" }, selected: tool === "codex" },
   ];
-  return {
+  return withSelection(options, {
     name: `provider.${step}`,
     options,
     tagName: "SELECT",
     getAttribute: (n: string) => (n === "form" ? FORM : n === "data-ai" ? `model.${step}` : null),
-    get selectedOptions() {
-      return options.filter((o) => o.selected);
-    },
-    get value() {
-      return options.find((o) => o.selected)?.value ?? "";
-    },
-    set value(v: string) {
-      for (const o of options) o.selected = o.value === v;
-    },
-  };
+  });
 }
 
 /** Both phase lines' model selects live on the one document

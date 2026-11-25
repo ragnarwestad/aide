@@ -4,33 +4,14 @@
 // `UNCONFIRMED_HOLD_MS`, so an origin that stays unreachable does not
 // park the job for good.
 
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { describe, expect, test } from "bun:test";
 import { UNCONFIRMED_HOLD_MS, blockedDependencies } from "../../../src/serve/schedules/blocked.ts";
+import { tempDirs } from "../../helpers/setup/temp-dirs.ts";
+import { dependentProjectsRoot } from "./spec-fixtures.ts";
 
-const dirs: string[] = [];
-afterEach(() => {
-  while (dirs.length) rmSync(dirs.pop()!, { recursive: true, force: true });
-});
+const dirs = tempDirs("aide-unconfirmed-");
 
-function projectsRoot(): { root: string; specs: string } {
-  const dir = mkdtempSync(join(tmpdir(), "aide-unconfirmed-"));
-  dirs.push(dir);
-  const root = join(dir, "root");
-  const specs = join(root, "aide", "specs");
-  mkdirSync(join(root, "aide", ".aide"), { recursive: true });
-  writeFileSync(join(root, "aide", ".aide", "project.yaml"), "name: aide\n");
-  mkdirSync(join(specs, "80-dependency"), { recursive: true });
-  writeFileSync(join(specs, "80-dependency", "1-description.md"), "# 80-dependency\n");
-  mkdirSync(join(specs, "81-dependent"), { recursive: true });
-  writeFileSync(
-    join(specs, "81-dependent", "1-description.md"),
-    "# 81-dependent\n\n## Tracking info\n\n- **Depends on:** `80-dependency`\n",
-  );
-  return { root, specs };
-}
+const projectsRoot = (): { root: string; specs: string } => dependentProjectsRoot(dirs.make());
 
 function context(root: string, specs: string, answer: () => boolean | null, now: () => number, jobId = "job-1") {
   return {

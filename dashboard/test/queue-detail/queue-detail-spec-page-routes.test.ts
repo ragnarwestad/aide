@@ -1,25 +1,13 @@
 // Split out of queue-detail.test.ts by theme.
 
-import { afterEach, describe, expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { createGitRunner, type GitRunner } from "../../src/git/process/index.ts";
-import type { ServerOptions } from "../../src/serve/serve.ts";
-import { queueHarness, IMPLEMENTED } from "../helpers/queue-server.ts";
+import { IMPLEMENTED } from "../helpers/queue-server.ts";
+import { DESCRIPTION, detailHarness } from "./queue-detail-fixtures.ts";
 
-const DESCRIPTION =
-  "# A running job is a black box - Description\n\n" +
-  "## Table of contents\n\n- [Description](#description)\n\n---\n\n" +
-  "## Description\n\nThe queue shows state, step and cost. It shows nothing about " +
-  "what the job IS, and nothing about what it is doing.\n\n---\n\n" +
-  "## Related documents\n\n- [2-analysis.md](./2-analysis.md)\n";
-
-const harness = queueHarness("aide-queue-detail-", IMPLEMENTED);
-
-const start = (extra: Partial<ServerOptions> = {}) =>
-  harness.start({ description: DESCRIPTION, extra: { ...extra } });
-
-afterEach(() => harness.cleanup());
+const { harness, start } = detailHarness(IMPLEMENTED);
 
 // --- A page for the SPEC, not for one of its runs ------------------
 //

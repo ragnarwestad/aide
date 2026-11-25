@@ -9,6 +9,7 @@ import { type GitRunner } from "../../../src/git/process/index.ts";
 import { stateSaying, statusSaying } from "../../helpers/queue-server.ts";
 
 import { setupQueueRoutesHarness } from "../fixtures.ts";
+import { result, specsBranch } from "./every-step-lands-fixtures.ts";
 import { WAITING_RUNNER } from "../../helpers/waiting-runner.ts";
 
 const { harness, start } = setupQueueRoutesHarness();
@@ -113,16 +114,7 @@ describe("a step reads busy for the whole landing window", () => {
     }), results };
   }
 
-  const ANALYZE_RESULT = (specs: string) => ({
-    ok: true,
-    exitCode: 0,
-    costUsd: 0.2,
-    costMeasured: true,
-    terminalReason: "completed",
-    branch: `aide/${SPEC}`,
-    repos: [],
-    branchUrls: [{ root: specs, url: "https://example.test/aide-specs" }],
-  });
+  const ANALYZE_RESULT = (specs: string) => result({ branchUrls: specsBranch({ specs }) });
 
   // `job.landing` is already true the instant the
   // step's own result arrives — well before the merge below returns.

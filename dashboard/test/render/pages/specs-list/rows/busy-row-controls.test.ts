@@ -1,10 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-  renderSpecsRows,
-  type SpecsPageOptions,
-  type QueueRowView,
-  type SpecTarget,
-} from "../../../../../src/render";
+import { renderSpecsRows, type SpecsPageOptions, type QueueRowView, type SpecTarget } from "../../../../../src/render";
 import { ICON_LOCK } from "../../../../../src/render/ui/components";
 import { row, openKeys } from "../../fixtures.ts";
 

@@ -1,34 +1,12 @@
 // Split out of queue-detail.test.ts by theme.
 
-import { afterEach, describe, expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { ServerOptions } from "../../src/serve/serve.ts";
-import { queueHarness, IMPLEMENTED } from "../helpers/queue-server.ts";
+import { IMPLEMENTED } from "../helpers/queue-server.ts";
+import { detailHarness, enqueue } from "./queue-detail-fixtures.ts";
 
-const DESCRIPTION =
-  "# A running job is a black box - Description\n\n" +
-  "## Table of contents\n\n- [Description](#description)\n\n---\n\n" +
-  "## Description\n\nThe queue shows state, step and cost. It shows nothing about " +
-  "what the job IS, and nothing about what it is doing.\n\n---\n\n" +
-  "## Related documents\n\n- [2-analysis.md](./2-analysis.md)\n";
-
-const harness = queueHarness("aide-queue-detail-", IMPLEMENTED);
-
-const start = (extra: Partial<ServerOptions> = {}) =>
-  harness.start({ description: DESCRIPTION, extra: { ...extra } });
-
-afterEach(() => harness.cleanup());
-
-async function enqueue(base: string, steps: string[] = ["analyze"]): Promise<string> {
-  const res = await fetch(`${base}/api/queue`, {
-    method: "POST",
-    headers: { "content-type": "application/json", accept: "application/json" },
-    body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps }),
-  });
-  const body = (await res.json()) as { job: { id: string } };
-  return body.job.id;
-}
+const { start } = detailHarness(IMPLEMENTED);
 
 // --- the Update button -------------------------------------------------------
 

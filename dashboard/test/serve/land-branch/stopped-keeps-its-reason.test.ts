@@ -6,46 +6,16 @@
 // which limit ran out and when it resets.
 
 import { describe, expect, test } from "bun:test";
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { landBranch } from "../../../src/serve/land-branch";
 import { clearsLandingError, firstLandingError, keepLandingFailedTests, landingErrorOfStep } from "../../../src/serve/land-branch/stopped-reason.ts";
 import { pushRefusal } from "../../../src/git/branch-merge/result.ts";
 import { formatSentence } from "../../../src/messages/format.ts";
 import type { Job } from "../../../src/queue/queue.ts";
-import { BRANCH, landCtx, landingGit } from "./landing-fixtures.ts";
+import { BRANCH, landAnalyzeWhile } from "./landing-fixtures.ts";
 
 const JOB = { id: "job-1", project: "aide", specFolder: "479-spec" };
 
-async function landWhile(current: Record<string, unknown>) {
-  const updates: Record<string, unknown>[] = [];
-  const { ctx } = landCtx(landingGit().run, {
-    queue: {
-      get: () => ({ ...JOB, ...current }),
-      update: (_id: string, patch: Record<string, unknown>) => void updates.push(patch),
-      transition: (_id: string, event: string, patch?: Record<string, unknown>) => {
-        updates.push({ event, ...(patch ?? {}) });
-        return { ok: true };
-      },
-      branchesFor: () => [],
-    },
-    branchStatus: { defaultBranch: async () => "master", invalidate: () => {}, forgetOpenSpecBranch: () => {} },
-  });
-  const here = mkdtempSync(join(tmpdir(), "aide-landing-stopped-"));
-  await landBranch(
-    ctx as unknown as Parameters<typeof landBranch>[0],
-    JOB as unknown as Parameters<typeof landBranch>[1],
-    { branch: BRANCH },
-    {
-      step: "analyze" as const,
-      repos: [{ root: here, url: "" }],
-      failedNote: (why: string) => ({ key: "landing.analyzeLandingFailed" as const, values: { why } }),
-    } as unknown as Parameters<typeof landBranch>[3],
-  );
-  // The landing's own success patch: the one that names the branch.
-  return updates.find((u) => "branchUrls" in u)!;
-}
+/** The landing's own success patch: the one that names the branch. */
+const landWhile = (current: Record<string, unknown>) => landAnalyzeWhile(JOB, current, "aide-landing-stopped-");
 
 describe("a landing of a step that stopped", () => {
   for (const stopReason of ["provider-limit", "timeout"] as const) {

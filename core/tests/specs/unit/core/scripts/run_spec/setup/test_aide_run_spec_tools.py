@@ -14,7 +14,8 @@ from ..run_spec_fakes import project_only_claude, writing_claude
 from ..run_spec_origins import is_ancestor
 from ..run_spec_results import RESULT_ERROR, RESULT_OK
 from ..run_spec_status_files import (
-    conflicting_branch, mirror_only_conflict, nested_workspace, status_only_conflict, with_status,
+    acceptance_section, conflicting_branch, mirror_only_conflict, nested_workspace, status_only_conflict, with_acceptance,
+    with_status,
 )
 
 
@@ -262,15 +263,7 @@ def test_archive_skips_the_model_when_acceptance_criteria_are_unticked(
     """An unticked `## Acceptance criteria` row is a refusal a
     script already answers — costs nothing and never reaches claude."""
     with_status(workspace, done=True)
-    status_path = workspace["specs"] / workspace["folder"] / "4-status.md"
-    status_path.write_text(
-        status_path.read_text()
-        + "\n## Acceptance criteria\n\n"
-        + "| Task | Status | Notes |\n|------|--------|-------|\n"
-        + "| REQ-1: does the thing | ⬜ | |\n"
-    )
-    git(workspace["specs"], "add", "-A")
-    git(workspace["specs"], "commit", "-qm", "add acceptance criteria")
+    with_acceptance(workspace, acceptance_section(["| REQ-1: does the thing | ⬜ | |"]), {})
     claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
     rc, out, _ = run(runner, workspace, claude, command="archive")
     assert rc == 0, out

@@ -21,6 +21,8 @@
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Kept in each spec command, not sourced: it runs with nothing loaded, so
+# --help answers and a missing library is refused into --result-file.
 bootstrap_result_file=""
 bootstrap_value=""
 for arg in "$@"; do

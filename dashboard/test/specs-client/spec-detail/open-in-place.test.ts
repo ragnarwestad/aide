@@ -5,6 +5,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
 import type * as Open from "../../../src/specs-client/spec-detail/open.ts";
+import { parseRowsInContext } from "../fixtures-tbody.ts";
 
 let counter = 0;
 let loads = 0;
@@ -41,19 +42,6 @@ const table = (rows: string) => `<table><tbody>${rows}</tbody></table>`;
 /** What the server answers for the whole list at an address: the spec the address names open, as its stand-in. */
 const wholeList = (open?: string) =>
   table([A, B, C].map((k) => (k === open ? openGroup(k, "") : shutGroup(k))).join(""));
-
-/** happy-dom drops the `<tr>`s of markup inserted without a table around it, which a browser keeps. */
-function parseRowsInContext(window: Window): void {
-  const proto = (window as unknown as { HTMLElement: { prototype: Record<string, unknown> } }).HTMLElement.prototype;
-  proto.insertAdjacentHTML = function (this: Element, where: string, html: string): void {
-    const template = this.ownerDocument.createElement("template");
-    template.innerHTML = html;
-    const rows = template.content;
-    if (where === "beforebegin") this.parentNode!.insertBefore(rows, this);
-    else if (where === "beforeend") this.appendChild(rows);
-    else if (where === "afterend") this.parentNode!.insertBefore(rows, this.nextSibling);
-  };
-}
 
 const place = (url: string): void => {
   const u = new URL(url, "http://dash.test");

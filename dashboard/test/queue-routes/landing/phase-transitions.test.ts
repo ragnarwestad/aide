@@ -15,6 +15,7 @@ import { createGitRunner, type GitRunner } from "../../../src/git/process/index.
 import { ran, statusSaying } from "../../helpers/queue-server.ts";
 import { WAITING_RUNNER } from "../../helpers/waiting-runner.ts";
 import { openQuery, setupQueueRoutesHarness } from "../fixtures.ts";
+import { result as stepResult, specsBranch } from "./every-step-lands-fixtures.ts";
 
 const { harness } = setupQueueRoutesHarness();
 const ownDirs: string[] = [];
@@ -83,16 +84,7 @@ async function settle(base: string, id: string, until: (job: Record<string, unkn
   throw new Error(`the job never reached the state asked for: ${JSON.stringify(await jobNow(base, id))}`);
 }
 
-const result = (specs: string) => ({
-  ok: true,
-  exitCode: 0,
-  costUsd: 0.2,
-  costMeasured: true,
-  terminalReason: "completed",
-  branch: `aide/${SPEC}`,
-  repos: [],
-  branchUrls: [{ root: specs, url: "https://example.test/aide-specs" }],
-});
+const result = (specs: string) => stepResult({ branchUrls: specsBranch({ specs }) });
 
 /** The spec's own row — its head, its phase lines and its notice — and
  *  nothing else on the page, whose help texts may use the same words. */

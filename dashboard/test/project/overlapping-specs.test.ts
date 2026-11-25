@@ -84,6 +84,7 @@ describe("openOverlappingSpecs", () => {
 
 describe("overlappingSpecsIn", () => {
   test("reads the newest round alone, each path less ./ and a line number", () => {
+    // Written out in full on purpose: this text is the input of the parser under test.
     const text = [
       "## Round 1",
       "",
@@ -102,6 +103,7 @@ describe("overlappingSpecsIn", () => {
   });
 
   test("is what `aide-spec-overlap` answers as `warned` for the same file", () => {
+    // Written out in full on purpose: this text is the input of the parser under test.
     const text = [
       "# Analysis",
       "",

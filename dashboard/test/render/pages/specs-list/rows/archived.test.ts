@@ -6,11 +6,7 @@ import {
   type QueueRowView,
   type SpecTarget,
 } from "../../../../../src/render";
-import {
-  ARCHIVED_OPEN_STATE,
-  ARCHIVED_STATE,
-  groupBySpec,
-} from "../../../../../src/render/pages/specs-list/data-model";
+import { ARCHIVED_OPEN_STATE, ARCHIVED_STATE, groupBySpec } from "../../../../../src/render/pages/specs-list/data-model";
 import { archivedRowNotices } from "../../../../../src/render/pages/specs-list/row-marks.ts";
 import { t } from "../../../../../src/i18n";
 import { row } from "../../fixtures.ts";

@@ -19,52 +19,16 @@
 // happens to a checkout git cannot answer for — reported, never deleted
 // or re-cloned — is in dashboard-checkout-never-deletes-the-project.test.ts.
 
-import { afterEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { describe, expect, test } from "bun:test";
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { dashboardCheckoutRoot, ensureDashboardCheckout } from "../../../src/git/dashboard-checkout.ts";
 import { createGitRunner } from "../../../src/git/process/index.ts";
 import { configValue } from "../../../src/project/discover";
+import { checkoutTemps, git, repoWithClone } from "./checkout-fixtures.ts";
 
 const run = createGitRunner();
-const dirs: string[] = [];
-const tmp = (prefix: string): string => {
-  const d = mkdtempSync(join(tmpdir(), prefix));
-  dirs.push(d);
-  return d;
-};
-
-afterEach(() => {
-  while (dirs.length) rmSync(dirs.pop()!, { recursive: true, force: true });
-});
-
-function git(cwd: string, ...args: string[]): string {
-  const out = Bun.spawnSync({ cmd: ["git", "-C", cwd, ...args], stdout: "pipe", stderr: "pipe" });
-  if (out.exitCode !== 0) throw new Error(`git ${args.join(" ")} failed: ${out.stderr.toString()}`);
-  return out.stdout.toString();
-}
-
-/** A bare origin with one commit, and a clone of it standing in for the
- *  checkout a person edits. `files` is what the repository contains. */
-function repoWithClone(where: string, name: string, files: Record<string, string>): { origin: string; clone: string } {
-  const seed = join(where, `${name}-seed`);
-  mkdirSync(seed, { recursive: true });
-  for (const [path, text] of Object.entries(files)) {
-    mkdirSync(join(seed, path).replace(/\/[^/]+$/, ""), { recursive: true });
-    writeFileSync(join(seed, path), text);
-  }
-  git(seed, "init", "-q", "-b", "main");
-  git(seed, "config", "user.name", "Test");
-  git(seed, "config", "user.email", "test@example.com");
-  git(seed, "add", "-A");
-  git(seed, "commit", "-qm", "first");
-  const origin = join(where, `${name}.git`);
-  Bun.spawnSync({ cmd: ["git", "clone", "-q", "--bare", seed, origin] });
-  const clone = join(where, name);
-  Bun.spawnSync({ cmd: ["git", "clone", "-q", origin, clone] });
-  return { origin, clone };
-}
+const tmp = checkoutTemps();
 
 describe("ensureDashboardCheckout", () => {
   test("clones from the person-facing checkout's origin on first use", async () => {
@@ -110,8 +74,6 @@ describe("ensureDashboardCheckout", () => {
     writeFileSync(join(dir, ".git", "objects", "pack-half"), "partial\n");
     writeFileSync(join(dir, "left-behind.txt"), "from the killed clone\n");
   }
-
-
 
   // A replacement that fails says which checkout and
   // why. The one thing it must never do is report success, because the

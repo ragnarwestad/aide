@@ -8,35 +8,10 @@
 // The two new routes are queue routes like every other: the token guard
 // covers them, and an id that names no job is a 404, never a blank page.
 
-import { afterEach, describe, expect, test } from "bun:test";
-import type { ServerOptions } from "../../src/serve/serve.ts";
-import { queueHarness } from "../helpers/queue-server.ts";
+import { describe, expect, test } from "bun:test";
+import { detailHarness, enqueue } from "./queue-detail-fixtures.ts";
 
-const DESCRIPTION =
-  "# A running job is a black box - Description\n\n" +
-  "## Table of contents\n\n- [Description](#description)\n\n---\n\n" +
-  "## Description\n\nThe queue shows state, step and cost. It shows nothing about " +
-  "what the job IS, and nothing about what it is doing.\n\n---\n\n" +
-  "## Related documents\n\n- [2-analysis.md](./2-analysis.md)\n";
-
-const harness = queueHarness("aide-queue-detail-");
-
-// Every test here is behind the token, so it is part of the fixture
-// rather than something each call has to remember.
-const start = (extra: Partial<ServerOptions> = {}) =>
-  harness.start({ description: DESCRIPTION, extra: { ...extra } });
-
-afterEach(() => harness.cleanup());
-
-async function enqueue(base: string, steps: string[] = ["analyze"]): Promise<string> {
-  const res = await fetch(`${base}/api/queue`, {
-    method: "POST",
-    headers: { "content-type": "application/json", accept: "application/json" },
-    body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps }),
-  });
-  const body = (await res.json()) as { job: { id: string } };
-  return body.job.id;
-}
+const { start } = detailHarness();
 
 describe("a job has no page of its own", () => {
   test("its address, and the two it had before, answer 404", async () => {

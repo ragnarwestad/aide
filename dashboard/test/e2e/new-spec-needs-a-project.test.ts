@@ -1,15 +1,15 @@
 // The New spec page's project select is `required`, so an empty project
 // is stopped by the browser at the field, before anything is sent. Only a
 // real browser runs that check.
-import { afterAll, beforeAll, expect, test } from "bun:test";
-import { chromium, type Browser, type Page } from "playwright";
+import { expect, test } from "bun:test";
+import type { Page } from "playwright";
 import { browserDeadline, withBrowser } from "../helpers/browser-deadline.ts";
+import { e2eBrowser } from "../helpers/setup/e2e-browser.ts";
 import { queueHarness } from "../helpers/queue-server.ts";
 
 browserDeadline();
 
 const harness = queueHarness("aide-e2e-new-spec-layout-");
-let browser: Browser;
 let page: Page;
 let base: string;
 
@@ -21,15 +21,9 @@ function settle(p: Page): Promise<void> {
   );
 }
 
-beforeAll(async () => {
-  browser = await withBrowser(chromium.launch(), "chromium.launch()");
+e2eBrowser(harness, async (browser) => {
   page = await browser.newPage();
   base = harness.start().base;
-});
-
-afterAll(async () => {
-  await browser.close();
-  harness.cleanup();
 });
 
 async function pressCreate(fill: { title: boolean }): Promise<{ requests: number; focused: string | null }> {

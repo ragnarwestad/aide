@@ -1,8 +1,9 @@
 // The header's Deploy mark follows the event stream: a `deploy` event makes
 // the page ask for the mark and swap it in, with no page loaded.
-import { afterAll, beforeAll, expect, test } from "bun:test";
-import { chromium, type Browser } from "playwright";
+import { expect, test } from "bun:test";
+import type { Browser } from "playwright";
 import { browserDeadline, withBrowser } from "../../helpers/browser-deadline.ts";
+import { e2eBrowser } from "../../helpers/setup/e2e-browser.ts";
 import { queueHarness } from "../../helpers/queue-server.ts";
 
 browserDeadline();
@@ -11,14 +12,9 @@ const harness = queueHarness("aide-e2e-deploy-mark-live-");
 let browser: Browser;
 let base: string;
 
-beforeAll(async () => {
-  browser = await withBrowser(chromium.launch(), "chromium.launch()");
+e2eBrowser(harness, (launched) => {
+  browser = launched;
   base = harness.start().base;
-});
-
-afterAll(async () => {
-  await browser.close();
-  harness.cleanup();
 });
 
 test("a deploy event draws the header's button in place (AC-6)", async () => {

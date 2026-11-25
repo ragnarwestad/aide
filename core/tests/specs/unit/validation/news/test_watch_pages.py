@@ -73,6 +73,17 @@ def lines_for(output, address):
     return [line for line in output.splitlines() if address in line]
 
 
+def run_after_a_change(script, tmp_path, before, after):
+    """Runs the script once on a page carrying `before`, then again once
+    the page carries `after`, and returns the second run."""
+    address = page(tmp_path, "p.html", before)
+    store = tmp_path / "store"
+    log = write_log(tmp_path, [address])
+    run(script, tmp_path, log, store)
+    page(tmp_path, "p.html", after)
+    return run(script, tmp_path, log, store)
+
+
 def test_watched_pages_use_shared_cells_but_keep_their_row_rules_ac_2_ac_3(module, monkeypatch):
     monkeypatch.setattr(module.news, "section_cells", lambda *args, **kwargs: iter([
         ["Missing address"],
@@ -213,13 +224,7 @@ def test_a_change_inside_nav_header_or_footer_is_unchanged(script, tmp_path):
             f"<footer>Footer {menu}</footer>"
         )
 
-    address = page(tmp_path, "p.html", body("one"))
-    store = tmp_path / "store"
-    log = write_log(tmp_path, [address])
-    run(script, tmp_path, log, store)
-
-    page(tmp_path, "p.html", body("two"))
-    result = run(script, tmp_path, log, store)
+    result = run_after_a_change(script, tmp_path, body("one"), body("two"))
 
     assert result.stdout.startswith("unchanged")
     assert "@@" not in result.stdout
@@ -264,13 +269,7 @@ def test_a_code_example_whose_indentation_alone_changes_is_changed_ac_3(script, 
         example = f"<pre><code>metadata:\n  author: x\n{model_line}</code></pre>"
         return f"<main>{example}{article('The advice stays.')}</main>"
 
-    address = page(tmp_path, "p.html", body("model: opus"))
-    store = tmp_path / "store"
-    log = write_log(tmp_path, [address])
-    run(script, tmp_path, log, store)
-
-    page(tmp_path, "p.html", body("  model: opus"))
-    result = run(script, tmp_path, log, store)
+    result = run_after_a_change(script, tmp_path, body("model: opus"), body("  model: opus"))
 
     assert result.stdout.startswith("changed")
     diff = diff_file(result.stdout.splitlines()[0]).read_text()
@@ -282,13 +281,7 @@ def test_a_change_only_inside_an_aside_is_changed_ac_4(script, tmp_path):
     def body(tip):
         return f"<main>{article('The advice stays.')}<aside>{tip}</aside></main>"
 
-    address = page(tmp_path, "p.html", body("Prefer one skill per task."))
-    store = tmp_path / "store"
-    log = write_log(tmp_path, [address])
-    run(script, tmp_path, log, store)
-
-    page(tmp_path, "p.html", body("Prefer several skills per task."))
-    result = run(script, tmp_path, log, store)
+    result = run_after_a_change(script, tmp_path, body("Prefer one skill per task."), body("Prefer several skills per task."))
 
     assert result.stdout.startswith("changed")
     diff = diff_file(result.stdout.splitlines()[0]).read_text()
@@ -300,13 +293,7 @@ def test_only_main_s_text_is_compared_when_the_page_has_one(script, tmp_path):
     def body(outside):
         return f"<p>Outside {outside}</p><main>{article('Inside stays.')}</main><p>After {outside}</p>"
 
-    address = page(tmp_path, "p.html", body("one"))
-    store = tmp_path / "store"
-    log = write_log(tmp_path, [address])
-    run(script, tmp_path, log, store)
-
-    page(tmp_path, "p.html", body("two"))
-    result = run(script, tmp_path, log, store)
+    result = run_after_a_change(script, tmp_path, body("one"), body("two"))
 
     assert result.stdout.startswith("unchanged")
     assert "@@" not in result.stdout

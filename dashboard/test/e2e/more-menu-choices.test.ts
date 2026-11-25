@@ -4,31 +4,20 @@
 // <details> would close the "…" menu before the choice registered. A tap
 // on a choice applies it and leaves the menu open, and choosing a
 // language reloads the page in it once.
-import { afterAll, beforeAll, expect, test } from "bun:test";
-import { chromium, type Browser, type Page } from "playwright";
+import { expect, test } from "bun:test";
+import type { Page } from "playwright";
 import { browserDeadline, withBrowser } from "../helpers/browser-deadline.ts";
-import { queueHarness, ran } from "../helpers/queue-server.ts";
+import { e2eBrowser, pageOnRunning } from "../helpers/setup/e2e-browser.ts";
+import { queueHarness } from "../helpers/queue-server.ts";
 
 browserDeadline();
 
 const harness = queueHarness("aide-e2e-header-menus-");
-let browser: Browser;
 let page: Page;
 let base: string;
 
-beforeAll(async () => {
-  browser = await withBrowser(chromium.launch(), "chromium.launch()");
-  page = await browser.newPage();
-  const started = harness.start();
-  base = started.base;
-  ran(started.dir, []);
-  await new Promise((r) => setTimeout(r, 400));
-  await withBrowser(page.goto(`${base}/?live=0`), "page.goto(/?live=0)");
-});
-
-afterAll(async () => {
-  await browser.close();
-  harness.cleanup();
+e2eBrowser(harness, async (browser) => {
+  ({ page, base } = await pageOnRunning(browser, harness));
 });
 
 const PHONE = { width: 600, height: 900 };

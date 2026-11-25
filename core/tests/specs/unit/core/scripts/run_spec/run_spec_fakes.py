@@ -270,19 +270,19 @@ def analyzing_claude(fake_claude, workspace, last_analyzed="2026-08-01"):
     )
 
 
-def analyze_claude_advancing_row(fake_claude, workspace, mark):
-    """A stand-in analyze step that rewrites 4-status.md's own Phase 1
-    row to a mark other than not-started — implement's and archive's job,
-    never analyze's own."""
+def _status_writing_claude(fake_claude, workspace, steps, header, row):
+    """A stand-in analyze step that rewrites 4-status.md whole: `steps` on
+    its Workflow steps line, and one Phase 1 table with `header` over the
+    one `row`."""
     folder = workspace["folder"]
     body = (
         "# Queue - Status\n\n## Tracking info\n\n"
         f"- **Task:** `{folder}/`\n"
-        "- **Workflow steps completed:** create\n"
+        f"- **Workflow steps completed:** {steps}\n"
         "- **Total progress:** 0% (0 of 1 completed)\n\n---\n\n"
         "## Phase 1: RED\n\n"
-        "| Task | Status | Notes |\n|------|--------|-------|\n"
-        f"| a | {mark} | |\n"
+        f"{header}\n|------|--------|-------|\n"
+        f"{row}\n"
     )
     return fake_claude(
         "cat > /dev/null\n"
@@ -291,6 +291,15 @@ def analyze_claude_advancing_row(fake_claude, workspace, mark):
         + body
         + "STATUSEOF\n"
         + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+
+
+def analyze_claude_advancing_row(fake_claude, workspace, mark):
+    """A stand-in analyze step that rewrites 4-status.md's own Phase 1
+    row to a mark other than not-started — implement's and archive's job,
+    never analyze's own."""
+    return _status_writing_claude(
+        fake_claude, workspace, "create", "| Task | Status | Notes |", f"| a | {mark} | |",
     )
 
 
@@ -298,23 +307,8 @@ def analyze_claude_naming_implement(fake_claude, workspace):
     """A stand-in analyze step that writes `implement` onto the Workflow
     steps line itself, with no project change and no row advanced — the
     shape a real run (`1b3748a`) produced."""
-    folder = workspace["folder"]
-    body = (
-        "# Queue - Status\n\n## Tracking info\n\n"
-        f"- **Task:** `{folder}/`\n"
-        "- **Workflow steps completed:** create, analyze, implement\n"
-        "- **Total progress:** 0% (0 of 1 completed)\n\n---\n\n"
-        "## Phase 1: RED\n\n"
-        "| Task | Status | Notes |\n|------|--------|-------|\n"
-        "| a | ⬜ | |\n"
-    )
-    return fake_claude(
-        "cat > /dev/null\n"
-        + READ_SPECS
-        + f'cat > "$specs/{folder}/4-status.md" <<\'STATUSEOF\'\n'
-        + body
-        + "STATUSEOF\n"
-        + f"echo '{json.dumps(RESULT_OK)}'"
+    return _status_writing_claude(
+        fake_claude, workspace, "create, analyze, implement", "| Task | Status | Notes |", "| a | ⬜ | |",
     )
 
 
@@ -322,23 +316,8 @@ def analyze_claude_writing_the_line_from_nothing(fake_claude, workspace):
     """A stand-in analyze step on a spec whose 4-status.md carries NO
     steps line — which is every spec at creation — that writes the line
     itself as `create, analyze`, and advances nothing."""
-    folder = workspace["folder"]
-    body = (
-        "# Queue - Status\n\n## Tracking info\n\n"
-        f"- **Task:** `{folder}/`\n"
-        "- **Workflow steps completed:** create, analyze\n"
-        "- **Total progress:** 0% (0 of 1 completed)\n\n---\n\n"
-        "## Phase 1: RED\n\n"
-        "| Task | Status | Notes |\n|------|--------|-------|\n"
-        "| a | ⬜ | |\n"
-    )
-    return fake_claude(
-        "cat > /dev/null\n"
-        + READ_SPECS
-        + f'cat > "$specs/{folder}/4-status.md" <<\'STATUSEOF\'\n'
-        + body
-        + "STATUSEOF\n"
-        + f"echo '{json.dumps(RESULT_OK)}'"
+    return _status_writing_claude(
+        fake_claude, workspace, "create, analyze", "| Task | Status | Notes |", "| a | ⬜ | |",
     )
 
 
@@ -347,23 +326,8 @@ def analyze_claude_renaming_the_header(fake_claude, workspace):
     header to non-standard column names, leaving its one row exactly
     where it was (⬜) — nothing genuinely advanced, so the header itself
     must never be counted as the row that did."""
-    folder = workspace["folder"]
-    body = (
-        "# Queue - Status\n\n## Tracking info\n\n"
-        f"- **Task:** `{folder}/`\n"
-        "- **Workflow steps completed:** create\n"
-        "- **Total progress:** 0% (0 of 1 completed)\n\n---\n\n"
-        "## Phase 1: RED\n\n"
-        "| REQ | Criterion | Done |\n|------|--------|-------|\n"
-        "| a | ⬜ | |\n"
-    )
-    return fake_claude(
-        "cat > /dev/null\n"
-        + READ_SPECS
-        + f'cat > "$specs/{folder}/4-status.md" <<\'STATUSEOF\'\n'
-        + body
-        + "STATUSEOF\n"
-        + f"echo '{json.dumps(RESULT_OK)}'"
+    return _status_writing_claude(
+        fake_claude, workspace, "create", "| REQ | Criterion | Done |", "| a | ⬜ | |",
     )
 
 

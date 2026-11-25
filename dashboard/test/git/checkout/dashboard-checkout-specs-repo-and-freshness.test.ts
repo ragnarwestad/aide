@@ -9,9 +9,8 @@
 // person's own checkout untouched, and
 // that the dashboard's checkout keeps up with what was pushed to origin.
 
-import { afterEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { describe, expect, test } from "bun:test";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   dashboardCheckoutRoot,
@@ -21,45 +20,10 @@ import {
 import { createGitRunner } from "../../../src/git/process/index.ts";
 import { configValue } from "../../../src/project/discover";
 import { heldLock, watchLock } from "../../helpers/held-lock.ts";
+import { checkoutTemps, git, repoWithClone } from "./checkout-fixtures.ts";
 
 const run = createGitRunner();
-const dirs: string[] = [];
-const tmp = (prefix: string): string => {
-  const d = mkdtempSync(join(tmpdir(), prefix));
-  dirs.push(d);
-  return d;
-};
-
-afterEach(() => {
-  while (dirs.length) rmSync(dirs.pop()!, { recursive: true, force: true });
-});
-
-function git(cwd: string, ...args: string[]): string {
-  const out = Bun.spawnSync({ cmd: ["git", "-C", cwd, ...args], stdout: "pipe", stderr: "pipe" });
-  if (out.exitCode !== 0) throw new Error(`git ${args.join(" ")} failed: ${out.stderr.toString()}`);
-  return out.stdout.toString();
-}
-
-/** A bare origin with one commit, and a clone of it standing in for the
- *  checkout a person edits. `files` is what the repository contains. */
-function repoWithClone(where: string, name: string, files: Record<string, string>): { origin: string; clone: string } {
-  const seed = join(where, `${name}-seed`);
-  mkdirSync(seed, { recursive: true });
-  for (const [path, text] of Object.entries(files)) {
-    mkdirSync(join(seed, path).replace(/\/[^/]+$/, ""), { recursive: true });
-    writeFileSync(join(seed, path), text);
-  }
-  git(seed, "init", "-q", "-b", "main");
-  git(seed, "config", "user.name", "Test");
-  git(seed, "config", "user.email", "test@example.com");
-  git(seed, "add", "-A");
-  git(seed, "commit", "-qm", "first");
-  const origin = join(where, `${name}.git`);
-  Bun.spawnSync({ cmd: ["git", "clone", "-q", "--bare", seed, origin] });
-  const clone = join(where, name);
-  Bun.spawnSync({ cmd: ["git", "clone", "-q", origin, clone] });
-  return { origin, clone };
-}
+const tmp = checkoutTemps();
 
 describe("ensureDashboardCheckout", () => {
   test("a project whose specs live in its own repository gets no second clone", async () => {
@@ -257,7 +221,6 @@ describe("the dashboard's checkout keeps up with origin", () => {
     }
   });
 });
-
 
 // The checkout's `.aide/config` used to be the person's file copied in
 // first and its `AIDE_SPECS_PATH` rewritten after the specs repo's

@@ -11,6 +11,8 @@ import { stateSaying, statusSaying } from "../../helpers/queue-server.ts";
 import { ARCHIVED_VIEW, blockFor, listUntil, rowFor } from "../../archived/archived-specs-fixtures.ts";
 import { specHead } from "../fixtures.ts";
 import {
+  bothRoots,
+  writeArchiveResult,
   ARCHIVE_RESULT,
   AUTH,
   SPEC,
@@ -118,16 +120,7 @@ describe("landing an archived spec", () => {
     const git = gitFor({ gone: [CODE_REPO] });
     const { base, results } = serverWithRunner(start, "aide-archive-results-", git, { queueProjectRoot: "/repos" });
     const job = await runStep(base, "archive");
-    writeFileSync(
-      join(results, `${job.id}.json`),
-      JSON.stringify({
-        ...ARCHIVE_RESULT,
-        branchUrls: [
-          { root: SPECS_REPO, url: "https://example.test/aide-specs" },
-          { root: CODE_REPO, url: "https://example.test/aide" },
-        ],
-      }),
-    );
+    writeArchiveResult(results, job.id, { branchUrls: bothRoots(SPECS_REPO, CODE_REPO) });
     const landed = await settle(base, job.id, (j) => j.state === "done" && !j.landing);
 
     expect(landed.error).toBeFalsy();
@@ -145,16 +138,7 @@ describe("landing an archived spec", () => {
     const git = gitFor({ gone: [CODE_REPO], conflicting: [SPECS_REPO] });
     const { base, results } = serverWithRunner(start, "aide-archive-results-", git, { queueProjectRoot: "/repos" });
     const job = await runStep(base, "archive");
-    writeFileSync(
-      join(results, `${job.id}.json`),
-      JSON.stringify({
-        ...ARCHIVE_RESULT,
-        branchUrls: [
-          { root: SPECS_REPO, url: "https://example.test/aide-specs" },
-          { root: CODE_REPO, url: "https://example.test/aide" },
-        ],
-      }),
-    );
+    writeArchiveResult(results, job.id, { branchUrls: bothRoots(SPECS_REPO, CODE_REPO) });
     const failed = await settle(base, job.id, (j) => !!j.error);
 
     expect(sentence(failed.error)).toContain(SPECS_REPO);

@@ -16,6 +16,7 @@ import {
   type QueueRowView,
   type SpecTarget,
 } from "../../../src/render";
+import { row as queueRow } from "../../design/row-fixtures.ts";
 
 // --- Time becomes something worth reading -------------------------
 //
@@ -54,18 +55,8 @@ describe("a phase's own file stamp fills the gap no queue job can", () => {
   const stampCreate = (timeSpent: string) =>
     writeFileSync(join(dir, "1-description.md"), withTracking(`- **Time spent:** ${timeSpent}`));
 
-  const job = (id: string, extra: Partial<QueueRowView> = {}): QueueRowView => ({
-    id,
-    project: "aide",
-    specFolder: "aa-spec",
-    steps: ["analyze"],
-    stepIndex: 0,
-    state: "done",
-    spentUsd: 0,
-    timeoutSec: 1200,
-    createdAt: "2026-08-16T08:00:00Z",
-    ...extra,
-  });
+  const job = (id: string, extra: Partial<QueueRowView> = {}): QueueRowView =>
+    queueRow({ id, specFolder: "aa-spec", state: "done", createdAt: "2026-08-16T08:00:00Z", ...extra });
 
   const target = (extra: Partial<SpecTarget> = {}): SpecTarget => ({
     project: "aide",

@@ -1,21 +1,16 @@
 // The New spec form's "Let me choose the approach" box: what the form
 // posts for it, untouched and ticked.
 
-import { afterEach, describe, expect, test } from "bun:test";
-import { Window } from "happy-dom";
+import { describe, expect, test } from "bun:test";
 import { renderNewSpecPage } from "../../../src/render";
+import { documents } from "./fixtures.ts";
 
-const windows: Window[] = [];
-afterEach(async () => {
-  while (windows.length) await windows.pop()!.happyDOM.close();
-});
+const parse = documents();
 
 /** The New spec form as the page draws it. */
 function newSpecForm(): HTMLFormElement {
-  const win = new Window();
-  windows.push(win);
-  win.document.write(renderNewSpecPage([], "2026-10-03T00:00:00Z", { createProjects: ["aide"] }));
-  return win.document.getElementById("new-spec-form") as unknown as HTMLFormElement;
+  const page = parse(renderNewSpecPage([], "2026-10-03T00:00:00Z", { createProjects: ["aide"] }));
+  return page.getElementById("new-spec-form") as unknown as HTMLFormElement;
 }
 
 /** What the form posts under `chooseApproach`. */

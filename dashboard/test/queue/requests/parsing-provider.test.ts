@@ -2,19 +2,9 @@
 // refused when it is not configured or cannot run the step's model.
 
 import { describe, expect, test } from "bun:test";
-import { parseCreateRequest, parseJobRequest, type QueueDefaults } from "../../../src/queue/queue.ts";
+import { parseCreateRequest, parseJobRequest } from "../../../src/queue/queue.ts";
+import { PROVIDER_DEFAULTS as DEFAULTS } from "../queue-fixtures.ts";
 
-const DEFAULTS: QueueDefaults = {
-  timeoutSec: { default: 1200 },
-  permissionMode: { default: "acceptEdits" },
-  model: { default: "Opus" },
-  modelChoices: { Opus: {}, "gpt-6": { tool: "codex" } },
-  providers: {
-    Claude: { name: "Claude", tool: "claude" },
-    "Claude-Capra": { name: "Claude-Capra", tool: "claude", configDir: "~/.claude-capra" },
-    Codex: { name: "Codex", tool: "codex" },
-  },
-};
 const resolve = (project: string) => (project === "aide" ? { specFolders: ["81-queue"] } : null);
 const BASE = { project: "aide", specFolder: "81-queue", steps: ["analyze", "implement"] };
 const parse = (extra: object) => parseJobRequest({ ...BASE, ...extra }, { resolve, defaults: DEFAULTS });

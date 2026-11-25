@@ -1,11 +1,7 @@
 // Split out of phase-controls-and-progress.test.ts by theme.
 
 import { describe, expect, test } from "bun:test";
-import {
-  renderSpecsRows,
-  type ArchivedSpecView,
-  type SpecsPageOptions,
-} from "../../../../../src/render";
+import { renderSpecsRows, type ArchivedSpecView, type SpecsPageOptions } from "../../../../../src/render";
 
 // An archived phase line draws the SAME aiPicker/modelPicker
 // controls a live one does, disabled, instead of a second, hand-rolled

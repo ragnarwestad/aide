@@ -25,6 +25,24 @@ CODEX_PROJECT_DOC_MAX_BYTES = 32768
 SPEC_STRUCTURE_MARKER = "Workflow steps completed"
 
 
+def _build_agents_md(workspace_root, tmp_path):
+    """Runs build-agents-md.sh on a copy of core/ under `tmp_path` — the
+    script, the rules and the intro it reads — asserts that it succeeded,
+    and returns that copy's core/."""
+    core = tmp_path / "core"
+    (core / "scripts").mkdir(parents=True)
+    for name in ("build-agents-md.sh", "_install-rules.sh"):
+        shutil.copy(workspace_root / "core" / "scripts" / name, core / "scripts" / name)
+    shutil.copy(workspace_root / "core" / "agents-intro.md", core / "agents-intro.md")
+    shutil.copytree(workspace_root / "core" / "rules", core / "rules")
+    result = subprocess.run(
+        ["bash", str(core / "scripts" / "build-agents-md.sh")],
+        capture_output=True, text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    return core
+
+
 class TestBuildAgentsMd:
     """AGENTS.md must carry rule BODIES only, never their YAML frontmatter.
 
@@ -34,26 +52,7 @@ class TestBuildAgentsMd:
     """
 
     def test_output_contains_no_rule_frontmatter(self, workspace_root, tmp_path):
-        core = tmp_path / "core"
-        (core / "scripts").mkdir(parents=True)
-        shutil.copy(
-            workspace_root / "core" / "scripts" / "build-agents-md.sh",
-            core / "scripts" / "build-agents-md.sh",
-        )
-        shutil.copy(
-            workspace_root / "core" / "scripts" / "_install-rules.sh",
-            core / "scripts" / "_install-rules.sh",
-        )
-        shutil.copy(workspace_root / "core" / "scripts" / "_install-rules.sh", core / "scripts" / "_install-rules.sh")
-        shutil.copy(workspace_root / "core" / "agents-intro.md", core / "agents-intro.md")
-        shutil.copytree(workspace_root / "core" / "rules", core / "rules")
-
-        result = subprocess.run(
-            ["bash", str(core / "scripts" / "build-agents-md.sh")],
-            capture_output=True,
-            text=True,
-        )
-        assert result.returncode == 0, result.stderr
+        core = _build_agents_md(workspace_root, tmp_path)
 
         lines = (core / "AGENTS.md").read_text().splitlines()
         assert "paths:" not in [line.strip() for line in lines], (
@@ -64,16 +63,7 @@ class TestBuildAgentsMd:
     def test_the_committed_file_is_what_the_generator_writes(self, workspace_root, tmp_path):
         """core/AGENTS.md is what Codex and Copilot read; a rule edited
         without regenerating it never reaches them."""
-        core = tmp_path / "core"
-        (core / "scripts").mkdir(parents=True)
-        shutil.copy(workspace_root / "core" / "scripts" / "build-agents-md.sh",
-                    core / "scripts" / "build-agents-md.sh")
-        shutil.copy(workspace_root / "core" / "scripts" / "_install-rules.sh", core / "scripts" / "_install-rules.sh")
-        shutil.copy(workspace_root / "core" / "agents-intro.md", core / "agents-intro.md")
-        shutil.copytree(workspace_root / "core" / "rules", core / "rules")
-        result = subprocess.run(["bash", str(core / "scripts" / "build-agents-md.sh")],
-                                capture_output=True, text=True)
-        assert result.returncode == 0, result.stderr
+        core = _build_agents_md(workspace_root, tmp_path)
         assert (core / "AGENTS.md").read_text() == (workspace_root / "core" / "AGENTS.md").read_text(), (
             "core/AGENTS.md is stale — run core/scripts/build-agents-md.sh"
         )
@@ -121,23 +111,7 @@ class TestBuildAgentsMd:
 
     @staticmethod
     def _build(workspace_root, tmp_path):
-        core = tmp_path / "core"
-        (core / "scripts").mkdir(parents=True)
-        shutil.copy(
-            workspace_root / "core" / "scripts" / "build-agents-md.sh",
-            core / "scripts" / "build-agents-md.sh",
-        )
-        shutil.copy(workspace_root / "core" / "scripts" / "_install-rules.sh", core / "scripts" / "_install-rules.sh")
-        shutil.copy(workspace_root / "core" / "agents-intro.md", core / "agents-intro.md")
-        shutil.copytree(workspace_root / "core" / "rules", core / "rules")
-
-        result = subprocess.run(
-            ["bash", str(core / "scripts" / "build-agents-md.sh")],
-            capture_output=True,
-            text=True,
-        )
-        assert result.returncode == 0, result.stderr
-        return (core / "AGENTS.md").read_text()
+        return (_build_agents_md(workspace_root, tmp_path) / "AGENTS.md").read_text()
 
 
 @pytest.mark.validation
@@ -177,24 +151,7 @@ class TestSpecStructureSkillIsGenerated:
     def test_the_generator_writes_it(self, workspace_root, tmp_path):
         """Built from a temp copy: the generation step is in the script,
         not something a person ran once by hand."""
-        core = tmp_path / "core"
-        (core / "scripts").mkdir(parents=True)
-        shutil.copy(
-            workspace_root / "core" / "scripts" / "build-agents-md.sh",
-            core / "scripts" / "build-agents-md.sh",
-        )
-        shutil.copy(
-            workspace_root / "core" / "scripts" / "_install-rules.sh",
-            core / "scripts" / "_install-rules.sh",
-        )
-        shutil.copy(workspace_root / "core" / "agents-intro.md", core / "agents-intro.md")
-        shutil.copytree(workspace_root / "core" / "rules", core / "rules")
-
-        result = subprocess.run(
-            ["bash", str(core / "scripts" / "build-agents-md.sh")],
-            capture_output=True, text=True,
-        )
-        assert result.returncode == 0, result.stderr
+        core = _build_agents_md(workspace_root, tmp_path)
 
         generated = core / "skills" / "spec-structure" / "SKILL.md"
         assert generated.exists(), (

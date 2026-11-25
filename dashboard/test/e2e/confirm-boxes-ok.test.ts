@@ -2,12 +2,13 @@
 // project row's Remove does what the old copy did: exactly one POST, to
 // the route it always went to.
 
-import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { chromium, type Browser, type Page } from "playwright";
+import type { Browser, Page } from "playwright";
 import { browserDeadline } from "../helpers/browser-deadline.ts";
+import { e2eBrowser } from "../helpers/setup/e2e-browser.ts";
 import { queueHarness } from "../helpers/queue-server.ts";
 
 browserDeadline();
@@ -37,13 +38,8 @@ function board(): string {
   return harness.start({ extra: { queueMirrorPath: join(scratch, "queue.json"), queueConfigFile } }).base;
 }
 
-beforeAll(async () => {
-  browser = await chromium.launch();
-});
-
-afterAll(async () => {
-  await browser.close();
-  harness.cleanup();
+e2eBrowser(harness, (launched) => {
+  browser = launched;
 });
 
 /** Presses the button naming `id`, then OK in its dialog; answers every

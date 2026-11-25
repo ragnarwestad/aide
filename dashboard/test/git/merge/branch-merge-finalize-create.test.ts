@@ -13,7 +13,8 @@
 import { describe, expect, test } from "bun:test";
 import { mergeBranchIntoDefault } from "../../../src/git/branch-merge/index.ts";
 import type { CreateFinalizer } from "../../../src/git/create-finalizer.ts";
-import { fakeGit, CLEAN_MASTER, type GitCall } from "../../helpers/fake-git.ts";
+import { fakeGit, type GitCall } from "../../helpers/fake-git.ts";
+import { MERGE_GOES_THROUGH } from "../../helpers/setup/git-answers.ts";
 import { formatSentence } from "../../../src/messages/format.ts";
 
 function sentence(s: unknown): string {
@@ -26,16 +27,7 @@ const noWait = async (_ms: number): Promise<void> => {};
 
 const argv = (calls: GitCall[]): string[] => calls.map((c) => c.args.join(" "));
 
-const REACHES_MERGE = {
-  ...CLEAN_MASTER,
-  "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
-  pull: { code: 0 },
-  "merge -q --ff-only origin/": { code: 0 },
-  "merge -q --ff-only": { code: 0 },
-  push: { code: 0 },
-  switch: { code: 0 },
-  fetch: { code: 0 },
-};
+const REACHES_MERGE = MERGE_GOES_THROUGH;
 
 describe("mergeBranchIntoDefault: finalizeCreate", () => {
   test("runs after the merge and before the push, and its folder survives onto the result", async () => {

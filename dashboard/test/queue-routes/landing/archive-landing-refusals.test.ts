@@ -7,9 +7,11 @@
 
 import { repoOf } from "./every-step-lands-fixtures.ts";
 import { describe, expect, test } from "bun:test";
-import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { ARCHIVE_RESULT, BRANCH, SPECS_REPO, gitFor, merges, runStep, sentence, serverWithRunner, settle, start } from "./archive-landing-fixtures.ts";
+import {
+  BRANCH, SPECS_REPO, STILL_OPEN, bothRoots, gitAnswering, gitFor, merges, runStep, sentence, serverWithRunner, settle,
+  start, writeArchiveResult,
+} from "./archive-landing-fixtures.ts";
 import { messageDetail, type Sentence } from "../../../src/messages/format.ts";
 
 describe("code lands before specs for archive", () => {
@@ -25,10 +27,7 @@ describe("code lands before specs for archive", () => {
       queueProjectRoot: "/repos",
     });
     const job = await runStep(base, "archive");
-    writeFileSync(
-      join(results, `${job.id}.json`),
-      JSON.stringify({ ...ARCHIVE_RESULT, branchUrls: TWO_REPOS }),
-    );
+    writeArchiveResult(results, job.id, { branchUrls: TWO_REPOS });
     const failed = await settle(base, job.id, (j) => !!j.error);
 
     expect(sentence(failed.error)).toContain(CODE_REPO);
@@ -50,33 +49,14 @@ describe("code lands before specs for archive", () => {
     let codeRoot = "";
     // Filled once the roots are known: the fixture reads it per call.
     const conflicting: string[] = [];
-    const inner = gitFor({ conflicting });
-    const git = {
-      calls: inner.calls,
-      run: async (dir: string, args: string[]) => {
-        const a = args.join(" ");
-        if ((dir === specsRoot || dir === codeRoot) && a.startsWith("ls-remote --heads")) {
-          inner.calls.push({ dir, args });
-          return { code: 0, stdout: `abc123\trefs/heads/${BRANCH}\n` };
-        }
-        return inner.run(dir, args);
-      },
-    };
+    const git = gitAnswering(gitFor({ conflicting }), (dir, a) =>
+      (dir === specsRoot || dir === codeRoot) && a.startsWith("ls-remote --heads") ? STILL_OPEN : undefined);
     const { base, dir, results } = serverWithRunner(start, "aide-archive-results-", git as never);
     specsRoot = join(dir, "root", "aide", "specs");
     codeRoot = join(dir, "root", "aide");
     conflicting.push(codeRoot);
     const job = await runStep(base, "archive");
-    writeFileSync(
-      join(results, `${job.id}.json`),
-      JSON.stringify({
-        ...ARCHIVE_RESULT,
-        branchUrls: [
-          { root: specsRoot, url: "https://example.test/aide-specs" },
-          { root: codeRoot, url: "https://example.test/aide" },
-        ],
-      }),
-    );
+    writeArchiveResult(results, job.id, { branchUrls: bothRoots(specsRoot, codeRoot) });
     const failed = await settle(base, job.id, (j) => !!j.error);
 
     const text = sentence(failed.error);
@@ -91,10 +71,7 @@ describe("code lands before specs for archive", () => {
       queueProjectRoot: "/repos",
     });
     const job = await runStep(base, "archive");
-    writeFileSync(
-      join(results, `${job.id}.json`),
-      JSON.stringify({ ...ARCHIVE_RESULT, branchUrls: TWO_REPOS }),
-    );
+    writeArchiveResult(results, job.id, { branchUrls: TWO_REPOS });
     const landed = await settle(base, job.id, (j) => j.state === "done" && !j.landing);
 
     expect(landed.error).toBeFalsy();
@@ -109,33 +86,19 @@ describe("code lands before specs for archive", () => {
   });
 });
 describe("a branch left behind after a successful merge", () => {
+  const DELETE_REFUSED = { code: 1, stdout: "", stderr: "remote rejected: hook declined" };
+
   test("settles as done, with no error, and carries the reason on the job", async () => {
     let specsRoot = "";
-    const inner = gitFor();
-    const git = {
-      calls: inner.calls,
-      run: async (dir: string, args: string[]) => {
-        if (dir === specsRoot) {
-          const a = args.join(" ");
-          if (a === `push -q origin --delete ${BRANCH}`) {
-            inner.calls.push({ dir, args });
-            return { code: 1, stdout: "", stderr: "remote rejected: hook declined" };
-          }
-          if (a.startsWith("ls-remote --heads")) {
-            inner.calls.push({ dir, args });
-            return { code: 0, stdout: `abc123\trefs/heads/${BRANCH}\n` };
-          }
-        }
-        return inner.run(dir, args);
-      },
-    };
+    const git = gitAnswering(gitFor(), (dir, a) => {
+      if (dir !== specsRoot) return undefined;
+      if (a === `push -q origin --delete ${BRANCH}`) return DELETE_REFUSED;
+      return a.startsWith("ls-remote --heads") ? STILL_OPEN : undefined;
+    });
     const { base, dir, results } = serverWithRunner(start, "aide-archive-results-", git as never);
     specsRoot = join(dir, "root", "aide", "specs");
     const job = await runStep(base, "archive");
-    writeFileSync(
-      join(results, `${job.id}.json`),
-      JSON.stringify({ ...ARCHIVE_RESULT, branchUrls: [{ root: specsRoot, url: "https://example.test/aide-specs" }] }),
-    );
+    writeArchiveResult(results, job.id, { branchUrls: [{ root: specsRoot, url: "https://example.test/aide-specs" }] });
     const landed = await settle(base, job.id, (j) => j.state === "done" && !j.landing);
 
     expect(landed.error).toBeFalsy();
@@ -153,24 +116,10 @@ describe("a branch left behind after a successful merge", () => {
   test("does not silence a genuinely unlanded root beside it", async () => {
     let specsRoot = "";
     let codeRoot = "";
-    const inner = gitFor();
-    const git = {
-      calls: inner.calls,
-      run: async (dir: string, args: string[]) => {
-        if (dir === specsRoot) {
-          const a = args.join(" ");
-          if (a === `push -q origin --delete ${BRANCH}`) {
-            inner.calls.push({ dir, args });
-            return { code: 1, stdout: "", stderr: "remote rejected: hook declined" };
-          }
-        }
-        if ((dir === specsRoot || dir === codeRoot) && args.join(" ").startsWith("ls-remote --heads")) {
-          inner.calls.push({ dir, args });
-          return { code: 0, stdout: `abc123\trefs/heads/${BRANCH}\n` };
-        }
-        return inner.run(dir, args);
-      },
-    };
+    const git = gitAnswering(gitFor(), (dir, a) => {
+      if (dir === specsRoot && a === `push -q origin --delete ${BRANCH}`) return DELETE_REFUSED;
+      return (dir === specsRoot || dir === codeRoot) && a.startsWith("ls-remote --heads") ? STILL_OPEN : undefined;
+    });
     const { base, dir, results } = serverWithRunner(start, "aide-archive-results-", git as never);
     specsRoot = join(dir, "root", "aide", "specs");
     codeRoot = join(dir, "root", "aide");
@@ -178,10 +127,7 @@ describe("a branch left behind after a successful merge", () => {
     // Only the specs root is in THIS landing's own branchUrls — the
     // code root is never merged by it, exactly the shape a job the
     // LRU cap evicted or a step run by hand would leave behind.
-    writeFileSync(
-      join(results, `${job.id}.json`),
-      JSON.stringify({ ...ARCHIVE_RESULT, branchUrls: [{ root: specsRoot, url: "https://example.test/aide-specs" }] }),
-    );
+    writeArchiveResult(results, job.id, { branchUrls: [{ root: specsRoot, url: "https://example.test/aide-specs" }] });
     const failed = await settle(base, job.id, (j) => !!j.error);
 
     expect(sentence(failed.error)).toContain(codeRoot);
@@ -199,22 +145,10 @@ describe("a red suite on an archive landing is one sentence", () => {
     // The code root needs a real merge that changes the tree, or the
     // gate never runs: filled once the roots are known.
     const needsRealMerge: string[] = [];
-    const inner = gitFor({ needsRealMerge });
-    const git = {
-      calls: inner.calls,
-      run: async (dir: string, args: string[]) => {
-        const a = args.join(" ");
-        if ((dir === specsRoot || dir === codeRoot) && a.startsWith("ls-remote --heads")) {
-          inner.calls.push({ dir, args });
-          return { code: 0, stdout: `abc123\trefs/heads/${BRANCH}\n` };
-        }
-        if (repoOf(dir) === codeRoot && a.startsWith("diff --quiet")) {
-          inner.calls.push({ dir, args });
-          return { code: 1, stdout: "" };
-        }
-        return inner.run(dir, args);
-      },
-    };
+    const git = gitAnswering(gitFor({ needsRealMerge }), (dir, a) => {
+      if ((dir === specsRoot || dir === codeRoot) && a.startsWith("ls-remote --heads")) return STILL_OPEN;
+      return repoOf(dir) === codeRoot && a.startsWith("diff --quiet") ? { code: 1, stdout: "" } : undefined;
+    });
     const { base, dir, results } = serverWithRunner(start, "aide-archive-results-", git as never, {
       landingGate: async (_root, _job, branch) => ({
         ok: false,
@@ -226,28 +160,10 @@ describe("a red suite on an archive landing is one sentence", () => {
     codeRoot = join(dir, "root", "aide");
     needsRealMerge.push(codeRoot);
     const job = await runStep(base, "archive");
-    writeFileSync(
-      join(results, `${job.id}.json`),
-      JSON.stringify({
-        ...ARCHIVE_RESULT,
-        branchUrls: [
-          { root: specsRoot, url: "https://example.test/aide-specs" },
-          { root: codeRoot, url: "https://example.test/aide" },
-        ],
-      }),
-    );
+    writeArchiveResult(results, job.id, { branchUrls: bothRoots(specsRoot, codeRoot) });
     await settle(base, job.id, (j) => j.state === "running" &&
       (j.retry as { attempts?: number } | undefined)?.attempts === 2);
-    writeFileSync(
-      join(results, `${job.id}.json`),
-      JSON.stringify({
-        ...ARCHIVE_RESULT,
-        branchUrls: [
-          { root: specsRoot, url: "https://example.test/aide-specs" },
-          { root: codeRoot, url: "https://example.test/aide" },
-        ],
-      }),
-    );
+    writeArchiveResult(results, job.id, { branchUrls: bothRoots(specsRoot, codeRoot) });
     const stopped = await settle(base, job.id, (j) => !!j.error);
 
     const text = sentence(stopped.error);
@@ -262,31 +178,15 @@ describe("one landing error names one path for one checkout", () => {
   test("the post-loop sentence names the same resolved root the merge loop already failed for", async () => {
     const resolvedRoot = "/repos/aide-specs-real-root";
     let specsRoot = "";
-    const inner = gitFor({ conflicting: [resolvedRoot] });
-    const git = {
-      calls: inner.calls,
-      run: async (dir: string, args: string[]) => {
-        if (dir === specsRoot) {
-          const a = args.join(" ");
-          if (a === "rev-parse --show-toplevel") {
-            inner.calls.push({ dir, args });
-            return { code: 0, stdout: `${resolvedRoot}\n` };
-          }
-          if (a.startsWith("ls-remote --heads")) {
-            inner.calls.push({ dir, args });
-            return { code: 0, stdout: `abc123\trefs/heads/${BRANCH}\n` };
-          }
-        }
-        return inner.run(dir, args);
-      },
-    };
+    const git = gitAnswering(gitFor({ conflicting: [resolvedRoot] }), (dir, a) => {
+      if (dir !== specsRoot) return undefined;
+      if (a === "rev-parse --show-toplevel") return { code: 0, stdout: `${resolvedRoot}\n` };
+      return a.startsWith("ls-remote --heads") ? STILL_OPEN : undefined;
+    });
     const { base, dir, results } = serverWithRunner(start, "aide-archive-results-", git as never);
     specsRoot = join(dir, "root", "aide", "specs");
     const job = await runStep(base, "archive");
-    writeFileSync(
-      join(results, `${job.id}.json`),
-      JSON.stringify({ ...ARCHIVE_RESULT, branchUrls: [{ root: resolvedRoot, url: "https://example.test/aide-specs" }] }),
-    );
+    writeArchiveResult(results, job.id, { branchUrls: [{ root: resolvedRoot, url: "https://example.test/aide-specs" }] });
     const failed = await settle(base, job.id, (j) => !!j.error);
 
     const errorText = sentence(failed.error);
@@ -301,27 +201,16 @@ describe("one landing error names one path for one checkout", () => {
   test("two specRoots entries resolving to one repo produce one still-on-origin sentence", async () => {
     let specsRoot = "";
     let codeRoot = "";
-    const inner = gitFor();
-    const git = {
-      calls: inner.calls,
-      run: async (dir: string, args: string[]) => {
-        const a = args.join(" ");
-        if ((dir === specsRoot || dir === codeRoot) && a === "rev-parse --show-toplevel") {
-          inner.calls.push({ dir, args });
-          return { code: 0, stdout: `${codeRoot}\n` };
-        }
-        if ((dir === specsRoot || dir === codeRoot) && a.startsWith("ls-remote --heads")) {
-          inner.calls.push({ dir, args });
-          return { code: 0, stdout: `abc123\trefs/heads/${BRANCH}\n` };
-        }
-        return inner.run(dir, args);
-      },
-    };
+    const git = gitAnswering(gitFor(), (dir, a) => {
+      if (dir !== specsRoot && dir !== codeRoot) return undefined;
+      if (a === "rev-parse --show-toplevel") return { code: 0, stdout: `${codeRoot}\n` };
+      return a.startsWith("ls-remote --heads") ? STILL_OPEN : undefined;
+    });
     const { base, dir, results } = serverWithRunner(start, "aide-archive-results-", git as never);
     specsRoot = join(dir, "root", "aide", "specs");
     codeRoot = join(dir, "root", "aide");
     const job = await runStep(base, "archive");
-    writeFileSync(join(results, `${job.id}.json`), JSON.stringify(ARCHIVE_RESULT));
+    writeArchiveResult(results, job.id);
     const failed = await settle(base, job.id, (j) => !!j.error);
 
     const errorText = sentence(failed.error);
@@ -336,22 +225,13 @@ describe("one landing error names one path for one checkout", () => {
   test("two repos still holding the branch produce one sentence naming both", async () => {
     let specsRoot = "";
     let codeRoot = "";
-    const inner = gitFor();
-    const git = {
-      calls: inner.calls,
-      run: async (dir: string, args: string[]) => {
-        if ((dir === specsRoot || dir === codeRoot) && args.join(" ").startsWith("ls-remote --heads")) {
-          inner.calls.push({ dir, args });
-          return { code: 0, stdout: `abc123\trefs/heads/${BRANCH}\n` };
-        }
-        return inner.run(dir, args);
-      },
-    };
+    const git = gitAnswering(gitFor(), (dir, a) =>
+      (dir === specsRoot || dir === codeRoot) && a.startsWith("ls-remote --heads") ? STILL_OPEN : undefined);
     const { base, dir, results } = serverWithRunner(start, "aide-archive-results-", git as never);
     specsRoot = join(dir, "root", "aide", "specs");
     codeRoot = join(dir, "root", "aide");
     const job = await runStep(base, "archive");
-    writeFileSync(join(results, `${job.id}.json`), JSON.stringify(ARCHIVE_RESULT));
+    writeArchiveResult(results, job.id);
     const failed = await settle(base, job.id, (j) => !!j.error);
 
     expect(Array.isArray(failed.error)).toBe(false);
@@ -364,32 +244,13 @@ describe("one landing error names one path for one checkout", () => {
   // Two roots that each fail on their own leave the row ONE sentence —
   // the first — and the second behind it as hover detail.
   test("a second root's failure goes behind the first as detail, not onto the row", async () => {
-    const inner = gitFor();
-    const git = {
-      calls: inner.calls,
-      run: async (dir: string, args: string[]) => {
-        const a = args.join(" ");
-        if (a.startsWith("symbolic-ref") || a.startsWith("show-ref --verify")) {
-          inner.calls.push({ dir, args });
-          return { code: 1, stdout: "" };
-        }
-        return inner.run(dir, args);
-      },
-    };
+    const git = gitAnswering(gitFor(), (_dir, a) =>
+      a.startsWith("symbolic-ref") || a.startsWith("show-ref --verify") ? { code: 1, stdout: "" } : undefined);
     const { base, results } = serverWithRunner(start, "aide-archive-results-", git as never, {
       queueProjectRoot: "/repos",
     });
     const job = await runStep(base, "archive");
-    writeFileSync(
-      join(results, `${job.id}.json`),
-      JSON.stringify({
-        ...ARCHIVE_RESULT,
-        branchUrls: [
-          { root: SPECS_REPO, url: "https://example.test/aide-specs" },
-          { root: "/repos/aide", url: "https://example.test/aide" },
-        ],
-      }),
-    );
+    writeArchiveResult(results, job.id, { branchUrls: bothRoots(SPECS_REPO, "/repos/aide") });
     const failed = await settle(base, job.id, (j) => !!j.error);
 
     expect(Array.isArray(failed.error)).toBe(false);

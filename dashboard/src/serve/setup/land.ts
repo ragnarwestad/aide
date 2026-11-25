@@ -10,15 +10,9 @@ import { waitForDeploy } from "../deploy-job/landing-hold.ts";
 // earlier removes the one dependency the runner stage would otherwise
 // need a box for: `runnerSetupCtx.landNewSpec` and its three siblings.
 
-import { DEFAULT_TTL_MS, LS_REMOTE_NO_MATCH, lsRemoteBranch, type BranchStatusChecker } from "../../git/branch-status.ts";
-import type { GitRunner } from "../../git/process/index.ts";
-import type {
-  DescriptionFreshnessChecker, SpecCreatedAtChecker,
-} from "../../git/description-freshness.ts";
-import type { WorkflowHistoryChecker, BranchFileStepsChecker } from "../../git/workflow-history.ts";
-import type { CodeLanding } from "../../project/discover";
+import { DEFAULT_TTL_MS, LS_REMOTE_NO_MATCH, lsRemoteBranch } from "../../git/branch-status.ts";
 import type { AideRunStore } from "../../queue/aide-run-store.ts";
-import type { Job, QueueStore, WorkflowStep } from "../../queue/queue.ts";
+import type { Job, WorkflowStep } from "../../queue/queue.ts";
 import type { StepOutcome } from "../../queue/runner";
 import type { SpecTarget } from "../../render";
 import { jobRow as jobRowImpl, type JobRowContext } from "../job-row.ts";
@@ -37,36 +31,20 @@ import { installCheckout, isDashboardRoot, restartAfterLanding, type DeployHooks
 import { setDeployFailure, setDeployFault, setPendingRestart, type ServerState } from "../state.ts";
 import { createDeployJob } from "../deploy-job/index.ts";
 import { createLandJob } from "../land-job/index.ts";
-import type { TestServersContext } from "../test-servers/lifecycle.ts";
 
-export interface LandSetupInputs {
-  machineryProjectDir: (project: string) => string;
+/** What the land setup is given: the landing context's own fields, as
+ *  `LandContext` types them, and what only the setup reads. */
+export interface LandSetupInputs extends Pick<LandContext,
+  | "machineryProjectDir" | "codeLanding" | "queue" | "mergeLock" | "gitRun" | "branchStatus"
+  | "warmSpec" | "machinerySpecsRoot" | "specsRoot" | "workflowHistory" | "specCreatedAt"
+  | "freshness" | "branchFileSteps" | "forgetSpec" | "rootsStillHolding" | "queueInstallTimeoutMs"
+  | "dashboardRoot" | "landingGate" | "conflictRepair" | "finalizeCreateSpec" | "translationMergeArgs"
+  | "testServers"> {
   displayProjectDir: (project: string) => string;
-  codeLanding: (project: string) => CodeLanding;
-  queue: QueueStore;
   store: AideRunStore;
-  mergeLock: ReturnType<typeof import("../serve-helpers").createRootLock>;
-  gitRun: GitRunner;
-  branchStatus: BranchStatusChecker;
-  warmSpec: (t: { dir?: string; specFolder: string; reopenedAfter?: string }) => Promise<void>;
-  machinerySpecsRoot: (project: string) => string | undefined;
-  specsRoot: (dir: string) => Promise<string>;
-  workflowHistory: WorkflowHistoryChecker;
-  specCreatedAt: SpecCreatedAtChecker;
-  freshness: DescriptionFreshnessChecker;
-  branchFileSteps: BranchFileStepsChecker;
-  forgetSpec: (dir: string, specFolder: string) => void;
-  rootsStillHolding: (project: string, branch: string, fresh: boolean) => Promise<string[]>;
-  queueInstallTimeoutMs?: number;
   restart: RestartHook;
   restartPollMs?: number;
   restartDeferTimeoutMs?: number;
-  dashboardRoot?: string;
-  landingGate?: LandContext["landingGate"];
-  conflictRepair?: LandContext["conflictRepair"];
-  finalizeCreateSpec?: LandContext["finalizeCreateSpec"];
-  translationMergeArgs?: LandContext["translationMergeArgs"];
-  testServers: TestServersContext;
 }
 
 export function setupLand(state: ServerState, inputs: LandSetupInputs) {

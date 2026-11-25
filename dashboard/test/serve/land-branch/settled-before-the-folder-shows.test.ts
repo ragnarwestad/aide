@@ -14,6 +14,19 @@ import { BRANCH, landCtx, landingGit, REPOS, ROOT } from "./landing-fixtures.ts"
 const ffIndex = (calls: { dir: string; args: string[] }[]): number =>
   calls.findIndex((c) => c.dir === ROOT && c.args.join(" ") === "merge -q --ff-only origin/master");
 
+/** Lands job-1's archive of 150-spec into `REPOS` through `ctx`. */
+const landArchive = (ctx: Record<string, unknown>) =>
+  landBranch(
+    ctx as unknown as Parameters<typeof landBranch>[0],
+    { id: "job-1", project: "aide", specFolder: "150-spec" } as unknown as Parameters<typeof landBranch>[1],
+    { branch: BRANCH },
+    {
+      step: "archive",
+      repos: REPOS,
+      failedNote: (why: string) => ({ key: "landing.archiveLandingFailed", values: { why } }),
+    } as unknown as Parameters<typeof landBranch>[3],
+  );
+
 describe("what is settled before the checkout moves", () => {
   test("a create job carries its assigned folder before the numbered folder can be seen", async () => {
     const git = landingGit({ reset: { code: 0 } });
@@ -67,16 +80,7 @@ describe("what is settled before the checkout moves", () => {
         rememberOpenSpecBranch: () => {},
       },
     });
-    await landBranch(
-      ctx as unknown as Parameters<typeof landBranch>[0],
-      { id: "job-1", project: "aide", specFolder: "150-spec" } as unknown as Parameters<typeof landBranch>[1],
-      { branch: BRANCH },
-      {
-        step: "archive",
-        repos: REPOS,
-        failedNote: (why: string) => ({ key: "landing.archiveLandingFailed", values: { why } }),
-      } as unknown as Parameters<typeof landBranch>[3],
-    );
+    await landArchive(ctx);
     const ff = ffIndex(git.calls);
     expect(ff).toBeGreaterThan(-1);
     expect(forgotten.some((f) => f.root === ROOT && f.branch === BRANCH && f.at <= ff)).toBe(true);
@@ -92,16 +96,7 @@ describe("what is settled once the landing has moved the folder", () => {
     const { ctx } = landCtx(git.run, {
       forgetSpec: (dir: string, folder: string) => void order.push(`forget ${dir} ${folder}`),
     });
-    await landBranch(
-      ctx as unknown as Parameters<typeof landBranch>[0],
-      { id: "job-1", project: "aide", specFolder: "150-spec" } as unknown as Parameters<typeof landBranch>[1],
-      { branch: BRANCH },
-      {
-        step: "archive",
-        repos: REPOS,
-        failedNote: (why: string) => ({ key: "landing.archiveLandingFailed", values: { why } }),
-      } as unknown as Parameters<typeof landBranch>[3],
-    );
+    await landArchive(ctx);
     expect(order).toEqual([`forget ${ROOT}/archive/150-spec 150-spec`, `forget ${ROOT}/150-spec 150-spec`]);
   });
 });

@@ -1,16 +1,10 @@
 // The header's Deploy mark opens the same question as the Deploy tab, and
 // OK queues a job and opens its row on the Running tab.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { chromium, type Browser } from "playwright";
-import type { GitRunner } from "../../../src/git/process/index.ts";
 import { setDeployWaiting } from "../../../src/render/ui/deploy-mark/index.ts";
 import { browserDeadline } from "../../helpers/browser-deadline.ts";
-import {
-  INSTALLS, behindBy, harness, ownDirs, projectsRoot,
-} from "../../project/detail/project-detail-route-fixtures.ts";
+import { heldDeployBoard, routeBoard } from "../../project/detail/project-detail-route-fixtures.ts";
 
 browserDeadline();
 
@@ -19,32 +13,14 @@ let base: string;
 
 beforeAll(async () => {
   browser = await chromium.launch();
-  const root = projectsRoot({ aide: INSTALLS });
-  const results = mkdtempSync(join(tmpdir(), "aide-deploy-mark-job-"));
-  ownDirs.push(results);
-  const inner = behindBy(root, "aide", 1);
-  const run: GitRunner = async (dir, args) =>
-    args[0] === "merge" ? new Promise<never>(() => {}) : inner.run(dir, args);
-  base = harness.start({
-    extra: {
-      projectRoot: root,
-      queueProjectRoot: root,
-      gitRun: run,
-      driftPollMs: 600_000,
-      dashboardRoot: join(root, "aide"),
-      queueRunnerBin: "/usr/bin/true",
-      queueResultDir: results,
-      restart: { registered: async () => false, fire: () => {} },
-    },
-  }).base;
+  base = heldDeployBoard("aide-deploy-mark-job-");
   setDeployWaiting(() => ({ project: "aide", commits: 1, branch: "main" }));
 });
 
 afterAll(async () => {
   setDeployWaiting(undefined);
   await browser.close();
-  harness.cleanup();
-  while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
+  routeBoard.cleanup();
 });
 
 describe("Deploy from the header mark", () => {

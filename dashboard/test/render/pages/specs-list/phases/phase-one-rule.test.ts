@@ -1,10 +1,10 @@
 // Split out of phase-rules.test.ts by theme.
 
 import { describe, expect, test } from "bun:test";
-import { renderSpecsRows, type QueueRowView, type SpecTarget } from "../../../../../src/render";
+import { renderSpecsRows, type SpecTarget } from "../../../../../src/render";
 import { phasesFor, doneOutsideRound } from "../../../../../src/render/pages/specs-list/data-model/phases.ts";
 import { wordPhase } from "../../../../../src/render/ui/job-state";
-import { row, openKeys } from "../../fixtures.ts";
+import { row, openKeys, specTarget, openRowsAt } from "../../fixtures.ts";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../../../src/project/parse-status";
 
 /** What a phase that has not run draws in the State column: a dash,
@@ -30,17 +30,8 @@ const stateCell = (line: string): string =>
 // last attempt is a qualifier when it disagrees, and archive says "held
 // back" with its reason when a run declined to move the folder.
 describe("one rule per phase", () => {
-  const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
-    project: "aide",
-    specFolder,
-    ...extra,
-  });
-  const rows = (list: QueueRowView[], targets: SpecTarget[]) =>
-    renderSpecsRows(
-      list,
-      { runnerAvailable: true, targets, filter: { open: openKeys(list, targets) } },
-      Date.parse("2026-08-19T12:00:00Z"),
-    );
+  const target = specTarget;
+  const rows = openRowsAt("2026-08-19T12:00:00Z");
   const head = (html: string) => html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>\s*<tr class="specstate"[\s\S]*?<\/tr>/)?.[0] ?? "";
   /** The Run button's own line, under the header. */
   /** Everything one row draws: its header line and, when it is open,
@@ -313,12 +304,7 @@ describe("a phase in transition reads as what it is doing", () => {
     specFolder: "480-transition",
     ...extra,
   });
-  const rows = (list: QueueRowView[], targets: SpecTarget[]) =>
-    renderSpecsRows(
-      list,
-      { runnerAvailable: true, targets, filter: { open: openKeys(list, targets) } },
-      Date.parse("2026-09-17T10:00:00Z"),
-    );
+  const rows = openRowsAt("2026-09-17T10:00:00Z");
   const subRow = (html: string, phase: string) =>
     html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
   const FAULTS = /nothing reached the files|disagree|run it again/;

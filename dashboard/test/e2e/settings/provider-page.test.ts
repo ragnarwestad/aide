@@ -2,13 +2,12 @@
 // the list, the pending label while a save is out, Cancel putting back what
 // was saved, Remove asking first, a refused save keeping what was typed,
 // the on/off switch, and the usage and the Models tab's reading filled in after the tab has drawn.
-import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from "bun:test";
-import { mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { chromium, type Browser, type Page } from "playwright";
+import { afterEach, beforeEach, expect, test } from "bun:test";
+import type { Browser, Page } from "playwright";
 import { browserDeadline, withBrowser } from "../../helpers/browser-deadline.ts";
+import { e2eBrowser } from "../../helpers/setup/e2e-browser.ts";
 import { queueHarness } from "../../helpers/queue-server.ts";
+import { AT, startProviderBoard } from "./provider-fixtures.ts";
 import { t } from "../../../src/i18n";
 
 browserDeadline();
@@ -18,30 +17,12 @@ let browser: Browser;
 let page: Page;
 let base: string;
 
-const PROVIDERS = {
-  Claude: { name: "Claude", tool: "claude" as const },
-  OpenCode: { name: "OpenCode", tool: "opencode" as const },
-};
-const AT = "2026-11-05T09:00:00.000Z";
-
-beforeAll(async () => {
-  const scratch = mkdtempSync(join(tmpdir(), "aide-e2e-provider-config-"));
-  const file = join(scratch, "queue-config.json");
-  writeFileSync(file, JSON.stringify({ providers: PROVIDERS }, null, 2));
-  browser = await withBrowser(chromium.launch(), "chromium.launch()");
-  base = harness.start({
-    extra: {
-      queueConfigFile: file,
-      queueDefaults: {
-        timeoutSec: { default: 1200 }, permissionMode: { default: "acceptEdits" }, model: { default: "sonnet" },
-        providers: structuredClone(PROVIDERS),
-      },
-      providerProbe: async (key: string) => ({ key, at: AT, installed: true }),
-      toolProbe: {
-        check: async (tool: "claude" | "codex" | "opencode") => ({ tool, at: AT, found: true, extra: [] }),
-        models: async (tool: "claude" | "codex" | "opencode") => ({ tool, at: AT, offered: [{ model: "opus" }] }),
-      },
-      usageProbe: async (_key: string, provider: { tool: "claude" | "codex" | "opencode" }) => ({ tool: provider.tool, at: AT, windows: [] }),
+e2eBrowser(harness, (launched) => {
+  browser = launched;
+  base = startProviderBoard(harness, "aide-e2e-provider-config-", {
+    toolProbe: {
+      check: async (tool: "claude" | "codex" | "opencode") => ({ tool, at: AT, found: true, extra: [] }),
+      models: async (tool: "claude" | "codex" | "opencode") => ({ tool, at: AT, offered: [{ model: "opus" }] }),
     },
   }).base;
 });
@@ -51,10 +32,6 @@ beforeEach(async () => {
 });
 afterEach(async () => {
   await page.close();
-});
-afterAll(async () => {
-  await browser.close();
-  harness.cleanup();
 });
 
 const go = (address: string) => withBrowser(page.goto(`${base}${address}`), `page.goto(${address})`);

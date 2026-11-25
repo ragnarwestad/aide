@@ -1,6 +1,5 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { describe, expect, test } from "bun:test";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   assessProjectReadiness,
@@ -9,17 +8,9 @@ import {
 import type { GitRunner } from "../../../src/git/process/index.ts";
 import { configValue, resolveCodeLanding } from "../../../src/project/discover";
 import { fakeGit } from "../../helpers/fake-git.ts";
+import { tempDirs } from "../../helpers/setup/temp-dirs.ts";
 
-const dirs: string[] = [];
-const root = (): string => {
-  const d = mkdtempSync(join(tmpdir(), "aide-project-admin-"));
-  dirs.push(d);
-  return d;
-};
-
-afterEach(() => {
-  while (dirs.length) rmSync(dirs.pop()!, { recursive: true, force: true });
-});
+const root = tempDirs("aide-project-admin-").make;
 
 /** A checkout under a projects root of its own. */
 function checkoutFor(name: string): { projectsRoot: string; dir: string } {

@@ -93,35 +93,17 @@ describe("summarizeStream telling the schemas apart", () => {
 // run's closing word. Adding opencode to the first alone left the other
 // reading its transcript as Claude's and finding nothing.
 
+/** One completed opencode bash call, as its transcript line. */
+const bashCall = (command: string, metadata: object, time: { start: number; end: number }) =>
+  line({
+    type: "tool_use",
+    sessionID: SESSION,
+    part: { type: "tool", tool: "bash", state: { status: "completed", input: { command }, metadata, time } },
+  });
+
 const CMD_STREAM = [
-  line({
-    type: "tool_use",
-    sessionID: SESSION,
-    part: {
-      type: "tool",
-      tool: "bash",
-      state: {
-        status: "completed",
-        input: { command: "echo hello-from-shell" },
-        metadata: { output: "hello-from-shell\n", exit: 0 },
-        time: { start: 1000, end: 1250 },
-      },
-    },
-  }),
-  line({
-    type: "tool_use",
-    sessionID: SESSION,
-    part: {
-      type: "tool",
-      tool: "bash",
-      state: {
-        status: "completed",
-        input: { command: "false" },
-        metadata: { exit: 1 },
-        time: { start: 2000, end: 2010 },
-      },
-    },
-  }),
+  bashCall("echo hello-from-shell", { output: "hello-from-shell\n", exit: 0 }, { start: 1000, end: 1250 }),
+  bashCall("false", { exit: 1 }, { start: 2000, end: 2010 }),
   // A non-shell tool is not a command, and says nothing about one.
   line({ type: "tool_use", sessionID: SESSION, part: { type: "tool", tool: "read" } }),
   line({ type: "text", sessionID: SESSION, part: { type: "text", text: "half way" } }),

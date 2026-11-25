@@ -3,9 +3,10 @@
 // whose Referer is the page itself. Only a real browser decides what
 // Referer a click sends and keeps the browser tab's storage from one load
 // to the next, so this is a browser test.
-import { afterAll, beforeAll, expect, test } from "bun:test";
-import { chromium, type Browser, type Page } from "playwright";
+import { expect, test } from "bun:test";
+import type { Browser, Page } from "playwright";
 import { browserDeadline, withBrowser } from "../../helpers/browser-deadline.ts";
+import { e2eBrowser } from "../../helpers/setup/e2e-browser.ts";
 import { queueHarness, ran } from "../../helpers/queue-server.ts";
 
 browserDeadline();
@@ -16,16 +17,11 @@ const harness = queueHarness("aide-e2e-back-tabs-");
 let browser: Browser;
 let base: string;
 
-beforeAll(async () => {
-  browser = await withBrowser(chromium.launch(), "chromium.launch()");
+e2eBrowser(harness, (launched) => {
+  browser = launched;
   const started = harness.start();
   base = started.base;
   ran(started.dir, []);
-});
-
-afterAll(async () => {
-  await browser.close();
-  harness.cleanup();
 });
 
 /** Where the page's Back leads, as a path. */

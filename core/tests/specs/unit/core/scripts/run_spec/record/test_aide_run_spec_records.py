@@ -1,18 +1,16 @@
 """aide-run-spec: the record of what has run: the status file, each phase's own tracking info, and reopening a spec.
 
-One part of a suite that was one 7348-line file until 2026-09-04;
-the tests are unchanged and keep their names. What they share sits
-in conftest.py beside them.
+One part of the aide-run-spec suite; what the parts share sits in
+conftest.py beside them.
 """
 
 import json
 import os
 import re
-import signal
 import subprocess
 import pytest
 from ...conftest import READ_SPECS, STOP_DEADLINE_SEC, git, run
-from ..run_spec_invoking import CREATE_KEY, create, wait_until
+from ..run_spec_invoking import CREATE_KEY, cancel_once, create, started_runner
 from ..run_spec_fakes import project_only_claude, specs_only_claude, writing_claude
 from ..run_spec_results import RESULT_OK
 from ..run_spec_status_files import (
@@ -605,29 +603,8 @@ def test_a_cancelled_analysis_keeps_the_ticks(runner, workspace, fake_claude, tm
         + f"touch {ready}\n"
         + "sleep 60\n"
     )
-    proc = subprocess.Popen(
-        [
-            str(runner),
-            "--project-dir", str(workspace["project"]),
-            "--project-name", "aide",
-            "--command", "analyze",
-            "--spec", workspace["folder"],
-            "--timeout-sec", "120",
-            "--permission-mode", "acceptEdits",
-            "--result-file", str(tmp_path / "result.json"),
-            "--worktree-base", str(workspace["wtbase"]),
-        ],
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-        env={**os.environ, "AIDE_CLAUDE_BIN": str(claude)},
-    )
-    try:
-        wait_until(ready.exists, 60, "the step never started writing")
-        proc.send_signal(signal.SIGTERM)
-        proc.wait(timeout=60)
-    finally:
-        if proc.poll() is None:
-            proc.kill()
-            proc.wait(timeout=10)
+    with started_runner(runner, workspace, claude, tmp_path, "analyze") as proc:
+        cancel_once(proc, ready, "the step never started writing")
     assert branch_file(workspace["specs"], "2-analysis.md", workspace) == "analysis"
     assert section_of(branch_file(workspace["specs"], "4-status.md", workspace), "## Acceptance") == section_of(
         status_on_main(workspace), "## Acceptance"

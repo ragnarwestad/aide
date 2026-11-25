@@ -285,6 +285,7 @@ describe("tickStatusLine", () => {
   // any other phase's row — no new code in tickStatusLine itself, only
   // PHASE_HEADING_RE recognizing the heading.
   test("tickStatusLine ticks a row under ## Acceptance criteria exactly like any other phase", () => {
+    // Written out in full on purpose: this text is the input of the parser under test.
     const file = [
       "# X - Status",
       "",

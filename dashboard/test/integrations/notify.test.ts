@@ -6,18 +6,8 @@
 // JSON on stdin, spawn-and-forget, SIGTERM at 10 s and SIGKILL a second
 // later, and absent entirely unless configured.
 import { describe, expect, test } from "bun:test";
-import { Notifier, type NotifyEvent, type NotifyChild } from "../../src/integrations/notify.ts";
-
-const EVENT: NotifyEvent = {
-  event: "finished",
-  project: "aide",
-  spec: "81-queue-and-runner",
-  step: "analyze",
-  jobId: "job-1",
-  costUsd: 2.1,
-  branchUrl: "https://github.com/example/aide/compare/main...aide/81-queue-and-runner",
-  at: "2026-08-16T22:00:00Z",
-};
+import { Notifier, type NotifyChild } from "../../src/integrations/notify.ts";
+import { FINISHED_EVENT as EVENT } from "./notify-event.ts";
 
 function recorder() {
   const calls: { argv: string[]; line: string }[] = [];

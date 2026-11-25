@@ -3,20 +3,19 @@
 // and the Review line under Analyze, fold the same way: only a browser at a
 // phone's width draws the fold. They are drawn on the Jobs tab, in an open
 // spec that has had an Implement.
-import { afterAll, beforeAll, expect, test } from "bun:test";
-import { chromium, type Browser, type Page } from "playwright";
+import { expect, test } from "bun:test";
+import type { Page } from "playwright";
 import { browserDeadline, withBrowser } from "../../helpers/browser-deadline.ts";
+import { e2eBrowser } from "../../helpers/setup/e2e-browser.ts";
 import { queueHarness } from "../../helpers/queue-server.ts";
 
 browserDeadline();
 
 const harness = queueHarness("aide-e2e-side-pickers-");
-let browser: Browser;
 let page: Page;
 let base: string;
 
-beforeAll(async () => {
-  browser = await withBrowser(chromium.launch(), "chromium.launch()");
+e2eBrowser(harness, async (browser) => {
   page = await browser.newPage({ viewport: { width: 390, height: 844 } });
   const queueDefaults = {
     timeoutSec: { default: 1200 },
@@ -31,11 +30,6 @@ beforeAll(async () => {
     finishedAt: "2026-11-13T08:10:00Z", results: [{ step: "implement", ok: true }],
   };
   base = harness.start({ extra: { queueDefaults }, queueMirror: JSON.stringify([implemented]) }).base;
-});
-
-afterAll(async () => {
-  await browser.close();
-  harness.cleanup();
 });
 
 for (const part of ["review", "verify"]) {

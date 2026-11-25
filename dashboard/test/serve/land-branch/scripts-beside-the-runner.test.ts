@@ -31,18 +31,25 @@ describe("scriptFor", () => {
   });
 });
 
+/** An `aide-create-spec` in `<dir>/bin` that writes its arguments to
+ *  `marker` and answers that the spec's number is 07. */
+function fakeCreateSpec(dir: string): { bin: string; marker: string } {
+  const bin = join(dir, "bin");
+  mkdirSync(bin);
+  const marker = join(dir, "called.txt");
+  writeFileSync(
+    join(bin, "aide-create-spec"),
+    `#!/bin/sh\nprintf '%s\\n' "$*" > ${marker}\nprintf '{"ok":true,"specFolder":"07-x"}\\n'\n`,
+  );
+  chmodSync(join(bin, "aide-create-spec"), 0o755);
+  return { bin, marker };
+}
+
 describe("the landed create's number", () => {
   test("is asked of the aide-create-spec beside the runner", async () => {
     const dir = mkdtempSync(join(tmpdir(), "aide-beside-runner-"));
     try {
-      const bin = join(dir, "bin");
-      mkdirSync(bin);
-      const marker = join(dir, "called.txt");
-      writeFileSync(
-        join(bin, "aide-create-spec"),
-        `#!/bin/sh\nprintf '%s\\n' "$*" > ${marker}\nprintf '{"ok":true,"specFolder":"07-x"}\\n'\n`,
-      );
-      chmodSync(join(bin, "aide-create-spec"), 0o755);
+      const { bin, marker } = fakeCreateSpec(dir);
       const work = join(dir, "work");
       mkdirSync(work);
       const answer = await assignSpecNumberAfterMerge(work, work, work, "new-abc12345", { scriptDir: bin });
@@ -56,14 +63,7 @@ describe("the landed create's number", () => {
   test("keeps the specs subdirectory when its parent is reached through a symlink", async () => {
     const dir = mkdtempSync(join(tmpdir(), "aide-linked-specs-numbering-"));
     try {
-      const bin = join(dir, "bin");
-      mkdirSync(bin);
-      const marker = join(dir, "called.txt");
-      writeFileSync(
-        join(bin, "aide-create-spec"),
-        `#!/bin/sh\nprintf '%s\\n' "$*" > ${marker}\nprintf '{"ok":true,"specFolder":"07-x"}\\n'\n`,
-      );
-      chmodSync(join(bin, "aide-create-spec"), 0o755);
+      const { bin, marker } = fakeCreateSpec(dir);
       const physical = join(dir, "physical");
       const linked = join(dir, "linked");
       const work = join(dir, "work");

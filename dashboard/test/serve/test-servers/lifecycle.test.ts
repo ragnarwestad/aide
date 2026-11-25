@@ -18,6 +18,7 @@ import {
   type SpawnResult,
 } from "../../../src/serve/test-servers/lifecycle.ts";
 import type { TestServer } from "../../../src/serve/test-servers/store.ts";
+import { testServersCtx } from "./test-servers-fixtures.ts";
 
 // No test in this file may reach a real `process.kill`: the fixtures
 // below carry made-up pids (one of them is 1, and `kill(-1)` is every
@@ -35,14 +36,7 @@ let spawnResult: SpawnResult;
 let alive: Set<number>;
 
 function makeCtx(overrides: Partial<TestServersContext> = {}): TestServersContext {
-  return {
-    store: new TestServerStore(),
-    aideCheckout: () => "/checkout/aide",
-    startCommand: (_p, { branch, port }) => [
-      "/checkout/aide/dashboard/test/round/run", "/checkout/aide",
-      "--branch", branch, "--port", String(port), "--keep",
-    ],
-    previewAvailable: () => true,
+  return testServersCtx(new TestServerStore(), {
     gitRun: async (_dir, args) => {
       if (args[0] === "ls-remote") return { code: 0, stdout: "abc123\trefs/heads/aide/spec-1\n", stderr: "" };
       return { code: 1, stdout: "", stderr: "" };
@@ -63,7 +57,7 @@ function makeCtx(overrides: Partial<TestServersContext> = {}): TestServersContex
       return port;
     },
     ...overrides,
-  };
+  });
 }
 
 /** A tracked, running board fixture — used to pin the exact running

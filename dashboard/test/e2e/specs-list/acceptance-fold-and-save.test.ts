@@ -1,9 +1,10 @@
 // The acceptance criteria unfolded on the specs list, in a real browser:
 // whether the › works as a link, and whether the boxes outside the form
 // post through `form=` and clear the hold once the last one is ticked.
-import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { chromium, type Browser, type Page } from "playwright";
+import { describe, expect, test } from "bun:test";
+import type { Page } from "playwright";
 import { browserDeadline } from "../../helpers/browser-deadline.ts";
+import { e2eBrowser, waitUntil } from "../../helpers/setup/e2e-browser.ts";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { queueHarness, ran } from "../../helpers/queue-server.ts";
@@ -38,21 +39,10 @@ const COVERAGE_JSON = JSON.stringify({
 });
 
 const harness = queueHarness("aide-e2e-acceptance-fold-");
-let browser: Browser;
 let page: Page;
 let base: string;
 
-async function waitUntil(cond: () => Promise<boolean>, ms: number, label: string): Promise<void> {
-  const deadline = Date.now() + ms;
-  for (;;) {
-    if (await cond()) return;
-    if (Date.now() >= deadline) throw new Error(`${label} did not happen within ${ms}ms`);
-    await new Promise((r) => setTimeout(r, 50));
-  }
-}
-
-beforeAll(async () => {
-  browser = await chromium.launch();
+e2eBrowser(harness, async (browser) => {
   page = await browser.newPage();
   const started = harness.start({ extra: { gitRun: recording().run }, status: STATUS });
   base = started.base;
@@ -65,8 +55,6 @@ beforeAll(async () => {
     "the specs list to carry the acceptance hold-back message",
   );
 });
-
-afterAll(async () => { await browser.close(); harness.cleanup(); });
 
 const notice = () => page.locator(`tr.specnotice[data-folder="${FOLDER}"]`);
 

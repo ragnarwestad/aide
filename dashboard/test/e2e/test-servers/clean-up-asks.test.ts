@@ -3,9 +3,10 @@
 // Only a browser opens a dialog and follows its OK.
 //
 // By hand: `cd dashboard && bun test --timeout 20000 test/e2e/test-servers/clean-up-asks.test.ts`.
-import { afterAll, beforeAll, expect, test } from "bun:test";
-import { chromium, type Browser } from "playwright";
-import { browserDeadline, withBrowser } from "../../helpers/browser-deadline.ts";
+import { expect, test } from "bun:test";
+import type { Browser } from "playwright";
+import { browserDeadline } from "../../helpers/browser-deadline.ts";
+import { e2eBrowser } from "../../helpers/setup/e2e-browser.ts";
 import { queueHarness, ran } from "../../helpers/queue-server.ts";
 
 browserDeadline();
@@ -14,16 +15,11 @@ const harness = queueHarness("aide-e2e-clean-up-asks-");
 let browser: Browser;
 let base: string;
 
-beforeAll(async () => {
-  browser = await withBrowser(chromium.launch(), "chromium.launch()");
+e2eBrowser(harness, (launched) => {
+  browser = launched;
   const started = harness.start();
   base = started.base;
   ran(started.dir, []);
-});
-
-afterAll(async () => {
-  await browser.close();
-  harness.cleanup();
 });
 
 test("Clean up asks first, and its OK queues the cleanup job", async () => {

@@ -11,7 +11,9 @@ import { join } from "node:path";
 import { pickRefusal } from "../../../src/serve/land-branch/merge.ts";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
 
-import { createOwnDirs, gitFor, repos, installs, serverWith, merges, stepWithResult, repoOf } from "./every-step-lands-fixtures.ts";
+import {
+  codeAndSpecsBranches, createOwnDirs, gitFor, implementDone, installs, repos, serverWith, specsBranch, stepWithResult,
+} from "./every-step-lands-fixtures.ts";
 
 const { harness } = setupQueueRoutesHarness();
 const { own, cleanup: cleanupOwnDirs } = createOwnDirs();
@@ -49,35 +51,6 @@ const serverWithHarness = (
   extra: Parameters<typeof serverWith>[4] = {},
 ) => serverWith(harness, dir, paths, git, extra);
 
-// The argument that made `create` and `archive` land
-// themselves holds word for word here: analyze writes markdown in the
-// specs repo and nothing else, so there is no diff for a person to
-// weigh and nothing that reaches the serving host.
-test.each(["analyze"])(
-  "a finished %s step lands its own branch, with no press and no HTTP request",
-  async (step) => {
-    const dir = own(`aide-149-${step}-`);
-    const paths = repos(dir);
-    const git = gitFor();
-    const { base } = serverWithHarness(dir, paths, git);
-
-    const landed = await stepWithResult(base, dir, step, {
-      branchUrls: [{ root: paths.specs, url: "https://example.test/aide-specs" }],
-    });
-
-    expect(landed.error).toBeFalsy();
-    expect(merges(git.calls, paths.specs).length).toBeGreaterThan(0);
-    expect(git.calls.some((c) => repoOf(c.dir) === paths.specs && c.args[0] === "push")).toBe(true);
-    // Landed, so the row stops advertising a branch at all.
-    expect(landed.branchUrls).toEqual([]);
-  },
-);
-
-// The one step that deliberately does not land. The code
-// stays on `aide/<spec>`, which is where a person tests it — by
-// leaving `archive` unticked. The worktree is gone when the run ends,
-// so the branch on origin is what remains.
-
 describe("a landing, the install and the restart", () => {
   // The restart is what killed this process, and it used to fire from
   // inside the per-repo loop the moment the code root's install was
@@ -112,21 +85,8 @@ describe("a landing, the install and the restart", () => {
     });
     installs(paths.project);
 
-    await stepWithResult(
-      base,
-      dir,
-      "implement",
-      {
-        branchUrls: [
-          { root: paths.project, url: "https://example.test/aide" },
-          { root: paths.specs, url: "https://example.test/aide-specs" },
-        ],
-      },
-      (j) => j.state === "done",
-    );
-    const landed = await stepWithResult(base, dir, "archive", {
-      branchUrls: [{ root: paths.specs, url: "https://example.test/aide-specs" }],
-    });
+    await implementDone(base, dir, codeAndSpecsBranches(paths));
+    const landed = await stepWithResult(base, dir, "archive", { branchUrls: specsBranch(paths) });
 
     expect(landed.error).toBeFalsy();
     const marker = join(paths.project, "installed");
@@ -174,21 +134,8 @@ describe("a landing, the install and the restart", () => {
       },
     });
     const marker = installs(paths.project);
-    await stepWithResult(
-      base,
-      dir,
-      "implement",
-      {
-        branchUrls: [
-          { root: paths.project, url: "https://example.test/aide" },
-          { root: paths.specs, url: "https://example.test/aide-specs" },
-        ],
-      },
-      (j) => j.state === "done",
-    );
-    const landed = await stepWithResult(base, dir, "archive", {
-      branchUrls: [{ root: paths.specs, url: "https://example.test/aide-specs" }],
-    });
+    await implementDone(base, dir, codeAndSpecsBranches(paths));
+    const landed = await stepWithResult(base, dir, "archive", { branchUrls: specsBranch(paths) });
     expect(landed.error).toBeFalsy();
     for (let i = 0; i < 80 && !existsSync(marker); i++) await Bun.sleep(25);
     expect(existsSync(marker)).toBe(true);

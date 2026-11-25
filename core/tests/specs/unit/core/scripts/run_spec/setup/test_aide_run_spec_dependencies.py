@@ -18,6 +18,12 @@ from ..run_spec_origins import leave_branch_on_origin, leave_unmerged_branch_on_
 from ..run_spec_status_files import add_spec, set_depends_on
 
 
+def _implement_with_an_ai_that_must_not_run(runner, workspace, fake_claude):
+    """Runs an implement whose stand-in AI fails loudly if it is called."""
+    rc, out, _ = run(runner, workspace, fake_claude("exit 1"), command="implement")
+    return rc, out
+
+
 def group_dependency_branch(workspace, completed_phases):
     """Put two grouped specs and the dependency's state on origin's shared branch."""
     dependency = add_spec(workspace, "80-dependency")
@@ -61,8 +67,7 @@ def test_refuses_while_a_named_dependency_is_still_unmerged(
     leave_unmerged_branch_on_origin(workspace, "aide/80-dependency")
     set_depends_on(workspace, "80")
 
-    claude = fake_claude("exit 1")  # would fail loudly if it were called
-    rc, out, _ = run(runner, workspace, claude, command="implement")
+    rc, out = _implement_with_an_ai_that_must_not_run(runner, workspace, fake_claude)
     assert rc == 2
     assert out["ok"] is False
     assert out["terminalReason"] == "refused"
@@ -107,8 +112,7 @@ def test_a_dependency_merged_but_not_archived_still_refuses(
     leave_branch_on_origin(workspace, "aide/80-dependency")
     set_depends_on(workspace, "80")
 
-    claude = fake_claude("exit 1")  # would fail loudly if it were called
-    rc, out, _ = run(runner, workspace, claude, command="implement")
+    rc, out = _implement_with_an_ai_that_must_not_run(runner, workspace, fake_claude)
     assert rc == 2
     assert out["terminalReason"] == "refused"
     assert "aide:80" in out["error"]
@@ -174,8 +178,7 @@ def test_a_dependency_with_no_branch_and_not_archived_still_refuses(
     add_spec(workspace, "80-dependency")
     set_depends_on(workspace, "80")
 
-    claude = fake_claude("exit 1")  # would fail loudly if it were called
-    rc, out, _ = run(runner, workspace, claude, command="implement")
+    rc, out = _implement_with_an_ai_that_must_not_run(runner, workspace, fake_claude)
     assert rc == 2
     assert out["terminalReason"] == "refused"
     assert "aide:80" in out["error"]

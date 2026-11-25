@@ -3,34 +3,15 @@
 // "names no dependency": read that way, the analyze started into
 // `aide-run-spec`'s refusal and the job failed instead of waiting.
 
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { describe, expect, test } from "bun:test";
 import { blockedDependencies, UNCONFIRMED_HOLD_MS } from "../../../src/serve/schedules/blocked.ts";
 import { dependencyHold } from "../../../src/queue/runner/dependency-hold.ts";
+import { tempDirs } from "../../helpers/setup/temp-dirs.ts";
+import { dependentProjectsRoot } from "./spec-fixtures.ts";
 
-const dirs: string[] = [];
-afterEach(() => {
-  while (dirs.length) rmSync(dirs.pop()!, { recursive: true, force: true });
-});
+const dirs = tempDirs("aide-after-create-");
 
-function projectsRoot(): { root: string; specs: string } {
-  const dir = mkdtempSync(join(tmpdir(), "aide-after-create-"));
-  dirs.push(dir);
-  const root = join(dir, "root");
-  const specs = join(root, "aide", "specs");
-  mkdirSync(join(root, "aide", ".aide"), { recursive: true });
-  writeFileSync(join(root, "aide", ".aide", "project.yaml"), "name: aide\n");
-  mkdirSync(join(specs, "80-dependency"), { recursive: true });
-  writeFileSync(join(specs, "80-dependency", "1-description.md"), "# 80-dependency\n");
-  mkdirSync(join(specs, "81-dependent"), { recursive: true });
-  writeFileSync(
-    join(specs, "81-dependent", "1-description.md"),
-    "# 81-dependent\n\n## Tracking info\n\n- **Depends on:** `80-dependency`\n",
-  );
-  return { root, specs };
-}
+const projectsRoot = (): { root: string; specs: string } => dependentProjectsRoot(dirs.make());
 
 /** The queue right after `create`: the job is queued for `analyze`, and
  *  the cached scan does not hold the new spec yet. */

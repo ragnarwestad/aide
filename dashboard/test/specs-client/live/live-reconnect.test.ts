@@ -13,6 +13,15 @@ import { harness, flush } from "../fixtures.ts";
 
 const fresh = () => harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
 
+/** Fails the live source, then fires the `i`th retry that failure set;
+ *  answers how long that retry waited. */
+const failAndRetry = (h: ReturnType<typeof fresh>, i: number): number => {
+  h.live()!.fail();
+  const waited = h.timeouts[i]!.delayMs;
+  h.timeouts[i]!.fn();
+  return waited;
+};
+
 describe("a closed source is replaced", () => {
   test("error with readyState CLOSED opens a new source, no reload", () => {
     const h = fresh();
@@ -47,17 +56,11 @@ describe("a closed source is replaced", () => {
     const h = fresh();
     h.visibility("visible");
 
-    h.live()!.fail();
-    expect(h.timeouts[0]!.delayMs).toBe(1000);
-    h.timeouts[0]!.fn();
+    expect(failAndRetry(h, 0)).toBe(1000);
 
-    h.live()!.fail();
-    expect(h.timeouts[1]!.delayMs).toBe(2000);
-    h.timeouts[1]!.fn();
+    expect(failAndRetry(h, 1)).toBe(2000);
 
-    h.live()!.fail();
-    expect(h.timeouts[2]!.delayMs).toBe(4000);
-    h.timeouts[2]!.fn();
+    expect(failAndRetry(h, 2)).toBe(4000);
   });
 
   test("the wait ceiling stops growing past its cap", () => {
@@ -80,13 +83,9 @@ describe("a closed source is replaced", () => {
     const h = fresh();
     h.visibility("visible");
 
-    h.live()!.fail();
-    expect(h.timeouts[0]!.delayMs).toBe(1000);
-    h.timeouts[0]!.fn();
+    expect(failAndRetry(h, 0)).toBe(1000);
 
-    h.live()!.fail();
-    expect(h.timeouts[1]!.delayMs).toBe(2000);
-    h.timeouts[1]!.fn();
+    expect(failAndRetry(h, 1)).toBe(2000);
 
     // This reconnect succeeds — `open` fires — so the NEXT failure's wait
     // starts back at the base value instead of continuing to grow.

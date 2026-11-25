@@ -1,20 +1,24 @@
 import type { MessageEntry } from "../types.ts";
 
-export const JOBS_PROVIDER = {
-  "runner.modelRefused": {
-    en: "the model declined to continue",
-    nb: "modellen ville ikke fortsette",
-    es: "el modelo se negó a continuar",
-    de: "das Modell hat sich geweigert fortzufahren",
-    fr: "le modèle a refusé de continuer",
-    solution: {
-      en: "choose another model for this step, then press {button}",
-      nb: "velg en annen modell for dette steget, og trykk så {button}",
-      es: "elige otro modelo para este paso y luego pulsa {button}",
-      de: "wähle für diesen Schritt ein anderes Modell und klicke dann auf {button}",
-      fr: "choisissez un autre modèle pour cette étape, puis cliquez sur {button}",
-    },
+// The model declined to go on: said by the runner's outcome and by the
+// specs list's phase word alike.
+export const MODEL_REFUSED = {
+  en: "the model declined to continue",
+  nb: "modellen ville ikke fortsette",
+  es: "el modelo se negó a continuar",
+  de: "das Modell hat sich geweigert fortzufahren",
+  fr: "le modèle a refusé de continuer",
+  solution: {
+    en: "choose another model for this step, then press {button}",
+    nb: "velg en annen modell for dette steget, og trykk så {button}",
+    es: "elige otro modelo para este paso y luego pulsa {button}",
+    de: "wähle für diesen Schritt ein anderes Modell und klicke dann auf {button}",
+    fr: "choisissez un autre modèle pour cette étape, puis cliquez sur {button}",
   },
+} as const satisfies MessageEntry;
+
+export const JOBS_PROVIDER = {
+  "runner.modelRefused": MODEL_REFUSED,
   "runner.timeLimitSession": {
     en: "{button} stopped at the step's time limit of {limit}; what it had done is committed to the branch",
     nb: "{button} stoppet ved tidsgrensen for steget ({limit}); det som var gjort, er committet til grenen",

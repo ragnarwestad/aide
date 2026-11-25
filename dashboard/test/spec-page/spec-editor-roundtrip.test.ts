@@ -124,21 +124,26 @@ const toastUiEditorEntry = join(
   "dist/esm/index.js",
 );
 
-async function roundtrip(text: string): Promise<string> {
+/** A WYSIWYG editor configured as the spec page configures it, holding
+ *  `initialValue`, in a host appended to the document. */
+async function configuredEditor(initialValue: string) {
   const Editor = (await import(toastUiEditorEntry)).default;
   const host = document.createElement("div");
   document.body.appendChild(host);
-  const editor = new Editor({
+  return new Editor({
     el: host,
     height: "auto",
     initialEditType: "wysiwyg",
     previewStyle: "tab",
     usageStatistics: false,
-    initialValue: text,
+    initialValue,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     customMarkdownRenderer: bulletThematicOverride() as any,
   });
-  return editor.getMarkdown();
+}
+
+async function roundtrip(text: string): Promise<string> {
+  return (await configuredEditor(text)).getMarkdown();
 }
 
 describe("the editor's markdown engine, configured for this repo's convention", () => {
@@ -196,19 +201,7 @@ describe("markdown typed or pasted as plain text into the WYSIWYG surface", () =
   });
 
   async function pasteInto(text: string): Promise<string> {
-    const Editor = (await import(toastUiEditorEntry)).default;
-    const host = document.createElement("div");
-    document.body.appendChild(host);
-    const editor = new Editor({
-      el: host,
-      height: "auto",
-      initialEditType: "wysiwyg",
-      previewStyle: "tab",
-      usageStatistics: false,
-      initialValue: "",
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      customMarkdownRenderer: bulletThematicOverride() as any,
-    });
+    const editor = await configuredEditor("");
     editor.insertText(text);
     return editor.getMarkdown();
   }

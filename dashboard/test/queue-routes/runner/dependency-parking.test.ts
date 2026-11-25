@@ -104,6 +104,13 @@ describe("a job parked on an unmerged dependency", () => {
     return { run, calls };
   }
 
+  /** A server on this suite's projects root `root`, whose runner is the
+   *  stub `bin` and whose git is `gitRun`. */
+  function startOn(dir: string, root: string, bin: string, gitRun: ReturnType<typeof gitFor>["run"]): string {
+    const extra = { projectRoot: root, queueProjectRoot: root, queueRunnerBin: bin, queueResultDir: join(dir, "jobs"), gitRun };
+    return harness.start({ extra }).base;
+  }
+
   const queueStep = (base: string, step: string) =>
     fetch(`${base}/api/queue`, {
       method: "POST",
@@ -139,15 +146,7 @@ describe("a job parked on an unmerged dependency", () => {
     const { bin, argvFile } = stub(dir);
     const paths = root(dir);
     const git = gitFor(() => false);
-    const { base } = harness.start({
-      extra: {
-        projectRoot: paths.root,
-        queueProjectRoot: paths.root,
-        queueRunnerBin: bin,
-        queueResultDir: join(dir, "jobs"),
-        gitRun: git.run,
-      },
-    });
+    const base = startOn(dir, paths.root, bin, git.run);
     expect((await queueImplement(base)).status).toBe(200);
     await settle();
     expect(existsSync(argvFile)).toBe(false);
@@ -167,15 +166,7 @@ describe("a job parked on an unmerged dependency", () => {
     const dir = own("aide-queue-parked-analyze-");
     const { bin, argvFile } = stub(dir);
     const paths = root(dir);
-    const { base } = harness.start({
-      extra: {
-        projectRoot: paths.root,
-        queueProjectRoot: paths.root,
-        queueRunnerBin: bin,
-        queueResultDir: join(dir, "jobs"),
-        gitRun: gitFor(() => false).run,
-      },
-    });
+    const base = startOn(dir, paths.root, bin, gitFor(() => false).run);
     expect((await queueStep(base, "analyze")).status).toBe(200);
     await settle();
     expect(existsSync(argvFile)).toBe(false);
@@ -194,15 +185,7 @@ describe("a job parked on an unmerged dependency", () => {
     const { bin, argvFile } = stub(dir);
     const paths = root(dir);
     const git = gitFor(() => false);
-    const { base } = harness.start({
-      extra: {
-        projectRoot: paths.root,
-        queueProjectRoot: paths.root,
-        queueRunnerBin: bin,
-        queueResultDir: join(dir, "jobs"),
-        gitRun: git.run,
-      },
-    });
+    const base = startOn(dir, paths.root, bin, git.run);
     expect((await queueImplement(base)).status).toBe(200);
     await settle();
     expect(existsSync(argvFile)).toBe(false);
@@ -231,15 +214,7 @@ describe("a job parked on an unmerged dependency", () => {
     const paths = root(dir);
     let archived = false;
     const git = gitFor(() => archived);
-    const { base } = harness.start({
-      extra: {
-        projectRoot: paths.root,
-        queueProjectRoot: paths.root,
-        queueRunnerBin: bin,
-        queueResultDir: join(dir, "jobs"),
-        gitRun: git.run,
-      },
-    });
+    const base = startOn(dir, paths.root, bin, git.run);
     expect((await queueImplement(base)).status).toBe(200);
     const asked = () => git.calls.filter((c) => c.args[0] === "cat-file").length;
     expect(await until(() => asked() > 0)).toBe(true);
@@ -265,15 +240,7 @@ describe("a job parked on an unmerged dependency", () => {
     const dir = own("aide-queue-parked-cancel-");
     const { bin } = stub(dir);
     const paths = root(dir);
-    const { base } = harness.start({
-      extra: {
-        projectRoot: paths.root,
-        queueProjectRoot: paths.root,
-        queueRunnerBin: bin,
-        queueResultDir: join(dir, "jobs"),
-        gitRun: gitFor(() => false).run,
-      },
-    });
+    const base = startOn(dir, paths.root, bin, gitFor(() => false).run);
     const made = (await (await queueImplement(base)).json()) as { job: { id: string } };
     await settle();
     expect((await fetch(`${base}/api/queue/${made.job.id}/cancel`, { method: "POST", headers: AUTH })).status)
@@ -319,15 +286,7 @@ describe("a job parked on an unmerged dependency", () => {
       const dir = own("aide-queue-unticked-acceptance-");
       const { bin, argvFile } = stub(dir);
       const paths = rootWithOpenRow(dir);
-      const { base } = harness.start({
-        extra: {
-          projectRoot: paths.root,
-          queueProjectRoot: paths.root,
-          queueRunnerBin: bin,
-          queueResultDir: join(dir, "jobs"),
-          gitRun: gitFor(() => true).run,
-        },
-      });
+      const base = startOn(dir, paths.root, bin, gitFor(() => true).run);
       expect((await queueArchive(base)).status).toBe(200);
       await settle();
       expect(existsSync(argvFile)).toBe(false);

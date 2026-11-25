@@ -2,30 +2,15 @@
 // `worktreeSetup` in the worktree it serves a branch from, as
 // `aide-preview` does for every other project, and links the main
 // checkout's node_modules only when the project sets none.
-import { afterEach, describe, expect, setDefaultTimeout, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { describe, expect, setDefaultTimeout, test } from "bun:test";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { decoyPort, git, roundTemps } from "./round-fixtures.ts";
 
 setDefaultTimeout(30_000);
 
 const RUN = join(import.meta.dir, "run");
-const dirs: string[] = [];
-
-function tmp(prefix: string): string {
-  const d = mkdtempSync(join(tmpdir(), prefix));
-  dirs.push(d);
-  return d;
-}
-
-function git(cwd: string, args: string[]): void {
-  const proc = Bun.spawnSync({ cmd: ["git", "-C", cwd, ...args], stdout: "pipe", stderr: "pipe" });
-  if (proc.exitCode !== 0) throw new Error(`git ${args.join(" ")} in ${cwd} failed: ${proc.stderr.toString()}`);
-}
-
-afterEach(() => {
-  while (dirs.length) rmSync(dirs.pop()!, { recursive: true, force: true });
-});
+const tmp = roundTemps();
 
 /** An aide checkout with a branch to serve, whose manifest names `setup`. */
 function checkout(setup: string | null): string {
@@ -41,13 +26,6 @@ function checkout(setup: string | null): string {
   git(aide, ["-c", "user.name=t", "-c", "user.email=t@localhost", "commit", "-qm", "baseline"]);
   git(aide, ["branch", "feature-x"]);
   return aide;
-}
-
-/** A port another server holds, so a round that got past its worktree
- *  stops there instead of serving. */
-function decoyPort() {
-  const server = Bun.serve({ port: 0, hostname: "127.0.0.1", fetch: () => Response.json({ jobs: [] }) });
-  return { port: server.port!, stop: () => server.stop(true) };
 }
 
 async function round(aide: string, port: number): Promise<{ code: number; stderr: string }> {

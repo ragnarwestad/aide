@@ -7,6 +7,7 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { GitRunner } from "../../src/git/process/index.ts";
 import { queueHarness, type QueueHarness } from "../helpers/queue-server.ts";
+import { saveGoesThrough } from "../helpers/setup/git-answers.ts";
 
 export const SPEC = "81-queue-and-runner";
 export const SAVE = `/api/queue/specs/aide/${SPEC}/save`;
@@ -75,23 +76,8 @@ export function createSpecSaveHarness(prefix = "aide-spec-save-") {
  *  asks for succeeds unless a test overrides it. */
 export const savable = (root: string, extra: Record<string, { code: number; stdout?: string }> = {}): GitRunner => {
   const answers: Record<string, { code: number; stdout?: string }> = {
-    "rev-parse --show-toplevel": { code: 0, stdout: `${root}\n` },
-    // Something IS staged after the write: the ordinary case is a real
-    // edit. The no-op test flips this one line.
-    "diff --cached --quiet HEAD": { code: 1 },
-    "diff --quiet HEAD": { code: 0 },
-    "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "main\n" },
-    "rev-parse HEAD": { code: 0, stdout: `${HEAD_SHA}\n` },
+    ...saveGoesThrough(root, HEAD_SHA, FILE_SHA),
     "symbolic-ref --quiet refs/remotes/origin/HEAD": { code: 0, stdout: "refs/remotes/origin/main\n" },
-    fetch: { code: 0 },
-    "merge-base --is-ancestor": { code: 0 },
-    "merge -q --ff-only origin/": { code: 0 },
-    "merge -q --ff-only": { code: 0 },
-    "log -1 --format=": { code: 0, stdout: `${FILE_SHA}\t2026-08-21T09:14:00+02:00\n` },
-    add: { code: 0 },
-    commit: { code: 0 },
-    push: { code: 0 },
-    "reset --hard": { code: 0 },
     ...extra,
   };
   return async (_dir, args) => {

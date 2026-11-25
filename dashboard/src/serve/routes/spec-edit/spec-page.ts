@@ -4,18 +4,17 @@
 // `null` for a path that is not its own.
 import { refreshTestServerStatus, startTestServer } from "../../test-servers/lifecycle.ts";
 import { testServerFailedPage, testServerUrlFor, waitingForTestServerPage } from "./test-server-waiting.ts";
-import { saveSpecFiles } from "../../../git/specs-pull.ts";
-import { readStatusFromBranch, resolveOpenBranchTarget, writeStatusToBranch } from "../../../git/branch-file.ts";
+import { writeSpecFile } from "./shared.ts";
+import { readStatusFromBranch, resolveOpenBranchTarget } from "../../../git/branch-file.ts";
 import { getErrorMessage } from "../../../messages/shared/written.ts";
 import { DESCRIPTION_MAX, descriptionPart } from "../../../project/description-bound.ts";
 import { criteriaChecksIn, dependsOnIn, specFileText, withDependsOnLine } from "../../../project/discover";
 import { EDITABLE_SPEC_FILE, FILE_TABS, STATUS_SPEC_FILE, documentTabScript, listViewIn, renderSpecDetail, renderSpecGroupRows, renderSpecPageFailedRest, renderSpecsPageHead, renderSpecsPageRest, resolveSpecTab, specTabPath } from "../../../render";
-import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, SPEC_EDITOR_ASSET_PATH, SPEC_VIEWER_ASSET_PATH, editMessage, json, logRefusal, readObjectBody, streamedPage } from "../../serve-helpers";
+import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, SPEC_EDITOR_ASSET_PATH, SPEC_VIEWER_ASSET_PATH, json, logRefusal, readObjectBody, streamedPage } from "../../serve-helpers";
 import { listHeaders, oneRowKey, specsListParts, specsRowsAnswer } from "../page-routes/specs-list-view.ts";
 
 import type { Language } from "../../../i18n";
 import type { RoutesContext } from "..";
-import { afterTick } from "./checks.ts";
 import { writing } from "../../../queue/queue.ts";
 import { branchForSpec } from "../../../project/discover/group.ts";
 
@@ -305,32 +304,16 @@ export async function specPageRoutes(
       }
       text = kept;
     }
-    const result = branchTarget
-      ? await ctx.mergeLock.run(branchTarget.root, () =>
-          writeStatusToBranch(
-            ctx.gitRun,
-            branchTarget.root,
-            branchTarget.branch,
-            [{ relPath: branchTarget.relPath, text }],
-            baseSha,
-            editMessage(specFolder!, file),
-          ),
-        )
-      : await ctx.mergeLock.run(await ctx.specsRoot(dir), () =>
-          saveSpecFiles(
-            ctx.gitRun,
-            dir,
-            (root) => ctx.branchStatus.defaultBranch(root),
-            [{ file, text, baseSha }],
-            { specLabel: specFolder!, message: editMessage(specFolder!, file) },
-          ),
-        );
+    const result = await writeSpecFile(
+      ctx,
+      { dir, specFolder: specFolder!, file, branch: branchTarget },
+      text,
+      baseSha,
+    );
     if (!result.ok) {
       logRefusal("save", `${project}/${specFolder}`, result.note);
       return json({ error: result.note }, 400);
     }
-    // The cached answers about the spec read what was just saved.
-    await afterTick(ctx, dir, specFolder!);
     // The page loads again on its own tab, where the file now carries its
     // new commit stamp — unless nothing was committed, which it says.
     return json({ ok: true, note: result.note, changed: (result as { committed?: boolean }).committed !== false });

@@ -1,8 +1,9 @@
 // The Specs list's Run dialog, run alone or as a group, closes when the
 // Run goes through and leaves the reader on the Specs tab, with no page load.
-import { afterAll, beforeAll, expect, test } from "bun:test";
-import { chromium, type Browser } from "playwright";
+import { expect, test } from "bun:test";
+import type { Browser } from "playwright";
 import { browserDeadline, withBrowser } from "../../helpers/browser-deadline.ts";
+import { e2eBrowser } from "../../helpers/setup/e2e-browser.ts";
 import { queueHarness } from "../../helpers/queue-server.ts";
 import { runPeerLists, specRunDialog } from "../../../src/render/pages/specs-list/phase-rows.ts";
 import { groupBySpec } from "../../../src/render/pages/specs-list/data-model";
@@ -13,14 +14,9 @@ const harness = queueHarness("aide-e2e-run-dialog-in-place-");
 let browser: Browser;
 let base: string;
 
-beforeAll(async () => {
-  browser = await withBrowser(chromium.launch(), "chromium.launch()");
+e2eBrowser(harness, (launched) => {
+  browser = launched;
   base = harness.start().base;
-});
-
-afterAll(async () => {
-  await browser.close();
-  harness.cleanup();
 });
 
 test("Run from the Specs list's Run dialog closes it and stays on the Specs tab without loading the page (AC-1)", async () => {

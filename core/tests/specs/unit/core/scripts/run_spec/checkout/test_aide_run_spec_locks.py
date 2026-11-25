@@ -21,22 +21,47 @@ from ..run_spec_origins import origin
 from ..run_spec_results import RESULT_OK
 
 
-def test_two_runs_on_the_same_repos_do_not_see_each_other(runner, workspace, tmp_path):
-    """The measured problem. Two jobs for two specs against one pair of
-    repositories used to be impossible; the only honest way to test that
-    they are now independent is to run both at once."""
-    specs = workspace["specs"]
+def _add_second_spec(specs):
+    """Commits a second spec, 82-second-spec, and returns its folder. It
+    is analyzed already: an implement is refused on a spec whose steps
+    line lacks analyze, and the runs these tests start are implements."""
     second = "82-second-spec"
     (specs / second).mkdir()
     (specs / second / "1-description.md").write_text("# Second - Description\n")
-    # Analyzed already: an implement is refused on a spec
-    # whose steps line lacks analyze, and both runs here are implements.
     (specs / second / "4-status.md").write_text(
         "# Second - Status\n\n## Tracking info\n\n- **Task:** `82-second-spec/`\n"
         "- **Workflow steps completed:** create, analyze\n"
     )
     git(specs, "add", "-A")
     git(specs, "commit", "-q", "-m", "add second spec")
+    return second
+
+
+def _start_implement(runner, workspace, folder, result_file, env):
+    """An implement of `folder` started without waiting for it, so a test
+    can run two at once."""
+    return subprocess.Popen(
+        [
+            str(runner),
+            "--project-dir", str(workspace["project"]),
+            "--project-name", "aide",
+            "--command", "implement",
+            "--spec", folder,
+            "--timeout-sec", "60",
+            "--permission-mode", "acceptEdits",
+            "--result-file", str(result_file),
+            "--worktree-base", str(workspace["wtbase"]),
+        ],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env,
+    )
+
+
+def test_two_runs_on_the_same_repos_do_not_see_each_other(runner, workspace, tmp_path):
+    """The measured problem. Two jobs for two specs against one pair of
+    repositories used to be impossible; the only honest way to test that
+    they are now independent is to run both at once."""
+    specs = workspace["specs"]
+    second = _add_second_spec(specs)
 
     gates = {}
     procs = {}
@@ -54,20 +79,9 @@ def test_two_runs_on_the_same_repos_do_not_see_each_other(runner, workspace, tmp
         )
         claude = tmp_path / f"fake-claude-{name}"
         stand_in(claude, "#!/usr/bin/env bash\n" + body)
-        procs[name] = subprocess.Popen(
-            [
-                str(runner),
-                "--project-dir", str(workspace["project"]),
-                    "--project-name", "aide",
-                "--command", "implement",
-                "--spec", folder,
-                "--timeout-sec", "60",
-                "--permission-mode", "acceptEdits",
-                "--result-file", str(tmp_path / f"result-{name}.json"),
-                "--worktree-base", str(workspace["wtbase"]),
-            ],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-            env={**os.environ, "AIDE_CLAUDE_BIN": str(claude)},
+        procs[name] = _start_implement(
+            runner, workspace, folder, tmp_path / f"result-{name}.json",
+            {**os.environ, "AIDE_CLAUDE_BIN": str(claude)},
         )
     try:
         deadline = time.time() + 60
@@ -106,17 +120,7 @@ def test_two_runs_against_the_same_project_for_different_specs_do_not_race(
     and neither may wait on the other."""
     specs = workspace["specs"]
     project = workspace["project"]
-    second = "82-second-spec"
-    (specs / second).mkdir()
-    (specs / second / "1-description.md").write_text("# Second - Description\n")
-    # Analyzed already: an implement is refused on a spec
-    # whose steps line lacks analyze, and both runs here are implements.
-    (specs / second / "4-status.md").write_text(
-        "# Second - Status\n\n## Tracking info\n\n- **Task:** `82-second-spec/`\n"
-        "- **Workflow steps completed:** create, analyze\n"
-    )
-    git(specs, "add", "-A")
-    git(specs, "commit", "-q", "-m", "add second spec")
+    second = _add_second_spec(specs)
     # The `origin` fixture pushed `main` before this commit — a stale
     # `origin/main` would cut the second spec's branch without its own
     # folder, silently dropping every write this test makes into it.
@@ -152,21 +156,7 @@ def test_two_runs_against_the_same_project_for_different_specs_do_not_race(
             "AIDE_CLAUDE_BIN": str(claude),
             "PATH": f"{shim_dir}{os.pathsep}{os.environ['PATH']}",
         }
-        procs[name] = subprocess.Popen(
-            [
-                str(runner),
-                "--project-dir", str(project),
-                    "--project-name", "aide",
-                "--command", "implement",
-                "--spec", folder,
-                "--timeout-sec", "60",
-                "--permission-mode", "acceptEdits",
-                "--result-file", str(tmp_path / f"result-{name}.json"),
-                "--worktree-base", str(workspace["wtbase"]),
-            ],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-            env=env,
-        )
+        procs[name] = _start_implement(runner, workspace, folder, tmp_path / f"result-{name}.json", env)
 
     def ready_names():
         return {

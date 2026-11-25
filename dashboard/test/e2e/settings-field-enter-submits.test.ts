@@ -2,31 +2,23 @@
 // wraps a long value, yet Enter in it submits the form once and adds no line
 // break, and a pasted break is folded. Only a browser runs that script.
 
-import { afterAll, beforeAll, expect, test } from "bun:test";
-import { chromium, type Browser, type Page } from "playwright";
+import { expect, test } from "bun:test";
+import type { Page } from "playwright";
 import { browserDeadline, withBrowser } from "../helpers/browser-deadline.ts";
-import { harness, ownDirs, projectsRoot, settled, serve } from "../project/detail/project-detail-route-fixtures.ts";
-import { rmSync } from "node:fs";
+import { e2eBrowser } from "../helpers/setup/e2e-browser.ts";
+import { projectsRoot, routeBoard, serve, settled } from "../project/detail/project-detail-route-fixtures.ts";
 
 browserDeadline();
 
-let browser: Browser;
 let page: Page;
 let base: string;
 
 const LONG_PATH = "/var/folders/44/7wtwdqq94j3gnkjtnyfjp71w0000gn/T/tmp.AYE5D1XGWT/specs";
 
-beforeAll(async () => {
-  browser = await withBrowser(chromium.launch(), "chromium.launch()");
+e2eBrowser(routeBoard, async (browser) => {
   page = await browser.newPage({ extraHTTPHeaders: {} });
   const root = projectsRoot({ paceup: `AIDE_SPECS_PATH=${LONG_PATH}\n` }, ["pnpm-lock.yaml"]);
   base = serve(root, settled(root, "paceup"));
-});
-
-afterAll(async () => {
-  await browser.close();
-  harness.cleanup();
-  while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
 async function openConfig(width: number): Promise<void> {

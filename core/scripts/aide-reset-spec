@@ -40,27 +40,18 @@ done
 
 command -v jq >/dev/null 2>&1 || { echo '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"jq is required"}'; exit 2; }
 
-emit() {
-  printf '%s\n' "$1"
-  if [ -n "$result_file" ]; then printf '%s\n' "$1" > "$result_file"; fi
-  return 0
-}
-refuse() {
-  aide_spec_refuse "$1"
-}
-
-[ -n "$specs_root" ] || refuse "missing --specs-root"
-[ -n "$spec_arg" ] || refuse "missing --spec"
-[ -d "$specs_root" ] || refuse "no such specs root: $specs_root"
-declare -f aide_resolve_spec >/dev/null 2>&1 || refuse "_aide-spec-lib.sh is missing beside aide-reset-spec — reinstall aide"
+[ -n "$specs_root" ] || aide_spec_refuse "missing --specs-root"
+[ -n "$spec_arg" ] || aide_spec_refuse "missing --spec"
+[ -d "$specs_root" ] || aide_spec_refuse "no such specs root: $specs_root"
+declare -f aide_resolve_spec >/dev/null 2>&1 || aide_spec_refuse "_aide-spec-lib.sh is missing beside aide-reset-spec — reinstall aide"
 
 folder="$(aide_resolve_spec "$spec_arg" "$specs_root")"
-[ -n "$folder" ] && [ -d "$specs_root/$folder" ] || refuse "unknown spec: $spec_arg (no active folder under $specs_root)"
+[ -n "$folder" ] && [ -d "$specs_root/$folder" ] || aide_spec_refuse "unknown spec: $spec_arg (no active folder under $specs_root)"
 case "$folder" in
-  archive/*) refuse "$folder is archived — reset is for an active spec; use reopen" ;;
+  archive/*) aide_spec_refuse "$folder is archived — reset is for an active spec; use reopen" ;;
 esac
 dest="$specs_root/$folder"
-[ -f "$dest/1-description.md" ] || refuse "$folder has no 1-description.md to keep"
+[ -f "$dest/1-description.md" ] || aide_spec_refuse "$folder has no 1-description.md to keep"
 
 # The title as 1-description.md's own heading carries it ("# TITLE - Description").
 title="$(sed -n '1s/^# //; 1s/ - Description$//p' "$dest/1-description.md")"
@@ -68,6 +59,6 @@ title="$(sed -n '1s/^# //; 1s/ - Description$//p' "$dest/1-description.md")"
 
 aide_write_placeholder_files "$dest" "$title" "$folder"
 
-emit "$(jq -cn --arg f "$folder" --argjson files '["2-analysis.md","3-solution.md","4-status.md"]' \
+aide_spec_emit_line "$(jq -cn --arg f "$folder" --argjson files '["2-analysis.md","3-solution.md","4-status.md"]' \
   '{ok:true,exitCode:0,terminalReason:"reset",specFolder:$f,files:$files}')"
 exit 0

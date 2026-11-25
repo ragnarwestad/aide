@@ -22,6 +22,7 @@ import { join } from "node:path";
 import { saveSpecFile, saveSpecFiles } from "../../../src/git/specs-pull.ts";
 import { fakeGit, type Answer } from "../../helpers/fake-git.ts";
 import { heldLock, watchLock } from "../../helpers/held-lock.ts";
+import { saveGoesThrough } from "../../helpers/setup/git-answers.ts";
 
 const base = async () => "main";
 
@@ -52,20 +53,7 @@ function checkout(): { root: string; dir: string } {
  *  anything. Everything succeeds unless a test says otherwise. */
 const savable = (root: string, extra: Record<string, Answer | Answer[]> = {}) =>
   fakeGit({
-    "rev-parse --show-toplevel": { code: 0, stdout: `${root}\n` },
-    "diff --cached --quiet HEAD": { code: 1 },
-    "diff --quiet HEAD": { code: 0 },
-    "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "main\n" },
-    "rev-parse HEAD": { code: 0, stdout: `${HEAD_SHA}\n` },
-    fetch: { code: 0 },
-    "merge-base --is-ancestor": { code: 0 },
-    "merge -q --ff-only origin/": { code: 0 },
-    "merge -q --ff-only": { code: 0 },
-    "log -1 --format=": { code: 0, stdout: `${FILE_SHA}\t2026-08-21T09:14:00+02:00\n` },
-    add: { code: 0 },
-    commit: { code: 0 },
-    push: { code: 0 },
-    "reset --hard": { code: 0 },
+    ...saveGoesThrough(root, HEAD_SHA, FILE_SHA),
     ...extra,
   });
 

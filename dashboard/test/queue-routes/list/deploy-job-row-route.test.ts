@@ -3,26 +3,23 @@
 // `resting.test.ts`); this proves the page is wired to them, once.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { formatSentence } from "../../../src/messages/format.ts";
+import { createdJob } from "../../helpers/queue-server.ts";
+import { tempDirs } from "../../helpers/setup/temp-dirs.ts";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness } = setupQueueRoutesHarness();
-const tmp: string[] = [];
+const tmp = tempDirs("aide-deploy-row-");
 
-afterEach(() => {
-  harness.cleanup();
-  while (tmp.length) rmSync(tmp.pop()!, { recursive: true, force: true });
-});
+afterEach(() => harness.cleanup());
 
 const KEY = "aide/deploy:deploy@d1";
 
 /** A run log with the marks a deploy writes, beside a transcript that is empty. */
 function runLog(lines: string[]): string {
-  const dir = mkdtempSync(join(tmpdir(), "aide-deploy-row-"));
-  tmp.push(dir);
+  const dir = tmp.make();
   const stream = join(dir, "d1.deploy.stream.jsonl");
   writeFileSync(stream, "");
   writeFileSync(
@@ -32,17 +29,14 @@ function runLog(lines: string[]): string {
   return stream;
 }
 
+/** A running deploy of aide: the shared Create job's shape, with `o` on top. */
+const { finishedAt: _finished, ...created } = createdJob();
 const deploy = (o: Record<string, unknown> = {}) => ({
+  ...created,
   id: "d1",
-  project: "aide",
   specFolder: "deploy",
   steps: ["deploy"],
-  stepIndex: 0,
   state: "running",
-  timeoutSec: {},
-  permissionMode: {},
-  model: {},
-  results: [],
   spentUsd: 0,
   createdAt: "2026-10-13T10:00:00Z",
   startedAt: "2026-10-13T10:00:00Z",

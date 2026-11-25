@@ -1,29 +1,16 @@
 import { describe, expect, test } from "bun:test";
-import {
-  renderSpecsRows,
-  type QueueRowView,
-  type SpecTarget,
-} from "../../../../../src/render";
-import { openKeys, row } from "../../fixtures.ts";
+import { renderSpecsRows } from "../../../../../src/render";
+import { openKeys, row, specTarget, openRowsAt } from "../../fixtures.ts";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../../../src/project/parse-status";
 
 // Split out of listing-and-units.test.ts by theme.
 describe("one line per row for what is going on and what is next", () => {
-  const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
-    project: "aide",
-    specFolder,
-    ...extra,
-  });
+  const target = specTarget;
   // Open: several of these read the button that names the next phase,
   // and since 2026-09-08 that button rides the caption line the fold
   // opens. The head line this describe is about is drawn the same way
   // either way.
-  const rows = (list: QueueRowView[], targets: SpecTarget[] = []) =>
-    renderSpecsRows(
-      list,
-      { runnerAvailable: true, targets, filter: { open: openKeys(list, targets) } },
-      Date.parse("2026-08-18T12:00:00Z"),
-    );
+  const rows = openRowsAt("2026-08-18T12:00:00Z");
   // The sentence used to sit in the state cell, under the badge it
   // explained. It is gone, and so is the div it filled: the button
   // beside the badge names the phase it would run, so the sentence

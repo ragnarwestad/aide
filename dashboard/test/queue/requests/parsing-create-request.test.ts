@@ -6,23 +6,7 @@ import {
   parseJobRequest,
   type QueueDefaults,
 } from "../../../src/queue/queue.ts";
-
-const DEFAULTS: QueueDefaults = {
-  // Per step: an implement is not an analyze, and one number for both
-  // stopped an implement mid-sentence with its tests green.
-  timeoutSec: { default: 1200, implement: 5400 },
-  permissionMode: { implement: "bypassPermissions", default: "acceptEdits" },
-  model: { implement: "opus", default: "sonnet" },
-};
-
-// The server resolves a project NAME to its real spec folders; the
-// request never carries a path. Two allowlisted projects here.
-const resolve = (project: string) =>
-  project === "aide"
-    ? { specFolders: ["81-queue-and-runner"] }
-    : project === "aide-dashboard"
-      ? { specFolders: ["01-first"] }
-      : null;
+import { DEFAULTS, resolve } from "../queue-fixtures.ts";
 
 // --- A spec that does not exist yet ---------------------------------
 

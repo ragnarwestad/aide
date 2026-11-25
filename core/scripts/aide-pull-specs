@@ -43,6 +43,10 @@ fi
 
 [ "$#" -gt 0 ] || usage
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=/dev/null
+source "$SCRIPT_DIR/lib/spec-commands/git-roots.sh"
+
 # A skipped repo is not a failure — a person may be mid-edit in it, and
 # the next run picks it up. A pull that was ATTEMPTED and failed is,
 # because that is the case nobody will notice otherwise.
@@ -51,15 +55,7 @@ status=0
 for root in "$@"; do
   name="$(basename "$root")"
 
-  if [ ! -d "$root" ]; then
-    echo "$name: skipped — no such directory: $root" >&2
-    continue
-  fi
-
-  if ! git -C "$root" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    echo "$name: skipped — not a git working tree" >&2
-    continue
-  fi
+  aide_usable_git_root "$root" || continue
 
   # Uncommitted work of ANY kind, tracked files only: an untracked file
   # is no obstacle to a fast-forward, and a specs root collects those

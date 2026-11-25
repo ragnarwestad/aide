@@ -3,23 +3,21 @@
 // shut until the newest pick has been read.
 //
 // By hand: `cd dashboard && bun test test/e2e/project-page/icon-choice.test.ts`.
-import { afterAll, beforeAll, expect, test } from "bun:test";
-import { rmSync } from "node:fs";
-import { chromium, type Browser, type Page } from "playwright";
+import { expect, test } from "bun:test";
+import type { Page } from "playwright";
 import { browserDeadline, withBrowser } from "../../helpers/browser-deadline.ts";
-import { harness, ownDirs, projectsRoot, settled, serve } from "../../project/detail/project-detail-route-fixtures.ts";
+import { e2eBrowser } from "../../helpers/setup/e2e-browser.ts";
+import { projectsRoot, routeBoard, serve, settled } from "../../project/detail/project-detail-route-fixtures.ts";
 
 browserDeadline();
 
-let browser: Browser;
 let page: Page;
 let base: string;
 
 const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52]);
 const SVG = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"></svg>`);
 
-beforeAll(async () => {
-  browser = await withBrowser(chromium.launch(), "chromium.launch()");
+e2eBrowser(routeBoard, async (browser) => {
   page = await browser.newPage();
   // A file whose name starts "slow" takes 1.5 s to read, so a second pick
   // can land while the first is still being read.
@@ -32,12 +30,6 @@ beforeAll(async () => {
   });
   const root = projectsRoot({ aide: null });
   base = serve(root, settled(root, "aide"));
-});
-
-afterAll(async () => {
-  await browser.close();
-  harness.cleanup();
-  while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
 const dialog = () => page.locator("dialog[open]");

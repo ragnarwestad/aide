@@ -37,6 +37,8 @@
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Kept in each spec command, not sourced: it runs with nothing loaded, so
+# --help answers and a missing library is refused into --result-file.
 bootstrap_result_file=""
 bootstrap_value=""
 for arg in "$@"; do
@@ -61,7 +63,8 @@ require_library() {
   exit 2
 }
 for library in _aide-spec-lib.sh lib/config/aide-config.sh lib/spec-result.sh \
-  lib/spec-state.sh lib/status-progress.sh lib/spec-transitions.sh; do
+  lib/spec-state.sh lib/status-progress.sh lib/spec-transitions.sh \
+  lib/spec-reference.sh lib/spec-commands/find-spec.sh; do
   require_library "$library"
 done
 # shellcheck source=/dev/null
@@ -71,6 +74,10 @@ source "$SCRIPT_DIR/lib/spec-result.sh"
 source "$SCRIPT_DIR/lib/spec-state.sh"
 # shellcheck source=/dev/null
 source "$SCRIPT_DIR/lib/spec-transitions.sh"
+# shellcheck source=/dev/null
+source "$SCRIPT_DIR/lib/spec-reference.sh"
+# shellcheck source=/dev/null
+source "$SCRIPT_DIR/lib/spec-commands/find-spec.sh"
 
 project_dir=""; spec_arg=""; specs_dir=""; result_file=""; reason=""
 
@@ -101,39 +108,9 @@ command -v jq >/dev/null 2>&1 || { echo '{"ok":false,"exitCode":2,"terminalReaso
 [ -n "$reason" ] || aide_spec_refuse "missing --reason"
 [ -d "$project_dir" ] || aide_spec_refuse "no such --project-dir: $project_dir"
 
-if [ -n "$specs_dir" ] && [ -d "$specs_dir" ]; then
-  specs_root="$specs_dir"
-elif declare -f aide_specs_root >/dev/null 2>&1; then
-  specs_root="$(aide_specs_root "$project_dir")"
-else
-  specs_root="$project_dir/specs"
-fi
-[ -d "$specs_root" ] || aide_spec_refuse "no specs root at $specs_root"
+aide_spec_command_root "$project_dir" "$specs_dir"
 
-spec_folder=""
-if declare -f aide_resolve_spec >/dev/null 2>&1; then
-  spec_folder="$(aide_resolve_spec "$spec_arg" "$specs_root")"
-fi
-# Same fallback aide-archive-spec uses: a spelled-out `NN-slug` that only
-# exists under archive/ is looked up there directly.
-if [ -n "$spec_folder" ] && [ ! -d "$specs_root/$spec_folder" ]; then
-  spec_folder=""
-fi
-if [ -z "$spec_folder" ] && [ -d "$specs_root/archive" ]; then
-  if [ -d "$specs_root/archive/$spec_arg" ]; then
-    spec_folder="archive/$spec_arg"
-  else
-    for candidate in "$specs_root/archive"/*/; do
-      base="$(basename "$candidate")"
-      case "$base" in "$spec_arg"-*) spec_folder="archive/$base"; break ;; esac
-    done
-  fi
-fi
-if [ -z "$spec_folder" ]; then
-  active="$(find "$specs_root" -maxdepth 1 -mindepth 1 -type d ! -name archive \
-    -exec basename {} \; 2>/dev/null | sort | paste -sd', ' -)"
-  aide_spec_refuse "unknown spec: $spec_arg (not under $specs_root)${active:+ — active folders: $active}"
-fi
+aide_spec_command_folder "$specs_root" "$spec_arg"
 
 # --- already under archive/: closed, or plainly archived --------------------
 # Both a closed and an archived spec live under archive/, so the folder

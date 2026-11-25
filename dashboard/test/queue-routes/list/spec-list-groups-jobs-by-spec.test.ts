@@ -7,6 +7,7 @@ import {
   type QueueRowView,
   type SpecTarget,
 } from "../../../src/render";
+import { row as queueRow } from "../../design/row-fixtures.ts";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness } = setupQueueRoutesHarness();
@@ -17,18 +18,8 @@ afterEach(() => harness.cleanup());
 // questions about specs — "which spec has something running?" — not
 // about the individual jobs a spec happens to have been split into.
 describe("filtering and sorting work on specs, not jobs", () => {
-  const job = (id: string, spec: string, extra: Partial<QueueRowView> = {}): QueueRowView => ({
-    id,
-    project: "aide",
-    specFolder: spec,
-    steps: ["analyze"],
-    stepIndex: 0,
-    state: "done",
-    spentUsd: 0,
-    timeoutSec: 1200,
-    createdAt: "2026-08-16T00:00:00Z",
-    ...extra,
-  });
+  const job = (id: string, spec: string, extra: Partial<QueueRowView> = {}): QueueRowView =>
+    queueRow({ id, specFolder: spec, state: "done", createdAt: "2026-08-16T00:00:00Z", ...extra });
 
   // `open` names the specs whose phase lines are drawn: this block
   // asserts that a filtered spec keeps every job it has had, and those

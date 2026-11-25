@@ -2,19 +2,8 @@
 // job yet, kept beside the model.
 
 import { describe, expect, test } from "bun:test";
-import { QueueStore, type QueueDefaults } from "../../../src/queue/queue.ts";
-
-const DEFAULTS: QueueDefaults = {
-  timeoutSec: { default: 1200 },
-  permissionMode: { default: "acceptEdits" },
-  model: { default: "Opus" },
-  modelChoices: { Opus: {}, "gpt-6": { tool: "codex" } },
-  providers: {
-    Claude: { name: "Claude", tool: "claude" },
-    "Claude-Capra": { name: "Claude-Capra", tool: "claude", configDir: "~/.claude-capra" },
-    Codex: { name: "Codex", tool: "codex" },
-  },
-};
+import { QueueStore } from "../../../src/queue/queue.ts";
+import { PROVIDER_DEFAULTS as DEFAULTS } from "../queue-fixtures.ts";
 
 function store(): QueueStore {
   return new QueueStore({ defaults: DEFAULTS, resolve: (p) => (p === "aide" ? { specFolders: ["81-queue"] } : null) });

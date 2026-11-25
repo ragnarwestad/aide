@@ -5,6 +5,7 @@ import { rmSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { t } from "../../../src/i18n";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
+import type { StepBody } from "./add-project/project-route-fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness();
 
@@ -15,17 +16,6 @@ afterEach(() => {
   harness.cleanup();
   while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
-
-interface StepBody {
-  ok: boolean;
-  project?: string;
-  results: { step: string; ok: boolean; error?: string; note?: string }[];
-  readiness?: {
-    canRun: boolean;
-    note: string;
-    checks: { check: string; subject: string; ok: boolean; blocking: boolean; detail: string }[];
-  };
-}
 
 // --- The Add says whether a run can start ---------------------------
 //

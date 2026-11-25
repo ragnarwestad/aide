@@ -10,6 +10,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { TestServerStore, type TestServer } from "../../../src/serve/test-servers/store.ts";
 import { stopTestServer, type TestServersContext } from "../../../src/serve/test-servers/lifecycle.ts";
+import { testServersCtx } from "./test-servers-fixtures.ts";
 
 let killed: { pid: number; signal: string }[];
 let killSpy: ReturnType<typeof spyOn>;
@@ -28,26 +29,7 @@ function entry(overrides: Partial<TestServer> = {}): TestServer {
   };
 }
 
-function makeCtx(store: TestServerStore): TestServersContext {
-  return {
-    store,
-    aideCheckout: () => "/checkout/aide",
-    startCommand: (_p, { branch, port }) => [
-      "/checkout/aide/dashboard/test/round/run", "/checkout/aide",
-      "--branch", branch, "--port", String(port), "--keep",
-    ],
-    previewAvailable: () => true,
-    gitRun: async () => ({ code: 0, stdout: "", stderr: "" }),
-    spawn: () => ({ pid: 1 }),
-    isAlive: () => true,
-    now: () => "2026-09-05T00:00:00.000Z",
-    makeWorkDir: () => "/tmp",
-    reservedPorts: () => [],
-    findFreePort: async () => 9000,
-    testServerOnPort: async () => undefined,
-    portExposed: async () => true,
-  };
-}
+const makeCtx = (store: TestServerStore): TestServersContext => testServersCtx(store);
 
 beforeEach(() => {
   killed = [];

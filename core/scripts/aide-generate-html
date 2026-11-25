@@ -33,29 +33,10 @@ ISSUE_ID="$1"
 # Shared helper functions (specs-root, resolution, doc-type, display-name)
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 source "$SCRIPT_DIR/_aide-spec-lib.sh"
+# shellcheck source=/dev/null
+source "$SCRIPT_DIR/lib/spec-commands/docs-folder.sh"
 
-SPECS_ROOT="$(aide_specs_root)"
-FULL_ID="$(aide_resolve_spec "$ISSUE_ID" "$SPECS_ROOT")"
-DOCS_DIR="$SPECS_ROOT/$FULL_ID"
-
-# Check that we found something
-if [ -z "$FULL_ID" ] || [ ! -d "$DOCS_DIR" ]; then
-  echo -e "${RED}❌ Error: No documentation found for: $ISSUE_ID${NC}"
-  echo ""
-  echo "Searched in: $SPECS_ROOT"
-  echo ""
-  echo "Tips:"
-  echo "  - Have you run /aide-create first?"
-  echo "  - Check AIDE_SPECS_PATH in .aide/config in the project root"
-  echo ""
-  echo "Available folders:"
-  for d in "$SPECS_ROOT"/[0-9]*-*/; do [ -d "$d" ] && basename "$d"; done | head -10
-  exit 1
-fi
-
-# Use the folder BASENAME for file names — FULL_ID may carry an archive/ prefix,
-# and a slash in a file name breaks mktemp and the output path.
-ISSUE_ID="${FULL_ID##*/}"
+aide_spec_docs_folder_or_exit "$ISSUE_ID"
 
 # Check that pandoc is installed
 if ! command -v pandoc &> /dev/null; then

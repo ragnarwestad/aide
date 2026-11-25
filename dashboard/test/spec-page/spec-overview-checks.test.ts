@@ -39,6 +39,22 @@ const { harness } = createSpecSaveHarness();
 afterEach(() => harness.cleanup());
 const startWithChecks = (gitRun: GitRunner, status = STATUS) => start(harness, gitRun, status);
 
+/** Posts to `route` the description's fields and a tick's fields together
+ *  in one body, as no form on the page does. */
+const postBothForms = (base: string, route: string): Promise<Response> =>
+  fetch(`${base}${route}`, {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    redirect: "manual",
+    body: new URLSearchParams([
+      ["text", NEW_TEXT],
+      ["baseSha", FILE_SHA],
+      ["checksPhase", PHASE],
+      ["statusBaseSha", FILE_SHA],
+      ["tick", OPEN_ROW],
+    ]).toString(),
+  });
+
 describe("the checks on the Overview tab", () => {
   // --- Which checks Overview offers as boxes -------------------
 
@@ -200,18 +216,7 @@ describe("the checks on the Overview tab", () => {
   // come from the checks form, and it writes nothing.
   test("a text field sent to the tick route does not write the description", async () => {
     const { base, dir } = startWithChecks(savable("/host"));
-    const res = await fetch(`${base}${TICK}`, {
-      method: "POST",
-      headers: { "content-type": "application/x-www-form-urlencoded" },
-      redirect: "manual",
-      body: new URLSearchParams([
-        ["text", NEW_TEXT],
-        ["baseSha", FILE_SHA],
-        ["checksPhase", PHASE],
-        ["statusBaseSha", FILE_SHA],
-        ["tick", OPEN_ROW],
-      ]).toString(),
-    });
+    const res = await postBothForms(base, TICK);
     expect((await answer(res)).status).toBe(200);
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(DESCRIPTION);
   });
@@ -220,18 +225,7 @@ describe("the checks on the Overview tab", () => {
   // route flip nothing.
   test("tick fields sent to the save route do not flip a row", async () => {
     const { base, dir } = startWithChecks(savable("/host"));
-    const res = await fetch(`${base}${SAVE}`, {
-      method: "POST",
-      headers: { "content-type": "application/x-www-form-urlencoded" },
-      redirect: "manual",
-      body: new URLSearchParams([
-        ["text", NEW_TEXT],
-        ["baseSha", FILE_SHA],
-        ["checksPhase", PHASE],
-        ["statusBaseSha", FILE_SHA],
-        ["tick", OPEN_ROW],
-      ]).toString(),
-    });
+    const res = await postBothForms(base, SAVE);
     expect((await answer(res)).status).toBe(200);
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS);
   });

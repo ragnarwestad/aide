@@ -34,6 +34,8 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HOOK_SOURCE="$SCRIPT_DIR/hooks/commit-msg-spec-guard"
 MARKER="aide-managed: commit-msg-spec-guard"
+# shellcheck source=/dev/null
+source "$SCRIPT_DIR/lib/spec-commands/git-roots.sh"
 
 if [ ! -f "$HOOK_SOURCE" ]; then
   echo "aide-install-spec-hook: missing hook source: $HOOK_SOURCE" >&2
@@ -45,15 +47,7 @@ status=0
 for root in "$@"; do
   name="$(basename "$root")"
 
-  if [ ! -d "$root" ]; then
-    echo "$name: skipped — no such directory: $root" >&2
-    continue
-  fi
-
-  if ! git -C "$root" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    echo "$name: skipped — not a git working tree" >&2
-    continue
-  fi
+  aide_usable_git_root "$root" || continue
 
   # --git-common-dir is relative to $root unless it is already
   # absolute — resolve it by hand rather than relying on a git version

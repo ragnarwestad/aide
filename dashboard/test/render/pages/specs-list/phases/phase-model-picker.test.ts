@@ -1,11 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import {
-  renderSpecsRows,
-  type SpecsPageOptions,
-  type QueueRowView,
-  type SpecTarget,
-} from "../../../../../src/render";
-import { row, openKeys } from "../../fixtures.ts";
+import { renderSpecsRows, type SpecsPageOptions, type QueueRowView, type SpecTarget } from "../../../../../src/render";
+import { row, openKeys, specTarget } from "../../fixtures.ts";
 
 // --- The model is chosen on the phase line -------------------------
 //
@@ -24,11 +19,7 @@ import { row, openKeys } from "../../fixtures.ts";
 // host a "(?)", so the tooltip it used to carry is not an explanation
 // this dashboard can move behind one.
 describe("each phase line picks its own model", () => {
-  const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
-    project: "aide",
-    specFolder,
-    ...extra,
-  });
+  const target = specTarget;
 
   const CHOICES = [
     { name: "sonnet" },

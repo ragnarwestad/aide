@@ -82,6 +82,7 @@ describe("parsePhaseOutcome", () => {
   });
 
   test("a look-alike Effort bullet outside Tracking info is ignored", () => {
+    // Written out in full on purpose: this text is the input of the parser under test.
     const content = [
       "# 247 - Analysis",
       "",
@@ -126,6 +127,7 @@ describe("parsePhaseOutcome", () => {
   });
 
   test("a look-alike bullet outside Tracking info is ignored", () => {
+    // Written out in full on purpose: this text is the input of the parser under test.
     const content = [
       "# 247 - Analysis",
       "",
@@ -153,6 +155,7 @@ describe("parsePhaseOutcome", () => {
   });
 
   test("a look-alike Tokens bullet outside Tracking info is ignored", () => {
+    // Written out in full on purpose: this text is the input of the parser under test.
     const content = [
       "# 247 - Analysis",
       "",
@@ -184,6 +187,7 @@ describe("parsePhaseOutcome", () => {
   });
 
   test("a look-alike Attempts bullet outside Tracking info is ignored", () => {
+    // Written out in full on purpose: this text is the input of the parser under test.
     const content = [
       "# 247 - Analysis",
       "",

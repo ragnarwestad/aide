@@ -20,6 +20,7 @@
 import { describe, expect, test } from "bun:test";
 import { mergeBranchIntoDefault } from "../../../src/git/branch-merge/index.ts";
 import { fakeGit, CLEAN_MASTER, type GitCall } from "../../helpers/fake-git.ts";
+import { MERGE_GOES_THROUGH } from "../../helpers/setup/git-answers.ts";
 import { formatSentence } from "../../../src/messages/format.ts";
 
 /** What a reader would see: a message is stored as
@@ -49,18 +50,23 @@ const ran = (calls: GitCall[], prefix: string): boolean =>
 // retry itself, only the refusal it eventually still produces.
 const noWait = async (_ms: number): Promise<void> => {};
 
+/** A clean checkout whose merge of the branch conflicts: no fast-forward,
+ *  no merge commit, and the abort that follows succeeds. Nothing is pushed. */
+const MERGE_CONFLICTS = {
+  ...CLEAN_MASTER,
+  "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
+  pull: { code: 0 },
+  "merge -q --ff-only origin/": { code: 0 },
+  "merge -q --ff-only": { code: 1 },
+  "merge -q --no-edit": { code: 1 },
+  "merge --abort": { code: 0 },
+  switch: { code: 0 },
+  fetch: { code: 0 },
+};
+
 describe("mergeBranchIntoDefault: the happy paths", () => {
   test("a fast-forward merge is pushed, and no real merge is attempted", async () => {
-    const git = fakeGit({
-      ...CLEAN_MASTER,
-      "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
-      pull: { code: 0 },
-      "merge -q --ff-only origin/": { code: 0 },
-      "merge -q --ff-only": { code: 0 },
-      push: { code: 0 },
-      switch: { code: 0 },
-      fetch: { code: 0 },
-    });
+    const git = fakeGit(MERGE_GOES_THROUGH);
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
     expect(result).toEqual({ root: ROOT, ok: true });
     expect(argv(git.calls)).toContain(`merge -q --ff-only refs/remotes/origin/${BRANCH}`);
@@ -72,15 +78,9 @@ describe("mergeBranchIntoDefault: the happy paths", () => {
 
   test("a base that has moved on gets a real merge, and that is pushed too", async () => {
     const git = fakeGit({
-      ...CLEAN_MASTER,
-      "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
-      pull: { code: 0 },
-      "merge -q --ff-only origin/": { code: 0 },
+      ...MERGE_GOES_THROUGH,
       "merge -q --ff-only": { code: 1 },
       "merge -q --no-edit": { code: 0 },
-      push: { code: 0 },
-      switch: { code: 0 },
-      fetch: { code: 0 },
     });
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
     expect(result.ok).toBe(true);
@@ -90,15 +90,9 @@ describe("mergeBranchIntoDefault: the happy paths", () => {
 
   test("the real merge carries the arguments the hooks give, before the word merge", async () => {
     const git = fakeGit({
-      ...CLEAN_MASTER,
-      "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
-      pull: { code: 0 },
-      "merge -q --ff-only origin/": { code: 0 },
+      ...MERGE_GOES_THROUGH,
       "merge -q --ff-only": { code: 1 },
       "-c core.attributesFile=/a -c merge.x.driver=y merge -q --no-edit": { code: 0 },
-      push: { code: 0 },
-      switch: { code: 0 },
-      fetch: { code: 0 },
     });
     const hooks = { mergeArgs: async () => ["-c", "core.attributesFile=/a", "-c", "merge.x.driver=y"] };
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait, undefined, undefined, hooks);
@@ -111,16 +105,7 @@ describe("mergeBranchIntoDefault: the happy paths", () => {
   // is the one `isMerged()` already trusts, and the fetch is what makes
   // it current.
   test("it merges the fetched remote-tracking ref, never a local branch", async () => {
-    const git = fakeGit({
-      ...CLEAN_MASTER,
-      "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
-      pull: { code: 0 },
-      "merge -q --ff-only origin/": { code: 0 },
-      "merge -q --ff-only": { code: 0 },
-      push: { code: 0 },
-      switch: { code: 0 },
-      fetch: { code: 0 },
-    });
+    const git = fakeGit(MERGE_GOES_THROUGH);
     await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
     expect(argv(git.calls)).toContain(`fetch --quiet origin master ${BRANCH}`);
     expect(argv(git.calls).some((a) => a === `merge -q --ff-only ${BRANCH}`)).toBe(false);
@@ -134,15 +119,8 @@ describe("mergeBranchIntoDefault: the happy paths", () => {
   // guess made in advance.
   test("an unrelated dirty file does not stop the merge, and is not even asked about", async () => {
     const git = fakeGit({
-      ...CLEAN_MASTER,
+      ...MERGE_GOES_THROUGH,
       "status --porcelain": { code: 0, stdout: " M src/serve.ts\n" },
-      "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
-      pull: { code: 0 },
-      "merge -q --ff-only origin/": { code: 0 },
-      "merge -q --ff-only": { code: 0 },
-      push: { code: 0 },
-      switch: { code: 0 },
-      fetch: { code: 0 },
     });
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
     expect(result).toEqual({ root: ROOT, ok: true });
@@ -170,17 +148,7 @@ describe("mergeBranchIntoDefault: the happy paths", () => {
 
 describe("mergeBranchIntoDefault: the refusals", () => {
   test("a conflict aborts the merge and names the repo — no half-merged tree is left", async () => {
-    const git = fakeGit({
-      ...CLEAN_MASTER,
-      "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
-      pull: { code: 0 },
-      "merge -q --ff-only origin/": { code: 0 },
-      "merge -q --ff-only": { code: 1 },
-      "merge -q --no-edit": { code: 1 },
-      "merge --abort": { code: 0 },
-      switch: { code: 0 },
-      fetch: { code: 0 },
-    });
+    const git = fakeGit(MERGE_CONFLICTS);
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
     expect(result.ok).toBe(false);
     expect(sentence(result.error)).toContain(ROOT);
@@ -267,14 +235,8 @@ describe("mergeBranchIntoDefault: a push that does not reach origin", () => {
   // reason to undo committed work.
   test("the merge already happened, so it is reported and left alone", async () => {
     const git = fakeGit({
-      ...CLEAN_MASTER,
-      "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
-      pull: { code: 0 },
-      "merge -q --ff-only origin/": { code: 0 },
-      "merge -q --ff-only": { code: 0 },
+      ...MERGE_GOES_THROUGH,
       push: { code: 1 },
-      switch: { code: 0 },
-      fetch: { code: 0 },
     });
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait);
     expect(result.ok).toBe(false);
@@ -301,25 +263,8 @@ describe("every refusal names the repo AND the branch", () => {
       switch: { code: 0 },
       fetch: { code: 0 },
     },
-    "the merge conflicts": {
-      "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
-      pull: { code: 0 },
-      "merge -q --ff-only origin/": { code: 0 },
-      "merge -q --ff-only": { code: 1 },
-      "merge -q --no-edit": { code: 1 },
-      "merge --abort": { code: 0 },
-      switch: { code: 0 },
-      fetch: { code: 0 },
-    },
-    "the push of the base fails": {
-      "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
-      pull: { code: 0 },
-      "merge -q --ff-only origin/": { code: 0 },
-      "merge -q --ff-only": { code: 0 },
-      push: { code: 1 },
-      switch: { code: 0 },
-      fetch: { code: 0 },
-    },
+    "the merge conflicts": MERGE_CONFLICTS,
+    "the push of the base fails": { ...MERGE_GOES_THROUGH, push: { code: 1 } },
   };
 
   for (const [what, overrides] of Object.entries(paths)) {

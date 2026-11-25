@@ -10,23 +10,7 @@ leaning on the Claude Code installer.
 leaves it alone; only uninstall-all.sh removes the skills (same rule as
 the shared ~/.local/bin scripts).
 """
-import subprocess
-
 import pytest
-
-SYSTEM_PATH = "/usr/bin:/bin"
-
-
-def _run(workspace_root, script_path, home, stdin=None):
-    return subprocess.run(
-        [str(workspace_root / script_path)],
-        input=stdin,
-        capture_output=True,
-        text=True,
-        env={"PATH": SYSTEM_PATH, "HOME": str(home)},
-        stdin=subprocess.DEVNULL if stdin is None else None,
-        timeout=120,
-    )
 
 
 def _skill_names(workspace_root):
@@ -36,19 +20,19 @@ def _skill_names(workspace_root):
 
 @pytest.mark.copilot
 class TestCopilotInstallSkills:
-    def test_install_copies_every_skill_to_agents_dir(self, workspace_root, tmp_path):
-        result = _run(workspace_root, "core/implementations/copilot/install.sh", home=tmp_path)
+    def test_install_copies_every_skill_to_agents_dir(self, workspace_root, tmp_path, run_installer):
+        result = run_installer("core/implementations/copilot/install.sh", home=tmp_path)
         assert result.returncode == 0, result.stdout + result.stderr
         for name in _skill_names(workspace_root):
             skill_md = tmp_path / ".agents" / "skills" / name / "SKILL.md"
             assert skill_md.exists(), f"missing: ~/.agents/skills/{name}/SKILL.md"
 
-    def test_uninstall_keeps_the_shared_skills(self, workspace_root, tmp_path):
-        result = _run(workspace_root, "core/implementations/copilot/install.sh", home=tmp_path)
+    def test_uninstall_keeps_the_shared_skills(self, workspace_root, tmp_path, run_installer):
+        result = run_installer("core/implementations/copilot/install.sh", home=tmp_path)
         assert result.returncode == 0, result.stdout + result.stderr
 
-        result = _run(
-            workspace_root, "core/implementations/copilot/uninstall.sh",
+        result = run_installer(
+            "core/implementations/copilot/uninstall.sh",
             home=tmp_path, stdin="y\n",
         )
         assert result.returncode == 0, result.stdout + result.stderr
@@ -61,17 +45,17 @@ class TestCopilotInstallSkills:
 
 @pytest.mark.implementations
 class TestUninstallAllRemovesSharedSkills:
-    def test_uninstall_all_removes_the_skills(self, workspace_root, tmp_path):
+    def test_uninstall_all_removes_the_skills(self, workspace_root, tmp_path, run_installer):
         for script in ("core/implementations/copilot/install.sh",
                        "core/implementations/codex/install.sh"):
-            result = _run(workspace_root, script, home=tmp_path)
+            result = run_installer(script, home=tmp_path)
             assert result.returncode == 0, result.stdout + result.stderr
 
         foreign = tmp_path / ".agents" / "skills" / "someone-elses-skill"
         foreign.mkdir(parents=True)
         (foreign / "SKILL.md").write_text("not ours")
 
-        result = _run(workspace_root, "uninstall-all.sh", home=tmp_path, stdin="y\ny\ny\ny\n")
+        result = run_installer("uninstall-all.sh", home=tmp_path, stdin="y\ny\ny\ny\n")
         assert result.returncode == 0, result.stdout + result.stderr
         for name in _skill_names(workspace_root):
             assert not (tmp_path / ".agents" / "skills" / name).exists(), (

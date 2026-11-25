@@ -5,27 +5,17 @@
 // changed by drawing it. Also: each of an AI's three tabs stamps its own
 // reading.
 
-import { afterEach, describe, expect, test } from "bun:test";
-import { Window } from "happy-dom";
+import { describe, expect, test } from "bun:test";
 import { modelLists, modelsBlock, stamp, TOOL_TAB_LABELS, type CheckableTool, type ModelsPanel, type ToolModels } from "../../../src/render";
 import { t } from "../../../src/i18n";
 import type { ModelChoice } from "../../../src/queue/types.ts";
+import { documents } from "./fixtures.ts";
 
 const AT = "2026-10-03T13:30:00.000Z";
 const ADD = "/api/queue/settings/models/add";
 const REMOVE = "/api/queue/settings/models/remove";
 
-const windows: Window[] = [];
-afterEach(async () => {
-  while (windows.length) await windows.pop()!.happyDOM.close();
-});
-
-function parse(html: string): Document {
-  const win = new Window();
-  windows.push(win);
-  win.document.write(html);
-  return win.document as unknown as Document;
-}
+const parse = documents();
 
 /** Each form on the panel that posts to `action`, as the fields it posts. */
 function posted(html: string, action: string): Record<string, string>[] {

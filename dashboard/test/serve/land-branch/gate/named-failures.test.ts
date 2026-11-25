@@ -2,48 +2,24 @@
 // The same tests on both runs are the merge's doing; different tests on the
 // two runs point at unstable tests or a busy machine, and only then does
 // the sentence say so.
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { describe, expect, test } from "bun:test";
+import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { failingLines, runProjectSuiteBeforePush } from "../../../../src/serve/land-branch/test-gate.ts";
 import { namingRecorder } from "../../../helpers/naming-recorder.ts";
+import { gateTemps, mergedRepo } from "./gate-fixtures.ts";
 
-const dirs: string[] = [];
-afterEach(() => {
-  while (dirs.length) rmSync(dirs.pop()!, { recursive: true, force: true });
-  delete process.env.AIDE_RESOLVE_TEST_CMD_BIN;
-  delete process.env.AIDE_RECORD_TEST_RUN_BIN;
-  delete process.env.AIDE_TEST_GATE_LOG;
-});
-
-function git(cwd: string, ...args: string[]): void {
-  const out = Bun.spawnSync({ cmd: ["git", "-C", cwd, ...args], stdout: "pipe", stderr: "pipe" });
-  if (out.exitCode !== 0) throw new Error(`git ${args.join(" ")} failed: ${out.stderr.toString()}`);
-}
+const { temp } = gateTemps();
 
 /** main, and the merge checked out on top of it carrying the spec's change. */
 function merged(): string {
-  const dir = mkdtempSync(join(tmpdir(), "aide-named-failures-"));
-  dirs.push(dir);
-  writeFileSync(join(dir, "README.md"), "# p\n");
-  git(dir, "init", "-q", "-b", "main");
-  git(dir, "config", "user.name", "Test");
-  git(dir, "config", "user.email", "test@example.com");
-  git(dir, "add", "-A");
-  git(dir, "commit", "-qm", "main");
-  git(dir, "switch", "-q", "-c", "merge");
-  writeFileSync(join(dir, "spec-change"), "x\n");
-  git(dir, "add", "-A");
-  git(dir, "commit", "-qm", "the spec");
-  return dir;
+  return mergedRepo(temp("aide-named-failures-"));
 }
 
 /** A recorder green on main alone, and red on the merge with the tests
  *  `first` names on its first run and `second` on its second. */
 function recorder(first: string, second: string): string {
-  const bin = mkdtempSync(join(tmpdir(), "aide-named-failures-bin-"));
-  dirs.push(bin);
+  const bin = temp("aide-named-failures-bin-");
   writeFileSync(join(bin, "resolve"), `#!/bin/sh\nprintf '{"ok":true,"commands":["true"]}\\n'\n`, { mode: 0o755 });
   const runs = join(bin, "runs");
   writeFileSync(

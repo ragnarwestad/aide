@@ -7,27 +7,9 @@
 import { describe, expect, test } from "bun:test";
 import { fastForwardToOrigin, mergeBranchIntoDefault } from "../../../src/git/branch-merge/index.ts";
 import { fakeGit, CLEAN_MASTER, type GitCall } from "../../helpers/fake-git.ts";
-import { formatSentence } from "../../../src/messages/format.ts";
+import { MERGE_GOES_THROUGH } from "../../helpers/setup/git-answers.ts";
+import { argv, BRANCH, noWait, ran, ROOT, sentence } from "./merge-fixtures.ts";
 import { heldLock, watchLock } from "../../helpers/held-lock.ts";
-
-/** What a reader would see: a message is stored as
- *  its key and the values that fill its blanks, and composed when
- *  the page is drawn. */
-function sentence(s: unknown): string {
-  return formatSentence("en", s as Parameters<typeof formatSentence>[1]) ?? "";
-}
-
-
-const BRANCH = "aide/89-merge-from-the-dashboard";
-const ROOT = "/repos/aide";
-const noWait = async (_ms: number): Promise<void> => {};
-
-/** The whole argv of every call, in order — the sequence is the thing
- *  under test, not any single command. */
-const argv = (calls: GitCall[]): string[] => calls.map((c) => c.args.join(" "));
-
-const ran = (calls: GitCall[], prefix: string): boolean =>
-  argv(calls).some((a) => a.startsWith(prefix));
 
 // Deleting the branch on merge means the button will one day be pressed
 // on a branch that is already gone — by a second click, or by someone
@@ -67,15 +49,8 @@ describe("mergeBranchIntoDefault: the branch is not on origin", () => {
 
   test("an ls-remote that fails for any other reason merges as before", async () => {
     const git = fakeGit({
-      ...CLEAN_MASTER,
+      ...MERGE_GOES_THROUGH,
       "ls-remote": { code: 128 },
-      "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
-      pull: { code: 0 },
-      "merge -q --ff-only origin/": { code: 0 },
-      "merge -q --ff-only": { code: 0 },
-      push: { code: 0 },
-      switch: { code: 0 },
-      fetch: { code: 0 },
     });
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
     expect(result.ok).toBe(true);
@@ -175,14 +150,8 @@ describe("mergeBranchIntoDefault: reason is set at exactly two refusals", () => 
 
   test("a push that failed carries no reason — the merge itself went through", async () => {
     const git = fakeGit({
-      ...CLEAN_MASTER,
-      "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
-      pull: { code: 0 },
-      "merge -q --ff-only origin/": { code: 0 },
-      "merge -q --ff-only": { code: 0 },
+      ...MERGE_GOES_THROUGH,
       push: { code: 1 },
-      switch: { code: 0 },
-      fetch: { code: 0 },
     });
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
     expect(result.ok).toBe(false);
@@ -190,16 +159,7 @@ describe("mergeBranchIntoDefault: reason is set at exactly two refusals", () => 
   });
 
   test("a merge that went through carries no reason either", async () => {
-    const git = fakeGit({
-      ...CLEAN_MASTER,
-      "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
-      pull: { code: 0 },
-      "merge -q --ff-only origin/": { code: 0 },
-      "merge -q --ff-only": { code: 0 },
-      push: { code: 0 },
-      switch: { code: 0 },
-      fetch: { code: 0 },
-    });
+    const git = fakeGit(MERGE_GOES_THROUGH);
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
     expect(result.ok).toBe(true);
     expect(result.reason).toBeUndefined();
@@ -324,15 +284,8 @@ describe("the base is brought up to date by a NAMED ref, never FETCH_HEAD", () =
 
   test("mergeBranchIntoDefault fast-forwards its base by name", async () => {
     const git = fakeGit({
-      ...CLEAN_MASTER,
-      "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
+      ...MERGE_GOES_THROUGH,
       "ls-remote": { code: 0, stdout: "abc123\trefs/heads/x\n" },
-      pull: { code: 0 },
-      "merge -q --ff-only origin/": { code: 0 },
-      "merge -q --ff-only": { code: 0 },
-      push: { code: 0 },
-      switch: { code: 0 },
-      fetch: { code: 0 },
     });
     await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
     expect(pulls(git.calls)).toEqual([]);

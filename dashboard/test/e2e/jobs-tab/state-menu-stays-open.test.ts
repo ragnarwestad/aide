@@ -1,21 +1,18 @@
-import { afterAll, beforeAll, expect, test } from "bun:test";
-import { chromium, type Browser, type Page } from "playwright";
+import { expect, test } from "bun:test";
+import type { Page } from "playwright";
 import { browserDeadline, withBrowser } from "../../helpers/browser-deadline.ts";
+import { e2eBrowser } from "../../helpers/setup/e2e-browser.ts";
 import { createdJob, queueHarness } from "../../helpers/queue-server.ts";
 
 browserDeadline();
 const harness = queueHarness("aide-e2e-state-menu-open-");
-let browser: Browser;
 let page: Page;
 let base: string;
 
-beforeAll(async () => {
-  browser = await withBrowser(chromium.launch(), "chromium.launch()");
+e2eBrowser(harness, async (browser) => {
   page = await browser.newPage();
   base = harness.start({ queueMirror: JSON.stringify([createdJob()]) }).base;
 });
-
-afterAll(async () => { await browser.close(); harness.cleanup(); });
 
 test("state and type keep independent multiple selections and their menus stay open (AC-2)", async () => {
   await withBrowser(page.goto(`${base}/?live=0&state=all`), "page.goto(/)");

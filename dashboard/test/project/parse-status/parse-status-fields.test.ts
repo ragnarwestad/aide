@@ -119,6 +119,7 @@ describe("phase", () => {
   // rows are done. No new code makes this true — it falls out of this
   // same "first phase section with an open row" rule, given the
   // ordering the section is written in.
+  // Written out in full on purpose: this text is the input of the parser under test.
   const phaseThenAcceptance = [
     "# X - Status",
     "",
@@ -172,6 +173,7 @@ describe("phase", () => {
 // either way. The reason is written into `4-status.md`, which is the
 // one place the dashboard can re-read it from.
 describe("the archive-held-back reason", () => {
+  // Written out in full on purpose: this text is the input of the parser under test.
   const withSection = (reason: string) =>
     [
       "# 108 - Status",

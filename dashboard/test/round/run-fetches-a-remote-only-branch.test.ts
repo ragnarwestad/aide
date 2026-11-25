@@ -7,37 +7,15 @@
 // (the same trick refuses-a-stolen-port.test.ts uses) gives a fast,
 // deterministic failure once the branch check has passed, so this test
 // never waits out a real board coming up.
-import { afterEach, describe, expect, setDefaultTimeout, test } from "bun:test";
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { describe, expect, setDefaultTimeout, test } from "bun:test";
+import { writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { cloneOf, commitAndPush, decoyPort, git, roundTemps, seededOrigin } from "./round-fixtures.ts";
 
 setDefaultTimeout(20_000);
 
 const RUN = join(import.meta.dir, "run");
-const dirs: string[] = [];
-
-function tmp(prefix: string): string {
-  const d = mkdtempSync(join(tmpdir(), prefix));
-  dirs.push(d);
-  return d;
-}
-
-function git(cwd: string, args: string[]): void {
-  const proc = Bun.spawnSync({ cmd: ["git", "-C", cwd, ...args], stdout: "pipe", stderr: "pipe" });
-  if (proc.exitCode !== 0) {
-    throw new Error(`git ${args.join(" ")} in ${cwd} failed: ${proc.stderr.toString()}`);
-  }
-}
-
-afterEach(() => {
-  while (dirs.length) rmSync(dirs.pop()!, { recursive: true, force: true });
-});
-
-function decoyPort() {
-  const server = Bun.serve({ port: 0, hostname: "127.0.0.1", fetch: () => Response.json({ jobs: [] }) });
-  return { port: server.port, stop: () => server.stop(true) };
-}
+const tmp = roundTemps();
 
 async function runToExit(args: string[]): Promise<{ code: number; stdout: string; stderr: string }> {
   const proc = Bun.spawn({ cmd: ["/bin/bash", RUN, ...args], stdout: "pipe", stderr: "pipe" });
@@ -51,29 +29,16 @@ async function runToExit(args: string[]): Promise<{ code: number; stdout: string
 
 describe("a branch that exists only on origin", () => {
   test("is fetched and tracked instead of refused", async () => {
-    const originBare = tmp("aide-round-origin-");
-    git(originBare, ["init", "-q", "--bare", "-b", "main"]);
-
-    const seed = tmp("aide-round-seed-");
-    git(seed, ["init", "-q", "-b", "main"]);
-    mkdirSync(join(seed, "dashboard", "src", "serve"), { recursive: true });
-    writeFileSync(join(seed, "dashboard", "src", "serve", "serve.ts"), "");
-    git(seed, ["add", "-A"]);
-    git(seed, ["-c", "user.name=t", "-c", "user.email=t@localhost", "commit", "-qm", "baseline"]);
-    git(seed, ["remote", "add", "origin", originBare]);
-    git(seed, ["push", "-q", "origin", "main"]);
+    const { originBare, seed } = seededOrigin(tmp);
 
     // Cloned BEFORE the branch is pushed — this checkout's own
     // refs/remotes/origin/* genuinely has never heard of it.
-    const aide = tmp("aide-round-aide-");
-    git(tmpdir(), ["clone", "-q", originBare, aide]);
+    const aide = cloneOf(tmp, originBare);
 
     // Now push the branch, from the seed checkout, after AIDE was cloned.
     git(seed, ["checkout", "-q", "-b", "feature-x"]);
     writeFileSync(join(seed, "dashboard", "src", "serve", "serve.ts"), "// feature-x\n");
-    git(seed, ["add", "-A"]);
-    git(seed, ["-c", "user.name=t", "-c", "user.email=t@localhost", "commit", "-qm", "feature-x work"]);
-    git(seed, ["push", "-q", "origin", "feature-x"]);
+    commitAndPush(seed, "feature-x", "feature-x work");
 
     // AIDE's clone has no idea feature-x exists yet.
     const beforeFetch = Bun.spawnSync({
@@ -96,18 +61,8 @@ describe("a branch that exists only on origin", () => {
   });
 
   test("a branch absent from both the checkout and its origin is still refused", async () => {
-    const originBare = tmp("aide-round-origin-");
-    git(originBare, ["init", "-q", "--bare", "-b", "main"]);
-    const seed = tmp("aide-round-seed-");
-    git(seed, ["init", "-q", "-b", "main"]);
-    mkdirSync(join(seed, "dashboard", "src", "serve"), { recursive: true });
-    writeFileSync(join(seed, "dashboard", "src", "serve", "serve.ts"), "");
-    git(seed, ["add", "-A"]);
-    git(seed, ["-c", "user.name=t", "-c", "user.email=t@localhost", "commit", "-qm", "baseline"]);
-    git(seed, ["remote", "add", "origin", originBare]);
-    git(seed, ["push", "-q", "origin", "main"]);
-    const aide = tmp("aide-round-aide-");
-    git(tmpdir(), ["clone", "-q", originBare, aide]);
+    const { originBare } = seededOrigin(tmp);
+    const aide = cloneOf(tmp, originBare);
 
     const { code, stderr } = await runToExit([aide, "--branch", "never-existed", "--timeout", "5"]);
     expect(code).toBe(2);
@@ -123,34 +78,19 @@ describe("a branch that exists only on origin", () => {
 // pushed.
 describe("a branch the checkout already has, moved on since", () => {
   test("is served at origin's tip, not at the older local one", async () => {
-    const originBare = tmp("aide-round-origin-");
-    git(originBare, ["init", "-q", "--bare", "-b", "main"]);
-
-    const seed = tmp("aide-round-seed-");
-    git(seed, ["init", "-q", "-b", "main"]);
-    mkdirSync(join(seed, "dashboard", "src", "serve"), { recursive: true });
-    writeFileSync(join(seed, "dashboard", "src", "serve", "serve.ts"), "");
-    git(seed, ["add", "-A"]);
-    git(seed, ["-c", "user.name=t", "-c", "user.email=t@localhost", "commit", "-qm", "baseline"]);
-    git(seed, ["remote", "add", "origin", originBare]);
-    git(seed, ["push", "-q", "origin", "main"]);
+    const { originBare, seed } = seededOrigin(tmp);
     git(seed, ["checkout", "-q", "-b", "feature-x"]);
     writeFileSync(join(seed, "dashboard", "src", "serve", "serve.ts"), "// first\n");
-    git(seed, ["add", "-A"]);
-    git(seed, ["-c", "user.name=t", "-c", "user.email=t@localhost", "commit", "-qm", "first"]);
-    git(seed, ["push", "-q", "origin", "feature-x"]);
+    commitAndPush(seed, "feature-x", "first");
 
     // The checkout the round runs from knows the branch at its FIRST tip.
-    const aide = tmp("aide-round-aide-");
-    git(tmpdir(), ["clone", "-q", originBare, aide]);
+    const aide = cloneOf(tmp, originBare);
     git(aide, ["branch", "-q", "feature-x", "origin/feature-x"]);
     const older = Bun.spawnSync({ cmd: ["git", "-C", aide, "rev-parse", "feature-x"] }).stdout.toString().trim();
 
     // And then the branch moves on origin.
     writeFileSync(join(seed, "dashboard", "src", "serve", "serve.ts"), "// second\n");
-    git(seed, ["add", "-A"]);
-    git(seed, ["-c", "user.name=t", "-c", "user.email=t@localhost", "commit", "-qm", "second"]);
-    git(seed, ["push", "-q", "origin", "feature-x"]);
+    commitAndPush(seed, "feature-x", "second");
     const newer = Bun.spawnSync({ cmd: ["git", "-C", seed, "rev-parse", "feature-x"] }).stdout.toString().trim();
     expect(newer).not.toBe(older);
 

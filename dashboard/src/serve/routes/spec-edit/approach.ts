@@ -5,16 +5,15 @@
 // one has analyze plan it, in a job that takes over the held job's
 // remaining steps. One of the families `handleSpecEditRoutes` asks in
 // turn; answers JSON only, read by the page script.
-import { saveSpecFiles } from "../../../git/specs-pull.ts";
-import { readStatusFromBranch, resolveOpenBranchTarget, writeStatusToBranch } from "../../../git/branch-file.ts";
+import { writeSpecFile } from "./shared.ts";
+import { readStatusFromBranch, resolveOpenBranchTarget } from "../../../git/branch-file.ts";
 import { lastCommitOf } from "../../../git/description-freshness.ts";
 import { chooseApproachIn, specFileText } from "../../../project/discover";
 import { parseApproaches, pendingChoice, withChosenApproach } from "../../../project/approach-choice.ts";
-import { ARCHIVED_REFUSAL, editMessage, json, logRefusal, readObjectBody, refusal } from "../../serve-helpers";
+import { ARCHIVED_REFUSAL, json, logRefusal, readObjectBody, refusal } from "../../serve-helpers";
 import { writing } from "../../../queue/queue.ts";
 import { endStep } from "../../../queue/runner/step-result.ts";
 import { enqueueRequest, followOnRequest } from "../../../queue/request/index.ts";
-import { afterTick } from "./checks.ts";
 
 import type { RoutesContext } from "..";
 import { DESCRIPTION_FILE, SOLUTION_FILE } from "../../../project/spec-names.ts";
@@ -81,26 +80,12 @@ export async function approachRoutes(ctx: RoutesContext, req: Request, path: str
   const baseSha = branchTarget
     ? (branchRead?.sha ?? null)
     : ((await lastCommitOf(ctx.gitRun, dir, SOLUTION_FILE))?.sha ?? null);
-  const result = branchTarget
-    ? await ctx.mergeLock.run(branchTarget.root, () =>
-        writeStatusToBranch(
-          ctx.gitRun,
-          branchTarget.root,
-          branchTarget.branch,
-          [{ relPath: branchTarget.relPath, text }],
-          baseSha,
-          editMessage(specFolder!, SOLUTION_FILE),
-        ),
-      )
-    : await ctx.mergeLock.run(await ctx.specsRoot(dir), () =>
-        saveSpecFiles(
-          ctx.gitRun,
-          dir,
-          (root) => ctx.branchStatus.defaultBranch(root),
-          [{ file: SOLUTION_FILE, text, baseSha }],
-          { specLabel: specFolder!, message: editMessage(specFolder!, SOLUTION_FILE) },
-        ),
-      );
+  const result = await writeSpecFile(
+    ctx,
+    { dir, specFolder: specFolder!, file: SOLUTION_FILE, branch: branchTarget },
+    text,
+    baseSha,
+  );
   if (!result.ok) {
     return held ? refuse(`${result.note}; the held run was cancelled`, "press Save again") : refuse(result.note);
   }
@@ -114,7 +99,6 @@ export async function approachRoutes(ctx: RoutesContext, req: Request, path: str
     ), "manual");
     if (!queued.ok) return refuse(`the choice was saved, but analyze could not be queued: ${queued.error}`);
   }
-  await afterTick(ctx, dir, specFolder!);
   await ctx.tickRunner();
   return json({ ok: true, note: result.note, changed: (result as { committed?: boolean }).committed !== false });
 }

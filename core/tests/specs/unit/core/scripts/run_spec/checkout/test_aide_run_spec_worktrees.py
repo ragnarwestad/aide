@@ -13,6 +13,7 @@ from ..run_spec_fakes import probing_claude, specs_only_claude, writing_claude
 from ..run_spec_invoking import BRANCH, worktrees
 from ..run_spec_origins import is_ancestor
 from ..run_spec_results import RESULT_OK
+from ..run_spec_status_files import conflicting_branch
 
 def test_the_main_checkout_never_leaves_its_default_branch(runner, workspace, fake_claude):
     """The whole point. Two runs on the same repo pair are independent
@@ -141,14 +142,7 @@ def test_no_worktree_survives_a_refusal_in_the_branch_block(runner, workspace, f
     refusal between the two would orphan a worktree, and an orphan locks
     its branch out of every later run."""
     project = workspace["project"]
-    git(project, "switch", "-q", "-c", BRANCH)
-    (project / "contested.txt").write_text("the branch's version\n")
-    git(project, "add", "-A")
-    git(project, "commit", "-q", "-m", "branch side")
-    git(project, "switch", "-q", "main")
-    (project / "contested.txt").write_text("main's version\n")
-    git(project, "add", "-A")
-    git(project, "commit", "-q", "-m", "main side")
+    conflicting_branch(workspace)
 
     claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
     rc, out, _ = run(runner, workspace, claude)

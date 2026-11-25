@@ -12,32 +12,12 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { landArchivedSpec } from "../../../src/serve/land-branch";
 import { TestServerStore } from "../../../src/serve/test-servers/store.ts";
-import type { TestServersContext } from "../../../src/serve/test-servers/lifecycle.ts";
+import { testServersCtx } from "../test-servers/test-servers-fixtures.ts";
 import { BRANCH, landCtx, landingGit, REPOS } from "./landing-fixtures.ts";
 import type { Answer } from "../../helpers/fake-git.ts";
 
 let killed: { pid: number; signal: string }[];
 let killSpy: ReturnType<typeof spyOn>;
-
-function makeTestServersCtx(store: TestServerStore): TestServersContext {
-  return {
-    store,
-    aideCheckout: () => "/checkout/aide",
-    startCommand: (_p: string, { branch, port }: { branch: string; port: number }) => [
-      "/checkout/aide/dashboard/test/round/run", "/checkout/aide",
-      "--branch", branch, "--port", String(port), "--keep",
-    ],
-    previewAvailable: () => true,
-    gitRun: async () => ({ code: 0, stdout: "", stderr: "" }),
-    spawn: () => ({ pid: 1 }),
-    isAlive: () => true,
-    now: () => "2026-09-05T00:00:00.000Z",
-    makeWorkDir: () => "/tmp",
-    reservedPorts: () => [],
-    findFreePort: async () => 9000,
-    testServerOnPort: async () => undefined,
-  } as unknown as TestServersContext;
-}
 
 /** A store holding one running board for `150-spec`. */
 function storeWithTestServer(): TestServerStore {
@@ -61,7 +41,7 @@ let updates: Record<string, unknown>[] = [];
 
 async function archive(store: TestServerStore, over: Record<string, Answer> = {}) {
   const { ctx } = landCtx(landingGit(over).run, {
-    testServers: makeTestServersCtx(store),
+    testServers: testServersCtx(store),
     queue: {
       get: () => undefined,
       list: () => listed,

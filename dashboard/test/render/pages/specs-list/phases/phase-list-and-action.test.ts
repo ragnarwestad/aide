@@ -1,7 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { JOB_STATES } from "../../../../../src/job-states.ts";
-import { renderSpecsRows, type SpecsPageOptions, type QueueRowView, type SpecTarget } from "../../../../../src/render";
-import { row, openKeys } from "../../fixtures.ts";
+import { row, specTarget, openRowsAt } from "../../fixtures.ts";
 
 // --- One phase list, and the actions in a stack of their own -------
 //
@@ -21,27 +20,9 @@ import { row, openKeys } from "../../fixtures.ts";
 // that did not move: one phase list, one box per line, and the six
 // columns every row kind has to agree on.
 describe("one phase list, and one action beside the state", () => {
-  const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
-    project: "aide",
-    specFolder,
-    ...extra,
-  });
+  const target = specTarget;
 
-  const rows = (
-    list: QueueRowView[],
-    targets: SpecTarget[] = [target("124-stack")],
-    opts: Partial<SpecsPageOptions> = {},
-  ) =>
-    renderSpecsRows(
-      list,
-      {
-        runnerAvailable: true,
-        targets,
-        filter: { open: openKeys(list, targets) },
-        ...opts,
-      },
-      Date.parse("2026-08-19T12:00:00Z"),
-    );
+  const rows = openRowsAt("2026-08-19T12:00:00Z", [target("124-stack")]);
 
   /** A phase's own line — an ordinary row of six cells,
    *  with nothing spanning it. */
