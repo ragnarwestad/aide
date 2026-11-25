@@ -39,11 +39,11 @@ export const SHARED_FILES_STOPPED = {
 
 export const JOBS_ANALYSIS = {
   "runner.dependenciesAdded": {
-    en: "dependencies added automatically",
-    nb: "avhengigheter lagt til automatisk",
-    es: "dependencias añadidas automáticamente",
-    de: "Abhängigkeiten automatisch hinzugefügt",
-    fr: "dépendances ajoutées automatiquement",
+    en: "dependencies added automatically by Analyze",
+    nb: "avhengigheter lagt til automatisk av Analyser",
+    es: "dependencias añadidas automáticamente por Analizar",
+    de: "Abhängigkeiten automatisch durch Analysieren hinzugefügt",
+    fr: "dépendances ajoutées automatiquement par Analyser",
     statement: "records the dependencies the board added and why",
   },
   "runner.overlapDecisionMissing": {
