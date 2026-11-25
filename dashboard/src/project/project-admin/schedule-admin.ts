@@ -19,26 +19,10 @@ function saveEntries(store: ScheduleStore, project: string, entries: readonly Sc
   return error ? { ok: false, error } : { ok: true };
 }
 
-/** Why a create/edit request cannot be saved, or `null`. Checked before
- *  any file is opened — the same "refuse before any write" rule
- *  `updateProjectSettings` follows. `excludeName` is the entry's OWN
- *  current name on an edit, so keeping (or not keeping) that same name
- *  is never mistaken for a collision with itself. */
-export function scheduleEntryError(
-  projectDir: string,
-  req: { name?: string; cron?: string; prompt?: string; model?: string; provider?: string; notify?: string; chrome?: string; sandbox?: string },
-  existing: readonly ScheduleEntry[],
-  excludeName?: string,
-  /** Every model name the queue config lists. Passed by the
-   *  route, which is where that table is read; absent (a caller with no
-   *  config to hand) checks the name's SHAPE only. A model the queue
-   *  would refuse is refused here instead, while a person is looking at
-   *  the form — stored unchecked it would refuse every fire from then
-   *  on, at a time nobody is watching. */
-  knownModels?: readonly string[],
-  /** Every provider key the queue config lists, as `knownModels` is. */
-  knownProviders?: readonly string[],
-): string | null {
+type ScheduleRequest = { name?: string; cron?: string; prompt?: string; model?: string; provider?: string; notify?: string; chrome?: string; sandbox?: string };
+
+/** The entry's name, unique in the project, and its cron expression. */
+function entryNameError(req: ScheduleRequest, existing: readonly ScheduleEntry[], excludeName?: string): string | null {
   const name = req.name?.trim();
   if (!name) return "a name is required";
   if (!SCHEDULE_NAME_RE.test(name)) {
@@ -54,13 +38,22 @@ export function scheduleEntryError(
   } catch {
     return `"${cron}" is not a valid cron expression`;
   }
-  const prompt = req.prompt?.trim();
+  return null;
+}
+
+/** The prompt file, inside the project and present in its checkout. */
+function promptError(projectDir: string, posted: string | undefined): string | null {
+  const prompt = posted?.trim();
   if (!prompt) return "a prompt file path is required";
   if (escapesRoot(prompt)) return `${prompt} would leave the project root`;
   const file = join(projectDir, prompt);
   if (!existsSync(file) || !statSync(file).isFile()) {
     return `${prompt} does not exist in this project's checkout`;
   }
+  return null;
+}
+
+function modelError(req: ScheduleRequest, knownModels?: readonly string[], knownProviders?: readonly string[]): string | null {
   // Empty means "the configuration decides" and is never refused — the
   // same reading the queue's own request parser gives an empty model.
   const model = req.model?.trim();
@@ -81,6 +74,11 @@ export function scheduleEntryError(
     if (!SCHEDULE_NAME_RE.test(provider)) return `"${provider}" is not a usable provider key`;
     if (knownProviders && !knownProviders.includes(provider)) return `"${provider}" is not a provider this dashboard offers`;
   }
+  return null;
+}
+
+/** The notification, browser and sandbox choices, each one of its words or empty. */
+function choicesError(req: ScheduleRequest): string | null {
   // Empty means "keep what the entry has" (an edit) or "none" (a create).
   const notify = req.notify?.trim();
   if (notify && !isScheduleNotify(notify)) return `"${notify}" is not a notification choice: never, failure or always`;
@@ -91,6 +89,30 @@ export function scheduleEntryError(
   const sandbox = req.sandbox?.trim();
   if (sandbox && !isScheduleSandbox(sandbox)) return `"${sandbox}" is not a sandbox choice: on or off`;
   return null;
+}
+
+/** Why a create/edit request cannot be saved, or `null`. Checked before
+ *  any file is opened — the same "refuse before any write" rule
+ *  `updateProjectSettings` follows. `excludeName` is the entry's OWN
+ *  current name on an edit, so keeping (or not keeping) that same name
+ *  is never mistaken for a collision with itself. */
+export function scheduleEntryError(
+  projectDir: string,
+  req: ScheduleRequest,
+  existing: readonly ScheduleEntry[],
+  excludeName?: string,
+  /** Every model name the queue config lists. Passed by the
+   *  route, which is where that table is read; absent (a caller with no
+   *  config to hand) checks the name's SHAPE only. A model the queue
+   *  would refuse is refused here instead, while a person is looking at
+   *  the form — stored unchecked it would refuse every fire from then
+   *  on, at a time nobody is watching. */
+  knownModels?: readonly string[],
+  /** Every provider key the queue config lists, as `knownModels` is. */
+  knownProviders?: readonly string[],
+): string | null {
+  return entryNameError(req, existing, excludeName) ?? promptError(projectDir, req.prompt) ??
+    modelError(req, knownModels, knownProviders) ?? choicesError(req);
 }
 
 /** The notification choice a request names, or `undefined` for none. */

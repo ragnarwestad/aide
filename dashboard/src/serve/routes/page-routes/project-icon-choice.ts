@@ -10,7 +10,7 @@ import {
   writeChosenFile,
   writeChosenGlyph,
 } from "../../../project/project-icon/index.ts";
-import { DEFAULT_DASHBOARD_CHECKOUT_ROOT } from "../../../git/dashboard-checkout.ts";
+import { DEFAULT_DASHBOARD_CHECKOUT_ROOT } from "../../../git/dashboard-checkout/index.ts";
 import { readObjectBody } from "../../serve-helpers/http.ts";
 import type { RoutesContext } from "..";
 

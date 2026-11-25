@@ -25,7 +25,7 @@ import {
   } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
-import { t, type Language } from "../../../i18n";
+import { t, type Language, type TranslationKey } from "../../../i18n";
 import { navEntries, PROJECTS_ROUTE, NEW_SPEC_ROUTE, projectPagePath, projectScheduleTab } from "./routes.ts";
 import { projectListBody, projectSummary } from "./overview-list.ts";
 import { driftPrefix, renderProjectPage } from "./project-page.ts";
@@ -171,24 +171,18 @@ export function renderProjectsPage(
   });
 }
 
-// The Add form, on a page of its own (asked for 2026-08-19, New spec as
-// the pattern): Save adds the project and goes to its Config tab, Cancel
-// returns having done nothing.
-export function renderAddProjectPage(
-  entries: NavEntry[],
-  generatedAt: string,
-  opts: ProjectsPageOptions,
-): string {
-  const lang = opts.lang ?? "en";
-  const body =
-    backLink("/projects", t(lang, "project.add.title"), "", { lang }) +
-    // Where what this form collects is kept, before the form rather
-    // than in a doc nobody has open. It says nothing about a project's
-    // stack, deployment or docs: the dashboard neither asks for those
-    // nor shows them anywhere, and a line sending a reader off to fill
-    // them in belongs where something reads them.
-    rowMessage("info", t(lang, "project.add.info"), { tag: "p" }) +
-    `<form method="post" action="/api/queue/projects" class="pageform addprojectform">` +
+/** A one-line setting on the Add form, saved by the Config tab's own call. */
+function addTextField(key: Parameters<typeof settingLabel>[0], name: string, placeholder: TranslationKey, lang: Language): string {
+  return field(
+    settingLabel(key, lang),
+    `<input type="text" name="${name}" maxlength="300" placeholder="${esc(t(lang, placeholder))}">`,
+    { wide: true },
+  );
+}
+
+/** The project's name, and where it is cloned from. */
+function addNameRow(lang: Language): string {
+  return (
     `<span class="frow">` +
     field(
       t(lang, "schedule.colName"),
@@ -204,7 +198,13 @@ export function renderAddProjectPage(
       `<input type="text" name="gitUrl" maxlength="300" required placeholder="${esc(t(lang, "project.add.gitUrlPh"))}">`,
       { wide: true },
     ) +
-    `</span>` +
+    `</span>`
+  );
+}
+
+/** Where its specs live, how its code lands and how a branch can be tried. */
+function addLandingRow(lang: Language): string {
+  return (
     `<span class="frow">` +
     field(
       settingLabel("AIDE_SPECS_PATH", lang),
@@ -241,7 +241,13 @@ export function renderAddProjectPage(
         `</select>`,
       { wide: true },
     ) +
-    `</span>` +
+    `</span>`
+  );
+}
+
+/** The gitignored paths a run's worktree links in. */
+function addLinksRow(lang: Language): string {
+  return (
     `<span class="frow">` +
     field(
       // A run works in a `git worktree`, which carries
@@ -257,38 +263,29 @@ export function renderAddProjectPage(
         `placeholder="${esc(t(lang, "project.add.worktreeLinksPh"))}">`,
       { wide: true },
     ) +
-    `</span>` +
-    // Each is saved after the add by the call the Config tab's Save makes,
-    // and a field left empty writes nothing. The Test command's page
-    // script replaces the placeholder with the command the Git URL's root
-    // files point at; it is a suggestion and is never saved.
+    `</span>`
+  );
+}
+
+  // Each is saved after the add by the call the Config tab's Save makes,
+  // and a field left empty writes nothing. The Test command's page
+  // script replaces the placeholder with the command the Git URL's root
+  // files point at; it is a suggestion and is never saved.
+function addCommandsRow(lang: Language): string {
+  return (
     `<span class="frow">` +
-    field(
-      settingLabel("AIDE_TEST_CMD", lang),
-      `<input type="text" name="testCmd" maxlength="300" placeholder="${esc(t(lang, "project.add.testCmdPh"))}">`,
-      { wide: true },
-    ) +
-    field(
-      settingLabel("worktreeSetup", lang),
-      `<input type="text" name="worktreeSetup" maxlength="300" placeholder="${esc(t(lang, "project.add.worktreeSetupPh"))}">`,
-      { wide: true },
-    ) +
-    field(
-      settingLabel("AIDE_INSTALL_CMD", lang),
-      `<input type="text" name="installCmd" maxlength="300" placeholder="${esc(t(lang, "project.add.installCmdPh"))}">`,
-      { wide: true },
-    ) +
-    field(
-      settingLabel("previewCmd", lang),
-      `<input type="text" name="previewCmd" maxlength="300" placeholder="${esc(t(lang, "project.add.previewCmdPh"))}">`,
-      { wide: true },
-    ) +
-    field(
-      settingLabel("acPrefix", lang),
-      `<input type="text" name="acPrefix" maxlength="300" placeholder="${esc(t(lang, "project.add.acPrefixPh"))}">`,
-      { wide: true },
-    ) +
-    `</span>` +
+    addTextField("AIDE_TEST_CMD", "testCmd", "project.add.testCmdPh", lang) +
+    addTextField("worktreeSetup", "worktreeSetup", "project.add.worktreeSetupPh", lang) +
+    addTextField("AIDE_INSTALL_CMD", "installCmd", "project.add.installCmdPh", lang) +
+    addTextField("previewCmd", "previewCmd", "project.add.previewCmdPh", lang) +
+    addTextField("acPrefix", "acPrefix", "project.add.acPrefixPh", lang) +
+    `</span>`
+  );
+}
+
+/** The project's description and icon, and Save. */
+function addAboutRow(lang: Language): string {
+  return (
     `<span class="frow">` +
     field(
       settingLabel("description", lang),
@@ -303,7 +300,29 @@ export function renderAddProjectPage(
     ) +
     `<span class="factions">` +
     btn({ label: t(lang, "list.checksSave"), variant: "primary", pending: t(lang, "list.checksSaving") }) +
-    `</span></span>` +
+    `</span></span>`
+  );
+}
+
+// The Add form, on a page of its own (asked for 2026-08-19, New spec as
+// the pattern): Save adds the project and goes to its Config tab, Cancel
+// returns having done nothing.
+export function renderAddProjectPage(
+  entries: NavEntry[],
+  generatedAt: string,
+  opts: ProjectsPageOptions,
+): string {
+  const lang = opts.lang ?? "en";
+  const body =
+    backLink("/projects", t(lang, "project.add.title"), "", { lang }) +
+    // Where what this form collects is kept, before the form rather
+    // than in a doc nobody has open. It says nothing about a project's
+    // stack, deployment or docs: the dashboard neither asks for those
+    // nor shows them anywhere, and a line sending a reader off to fill
+    // them in belongs where something reads them.
+    rowMessage("info", t(lang, "project.add.info"), { tag: "p" }) +
+    `<form method="post" action="/api/queue/projects" class="pageform addprojectform">` +
+    addNameRow(lang) + addLandingRow(lang) + addLinksRow(lang) + addCommandsRow(lang) + addAboutRow(lang) +
     messageSlot("refused") +
     `</form>`;
   return pageShell(t(opts.lang ?? "en", "project.add.title"), entries, "/projects", body, generatedAt, {

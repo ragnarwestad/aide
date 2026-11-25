@@ -23,13 +23,6 @@ import type { RoutesContext } from "..";
 import { branchForSpec } from "../../../project/discover/group.ts";
 
 export function specRowOptions(ctx: RoutesContext, url: URL, lang: Language): SpecsPageOptions {
-  const schedulePrompt = (job: Parameters<typeof jobStepLines>[0]): string => {
-    if (jobKind(job) !== "schedule") return "";
-    const entry = ctx.scheduleStore.list(job.project).find((e) => e.name === scheduleNameOf(job.specFolder));
-    if (!entry) return "";
-    try { return readFileSync(join(ctx.machineryProjectDir(job.project), entry.prompt), "utf-8"); }
-    catch { return ""; }
-  };
   return {
     runnerAvailable: ctx.opts.runnerAvailable ?? ctx.runner !== null,
     targets: ctx.withFreshness(ctx.targets()),
@@ -47,11 +40,39 @@ export function specRowOptions(ctx: RoutesContext, url: URL, lang: Language): Sp
     pendingModels: ctx.queue.pendingModels,
     pendingProviders: ctx.queue.pendingProviders,
     pendingSteps: ctx.queue.pendingSteps,
+    ...jobLineOptions(ctx, lang),
+    ...branchOptions(ctx),
+    // How a row is folded lives in the address, so it survives a reload.
+    filter: {
+      limit: url.searchParams.get("limit") ?? undefined,
+      boundary: url.searchParams.get("boundary") ?? undefined,
+      windowLoaded: url.searchParams.get("windowLoaded") ?? undefined,
+      windowQuery: url.searchParams.get("windowQuery") ?? undefined,
+      open: url.searchParams.get("open") ?? undefined,
+      checks: url.searchParams.get("checks") ?? undefined,
+      phases: url.searchParams.get("phases") ?? undefined,
+    },
+  };
+}
+
+/** A scheduled job's prompt, off its schedule entry's file; "" for any other
+ *  job, and for one whose entry or file is gone. */
+function schedulePromptOf(ctx: RoutesContext, job: Parameters<typeof jobStepLines>[0]): string {
+  if (jobKind(job) !== "schedule") return "";
+  const entry = ctx.scheduleStore.list(job.project).find((e) => e.name === scheduleNameOf(job.specFolder));
+  if (!entry) return "";
+  try { return readFileSync(join(ctx.machineryProjectDir(job.project), entry.prompt), "utf-8"); }
+  catch { return ""; }
+}
+
+/** The lines, pips and commits a job's own row unfolds, read by job id. */
+function jobLineOptions(ctx: RoutesContext, lang: Language) {
+  return {
     // Called only for the open row of a Close, Reopen, deploy or scheduled job.
     closeOrReopenSteps: (jobId: string) => {
       const job = ctx.queue.get(jobId);
       if (!job) return [];
-      const steps = queuedWhileMergeWaits(jobStepLines(job, lang, schedulePrompt(job)), ctx.queue.waiting, job.id);
+      const steps = queuedWhileMergeWaits(jobStepLines(job, lang, schedulePromptOf(ctx, job)), ctx.queue.waiting, job.id);
       if (jobKind(job) !== "land" || !job.branch) return steps;
       const history = ctx.queue.list();
       const older = history.slice(history.findIndex(attempt => attempt.id === job.id) + 1)
@@ -65,12 +86,19 @@ export function specRowOptions(ctx: RoutesContext, url: URL, lang: Language): Sp
     },
     jobStepPips: (jobId: string) => {
       const job = ctx.queue.get(jobId);
-      return job ? queuedWhileMergeWaits(jobStepPips(job, lang, schedulePrompt(job)), ctx.queue.waiting, job.id) : [];
+      return job ? queuedWhileMergeWaits(jobStepPips(job, lang, schedulePromptOf(ctx, job)), ctx.queue.waiting, job.id) : [];
     },
     deployCommits: (jobId: string) => {
       const job = ctx.queue.get(jobId);
       return job ? deployCommits(job, ctx.queue.list()) : undefined;
     },
+  };
+}
+
+/** What a spec's row asks about its branch, its overlaps and its phases'
+ *  messages, each only when the row draws it. */
+function branchOptions(ctx: RoutesContext) {
+  return {
     // The same capability check `spec-page.ts` and `project-pages.ts` call,
     // and the cached answer of whether origin holds the spec's branch in the
     // checkout the start route asks.
@@ -96,16 +124,6 @@ export function specRowOptions(ctx: RoutesContext, url: URL, lang: Language): Sp
     phaseMessages: (attemptIds: string[], step: string) => phaseMessagesFor(ctx.queue, attemptIds, step),
     // The same for a side session's line (Review, Verify) under Implement.
     sideMessages: (attemptIds: string[], part: SidePart) => sideMessagesFor(ctx.queue, attemptIds, part),
-    // How a row is folded lives in the address, so it survives a reload.
-    filter: {
-      limit: url.searchParams.get("limit") ?? undefined,
-      boundary: url.searchParams.get("boundary") ?? undefined,
-      windowLoaded: url.searchParams.get("windowLoaded") ?? undefined,
-      windowQuery: url.searchParams.get("windowQuery") ?? undefined,
-      open: url.searchParams.get("open") ?? undefined,
-      checks: url.searchParams.get("checks") ?? undefined,
-      phases: url.searchParams.get("phases") ?? undefined,
-    },
   };
 }
 

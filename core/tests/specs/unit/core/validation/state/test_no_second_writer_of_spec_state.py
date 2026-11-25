@@ -34,7 +34,7 @@ ALLOWED_BASH_FILES = {
 ALLOWED_DASHBOARD_FILES = {
     "dashboard/src/project/spec-names.ts",       # defines the shared file name; never reads or writes it
     "dashboard/src/project/parse-spec-state.ts",  # the one reader
-    "dashboard/src/serve/spec-lookup.ts",          # reads it through parse-spec-state.ts
+    "dashboard/src/serve/spec-lookup/scan.ts",     # reads it through parse-spec-state.ts
     # spec-edit relays what aide-write-spec derived; since the file was
     # split (2026-09-04) the name lives in the small shared file its
     # families read it from, and the tick's own doc comment says which
@@ -43,7 +43,7 @@ ALLOWED_DASHBOARD_FILES = {
     "dashboard/src/serve/routes/spec-edit/checks.ts",
     "dashboard/src/git/run-aide-write-spec.ts",    # spawns the script, in scratch space
     "dashboard/src/git/branch-file.ts",            # generic multi-file commit plumbing; doc comment
-    "dashboard/src/git/specs-pull.ts",             # generic multi-file commit plumbing; doc comment
+    "dashboard/src/git/specs-pull/save.ts",          # generic multi-file commit plumbing; doc comment
     "dashboard/src/git/branch-file-steps.ts",      # The open-branch copy read, moved out of workflow-history.ts — same reader, same shared parseSpecStateText
     "dashboard/src/git/workflow-history.ts",       # Reads a spec's own OPEN branch copy through parse-spec-state.ts's shared parseSpecStateText, never a second derivation
     "dashboard/src/project/spec-facts.ts",  # doc comment on the stateMissing field

@@ -172,7 +172,7 @@ export function isDue(entry: ScheduleEntry, now: Date, jobs: readonly ScheduleJo
  *  bookmarks never moves between runs. */
 export const DEFAULT_SCHEDULE_OUTPUT_ROOT = join(homedir(), ".aide", "dashboard", "schedule-output");
 
-/** The one function both the write side (`runner-setup.ts`'s spawn) and
+/** The one function both the write side (`runner-setup/spawn-step.ts`) and
  *  the read side (the serving route, the Schedule page) import — never a
  *  second implementation of the join, the exact hand-paired-pair failure
  *  mode `dashboard/AGENTS.md` already names six instances of. */

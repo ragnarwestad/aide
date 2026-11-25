@@ -12,7 +12,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { LS_REMOTE_NO_MATCH, lsRemoteBranch } from "../../../git/branch-status.ts";
 import { deleteBranchOnly } from "../../../git/branch-merge/index.ts";
-import { mergedPullRequest, specRoots } from "../../spec-lookup.ts";
+import { mergedPullRequest, specRoots } from "../../spec-lookup/index.ts";
 import type { LandContext } from "../types.ts";
 
 export type DeleteLeftBehindContext = Pick<

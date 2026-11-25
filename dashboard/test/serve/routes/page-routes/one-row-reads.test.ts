@@ -1,7 +1,7 @@
 import * as heads from "../../../../src/render/pages/specs-list/head-row.ts";
 import { t } from "../../../../src/i18n";
 import * as phases from "../../../../src/render/pages/specs-list/data-model/phases.ts";
-import { targets as lookupTargets, type SpecLookupContext, type ScanState } from "../../../../src/serve/spec-lookup.ts";
+import { targets as lookupTargets, type SpecLookupContext, type ScanState } from "../../../../src/serve/spec-lookup/index.ts";
 import * as coverage from "../../../../src/project/ac-coverage.ts";
 // What a request for one row asks the server for. The three routes a › asks
 // are handed a context made by hand, which records every job a row view was
@@ -42,19 +42,10 @@ const SPEC_JOBS = ["a1", "a2", "a3", "i2"];
 const EVERY_JOB = [...SPEC_JOBS, "dep", "report"].sort();
 const TWO = "aide/02-two";
 
-/** A route context over a real queue. `rowsFor` holds the id of every job a
- *  row view was built for; `archive` the keys each read of the archive was cut
- *  to, `undefined` for a read of the whole archive. */
-function board(count?: number, mixed = false) {
+/** The jobs, live specs and archived specs a board holds: `count` made-up
+ *  ones, mixed across kinds and states when `mixed`, or the fixed few. */
+function boardRecords(count: number | undefined, mixed: boolean) {
   const records = count ? Array.from({ length: count }, (_, i) => job({ id: `j${i}`, specFolder: mixed && i % 4 === 0 ? `schedule-${i}` : `${String(i).padStart(5, "0")}-item`, ...(!mixed ? { createdAt: new Date(Date.UTC(2026, 9, 1, 0, i)).toISOString(), startedAt: new Date(Date.UTC(2026, 9, 1, 0, i)).toISOString(), finishedAt: new Date(Date.UTC(2026, 9, 1, 0, i, 30)).toISOString() } : {}), ...(mixed ? { steps: [i % 4 === 0 ? "schedule" : "analyze"], state: i % 4 === 0 ? "failed" : "running" } : {}) })) : JOBS;
-  const dir = mkdtempSync(join(tmpdir(), "aide-one-row-reads-"));
-  dirs.push(dir);
-  writeFileSync(join(dir, "queue.json"), JSON.stringify(records));
-  const queue = new QueueStore({
-    mirrorPath: join(dir, "queue.json"),
-    defaults: { timeoutSec: { default: 600 }, permissionMode: { default: "acceptEdits" }, model: { default: "sonnet" } },
-    resolve: () => null,
-  });
   const targets: SpecTarget[] = (count ? records.filter((_, i) => !mixed || i % 4 === 1 || i % 4 === 2).map((j) => j.specFolder as string) : ["01-one", "02-two", "03-three"]).map((specFolder, i) => ({ project: "aide", specFolder, ...(count && !mixed ? { createdAt: records[i]!.createdAt as string } : {}) }));
   const archived = mixed ? records.filter((_, i) => i % 4 === 3).map((record) => ({
     project: "aide", folder: record.specFolder as string, title: "Archived work", done: ["create", "analyze", "implement", "archive"],
@@ -64,6 +55,22 @@ function board(count?: number, mixed = false) {
     targets[0]!.group = { name: "Release", position: 1 };
     targets[1]!.group = { name: "Release", position: 2 };
   }
+  return { records, targets, archived };
+}
+
+/** A route context over a real queue. `rowsFor` holds the id of every job a
+ *  row view was built for; `archive` the keys each read of the archive was cut
+ *  to, `undefined` for a read of the whole archive. */
+function board(count?: number, mixed = false) {
+  const { records, targets, archived } = boardRecords(count, mixed);
+  const dir = mkdtempSync(join(tmpdir(), "aide-one-row-reads-"));
+  dirs.push(dir);
+  writeFileSync(join(dir, "queue.json"), JSON.stringify(records));
+  const queue = new QueueStore({
+    mirrorPath: join(dir, "queue.json"),
+    defaults: { timeoutSec: { default: 600 }, permissionMode: { default: "acceptEdits" }, model: { default: "sonnet" } },
+    resolve: () => null,
+  });
   const rowsFor: string[] = [];
   const archive: (string[] | undefined)[] = [];
   let html = "";

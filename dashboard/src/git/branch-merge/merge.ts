@@ -20,18 +20,16 @@
 //     and a single collective "ok" over two repos is exactly the blind
 //     spot this whole spec exists to remove.
 
-
 import { prepareMergeWorktree, WORKTREE_TIMEOUT_MS } from "./worktree.ts";
-import type { BoardMessage, Sentence } from "../../messages/types.ts";
-import { gitErrorDetail } from "../../format/git-error.ts";
+import type { Sentence } from "../../messages/types.ts";
 import { LS_REMOTE_NO_MATCH, lsRemoteBranch } from "../branch-status.ts";
 import { type GitRunner } from "../process/index.ts";
-import { finalizeCreateOnAttempt, type CreateFinalizer } from "../create-finalizer.ts";
+import type { CreateFinalizer } from "../create-finalizer.ts";
 import type { MergeHooks } from "../merge-hooks.ts";
 import { pushRefusal, refuse, type RepoMergeResult } from "./result.ts";
-import { GIT_LOCKED, LANDING_RETRIES, pushWithRetry, sleep, type Wait } from "./retry.ts";
+import { LANDING_RETRIES, pushWithRetry, sleep, type Wait } from "./retry.ts";
 import { withCheckoutLock } from "../checkout-lock/index.ts";
-import { squashOnto } from "./squash.ts";
+import { mergeAndGate, type Landing } from "./attempt.ts";
 
 /** Where a landing does its merging: a worktree of the repo it is
  *  landing into, named for the branch so two landings in one repo never
@@ -60,361 +58,27 @@ export async function mergeBranchIntoDefault(
   finalizeCreate?: CreateFinalizer,
   hooks?: MergeHooks,
 ): Promise<RepoMergeResult> {
-  // Declared out here so the `finally` can clear it whichever way this
-  // returns: a refusal leaves a worktree behind exactly as readily as a
-  // success, and one left on disk blocks the next landing of the same
-  // branch — `worktree add` refuses a path that already exists.
-  let work = "";
-  try {
-    // The state of the working tree is not asked about at all.
-    // It was, and refused: whoever got to the checkout first left
-    // it dirty and the other side backed off. A run now
-    // works in a worktree of its own and only ever fast-forwards
-    // this one, and an unrelated uncommitted file then stopped merges
-    // for no reason anybody could act on. The three commands below
-    // write only what differs between the commits, so a file that has
-    // nothing to do with the merge is untouched, and one that DOES
-    // collide raises git's own error rather than a guess made in
-    // advance. Every move of the shared checkout below runs under the
-    // runner's own checkout lock (`checkout-lock/`), so a run is never
-    // in its own section of that checkout at the same moment.
-
-    // 1. Is there anything to merge at all? Since step 6 deletes the
-    //    branch, this button will be pressed on a branch that is
-    //    already gone — a second click, or someone who removed it by
-    //    hand. Merging an unresolvable ref failed and was reported as a
-    //    "conflict", which is a different problem with a different
-    //    remedy. Asked of origin directly, and only git's own "no
-    //    matching refs" counts: any other nonzero code is a transport
-    //    failure and must fall through to the sequence below.
-    const onOrigin = await run(root, lsRemoteBranch(branch));
-    if (onOrigin.code === LS_REMOTE_NO_MATCH) {
-      return {
-        ...refuse(root, branch, { key: "landing.nothingLeftToMerge" }),
-        reason: "gone",
-      };
-    }
-
-    // 2. Best effort, exactly as `isMerged()` does it: whatever the
-    //    checkout already knows beats no answer at all.
-    // 3. The merge does NOT stand in the shared checkout any more. It
-    //    used to `git switch` there and hold it for the whole landing —
-    //    the fetch, the merge, and the project's own suite on the
-    //    result, five and a half minutes for this repo. That directory
-    //    is the one a starting run reads before it cuts its own
-    //    worktree, so the scheduler had to hold every job for the
-    //    project until the landing finished (the `runner.ts`
-    //    pause). The work happens in a throwaway worktree at
-    //    `origin/<base>` instead, and the shared checkout is only
-    //    fast-forwarded at the end, once, in well under a second.
-    //
-    //    `--detach` is what makes it possible: git refuses to check the
-    //    same branch out twice, and the shared checkout is already on
-    //    base. A detached worktree needs no local branch at all.
-    //
-    //    A worktree that cannot be made is a refusal, never a quiet
-    //    fall back to the shared checkout — falling back would put the
-    //    hazard right back without anybody being told.
-    const prepared = await withCheckoutLock(root, async (): Promise<RepoMergeResult | null> => {
-      await run(root, ["fetch", "-q", "origin", base]);
-
-      //    Before anything is merged: does the shared checkout's own base
-      //    hold commits origin does not? The landing works from
-      //    `origin/<base>` and would push right past them, and the
-      //    fast-forward at the end would then fail silently — somebody's
-      //    unpushed work, still on disk, no longer on the branch anybody
-      //    reads. It refused loudly before this moved into a worktree,
-      //    and it still does. Merge commits do not count: those are a
-      //    landing's own, left by one that pushed and died.
-      const ahead = await run(root, ["rev-list", "--count", `origin/${base}..${base}`]);
-      if (ahead.code === 0 && Number(ahead.stdout.trim()) > 0) {
-        const own = await run(root, [
-          "rev-list", `origin/${base}..${base}`, "--no-merges", "--not", "--remotes=origin",
-        ]);
-        if (own.code === 0 && own.stdout.trim() !== "") {
-          return refuse(root, branch, { key: "landing.cannotFastForward", values: { base } });
-        }
-      }
-
-      work = mergeWorktreePath(root, branch);
-      await prepareMergeWorktree(run, root, work);
-      const added = await run(root, ["worktree", "add", "--detach", "-q", work, `origin/${base}`], WORKTREE_TIMEOUT_MS);
-      if (added.code !== 0) {
-        await run(root, ["worktree", "prune"]);
-        return refuse(
-          root,
-          branch,
-          { key: "landing.cannotSwitch", values: { base } },
-          (added.stderr ?? "").trim() || undefined,
-        );
-      }
-      return null;
-    }, { wait });
-    if (!prepared.locked) {
-      return refuse(root, branch, { key: "landing.checkoutLockTimedOut", values: { lock: prepared.lock } });
-    }
-    if (prepared.value) return prepared.value;
-
+  // `work` lives on this object so the `finally` can clear it whichever
+  // way this returns: a refusal leaves a worktree behind exactly as
+  // readily as a success, and one left on disk blocks the next landing
+  // of the same branch — `worktree add` refuses a path that already exists.
+  const l: Landing = {
+    run, root, branch, base, wait, gate, finalizeCreate, hooks,
+    work: "",
     // 4-5. `refs/remotes/origin/<branch>`, never a local `<branch>`.
     //      This host is not the machine `aide-run-spec` ran on, so a
     //      local ref of that name may be absent, or left over from an
     //      older run of the same spec. The remote-tracking ref is the
     //      one `isMerged()` already trusts, and step 3 made it current.
-    const ref = `refs/remotes/origin/${branch}`;
-    // 4-5, and the gate, as one attempt: merge the branch onto base, run
-    //      the tests on the result, push. Made twice at most — the second
-    //      time onto a base that moved on origin while the first attempt's
-    //      tests ran, after the first attempt's merge is dropped. The
-    //      tests run on exactly what main is about to become, so a moved
-    //      base means they run again — unless it reproduces a tree already
-    //      gated once (below).
-    // A resulting tree already gated once for THIS
-    // landing is never gated again. Scoped to the lifetime of this one
-    // `mergeBranchIntoDefault()` call — never module- or server-lifetime
-    // — so no verdict outlives the landing it was reached for.
-    const gateVerdicts = new Map<string, Awaited<ReturnType<LandingGate>>>();
-    // Set on the attempt that actually pushes — never on one whose push
-    // was rejected and dropped, so a retry's own rename (recomputed
-    // against the base that moved) is the one that survives.
-    let assignedSpecFolder: string | undefined;
-    let repaired = false;
-    let repairRebuilds = 0;
-    let conflictRepairs = 0;
-    // The branch's tip as the last attempt fetched it, kept for step 8.
-    let sourceTip = "";
-    const mergeAndGate = async (): Promise<RepoMergeResult | null> => {
-      // The tip BEFORE this attempt's own merge, so a
-      // branch that adds nothing to THIS repo can be told apart from one
-      // that does.
-      const preMergeHead = gate || hooks?.squashMessage ? (await run(work, ["rev-parse", "HEAD"])).stdout.trim() : "";
-      await run(work, ["fetch", "--quiet", "origin", base, branch]);
-      if (hooks?.squashMessage) sourceTip = (await run(work, ["rev-parse", ref])).stdout.trim();
-      // A merge that lost a lock race is retried like the pull is — it
-      // used to be reported as a conflict, which it is not.
-      let merged = false;
-      let lastStderr = "";
-      let conflicted: string[] = [];
-      for (let n = 0; !merged && n <= LANDING_RETRIES.lockRetries; n++) {
-        if (n > 0) await wait(LANDING_RETRIES.lockWaitMs);
-        const ff = await run(work, ["merge", "-q", "--ff-only", ref]);
-        if (ff.code === 0) {
-          merged = true;
-          break;
-        }
-        const real = await run(work, [...((await hooks?.mergeArgs?.(work)) ?? []), "merge", "-q", "--no-edit", ref]);
-        if (real.code === 0) {
-          merged = true;
-          break;
-        }
-        // The files in conflict, read before the abort clears them.
-        const unmerged = await run(work, ["diff", "--name-only", "--diff-filter=U"]);
-        conflicted = unmerged.code === 0 ? unmerged.stdout.split("\n").filter(Boolean) : [];
-        if (conflicted.length && gate && hooks?.repairConflict && conflictRepairs < LANDING_RETRIES.conflictRepairs) {
-          conflictRepairs++;
-          if (await hooks.repairConflict({ work, branch, base, files: conflicted })) {
-            repaired = true;
-            await run(work, ["fetch", "--quiet", "origin", base, branch]);
-            await run(work, ["reset", "-q", "--hard", `origin/${base}`]);
-            return null;
-          }
-        }
-        await run(work, ["merge", "--abort"]);
-        // git names a conflict on stdout and a lock it lost on stderr.
-        lastStderr = `${real.stdout ?? ""}\n${real.stderr ?? ""}`.trim();
-        if (!GIT_LOCKED.test(lastStderr)) break;
-      }
-      if (!merged) {
-        const why: BoardMessage = conflicted.length
-          ? { key: "landing.mergeConflictIn", values: { base, files: conflicted } }
-          : { key: "landing.mergeConflict", values: { base } };
-        return { ...refuse(root, branch, why, gitErrorDetail(lastStderr) || undefined), reason: "conflict" };
-      }
-      // A create job's folder is renumbered here, before the gate, on
-      // every attempt (create-finalizer.ts says why).
-      if (finalizeCreate) {
-        const finalized = await finalizeCreateOnAttempt(run, finalizeCreate, { work, root, branch, base });
-        if ("refused" in finalized) return finalized.refused;
-        assignedSpecFolder = finalized.specFolder;
-      }
-      hooks?.progress?.("tests");
-      // The tests run HERE, once per attempt, on what main is about to
-      // become — not in every step that touched the branch, and never
-      // after the push. Red: the local merge is dropped and origin never
-      // sees it; the branch is untouched, so implement can be run again
-      // on it.
-      if (gate) {
-        // An empty diff against the pre-merge tip means
-        // this merge added nothing to `root` — there is nothing the
-        // suite could fail for that this merge caused, so it never runs.
-        const changed = await run(work, ["diff", "--quiet", preMergeHead, "HEAD"]);
-        if (changed.code !== 0 || conflictRepairs > 0) {
-          // An identical resulting tree reuses the
-          // verdict already reached for it within this same call, rather
-          // than running the suite again.
-          const treeRes = await run(work, ["rev-parse", "HEAD^{tree}"]);
-          const tree = treeRes.code === 0 ? treeRes.stdout.trim() : "";
-          const cached = tree ? gateVerdicts.get(tree) : undefined;
-          // The gate tests the MERGED tree, and that tree is in the
-          // landing's own worktree now — never the shared checkout,
-          // which no longer holds the merge at all.
-          const verdict = cached ?? (await gate(work));
-          if (tree && !cached) gateVerdicts.set(tree, verdict);
-          if (verdict.repaired && repairRebuilds < 2) {
-            repairRebuilds++;
-            repaired = true;
-            await run(work, ["fetch", "--quiet", "origin", base, branch]);
-            await run(work, ["reset", "-q", "--hard", `origin/${base}`]);
-            return null;
-          }
-          if (!verdict.ok) {
-            await run(work, ["reset", "-q", "--hard", `origin/${base}`]);
-            // No `(branch in root)` tail, unlike every refusal around it:
-            // those name a checkout because that is where a person has to
-            // go and do something by hand. Here the move is a step on the
-            // row — run implement again — and the path is one more thing
-            // to read past. It rides in `detail` with the test output.
-            return {
-              root,
-              ok: false,
-              error: verdict.error ?? { key: "landing.testsRedOnMergeFallback", values: { base } },
-              ...(verdict.detail ? { detail: `${verdict.detail}\n${branch} in ${root}` } : { detail: `${branch} in ${root}` }),
-              reason: verdict.terminalReason ?? "tests-red",
-            };
-          }
-        }
-      }
-      // A code root lands as one commit: the tested tree, on the base.
-      if (hooks?.squashMessage && preMergeHead) {
-        const failed = await squashOnto(run, work, preMergeHead, hooks.squashMessage);
-        if (failed) {
-          await run(work, ["reset", "-q", "--hard", `origin/${base}`]);
-          return refuse(root, branch, { key: "landing.squashFailed", values: { base } }, gitErrorDetail(failed) || undefined);
-        }
-      }
-      hooks?.progress?.("push");
-      return null;
-    };
-    // 6. `isMerged()` only trusts what reached origin, so a merge this
-    //    action does not push would show as "not merged" on the very
-    //    page that triggered it. A push origin cannot be reached for is
-    //    REPORTED and never rolled back — `aide-run-spec`'s own
-    //    precedent is that a push problem is not a reason to undo
-    //    committed work; step 3's leftover check drops it on the next
-    //    landing, once origin is back. A push refused because base is
-    //    ahead is base having moved: the local merge is dropped and made
-    //    again, once. A push origin turned down for a reason of its own
-    //    is refused in origin's words.
-    for (let attempt = 0; ; attempt++) {
-      const failed = await mergeAndGate();
-      if (failed) return failed;
-      if (repaired) { repaired = false; attempt--; continue; }
-      // Create holds this lock from its pull to its push. Keep testing
-      // outside it, and rebuild if Create moved the base in the meantime.
-      const published = await withCheckoutLock(root, () =>
-        pushWithRetry(run, work, base, wait, attempt === 0), { wait });
-      if (!published.locked) {
-        return refuse(root, branch, { key: "landing.checkoutLockTimedOut", values: { lock: published.lock } });
-      }
-      const pushResult = published.value;
-      if (pushResult.ok) break;
-      if (!pushResult.moved) return pushRefusal(root, branch, base, pushResult);
-      await run(work, ["fetch", "--quiet", "origin", base]);
-      await run(work, ["reset", "-q", "--hard", `origin/${base}`]);
-      if (attempt >= LANDING_RETRIES.baseMovedRebuilds) {
-        return refuse(
-          root,
-          branch,
-          { key: "landing.baseMovedTwice", values: { base } },
-          pushResult.error,
-        );
-      }
-    }
-
-    // 6b. The shared checkout catches up, and this is the only moment
-    //     it moves at all. It is already standing on base — no run ever
-    //     switches it, and nothing else here does now either — so a
-    //     fast-forward to what was just pushed is the whole update, and
-    //     it takes no longer than reading a ref. `installAfterMerge`
-    //     runs in this directory straight after and needs the merged
-    //     code here; a checkout left behind would install the old one.
-    //
-    //     Not fatal on failure. The merge is on origin, which is what
-    //     "landed" means; a checkout that could not fast-forward is a
-    //     local state the next landing's own pull settles.
-    await hooks?.beforeCheckoutMoves?.(assignedSpecFolder ? { assignedSpecFolder } : {});
-    const caughtUp = await withCheckoutLock(root, async () => {
-      await run(root, ["fetch", "-q", "origin", base]);
-      //     A gate's own record left dirty here — `test-run.json`, never
-      //     committed — blocks a fast-forward with "local changes would
-      //     be overwritten" (356's landing, 2026-09-03). It is a record,
-      //     not work: discarded rather than allowed to strand the
-      //     checkout. Nothing else is touched.
-      await run(root, ["checkout", "-q", "--", ":(top,glob)**/test-run.json"]);
-      return run(root, ["merge", "-q", "--ff-only", `origin/${base}`]);
-    }, { wait });
-    const behind = caughtUp.locked
-      ? caughtUp.value.code !== 0 && (caughtUp.value.stderr ?? "").trim().slice(-200)
-      : `the wait for its lock at ${caughtUp.lock} ran out`;
-    if (behind !== false) {
-      console.error(`landing: ${root} could not fast-forward to origin/${base} after the merge reached origin — ${behind}`);
-    }
-
-    hooks?.progress?.("delete");
-
-    // 7. A merged branch left on origin is what made the
-    //    dependency guard refuse a fully-merged spec three times
-    //    (2026-08-18): that guard asks origin directly, and a branch
-    //    still there reads as "not merged yet". AFTER the push, never
-    //    before — the base has to be on origin before the only other
-    //    copy of those commits is removed. Never fatal: the merge
-    //    already happened, so this follows `installError`'s precedent
-    //    and is reported beside a success rather than turning it into
-    //    a failure.
-    const deleted = await run(root, ["push", "-q", "origin", "--delete", branch]);
-    if (deleted.code !== 0) {
-      // The stderr tail is never part of the sentence
-      // — it rides in `detail` instead, for whoever needs the exact
-      // words; the board itself shows the fixed BRANCH_LEFT_BEHIND
-      // sentence, never this text directly (`row-marks.ts`).
-      const detail = (deleted.stderr ?? "").trim().slice(-200) || "unknown reason";
-      // Names the branch; the ROOT is added where this is composed for
-      // the row (`landBranch`), which is the one place that
-      // knows whether several repos are being reported at once.
-      return {
-        root,
-        ok: true,
-        // The ROOT is folded in where this is composed for the row
-        // (`landBranch`), which is the one place that knows
-        // whether several repos are being reported at once.
-        branchDeleteError: { key: "landing.branchDeleteFailed", values: { branch } },
-        detail,
-        ...(assignedSpecFolder ? { assignedSpecFolder } : {}),
-      };
-    }
-
-    // 8. And this checkout's own copy. The ref outlives the
-    //    worktree that made it — `aide-run-spec` throws the worktree
-    //    directory away at the end of a run, the branch it created stays
-    //    in the shared refs — and nothing removed it until now: 260 had
-    //    piled up by 2026-08-23, one of which stopped a spec from
-    //    starting when it was reopened. Only reached once the ORIGIN
-    //    delete has also succeeded, so the two copies go together or not
-    //    at all. `-d` rather than `-D`: the safe form always succeeds
-    //    here, because step 4-5 has just merged the branch into the
-    //    HEAD this runs against, and asking for it says the delete only
-    //    ever follows a merge that landed. Best effort and unreported,
-    //    like the fetch at step 2 — this host may not even have the ref,
-    //    and a cleanup must never turn a landed merge into a failure.
-    //    A squashed branch is never an ancestor of base, so `-d` would
-    //    refuse it: there the copy goes only when it is exactly the tip
-    //    that landed, and a newer local commit keeps it.
-    if (sourceTip) {
-      const local = await run(root, ["rev-parse", "--verify", "--quiet", `refs/heads/${branch}`]);
-      if (local.code === 0 && local.stdout.trim() === sourceTip) await run(root, ["branch", "-D", branch]);
-    } else {
-      await run(root, ["branch", "-d", branch]);
-    }
-    return { root, ok: true, ...(assignedSpecFolder ? { assignedSpecFolder } : {}) };
+    ref: `refs/remotes/origin/${branch}`,
+    gateVerdicts: new Map(),
+    repaired: false,
+    repairRebuilds: 0,
+    conflictRepairs: 0,
+    sourceTip: "",
+  };
+  try {
+    return await landInWorktree(l);
   } catch (err) {
     return refuse(
       root,
@@ -428,9 +92,250 @@ export async function mergeBranchIntoDefault(
     // because a directory removed by anything else still leaves git's
     // own administrative record of it behind — and that record is
     // enough to make the next `worktree add` at the same path refuse.
-    if (work) {
-      await run(root, ["worktree", "remove", "--force", work], WORKTREE_TIMEOUT_MS);
+    if (l.work) {
+      await run(root, ["worktree", "remove", "--force", l.work], WORKTREE_TIMEOUT_MS);
       await run(root, ["worktree", "prune"]);
     }
   }
+}
+
+async function landInWorktree(l: Landing): Promise<RepoMergeResult> {
+  const { run, root, branch } = l;
+  // The state of the working tree is not asked about at all.
+  // It was, and refused: whoever got to the checkout first left
+  // it dirty and the other side backed off. A run now
+  // works in a worktree of its own and only ever fast-forwards
+  // this one, and an unrelated uncommitted file then stopped merges
+  // for no reason anybody could act on. The three commands below
+  // write only what differs between the commits, so a file that has
+  // nothing to do with the merge is untouched, and one that DOES
+  // collide raises git's own error rather than a guess made in
+  // advance. Every move of the shared checkout below runs under the
+  // runner's own checkout lock (`checkout-lock/`), so a run is never
+  // in its own section of that checkout at the same moment.
+
+  // 1. Is there anything to merge at all? Since step 6 deletes the
+  //    branch, this button will be pressed on a branch that is
+  //    already gone — a second click, or someone who removed it by
+  //    hand. Merging an unresolvable ref failed and was reported as a
+  //    "conflict", which is a different problem with a different
+  //    remedy. Asked of origin directly, and only git's own "no
+  //    matching refs" counts: any other nonzero code is a transport
+  //    failure and must fall through to the sequence below.
+  const onOrigin = await run(root, lsRemoteBranch(branch));
+  if (onOrigin.code === LS_REMOTE_NO_MATCH) {
+    return {
+      ...refuse(root, branch, { key: "landing.nothingLeftToMerge" }),
+      reason: "gone",
+    };
+  }
+  const prepared = await withCheckoutLock(root, () => prepareWorktree(l), { wait: l.wait });
+  if (!prepared.locked) {
+    return refuse(root, branch, { key: "landing.checkoutLockTimedOut", values: { lock: prepared.lock } });
+  }
+  if (prepared.value) return prepared.value;
+  const unpublished = await publish(l);
+  if (unpublished) return unpublished;
+  await catchUpCheckout(l);
+  l.hooks?.progress?.("delete");
+  const leftOnOrigin = await deleteOriginBranch(l);
+  if (leftOnOrigin) return leftOnOrigin;
+  await deleteLocalBranch(l);
+  return { root, ok: true, ...(l.assignedSpecFolder ? { assignedSpecFolder: l.assignedSpecFolder } : {}) };
+}
+
+/** Whether the shared checkout's own base holds commits of its own that
+ *  origin does not. */
+async function baseHoldsOwnCommits(run: GitRunner, root: string, base: string): Promise<boolean> {
+  const ahead = await run(root, ["rev-list", "--count", `origin/${base}..${base}`]);
+  if (ahead.code !== 0 || Number(ahead.stdout.trim()) <= 0) return false;
+  const own = await run(root, [
+    "rev-list", `origin/${base}..${base}`, "--no-merges", "--not", "--remotes=origin",
+  ]);
+  return own.code === 0 && own.stdout.trim() !== "";
+}
+
+// 2. Best effort, exactly as `isMerged()` does it: whatever the
+//    checkout already knows beats no answer at all.
+// 3. The merge does NOT stand in the shared checkout any more. It
+//    used to `git switch` there and hold it for the whole landing —
+//    the fetch, the merge, and the project's own suite on the
+//    result, five and a half minutes for this repo. That directory
+//    is the one a starting run reads before it cuts its own
+//    worktree, so the scheduler had to hold every job for the
+//    project until the landing finished (the `runner.ts`
+//    pause). The work happens in a throwaway worktree at
+//    `origin/<base>` instead, and the shared checkout is only
+//    fast-forwarded at the end, once, in well under a second.
+//
+//    `--detach` is what makes it possible: git refuses to check the
+//    same branch out twice, and the shared checkout is already on
+//    base. A detached worktree needs no local branch at all.
+//
+//    A worktree that cannot be made is a refusal, never a quiet
+//    fall back to the shared checkout — falling back would put the
+//    hazard right back without anybody being told.
+async function prepareWorktree(l: Landing): Promise<RepoMergeResult | null> {
+  const { run, root, branch, base } = l;
+  await run(root, ["fetch", "-q", "origin", base]);
+
+  //    Before anything is merged: does the shared checkout's own base
+  //    hold commits origin does not? The landing works from
+  //    `origin/<base>` and would push right past them, and the
+  //    fast-forward at the end would then fail silently — somebody's
+  //    unpushed work, still on disk, no longer on the branch anybody
+  //    reads. It refused loudly before this moved into a worktree,
+  //    and it still does. Merge commits do not count: those are a
+  //    landing's own, left by one that pushed and died.
+  if (await baseHoldsOwnCommits(run, root, base)) {
+    return refuse(root, branch, { key: "landing.cannotFastForward", values: { base } });
+  }
+
+  l.work = mergeWorktreePath(root, branch);
+  await prepareMergeWorktree(run, root, l.work);
+  const added = await run(root, ["worktree", "add", "--detach", "-q", l.work, `origin/${base}`], WORKTREE_TIMEOUT_MS);
+  if (added.code !== 0) {
+    await run(root, ["worktree", "prune"]);
+    return refuse(
+      root,
+      branch,
+      { key: "landing.cannotSwitch", values: { base } },
+      (added.stderr ?? "").trim() || undefined,
+    );
+  }
+  return null;
+}
+
+// 4-5, and the gate, as one attempt (`mergeAndGate`): merge the branch
+//      onto base, run the tests on the result, push. Made twice at most —
+//      the second time onto a base that moved on origin while the first
+//      attempt's tests ran, after the first attempt's merge is dropped.
+//      The tests run on exactly what main is about to become, so a moved
+//      base means they run again — unless it reproduces a tree already
+//      gated once.
+// 6. `isMerged()` only trusts what reached origin, so a merge this
+//    action does not push would show as "not merged" on the very
+//    page that triggered it. A push origin cannot be reached for is
+//    REPORTED and never rolled back — `aide-run-spec`'s own
+//    precedent is that a push problem is not a reason to undo
+//    committed work; step 3's leftover check drops it on the next
+//    landing, once origin is back. A push refused because base is
+//    ahead is base having moved: the local merge is dropped and made
+//    again, once. A push origin turned down for a reason of its own
+//    is refused in origin's words.
+async function publish(l: Landing): Promise<RepoMergeResult | null> {
+  const { run, root, branch, base, work } = l;
+  for (let attempt = 0; ; attempt++) {
+    const failed = await mergeAndGate(l);
+    if (failed) return failed;
+    if (l.repaired) { l.repaired = false; attempt--; continue; }
+    // Create holds this lock from its pull to its push. Keep testing
+    // outside it, and rebuild if Create moved the base in the meantime.
+    const published = await withCheckoutLock(root, () =>
+      pushWithRetry(run, work, base, l.wait, attempt === 0), { wait: l.wait });
+    if (!published.locked) {
+      return refuse(root, branch, { key: "landing.checkoutLockTimedOut", values: { lock: published.lock } });
+    }
+    const pushResult = published.value;
+    if (pushResult.ok) return null;
+    if (!pushResult.moved) return pushRefusal(root, branch, base, pushResult);
+    await run(work, ["fetch", "--quiet", "origin", base]);
+    await run(work, ["reset", "-q", "--hard", `origin/${base}`]);
+    if (attempt >= LANDING_RETRIES.baseMovedRebuilds) {
+      return refuse(
+        root,
+        branch,
+        { key: "landing.baseMovedTwice", values: { base } },
+        pushResult.error,
+      );
+    }
+  }
+}
+
+// 6b. The shared checkout catches up, and this is the only moment
+//     it moves at all. It is already standing on base — no run ever
+//     switches it, and nothing else here does now either — so a
+//     fast-forward to what was just pushed is the whole update, and
+//     it takes no longer than reading a ref. `installAfterMerge`
+//     runs in this directory straight after and needs the merged
+//     code here; a checkout left behind would install the old one.
+//
+//     Not fatal on failure. The merge is on origin, which is what
+//     "landed" means; a checkout that could not fast-forward is a
+//     local state the next landing's own pull settles.
+async function catchUpCheckout(l: Landing): Promise<void> {
+  const { run, root, base } = l;
+  await l.hooks?.beforeCheckoutMoves?.(l.assignedSpecFolder ? { assignedSpecFolder: l.assignedSpecFolder } : {});
+  const caughtUp = await withCheckoutLock(root, async () => {
+    await run(root, ["fetch", "-q", "origin", base]);
+    //     A gate's own record left dirty here — `test-run.json`, never
+    //     committed — blocks a fast-forward with "local changes would
+    //     be overwritten" (356's landing, 2026-09-03). It is a record,
+    //     not work: discarded rather than allowed to strand the
+    //     checkout. Nothing else is touched.
+    await run(root, ["checkout", "-q", "--", ":(top,glob)**/test-run.json"]);
+    return run(root, ["merge", "-q", "--ff-only", `origin/${base}`]);
+  }, { wait: l.wait });
+  const behind = caughtUp.locked
+    ? caughtUp.value.code !== 0 && (caughtUp.value.stderr ?? "").trim().slice(-200)
+    : `the wait for its lock at ${caughtUp.lock} ran out`;
+  if (behind !== false) {
+    console.error(`landing: ${root} could not fast-forward to origin/${base} after the merge reached origin — ${behind}`);
+  }
+}
+
+// 7. A merged branch left on origin is what made the
+//    dependency guard refuse a fully-merged spec three times
+//    (2026-08-18): that guard asks origin directly, and a branch
+//    still there reads as "not merged yet". AFTER the push, never
+//    before — the base has to be on origin before the only other
+//    copy of those commits is removed. Never fatal: the merge
+//    already happened, so this follows `installError`'s precedent
+//    and is reported beside a success rather than turning it into
+//    a failure.
+async function deleteOriginBranch(l: Landing): Promise<RepoMergeResult | null> {
+  const { root, branch } = l;
+  const deleted = await l.run(root, ["push", "-q", "origin", "--delete", branch]);
+  if (deleted.code === 0) return null;
+  // The stderr tail is never part of the sentence
+  // — it rides in `detail` instead, for whoever needs the exact
+  // words; the board itself shows the fixed BRANCH_LEFT_BEHIND
+  // sentence, never this text directly (`row-marks.ts`).
+  const detail = (deleted.stderr ?? "").trim().slice(-200) || "unknown reason";
+  return {
+    root,
+    ok: true,
+    // The ROOT is folded in where this is composed for the row
+    // (`landBranch`), which is the one place that knows
+    // whether several repos are being reported at once.
+    branchDeleteError: { key: "landing.branchDeleteFailed", values: { branch } },
+    detail,
+    ...(l.assignedSpecFolder ? { assignedSpecFolder: l.assignedSpecFolder } : {}),
+  };
+}
+
+// 8. And this checkout's own copy. The ref outlives the
+//    worktree that made it — `aide-run-spec` throws the worktree
+//    directory away at the end of a run, the branch it created stays
+//    in the shared refs — and nothing removed it until now: 260 had
+//    piled up by 2026-08-23, one of which stopped a spec from
+//    starting when it was reopened. Only reached once the ORIGIN
+//    delete has also succeeded, so the two copies go together or not
+//    at all. `-d` rather than `-D`: the safe form always succeeds
+//    here, because step 4-5 has just merged the branch into the
+//    HEAD this runs against, and asking for it says the delete only
+//    ever follows a merge that landed. Best effort and unreported,
+//    like the fetch at step 2 — this host may not even have the ref,
+//    and a cleanup must never turn a landed merge into a failure.
+//    A squashed branch is never an ancestor of base, so `-d` would
+//    refuse it: there the copy goes only when it is exactly the tip
+//    that landed, and a newer local commit keeps it.
+async function deleteLocalBranch(l: Landing): Promise<void> {
+  const { run, root, branch } = l;
+  if (!l.sourceTip) {
+    await run(root, ["branch", "-d", branch]);
+    return;
+  }
+  const local = await run(root, ["rev-parse", "--verify", "--quiet", `refs/heads/${branch}`]);
+  if (local.code === 0 && local.stdout.trim() === l.sourceTip) await run(root, ["branch", "-D", branch]);
 }

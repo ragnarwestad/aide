@@ -1,10 +1,10 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { inFlight, type Job, type QueueStore } from "../../queue/queue.ts";
+import { inFlight, type Job, type QueueStore, type SharedFiles } from "../../queue/queue.ts";
 import type { StepOutcome } from "../../queue/runner";
 import { sharedFiles } from "../../queue/runner/types.ts";
 import type { RoutesContext } from "../routes";
-import { saveSpecFiles } from "../../git/specs-pull.ts";
+import { saveSpecFiles } from "../../git/specs-pull/index.ts";
 import { lastCommitOf } from "../../git/description-freshness.ts";
 import { readStatusFromBranch, resolveOpenBranchTarget } from "../../git/branch-file.ts";
 import { dependsOnIn, withDependsOnLine } from "../../project/discover/depends-on.ts";
@@ -65,96 +65,109 @@ export function stoppedAnalyzeGoesOn(queue: Pick<QueueStore, "list" | "get">, jo
     other.specFolder === current.specFolder && inFlight(other));
 }
 
+/** An analyze that named overlapping specs without saying why is retried
+ *  while it has attempts left; after that it is stopped with what is missing. */
+async function retryOrReportMissing(ctx: RoutesContext, job: Job, source: Job, missing: SharedFiles[]): Promise<void> {
+  const attempts = attemptOf(source, "analyze");
+  const retry = aiWorkRetryDecision({ terminalReason: "overlap-decision-missing" }, attempts);
+  const record = retry ? aiWorkRetryRecord(source, "analyze", {
+    terminalReason: "overlap-decision-missing",
+    detail: missing.map((entry) => `${entry.spec}: ${entry.files.join(", ")}`).join("\n"),
+    repos: source.results.at(-1)?.repos,
+  }) : undefined;
+  if (record) {
+    ctx.queue.transition(job.id, "retry-late", {
+      retry: record,
+      finishedAt: undefined,
+      stopReason: undefined,
+      error: undefined,
+      errorDetail: undefined,
+    });
+    await ctx.tickRunner();
+    return;
+  }
+  const message = { key: "runner.overlapDecisionMissing" as const, values: {
+    specs: missing.map((entry) => specReference(job.project, entry.spec)),
+  } };
+  ctx.queue.update(job.id, { error: attemptsLeft(attempts) === 0
+    ? { key: "runner.afterTwoAttempts", inner: message }
+    : message });
+}
+
+/** Marks the job and the Analyze queued after it with the dependencies that were added. */
+function queueAnalyzeAfterDependencies(ctx: RoutesContext, job: Job, required: SharedFiles[], added: string[]): void {
+  const notice = { key: "runner.dependenciesAdded" as const, values: {
+    dependencies: required.filter((entry) => added.includes(entry.spec))
+      .map((entry) => `${specReference(job.project, entry.spec)} — ${entry.reason}`),
+  } };
+  if (added.length) ctx.queue.update(job.id, { dependencyNotice: notice });
+  const queued = enqueueRequest(
+    ctx.queue,
+    followOnRequest(job.project, job.specFolder, job.steps.slice(job.stepIndex), job),
+    "automatic",
+  );
+  if (!queued.ok) throw new Error(`Dependencies were saved, but Analyze could not be queued: ${queued.error}`);
+  if (added.length) {
+    ctx.queue.update(queued.job.id, { dependencyNotice: notice });
+  }
+}
+
+/** Writes the Depends on line for the overlapping specs, under the specs root's merge lock. */
+async function saveOverlapDependencies(
+  ctx: RoutesContext, job: Job, outcome: Partial<StepOutcome>, required: SharedFiles[], dir: string,
+): Promise<void> {
+  if (!stoppedAnalyzeGoesOn(ctx.queue, job)) return;
+  if (outcome.pushError) throw new Error(outcome.pushError);
+  const specs = dirname(dir), file = join(dir, DESCRIPTION_FILE);
+  const text = readFileSync(file, "utf8");
+  const base = await lastCommitOf(ctx.gitRun, dir, DESCRIPTION_FILE);
+  const edit = { file: DESCRIPTION_FILE, text, baseSha: base?.sha ?? null };
+  let cycle: string[] | undefined;
+  let added: string[] = [];
+  // saveSpecFiles validates after its pull and before any file is written.
+  const work = saveSpecFiles(ctx.gitRun, dir, (repo) => ctx.branchStatus.defaultBranch(repo),
+    [edit], {
+      specLabel: job.specFolder, message: `Add dependencies for ${job.specFolder}`,
+      validate: async () => {
+        const graph = await descriptionsIn(ctx, specs);
+        if (graph.get(job.specFolder) !== text) return "The description has changed on its open branch; nothing was saved";
+        const change = planDependencies(job.specFolder, required.map((entry) => entry.spec), graph);
+        if ("cycle" in change) { cycle = change.cycle; return "Dependency cycle; nothing was saved"; }
+        if ("error" in change) return change.error;
+        added = change.added;
+        const updated = withDependsOnLine(text, change.dependencies);
+        if (updated === null) return "Tracking info has no Created line; nothing was saved";
+        // The edit is filled only after the freshly pulled graph passed validation.
+        edit.text = updated;
+        return undefined;
+      },
+    });
+  const hold = holdLanding(ctx.queue, job.id, work);
+  ctx.queue.update(job.id, hold.patch);
+  const saved = await work;
+  await hold.settled;
+  if (!saved.ok) {
+    ctx.queue.update(job.id, { error: cycle
+      ? { key: "runner.dependencyCycle", values: { chain: cycle.map((folder) => specReference(job.project, folder)).join(" → ") } }
+      : { key: "runner.autoDependenciesFailed", values: { reason: saved.note } } });
+    return;
+  }
+  queueAnalyzeAfterDependencies(ctx, job, required, added);
+}
+
 export async function applyOverlapDependencies(ctx: RoutesContext, job: Job, outcome: Partial<StepOutcome>): Promise<void> {
   const required = sharedFiles(outcome.sharedFiles);
   if (!required?.length) return;
   const source = ctx.queue.get(job.id);
   if (!source || !stoppedAnalyzeGoesOn(ctx.queue, job)) return;
   const missing = required.filter((entry) => !entry.reason);
-  if (missing.length) {
-    const attempts = attemptOf(source, "analyze");
-    const retry = aiWorkRetryDecision({ terminalReason: "overlap-decision-missing" }, attempts);
-    const record = retry ? aiWorkRetryRecord(source, "analyze", {
-      terminalReason: "overlap-decision-missing",
-      detail: missing.map((entry) => `${entry.spec}: ${entry.files.join(", ")}`).join("\n"),
-      repos: source.results.at(-1)?.repos,
-    }) : undefined;
-    if (record) {
-      ctx.queue.transition(job.id, "retry-late", {
-        retry: record,
-        finishedAt: undefined,
-        stopReason: undefined,
-        error: undefined,
-        errorDetail: undefined,
-      });
-      await ctx.tickRunner();
-      return;
-    }
-    const message = { key: "runner.overlapDecisionMissing" as const, values: {
-      specs: missing.map((entry) => specReference(job.project, entry.spec)),
-    } };
-    ctx.queue.update(job.id, { error: attemptsLeft(attempts) === 0
-      ? { key: "runner.afterTwoAttempts", inner: message }
-      : message });
-    return;
-  }
+  if (missing.length) return retryOrReportMissing(ctx, job, source, missing);
   const found = ctx.specDir(job.project, job.specFolder);
   if (!found) return;
   const dir = await ctx.machinerySpecDir(job.project, found);
   const root = await ctx.specsRoot(dir);
   try {
-    await ctx.mergeLock.run(root, async () => {
-      if (!stoppedAnalyzeGoesOn(ctx.queue, job)) return;
-      if (outcome.pushError) throw new Error(outcome.pushError);
-      const specs = dirname(dir), file = join(dir, DESCRIPTION_FILE);
-      const text = readFileSync(file, "utf8");
-      const base = await lastCommitOf(ctx.gitRun, dir, DESCRIPTION_FILE);
-      const edit = { file: DESCRIPTION_FILE, text, baseSha: base?.sha ?? null };
-      let cycle: string[] | undefined;
-      let added: string[] = [];
-      // saveSpecFiles validates after its pull and before any file is written.
-      const work = saveSpecFiles(ctx.gitRun, dir, (repo) => ctx.branchStatus.defaultBranch(repo),
-        [edit], {
-          specLabel: job.specFolder, message: `Add dependencies for ${job.specFolder}`,
-          validate: async () => {
-            const graph = await descriptionsIn(ctx, specs);
-            if (graph.get(job.specFolder) !== text) return "The description has changed on its open branch; nothing was saved";
-            const change = planDependencies(job.specFolder, required.map((entry) => entry.spec), graph);
-            if ("cycle" in change) { cycle = change.cycle; return "Dependency cycle; nothing was saved"; }
-            if ("error" in change) return change.error;
-            added = change.added;
-            const updated = withDependsOnLine(text, change.dependencies);
-            if (updated === null) return "Tracking info has no Created line; nothing was saved";
-            // The edit is filled only after the freshly pulled graph passed validation.
-            edit.text = updated;
-            return undefined;
-          },
-        });
-      const hold = holdLanding(ctx.queue, job.id, work);
-      ctx.queue.update(job.id, hold.patch);
-      const saved = await work;
-      await hold.settled;
-      if (!saved.ok) {
-        ctx.queue.update(job.id, { error: cycle
-          ? { key: "runner.dependencyCycle", values: { chain: cycle.map((folder) => specReference(job.project, folder)).join(" → ") } }
-          : { key: "runner.autoDependenciesFailed", values: { reason: saved.note } } });
-        return;
-      }
-      const notice = { key: "runner.dependenciesAdded" as const, values: {
-        dependencies: required.filter((entry) => added.includes(entry.spec))
-          .map((entry) => `${specReference(job.project, entry.spec)} — ${entry.reason}`),
-      } };
-      if (added.length) ctx.queue.update(job.id, { dependencyNotice: notice });
-      const queued = enqueueRequest(
-        ctx.queue,
-        followOnRequest(job.project, job.specFolder, job.steps.slice(job.stepIndex), job),
-        "automatic",
-      );
-      if (!queued.ok) throw new Error(`Dependencies were saved, but Analyze could not be queued: ${queued.error}`);
-      if (added.length) {
-        ctx.queue.update(queued.job.id, { dependencyNotice: notice });
-      }
-    });
+    await ctx.mergeLock.run(root, () => saveOverlapDependencies(ctx, job, outcome, required, dir));
   } catch (error) {
     ctx.queue.update(job.id, { error: { key: "runner.autoDependenciesFailed", values: { reason: String(error) } } });
   }

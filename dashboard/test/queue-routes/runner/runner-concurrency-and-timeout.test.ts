@@ -6,7 +6,7 @@ import { rmSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { availableParallelism, tmpdir } from "node:os";
 import { join } from "node:path";
 import { DEFAULT_QUEUE_CONCURRENCY, isQueueConcurrency, parseQueueConcurrency, processSettings } from "../../../src/serve/serve-helpers";
-import { createQueueRunner, type RunnerSetupContext } from "../../../src/serve/runner-setup.ts";
+import { createQueueRunner, type RunnerSetupContext } from "../../../src/serve/runner-setup/index.ts";
 import { liveStartedGroups } from "../../../src/queue/job-rules/started-groups.ts";
 import { JOB, specHead, setupQueueRoutesHarness } from "../fixtures.ts";
 

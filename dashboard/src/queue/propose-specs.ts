@@ -61,6 +61,46 @@ const isDirectory = (path: string): boolean => {
   }
 };
 
+/** One proposal checked and, when it passes, queued as a Create job. */
+function queueProposal(
+  deps: ProposeDeps, job: Job, entry: Parameters<typeof checkProposal>[0],
+  ctx: { name: string; known: Parameters<typeof checkProposal>[2]; room: number; block: string },
+): ProposalResult {
+  const { name, known, room, block } = ctx;
+  // Read again for every entry: the one before may have queued the title.
+  const jobs = deps.store.list().filter((j) => j.project === job.project);
+  const checked = checkProposal(entry, room, known, jobs);
+  if (!checked.ok) {
+    return { title: checked.title, result: "skipped", why: checked.why };
+  }
+  const { title, description } = checked.proposal;
+  // The defaults of an untouched New spec form: a model formulates the
+  // acceptance criteria, and ticking them is required.
+  const made = enqueueCreateRequest(deps.store, {
+    project: job.project,
+    title,
+    description: `${description}\n\n${block}`,
+    acceptanceRequired: true,
+    aiFormulateAcceptance: true,
+  }, "automatic");
+  if (made.ok) return { title, result: "created", jobId: made.job.id };
+  deps.log("proposed spec", `${job.project}/${name}`, `${title}: ${made.error}`);
+  return { title, result: "skipped", why: { code: "refused" } };
+}
+
+/** The run's proposals record, written; a failure to write it is logged. */
+function writeRecord(deps: ProposeDeps, job: Job, name: string, record: ProposalsRecord): void {
+  try {
+    writeProposalsRecord(deps.outputRoot, job.project, job.specFolder, job.id, record);
+  } catch (err) {
+    deps.log(
+      "proposed spec",
+      `${job.project}/${name}`,
+      `could not write ${join(scheduleRunOutputDir(deps.outputRoot, job.project, job.specFolder, job.id), PROPOSALS_RESULT_FILE)}: ${String(err)}`,
+    );
+  }
+}
+
 /** Queue a Create job for each proposal the run left, for the run's own
  *  project. Called for a `schedule` step that ended ok, and for nothing else. */
 export function proposeSpecs(deps: ProposeDeps, job: Job): void {
@@ -96,46 +136,12 @@ export function proposeSpecs(deps: ProposeDeps, job: Job): void {
     const room = descriptionRoom(block);
     record = { at: deps.now(), proposals };
 
-    for (const entry of parsed.entries) {
-      // Read again for every entry: the one before may have queued the title.
-      const jobs = deps.store.list().filter((j) => j.project === job.project);
-      const checked = checkProposal(entry, room, known, jobs);
-      if (!checked.ok) {
-        proposals.push({ title: checked.title, result: "skipped", why: checked.why });
-        continue;
-      }
-      const { title, description } = checked.proposal;
-      // The defaults of an untouched New spec form: a model formulates the
-      // acceptance criteria, and ticking them is required.
-      const made = enqueueCreateRequest(deps.store, {
-        project: job.project,
-        title,
-        description: `${description}\n\n${block}`,
-        acceptanceRequired: true,
-        aiFormulateAcceptance: true,
-      }, "automatic");
-      if (made.ok) {
-        proposals.push({ title, result: "created", jobId: made.job.id });
-      } else {
-        deps.log("proposed spec", `${job.project}/${name}`, `${title}: ${made.error}`);
-        proposals.push({ title, result: "skipped", why: { code: "refused" } });
-      }
-    }
+    for (const entry of parsed.entries) proposals.push(queueProposal(deps, job, entry, { name, known, room, block }));
   } catch (err) {
     const detail = err instanceof Error ? err.message : String(err);
     deps.log("proposed spec", `${job.project}/${name}`, `failed: ${detail}`);
     record = { at: deps.now(), problem: "failed", detail, proposals };
   } finally {
-    if (record !== null) {
-      try {
-        writeProposalsRecord(deps.outputRoot, job.project, job.specFolder, job.id, record);
-      } catch (err) {
-        deps.log(
-          "proposed spec",
-          `${job.project}/${name}`,
-          `could not write ${join(scheduleRunOutputDir(deps.outputRoot, job.project, job.specFolder, job.id), PROPOSALS_RESULT_FILE)}: ${String(err)}`,
-        );
-      }
-    }
+    if (record !== null) writeRecord(deps, job, name, record);
   }
 }

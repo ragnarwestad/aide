@@ -310,53 +310,53 @@ describe("the row for a branch left behind after a successful merge", () => {
     }
   };
 
-  test("is archived with a Delete branch note, while an unmerged sibling stays not landed", async () => {
-    // Matched by PATH SHAPE, not by comparing against a `dir` read off
-    // `harness.start()`'s return value: the background schedule's very
-    // first sweep runs SYNCHRONOUSLY inside `createServer`, before
-    // `start()` returns anything to compare against, and its answer
-    // then stands for the checker's own 30 s cache — so a check keyed
-    // on a not-yet-known variable would silently poison the very cache
-    // this test depends on.
-    const isSpecsRoot = (dir: string) => dir.endsWith(join("aide", "specs"));
-    const run = async (dir: string, args: string[]) => {
-      const a = args.join(" ");
-      // Both branches are on origin at the very first ask (step 1 of
-      // `mergeBranchIntoDefault`) and stay listed by the open-branches
-      // query for the whole test — the sibling because nothing ever
-      // lands it, FOLDER because the delete below keeps failing. Only
-      // the SPECS root is asked — the same shape every other fixture in
-      // this file gives an archived spec's branch, and the one that
-      // matters here: a `dir` this loop never merged (the code root)
-      // must not ALSO claim to hold it, or the post-loop check would
-      // (rightly, per the sibling test above) call this a genuine
-      // failure instead of a left-behind delete.
-      if (a.startsWith("ls-remote --exit-code")) return { code: 0, stdout: "" };
-      if (a.startsWith("ls-remote --heads")) {
-        if (isSpecsRoot(dir)) {
-          return { code: 0, stdout: `sha1\trefs/heads/${BRANCH}\nsha2\trefs/heads/${SIBLING_BRANCH}\n` };
-        }
-        return { code: 0, stdout: "" };
+  // Matched by PATH SHAPE, not by comparing against a `dir` read off
+  // `harness.start()`'s return value: the background schedule's very
+  // first sweep runs SYNCHRONOUSLY inside `createServer`, before
+  // `start()` returns anything to compare against, and its answer
+  // then stands for the checker's own 30 s cache — so a check keyed
+  // on a not-yet-known variable would silently poison the very cache
+  // this test depends on.
+  async function leftBehindGit(dir: string, args: string[]) {
+    const a = args.join(" ");
+    // Both branches are on origin at the very first ask (step 1 of
+    // `mergeBranchIntoDefault`) and stay listed by the open-branches
+    // query for the whole test — the sibling because nothing ever
+    // lands it, FOLDER because the delete below keeps failing. Only
+    // the SPECS root is asked — the same shape every other fixture in
+    // this file gives an archived spec's branch, and the one that
+    // matters here: a `dir` this loop never merged (the code root)
+    // must not ALSO claim to hold it, or the post-loop check would
+    // (rightly, per the sibling test above) call this a genuine
+    // failure instead of a left-behind delete.
+    if (a.startsWith("ls-remote --exit-code")) return { code: 0, stdout: "" };
+    if (a.startsWith("ls-remote --heads")) {
+      if (dir.endsWith(join("aide", "specs"))) {
+        return { code: 0, stdout: `sha1\trefs/heads/${BRANCH}\nsha2\trefs/heads/${SIBLING_BRANCH}\n` };
       }
-      if (isSpecsRoot(dir) && a === `push -q origin --delete ${BRANCH}`) {
-        return { code: 1, stdout: "", stderr: "remote rejected: hook declined" };
-      }
-      // FOLDER's branch is part of origin's default branch; the
-      // sibling's never landed, so git says it is not an ancestor.
-      if (a.startsWith(`merge-base --is-ancestor refs/remotes/origin/${SIBLING_BRANCH} `)) return { code: 1, stdout: "" };
-      if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
-      if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
-      if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
-      if (a.startsWith("merge -q --ff-only origin/")) return { code: 0, stdout: "" };
-      if (a.startsWith("merge -q --ff-only")) return { code: 0, stdout: "" };
       return { code: 0, stdout: "" };
-    };
+    }
+    if (dir.endsWith(join("aide", "specs")) && a === `push -q origin --delete ${BRANCH}`) {
+      return { code: 1, stdout: "", stderr: "remote rejected: hook declined" };
+    }
+    // FOLDER's branch is part of origin's default branch; the
+    // sibling's never landed, so git says it is not an ancestor.
+    if (a.startsWith(`merge-base --is-ancestor refs/remotes/origin/${SIBLING_BRANCH} `)) return { code: 1, stdout: "" };
+    if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
+    if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
+    if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
+    if (a.startsWith("merge -q --ff-only origin/")) return { code: 0, stdout: "" };
+    if (a.startsWith("merge -q --ff-only")) return { code: 0, stdout: "" };
+    return { code: 0, stdout: "" };
+  }
+
+  test("is archived with a Delete branch note, while an unmerged sibling stays not landed", async () => {
     const results = mkdtempSync(join(tmpdir(), "aide-archive-results-"));
     ownDirs.push(results);
     const { base, dir } = harness.start({
       archivedSpecs: { [FOLDER]: {}, [SIBLING]: {} },
       extra: {
-        gitRun: run as never,
+        gitRun: leftBehindGit as never,
         queueRunnerBin: "/usr/bin/true",
         queueResultDir: results,
       },

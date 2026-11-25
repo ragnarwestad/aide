@@ -85,37 +85,90 @@ function checksSummary(open: number, total: number, unverified: number, failed: 
   return parts.length ? parts.join(", ") : "all done";
 }
 
-export function checklist(view: SpecPageView, lang: Language = "en"): string {
-  const rows = drawnAcceptanceRows(view);
-  if (rows.length === 0) {
-    // A section that is there and reads as nothing is not the same
-    // answer as no section at all, and it must not look like one: the
-    // archive gate reads this file too, and an unreadable table tells it
-    // there is nothing open on a spec nobody has judged. The file itself
-    // is the run's own record and cannot be edited here, so the way out
-    // is to run analyze again and let it write the table.
-    // Not for a spec whose ticking is switched off: its section is a
-    // sentence, which reads as unreadable and is not a fault.
-    if (view.checks?.unreadable && !view.acceptanceNotRequired) {
-      return rowMessage(
-        "failed",
-        "This spec's Acceptance criteria are written in a table this page cannot read, " +
-          "so none of them can be ticked — and nothing is holding the spec back for them either. " +
-          "Run analyze again to have the table written afresh.",
-        { tag: "p" },
-      );
-    }
-    return "";
+/** What a checklist with no rows says: a table it cannot read, or nothing. */
+function unreadableChecks(view: SpecPageView): string {
+  // A section that is there and reads as nothing is not the same
+  // answer as no section at all, and it must not look like one: the
+  // archive gate reads this file too, and an unreadable table tells it
+  // there is nothing open on a spec nobody has judged. The file itself
+  // is the run's own record and cannot be edited here, so the way out
+  // is to run analyze again and let it write the table.
+  // Not for a spec whose ticking is switched off: its section is a
+  // sentence, which reads as unreadable and is not a fault.
+  if (view.checks?.unreadable && !view.acceptanceNotRequired) {
+    return rowMessage(
+      "failed",
+      "This spec's Acceptance criteria are written in a table this page cannot read, " +
+        "so none of them can be ticked — and nothing is holding the spec back for them either. " +
+        "Run analyze again to have the table written afresh.",
+      { tag: "p" },
+    );
   }
-  const open = rows.filter((r) => !r.done && !r.failed).length;
-  const unverified = notVerifiedCount(rows);
-  const failed = failedCount(rows);
+  return "";
+}
+
+/** The rows in runs of one phase heading each. */
+function groupedByPhase(rows: SpecCheckView[]): { phase: string; rows: SpecCheckView[] }[] {
   const groups: { phase: string; rows: SpecCheckView[] }[] = [];
   for (const row of rows) {
     const last = groups[groups.length - 1];
     if (last && last.phase === row.phase) last.rows.push(row);
     else groups.push({ phase: row.phase, rows: [row] });
   }
+  return groups;
+}
+
+/** One criterion: its box or mark, its text, its note, Reopen on a failed
+ *  one and the tests that cover it. */
+function checkItem(row: SpecCheckView, view: SpecPageView, lang: Language, o: { tickable: boolean; drawnLines: string[] }): string {
+  // The row's verbatim line is the value of every box — see `checkControls`.
+  const control = (row: SpecCheckView): string =>
+    o.tickable
+      ? checkControls(row, lang, view.archived ? { archivedIndex: o.drawnLines.indexOf(row.line) } : {})
+      : checkReadOnlyMark(row, lang);
+  // Reopen from the row that failed: a button opening the action row's own
+  // dialog, on an archived spec that is not closed — the dialog itself
+  // cannot be drawn here, inside the checks' form, since the parser drops
+  // a nested form. A live spec has its actions on its queue row.
+  const reopen = (row: SpecCheckView): string =>
+    row.failed && view.archived && !view.closed ? askButton({ label: t(lang, "list.reopen"), dialogId: reopenAskId(view.project, view.specFolder) }) : "";
+  // The Notes cell, on its own line under the criterion. It is the one
+  // thing on the row a reader cannot work out from the criterion itself:
+  // what the run actually delivered against it, and any limit on that —
+  // "delivered for the no-retry case only" is the kind of caveat that
+  // decides whether the box should be ticked at all. Shown on a done row
+  // too, and not struck through with it: a caveat on something already
+  // accepted is still the record of what was accepted.
+  const note = (row: SpecCheckView): string =>
+    row.note ? `<span class="checknote">${esc(row.note)}</span>` : "";
+  return (
+    `<li class="check ${row.failed ? "failed" : row.notVerified ? "notverified" : row.done ? "done" : "open"}">${control(row)}` +
+    `<span class="checktask">${esc(row.task)}</span>${note(row)}${reopen(row)}${acTestsLine(row, lang, groupKey(view.project, view.specFolder))}</li>`
+  );
+}
+
+// The boxes sit INSIDE the one form, and Save closes it — no id
+// plumbing, because there is only ever one form to belong to.
+function checksForm(view: SpecPageView, phase: string, head: string, list: string): string {
+  return (
+    `<form class="specform reloadform" method="post" action="${esc(view.tickAction)}"${dataAttrs(SPEC_LINES)}>` +
+      `<input type="hidden" name="checksPhase" value="${esc(phase)}">` +
+      // Empty rather than absent for a file git has never committed —
+      // the same answer the description's own field gives.
+      `<input type="hidden" name="statusBaseSha" value="${esc(view.checks?.baseSha ?? "")}">` +
+      head +
+      list +
+      `</form>`
+  );
+}
+
+export function checklist(view: SpecPageView, lang: Language = "en"): string {
+  const rows = drawnAcceptanceRows(view);
+  if (rows.length === 0) return unreadableChecks(view);
+  const open = rows.filter((r) => !r.done && !r.failed).length;
+  const unverified = notVerifiedCount(rows);
+  const failed = failedCount(rows);
+  const groups = groupedByPhase(rows);
   // An archived spec is a RECORD, and a tick would write,
   // commit and push into `archive/`. The rows stay — they are a fact
   // about the spec — and nothing on them presses.
@@ -149,29 +202,7 @@ export function checklist(view: SpecPageView, lang: Language = "en"): string {
   // The archived form's note fields are numbered by the row's place among the
   // rows the form draws — the route reads each note by that number.
   const drawnLines = rows.filter(tickable).map((row) => row.line);
-  // The row's verbatim line is the value of every box — see `checkControls`.
-  const control = (row: SpecCheckView): string =>
-    tickable(row)
-      ? checkControls(row, lang, view.archived ? { archivedIndex: drawnLines.indexOf(row.line) } : {})
-      : checkReadOnlyMark(row, lang);
-  // Reopen from the row that failed: a button opening the action row's own
-  // dialog, on an archived spec that is not closed — the dialog itself
-  // cannot be drawn here, inside the checks' form, since the parser drops
-  // a nested form. A live spec has its actions on its queue row.
-  const reopen = (row: SpecCheckView): string =>
-    row.failed && view.archived && !view.closed ? askButton({ label: t(lang, "list.reopen"), dialogId: reopenAskId(view.project, view.specFolder) }) : "";
-  // The Notes cell, on its own line under the criterion. It is the one
-  // thing on the row a reader cannot work out from the criterion itself:
-  // what the run actually delivered against it, and any limit on that —
-  // "delivered for the no-retry case only" is the kind of caveat that
-  // decides whether the box should be ticked at all. Shown on a done row
-  // too, and not struck through with it: a caveat on something already
-  // accepted is still the record of what was accepted.
-  const note = (row: SpecCheckView): string =>
-    row.note ? `<span class="checknote">${esc(row.note)}</span>` : "";
-  const item = (row: SpecCheckView): string =>
-    `<li class="check ${row.failed ? "failed" : row.notVerified ? "notverified" : row.done ? "done" : "open"}">${control(row)}` +
-    `<span class="checktask">${esc(row.task)}</span>${note(row)}${reopen(row)}${acTestsLine(row, lang, groupKey(view.project, view.specFolder))}</li>`;
+  const item = (row: SpecCheckView): string => checkItem(row, view, lang, { tickable: tickable(row), drawnLines });
   const group = (g: { phase: string; rows: SpecCheckView[] }): string =>
     `<li class="checkphase">${esc(g.phase)}</li>` +
     // One heading over the boxes, under the caption of the section they belong to.
@@ -184,18 +215,7 @@ export function checklist(view: SpecPageView, lang: Language = "en"): string {
   const panelHead = (actions = ""): string =>
     `<div class="panelhead"><p data-checkshead><strong>${esc(t(lang, "spec.checks"))}</strong> ` +
     `<span class="small muted">${checksSummary(open, rows.length, unverified, failed, lang)}</span></p>${actions}</div>`;
-  // The boxes sit INSIDE the one form, and Save closes it — no id
-  // plumbing, because there is only ever one form to belong to.
-  const body = canTick
-    ? `<form class="specform reloadform" method="post" action="${esc(view.tickAction)}"${dataAttrs(SPEC_LINES)}>` +
-      `<input type="hidden" name="checksPhase" value="${esc(phase)}">` +
-      // Empty rather than absent for a file git has never committed —
-      // the same answer the description's own field gives.
-      `<input type="hidden" name="statusBaseSha" value="${esc(view.checks?.baseSha ?? "")}">` +
-      panelHead(saveCancelActions("specform", {}, lang)) +
-      list +
-      `</form>`
-    : panelHead() + list;
+  const body = canTick ? checksForm(view, phase, panelHead(saveCancelActions("specform", {}, lang)), list) : panelHead() + list;
   return `<section class="checks">${body}</section>`;
 }
 

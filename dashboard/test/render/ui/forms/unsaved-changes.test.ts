@@ -82,16 +82,8 @@ function anchor(opts: { href?: string; blank?: boolean; download?: boolean } = {
   return self;
 }
 
-function harness() {
-  let inputHandler: ((event: unknown) => void) | undefined;
-  let changeHandler: ((event: unknown) => void) | undefined;
-  let submitHandler: ((event: unknown) => void) | undefined;
-  let clickHandler: ((event: unknown) => void) | undefined;
-  let beforeunloadHandler: ((event: unknown) => void) | undefined;
-  let leaveHandler: ((event: unknown) => void) | undefined;
-  let savedHandler: ((event: unknown) => void) | undefined;
-  let drawnHandler: ((event: unknown) => void) | undefined;
-
+/** The leave dialog (`#leaveapp`), and what a test can ask and do to it. */
+function fakeDialog() {
   let showModalCalled = false;
   let closeHandler: (() => void) | undefined;
   let dialogReturnValue = "";
@@ -117,109 +109,107 @@ function harness() {
       dialogReturnValue = value;
     },
   };
-
-
-  const document = {
-    addEventListener: (type: string, fn: (event: unknown) => void) => {
-      if (type === "input") inputHandler = fn;
-      else if (type === "change") changeHandler = fn;
-      else if (type === "submit") submitHandler = fn;
-      else if (type === "click") clickHandler = fn;
-      else if (type === "aide-page-leave") leaveHandler = fn;
-      else if (type === "aide-form-saved") savedHandler = fn;
-      else if (type === "aide-page-drawn") drawnHandler = fn;
+  const controls = {
+    wasOpened: () => showModalCalled,
+    opened: () => showModalCalls,
+    closeWith: (value: string) => {
+      dialogReturnValue = value;
+      dialogOpen = false;
+      closeHandler?.();
     },
+    /** Escape: the dialog closes and keeps whatever value it had. */
+    escape: () => {
+      dialogOpen = false;
+      closeHandler?.();
+    },
+  };
+  return { dialog, controls };
+}
+
+type Handler = (event: unknown) => void;
+
+/** A click on `el`; true when the script prevented its default. */
+function fireClick(
+  handler: Handler,
+  el: FakeElement,
+  opts: { metaKey?: boolean; ctrlKey?: boolean; shiftKey?: boolean; button?: number } = {},
+): boolean {
+  let prevented = false;
+  handler({
+    target: el,
+    get defaultPrevented() {
+      return prevented;
+    },
+    preventDefault: () => {
+      prevented = true;
+    },
+    metaKey: opts.metaKey ?? false,
+    ctrlKey: opts.ctrlKey ?? false,
+    shiftKey: opts.shiftKey ?? false,
+    button: opts.button ?? 0,
+  });
+  return prevented;
+}
+
+function fireBeforeunload(handler: Handler): { prevented: boolean; returnValue: unknown } {
+  let prevented = false;
+  let returnValue: unknown;
+  handler({
+    preventDefault: () => {
+      prevented = true;
+    },
+    set returnValue(v: unknown) {
+      returnValue = v;
+    },
+  });
+  return { prevented, returnValue };
+}
+
+/** An in-place swap asking to leave, as page-swap sends it; what the
+ *  guard did with it is kept on the returned record. */
+function fireLeave(handler: Handler) {
+  const seen = { prevented: false, asked: false, answer: "" };
+  handler({
+    preventDefault: () => {
+      seen.prevented = true;
+    },
+    detail: {
+      ask: () => { seen.asked = true; },
+      proceed: () => { seen.answer ||= "proceed"; },
+      stay: () => { seen.answer ||= "stay"; },
+      drop: () => { seen.answer ||= "drop"; },
+    },
+  });
+  return seen;
+}
+
+/** The script run against a fake document and window; the handlers it
+ *  added are kept by event type. */
+function harness() {
+  const on: Record<string, Handler> = {};
+  const { dialog, controls } = fakeDialog();
+  const document = {
+    addEventListener: (type: string, fn: Handler) => void (on[type] = fn),
     getElementById: (id: string) => (id === "leaveapp" ? dialog : null),
   };
   const window = {
-    addEventListener: (type: string, fn: (event: unknown) => void) => {
-      if (type === "beforeunload") beforeunloadHandler = fn;
+    addEventListener: (type: string, fn: Handler) => {
+      if (type === "beforeunload") on.beforeunload = fn;
     },
   };
   new Function("document", "window", SOURCE)(document, window);
 
-  const input = (el: FakeElement) => inputHandler!({ target: el });
-  const change = (el: FakeElement) => changeHandler!({ target: el });
-  const submit = (form: FakeElement) => submitHandler!({ target: form });
-  const click = (
-    el: FakeElement,
-    opts: { metaKey?: boolean; ctrlKey?: boolean; shiftKey?: boolean; button?: number } = {},
-  ): boolean => {
-    let prevented = false;
-    clickHandler!({
-      target: el,
-      get defaultPrevented() {
-        return prevented;
-      },
-      preventDefault: () => {
-        prevented = true;
-      },
-      metaKey: opts.metaKey ?? false,
-      ctrlKey: opts.ctrlKey ?? false,
-      shiftKey: opts.shiftKey ?? false,
-      button: opts.button ?? 0,
-    });
-    return prevented;
-  };
-  const beforeunload = (): { prevented: boolean; returnValue: unknown } => {
-    let prevented = false;
-    let returnValue: unknown;
-    beforeunloadHandler!({
-      preventDefault: () => {
-        prevented = true;
-      },
-      set returnValue(v: unknown) {
-        returnValue = v;
-      },
-    });
-    return { prevented, returnValue };
-  };
-
-  /** An in-place swap asking to leave, as page-swap sends it; what the
-   *  guard did with it is kept on the returned record. */
-  const leave = () => {
-    const seen = { prevented: false, asked: false, answer: "" };
-    leaveHandler!({
-      preventDefault: () => {
-        seen.prevented = true;
-      },
-      detail: {
-        ask: () => { seen.asked = true; },
-        proceed: () => { seen.answer ||= "proceed"; },
-        stay: () => { seen.answer ||= "stay"; },
-        drop: () => { seen.answer ||= "drop"; },
-      },
-    });
-    return seen;
-  };
-
-  /** The page script's word that a form's Save went through. */
-  const saved = (form: FakeElement) => savedHandler!({ target: form });
-  const drawn = () => drawnHandler!({});
-
   return {
-    input,
-    change,
-    submit,
-    saved,
-    drawn,
-    click,
-    beforeunload,
-    leave,
-    dialog: {
-      wasOpened: () => showModalCalled,
-      opened: () => showModalCalls,
-      closeWith: (value: string) => {
-        dialogReturnValue = value;
-        dialogOpen = false;
-        closeHandler?.();
-      },
-      /** Escape: the dialog closes and keeps whatever value it had. */
-      escape: () => {
-        dialogOpen = false;
-        closeHandler?.();
-      },
-    },
+    input: (el: FakeElement) => on.input!({ target: el }),
+    change: (el: FakeElement) => on.change!({ target: el }),
+    submit: (form: FakeElement) => on.submit!({ target: form }),
+    /** The page script's word that a form's Save went through. */
+    saved: (form: FakeElement) => on["aide-form-saved"]!({ target: form }),
+    drawn: () => on["aide-page-drawn"]!({}),
+    click: (el: FakeElement, opts?: Parameters<typeof fireClick>[2]) => fireClick(on.click!, el, opts),
+    beforeunload: () => fireBeforeunload(on.beforeunload!),
+    leave: () => fireLeave(on["aide-page-leave"]!),
+    dialog: controls,
   };
 }
 

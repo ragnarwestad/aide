@@ -26,70 +26,84 @@ export interface Conversion {
   jobs: Job[];
 }
 
-export function convertToProviders(input: ConversionInput): Conversion {
-  const { defaults, home } = input;
-  const taken = new Set<string>();
-  const free = (base: string): string => {
-    let key = base;
-    for (let n = 2; taken.has(key.toLowerCase()); n++) key = `${base}-${n}`;
-    taken.add(key.toLowerCase());
-    return key;
-  };
-
+/** One conversion: the keys taken so far, and the providers made for the
+ *  tools, the accounts and the jobs' own accounts. */
+class ProviderConversion {
+  private readonly taken = new Set<string>();
   // Accounts claim their names first, so one named like a tool keeps it.
-  const accounts: { key: string; name: string; dir: string; provider: Provider }[] = [];
-  for (const [name, account] of Object.entries(input.claudeAccounts ?? {})) {
-    const key = free(name);
-    accounts.push({
-      key, name, dir: expandDir(account.configDir, home),
-      provider: { name: key, tool: "claude", configDir: account.configDir },
-    });
-  }
-  const toolKey = {} as Record<ProviderTool, string>;
-  const providers: Record<string, Provider> = {};
-  for (const tool of PROVIDER_TOOLS) {
-    toolKey[tool] = free(SHORT_TOOL_NAMES[tool]);
-    providers[toolKey[tool]] = { name: toolKey[tool], tool };
-  }
-  for (const a of accounts) providers[a.key] = a.provider;
+  private readonly accounts: { key: string; name: string; dir: string; provider: Provider }[] = [];
+  private readonly toolKey = {} as Record<ProviderTool, string>;
+  readonly providers: Record<string, Provider> = {};
+  // A provider of a job's own: one for an account no longer configured that
+  // a job will still run on, shared by every job with the same name and folder.
+  private readonly own = new Map<string, string>();
 
-  const toolOfModel = (model: string | undefined): ProviderTool => {
+  constructor(private readonly input: ConversionInput) {
+    for (const [name, account] of Object.entries(input.claudeAccounts ?? {})) {
+      const key = this.free(name);
+      this.accounts.push({
+        key, name, dir: expandDir(account.configDir, input.home),
+        provider: { name: key, tool: "claude", configDir: account.configDir },
+      });
+    }
+    for (const tool of PROVIDER_TOOLS) {
+      this.toolKey[tool] = this.free(SHORT_TOOL_NAMES[tool]);
+      this.providers[this.toolKey[tool]] = { name: this.toolKey[tool], tool };
+    }
+    for (const a of this.accounts) this.providers[a.key] = a.provider;
+  }
+
+  private free(base: string): string {
+    let key = base;
+    for (let n = 2; this.taken.has(key.toLowerCase()); n++) key = `${base}-${n}`;
+    this.taken.add(key.toLowerCase());
+    return key;
+  }
+
+  private toolOfModel(model: string | undefined): ProviderTool {
+    const { defaults } = this.input;
     const listed = model ? listedModelName(Object.keys(defaults.modelChoices ?? {}), model) : undefined;
     const tool = listed && "name" in listed ? defaults.modelChoices?.[listed.name]?.tool : undefined;
     return (RUNNABLE_TOOLS as readonly unknown[]).includes(tool) ? providerFamily(tool!) : "claude";
-  };
-
-  const provider: Record<string, string> = {};
-  for (const [step, model] of Object.entries(defaults.model ?? {})) {
-    if (step !== "default") provider[step] = toolKey[toolOfModel(model)];
   }
 
-  const schedules: Record<string, ScheduleEntry[]> = {};
-  for (const [project, entries] of Object.entries(input.schedules)) {
-    schedules[project] = entries.map((e) =>
-      e.model && !e.provider ? { ...e, provider: toolKey[toolOfModel(e.model)] } : { ...e },
-    );
+  /** The phase defaults' provider, per step. */
+  stepProviders(): Record<string, string> {
+    const provider: Record<string, string> = {};
+    for (const [step, model] of Object.entries(this.input.defaults.model ?? {})) {
+      if (step !== "default") provider[step] = this.toolKey[this.toolOfModel(model)];
+    }
+    return provider;
   }
 
-  // A provider of a job's own: one for an account no longer configured that
-  // a job will still run on, shared by every job with the same name and folder.
-  const own = new Map<string, string>();
-  const keyForAccount = (name: string, dir: string, make: boolean): string | undefined => {
-    const configured = accounts.find((a) => a.dir === dir);
+  schedules(): Record<string, ScheduleEntry[]> {
+    const schedules: Record<string, ScheduleEntry[]> = {};
+    for (const [project, entries] of Object.entries(this.input.schedules)) {
+      schedules[project] = entries.map((e) =>
+        e.model && !e.provider ? { ...e, provider: this.toolKey[this.toolOfModel(e.model)] } : { ...e },
+      );
+    }
+    return schedules;
+  }
+
+  private keyForAccount(name: string, dir: string, make: boolean): string | undefined {
+    const configured = this.accounts.find((a) => a.dir === dir);
     if (configured) return configured.key;
     if (!make) return undefined;
     const id = `${name}\n${dir}`;
-    if (!own.has(id)) {
-      const key = free(name);
-      own.set(id, key);
-      providers[key] = { name: key, tool: "claude", configDir: dir };
+    if (!this.own.has(id)) {
+      const key = this.free(name);
+      this.own.set(id, key);
+      this.providers[key] = { name: key, tool: "claude", configDir: dir };
     }
-    return own.get(id);
-  };
-  const keyForAccountName = (name: string): string | undefined =>
-    accounts.find((a) => a.name === name)?.key ?? [...own].find(([id]) => id.startsWith(`${name}\n`))?.[1];
+    return this.own.get(id);
+  }
 
-  const jobs = input.jobs.map((stored): Job => {
+  private keyForAccountName(name: string): string | undefined {
+    return this.accounts.find((a) => a.name === name)?.key ?? [...this.own].find(([id]) => id.startsWith(`${name}\n`))?.[1];
+  }
+
+  job(stored: Job): Job {
     // The fields providers replace, read off the stored job as unknown.
     const {
       claudeAccount: rawAccount, usageLimitLeft: _left, usageLimitLeftBefore: _before, ...job
@@ -101,24 +115,30 @@ export function convertToProviders(input: ConversionInput): Conversion {
     const stepProvider: Record<string, string> = { ...job.provider };
     for (const step of job.steps) {
       if (stepProvider[step]) continue;
-      const tool = toolOfModel(resolveStepModel(job, step, defaults.model ?? {}));
-      const onAccount = tool === "claude" && account ? keyForAccount(account.name, account.dir, willRun(job)) : undefined;
-      stepProvider[step] = onAccount ?? toolKey[tool];
+      const tool = this.toolOfModel(resolveStepModel(job, step, this.input.defaults.model ?? {}));
+      const onAccount = tool === "claude" && account ? this.keyForAccount(account.name, account.dir, willRun(job)) : undefined;
+      stepProvider[step] = onAccount ?? this.toolKey[tool];
     }
-    return { ...job, provider: stepProvider, results: job.results.map((r) => resultWithProvider(r)) };
-  });
+    return { ...job, provider: stepProvider, results: job.results.map((r) => this.resultWithProvider(r)) };
+  }
 
   // Run after the jobs, so a provider made for a job's own account is known.
-  function resultWithProvider(r: StepResult): StepResult {
+  private resultWithProvider(r: StepResult): StepResult {
     const { claudeAccount: accountName, ...result } = r as StepResult & { claudeAccount?: string };
     if (result.provider || result.tool === "none") return result;
     const tool: ProviderTool = providerFamily(result.tool ?? "claude");
     if (tool === "claude" && accountName) {
-      const key = keyForAccountName(accountName);
-      return { ...result, provider: { key: key ?? accountName, name: key ? providers[key]!.name : accountName } };
+      const key = this.keyForAccountName(accountName);
+      return { ...result, provider: { key: key ?? accountName, name: key ? this.providers[key]!.name : accountName } };
     }
-    return { ...result, provider: { key: toolKey[tool], name: providers[toolKey[tool]]!.name } };
+    return { ...result, provider: { key: this.toolKey[tool], name: this.providers[this.toolKey[tool]]!.name } };
   }
+}
 
-  return { providers, provider, schedules, jobs };
+export function convertToProviders(input: ConversionInput): Conversion {
+  const conversion = new ProviderConversion(input);
+  const provider = conversion.stepProviders();
+  const schedules = conversion.schedules();
+  const jobs = input.jobs.map((stored) => conversion.job(stored));
+  return { providers: conversion.providers, provider, schedules, jobs };
 }

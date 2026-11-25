@@ -141,11 +141,12 @@ def test_nothing_said_is_nothing_sorted():
 
 
 def test_every_kind_the_runner_writes_is_one_the_dashboard_reads():
-    """The kinds in provider-error.sh and model-turn.sh's `silent` are the
+    """The kinds in provider-error.sh and model-turn/'s `silent` are the
     kinds result-fields.json has cases for, which the dashboard's parser is
     tested on."""
     sorter = LIB.read_text()
     written = set(re.findall(r'(?:then|else) "([a-z]+)"', sorter))
-    written |= set(re.findall(r'"kind":"([a-z]+)"', (LIB.parent / "model-turn" / "index.sh").read_text()))
+    model_turn = "".join(p.read_text() for p in sorted((LIB.parent / "model-turn").glob("*.sh")))
+    written |= set(re.findall(r'"kind":"([a-z]+)"', model_turn))
     assert written, "no kind found in provider-error.sh"
     assert written == {c["written"]["kind"] for c in FIELDS["providerError"]}

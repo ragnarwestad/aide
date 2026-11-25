@@ -150,6 +150,40 @@ export function deleteBranchForm(g: SpecGroup, lang: Language): string {
   });
 }
 
+/** The row's one control: Cancel while a job runs, else the button that
+ *  runs what is ticked. */
+function primaryAction(g: SpecGroup, lang: Language, busy: boolean, action: ReturnType<typeof actionState>): string {
+  // Not while `create` is the step running. Every other step can be
+  // cancelled and run again from the spec it already made; `create`
+  // is what MAKES that spec, so a press there throws away the title
+  // and the description with nothing left on the board to run again
+  // from. The step's own timeout is what ends a create that hangs.
+  if (busy && currentStep(g.lead!) === "create") return "";
+  // A step waiting on its usage limit goes on by itself; Cancel stops that.
+  if (busy || (g.lead && automaticProviderWait(g.lead))) return actionForm(g.lead!, lang);
+  if (!action) return "";
+  // Primary, like every row's one action. It was
+  // secondary until then, on the argument that a column of primary
+  // buttons says nothing about which row to look at — but a row
+  // draws exactly one control now, so there is no column to tell
+  // apart and nothing left for the colour to say except that the
+  // action is here.
+  //
+  // One button, whichever way `active` reads — never a
+  // second element for the disabled case. It still carries `form="…"`
+  // disabled or not: that is what lets `relabelRunButton()`
+  // (`specs-client/row-swap.ts`) find and re-enable it the instant the
+  // reader ticks the phase it names, without waiting for a redraw —
+  // and `type="submit"` throughout is what makes that re-enabling
+  // actually able to submit, rather than a live control a script can
+  // turn on but never press. `data-done` is the phases the spec has
+  // done, which that script names the button by alongside the ticks.
+  return btn({
+    label: action.label, variant: "primary", form: runFormId(g), pending: t(lang, "list.starting"),
+    disabled: !action.active, data: { done: g.done.join(" ") },
+  });
+}
+
 // The one thing the row asks of the reader, beside the sentence that
 // says why. Run or Cancel — never both, and nothing at all
 // when there is nothing to run: the two are never the right press at the
@@ -208,37 +242,7 @@ export function stateAction(g: SpecGroup, opts: SpecsPageOptions): string {
     `<input type="hidden" name="specFolder" value="${esc(g.specFolder)}">` +
     `</form>`;
   if (g.group && nextPhase(g.done) === "archive") return runForm;
-  const primary = (() => {
-    // Not while `create` is the step running. Every other step can be
-    // cancelled and run again from the spec it already made; `create`
-    // is what MAKES that spec, so a press there throws away the title
-    // and the description with nothing left on the board to run again
-    // from. The step's own timeout is what ends a create that hangs.
-    if (busy && currentStep(g.lead!) === "create") return "";
-    // A step waiting on its usage limit goes on by itself; Cancel stops that.
-    if (busy || (g.lead && automaticProviderWait(g.lead))) return actionForm(g.lead!, lang);
-    if (!action) return "";
-    // Primary, like every row's one action. It was
-    // secondary until then, on the argument that a column of primary
-    // buttons says nothing about which row to look at — but a row
-    // draws exactly one control now, so there is no column to tell
-    // apart and nothing left for the colour to say except that the
-    // action is here.
-    //
-    // One button, whichever way `active` reads — never a
-    // second element for the disabled case. It still carries `form="…"`
-    // disabled or not: that is what lets `relabelRunButton()`
-    // (`specs-client/row-swap.ts`) find and re-enable it the instant the
-    // reader ticks the phase it names, without waiting for a redraw —
-    // and `type="submit"` throughout is what makes that re-enabling
-    // actually able to submit, rather than a live control a script can
-    // turn on but never press. `data-done` is the phases the spec has
-    // done, which that script names the button by alongside the ticks.
-    return btn({
-      label: action.label, variant: "primary", form: runFormId(g), pending: t(lang, "list.starting"),
-      disabled: !action.active, data: { done: g.done.join(" ") },
-    });
-  })();
+  const primary = primaryAction(g, lang, busy, action);
   // "Also touches" stood here until nobody could point at a press it
   // had ever served: 0 of the queue's 200 jobs named an extra repo, and
   // it drew one tick box per OTHER project on every open row — so

@@ -7,7 +7,7 @@ import { currentWorkRoundJobs } from "../../queue/steps.ts";
 //
 // Split out of spec-views.ts 2026-09-04, where it had grown to 562
 // lines; every function is unchanged and keeps its name.
-import { specCloseReason, specFileText } from "../../project/discover";
+import { specCloseReason, specFileText, type SpecRef } from "../../project/discover";
 import { acceptanceRowsOf, parseStatus } from "../../project/parse-status";
 import { readAcCoverage, withAcCoverage } from "../../project/ac-coverage.ts";
 import { specPhaseOutcome, specPlanReviewed, type PhaseOutcome } from "../../project/parse-phase-outcome.ts";
@@ -116,8 +116,38 @@ export function archivedSpecRows(
   const everyOne = filterShowsArchived(state);
   const rows: ArchivedSpecView[] = [];
   const scan = ctx.readScan();
-  // A landing whose suite was green only on its retry, per spec: the
-  // lines the first run failed on, off whichever job recorded them.
+  const jobs = jobsBySpec(ctx, summary);
+  for (const key of scan?.archived ?? []) {
+    // A request for one row reads that row's spec and no other.
+    if (only && !only.has(key)) continue;
+    const ref = scan?.refs.get(key);
+    const marks = branchMarks(ctx, key, ref, open, reviewing);
+    // The gate, and it is BEFORE the two file reads under it — after
+    // them it would be a filter, not a gate, and would cost the
+    // default view exactly what it exists to save. A PR waiting on
+    // review is not the failure this gate exists to surface, so it
+    // does not bypass it the way `notLanded` does.
+    if (!everyOne && !marks.notLanded && !marks.groupAwaitingArchive) continue;
+    if (!ref) continue;
+    // The Not verified entry builds only the rows it lists — the count is
+    // on the ref, so the rest of the archive costs no file read. A row
+    // that is built anyway (its branch is still open) is not skipped.
+    if (state === NOT_VERIFIED_KEY && !marks.notLanded && !(ref.notVerified ?? 0) && !(ref.failed ?? 0)) continue;
+    rows.push(archivedRow(ctx, key, ref, marks, jobs, openCheckedAt, summary));
+  }
+  return rows;
+}
+
+interface SpecJobs {
+  /** A landing whose suite was green only on its retry, per spec: the
+   *  lines the first run failed on, off whichever job recorded them. */
+  retried: Map<string, string>;
+  /** Each spec's jobs, as the summary reads them; filled only for a summary. */
+  bySpec: Map<string, QueueRowView[]>;
+}
+
+/** What the queue's jobs say about each spec, read in one pass. */
+function jobsBySpec(ctx: SpecViewsContext, summary: boolean): SpecJobs {
   const retried = new Map<string, string>();
   const bySpec = new Map<string, QueueRowView[]>();
   for (const job of ctx.queue.list()) {
@@ -129,86 +159,109 @@ export function archivedSpecRows(
     }
     if (job.testsGreenOnRetry) retried.set(`${job.project}/${job.specFolder}`, job.testsGreenOnRetry);
   }
-  for (const key of scan?.archived ?? []) {
-    // A request for one row reads that row's spec and no other.
-    if (only && !only.has(key)) continue;
-    const cut = key.indexOf("/");
-    const project = key.slice(0, cut);
-    const ref = scan?.refs.get(key);
-    // Merged in every root that holds it: the work landed and only a
-    // cleanup is left, so the spec is archived. A closed spec's branch
-    // was never meant to merge, and its row reads as before.
-    const merged = open.has(key) && !ref?.closed && ctx.peekMergedOnOrigin(project, key.slice(cut + 1));
-    // The two marks come from one fact and mean opposite things,
-    // so one wins outright rather than both being set and the
-    // renderer picking: a review that is still open, unless the merged
-    // answer says the pull request has nothing left to review.
-    const prWaiting = reviewing.has(key) && !merged;
-    const branchOpen = open.has(key) && !prWaiting;
-    const branchLeftBehind = branchOpen && merged;
-    const groupAwaitingArchive = ctx.queue.executionGroups?.list().some((group) =>
-      group.project === project && group.state !== "completed" && !group.removedAt && group.members.includes(key.slice(cut + 1)));
-    const notLanded = branchOpen && !branchLeftBehind && !groupAwaitingArchive;
-    // The gate, and it is BEFORE the two file reads under it — after
-    // them it would be a filter, not a gate, and would cost the
-    // default view exactly what it exists to save. A PR waiting on
-    // review is not the failure this gate exists to surface, so it
-    // does not bypass it the way `notLanded` does.
-    if (!everyOne && !notLanded && !groupAwaitingArchive) continue;
-    if (!ref) continue;
-    // The Not verified entry builds only the rows it lists — the count is
-    // on the ref, so the rest of the archive costs no file read. A row
-    // that is built anyway (its branch is still open) is not skipped.
-    if (state === NOT_VERIFIED_KEY && !notLanded && !(ref.notVerified ?? 0) && !(ref.failed ?? 0)) continue;
-    // The newest landing's own reason its delete failed, when
-    // there is one — read off the job store rather than re-derived, so
-    // this can never disagree with what `mergeBranchIntoDefault` itself
-    // found. `undefined` here just means no job recorded one; the row
-    // still falls through to the plain `NOT_LANDED` wording.
-    const branchDeleteError = notLanded ? ctx.queue.branchDeleteErrorFor(project, ref.folder) : undefined;
-    // The spec's own creation date. A peek, never a
-    // take (the rule for every question on this route):
-    // `refreshSpecCaches` is what warms this, never a request.
-    const created = ctx.specCreatedAt.peekCreatedAtForArchived(ref.dir, ref.folder);
-    rows.push({
-      project,
-      folder: ref.folder,
-      title: ref.title ?? undefined,
-      description: ref.description ?? undefined,
-      group: ref.group,
-      createdAt: created.createdAt ?? undefined,
-      notLanded,
-      notLandedCheckedAt: notLanded ? (openCheckedAt ?? undefined) : undefined,
-      branchDeleteError,
-      branchLeftBehind,
-      testsGreenOnRetry: retried.get(key),
-      prOpen: prWaiting,
-      // Off the newest job that reported one. The queue keeps two
-      // hundred jobs and the archive grows past that, so an old row
-      // simply has no link — the mark still says the branch is open,
-      // which is the part that matters.
-      prUrl: prWaiting ? ctx.queue.pullRequestFor(project, ref.folder).prUrl : undefined,
-      // The row opens now, and this is what it opens on.
-      done: summary ? phaseRecords(ref.dir).done : archivedSteps(ref.dir),
-      models: summary ? {} : archivedModels(ref.dir),
-      phaseOutcomes: summary ? phaseRecords(ref.dir).outcomes : archivedPhaseOutcomes(ref.dir),
-      summaryDuration: summary ? recordedDuration(currentWorkRoundJobs(bySpec.get(key) ?? []), phaseRecords(ref.dir).outcomes, Date.now()) : undefined,
-      planReviewed: summary ? undefined : specPlanReviewed(ref.dir),
-      // Off the same `SpecRef` the scan already carries
-      // `closed` on — `readerGroup()` (data-model/group-builders.ts) is
-      // what turns this into the row's own `CLOSED_STATE`.
-      closed: ref.closed,
-      notVerified: ref.notVerified,
-      failed: ref.failed,
-      // Read for the specs that have something to unfold, no others.
-      acceptance:
-        !summary && (ref.notVerified ?? 0) + (ref.failed ?? 0) > 0 && !ref.closed
-          ? withAcCoverage(acceptanceRowsOf(specFileText(ref.dir, STATUS_FILE) ?? ""), readAcCoverage(ref.dir), ctx.machineryProjectDir?.(project))
-          : undefined,
-      closeReason: !summary && ref.closed ? (specCloseReason(ref.dir) ?? undefined) : undefined,
-    });
-  }
-  return rows;
+  return { retried, bySpec };
+}
+
+interface BranchMarks {
+  project: string;
+  prWaiting: boolean;
+  branchLeftBehind: boolean;
+  groupAwaitingArchive: boolean | undefined;
+  notLanded: boolean;
+}
+
+/** What an archived spec's still-open branch says about its row. */
+function branchMarks(
+  ctx: SpecViewsContext,
+  key: string,
+  ref: SpecRef | undefined,
+  open: ReadonlySet<string>,
+  reviewing: ReadonlySet<string>,
+): BranchMarks {
+  const cut = key.indexOf("/");
+  const project = key.slice(0, cut);
+  // Merged in every root that holds it: the work landed and only a
+  // cleanup is left, so the spec is archived. A closed spec's branch
+  // was never meant to merge, and its row reads as before.
+  const merged = open.has(key) && !ref?.closed && ctx.peekMergedOnOrigin(project, key.slice(cut + 1));
+  // The two marks come from one fact and mean opposite things,
+  // so one wins outright rather than both being set and the
+  // renderer picking: a review that is still open, unless the merged
+  // answer says the pull request has nothing left to review.
+  const prWaiting = reviewing.has(key) && !merged;
+  const branchOpen = open.has(key) && !prWaiting;
+  const branchLeftBehind = branchOpen && merged;
+  const groupAwaitingArchive = ctx.queue.executionGroups?.list().some((group) =>
+    group.project === project && group.state !== "completed" && !group.removedAt && group.members.includes(key.slice(cut + 1)));
+  const notLanded = branchOpen && !branchLeftBehind && !groupAwaitingArchive;
+  return { project, prWaiting, branchLeftBehind, groupAwaitingArchive, notLanded };
+}
+
+/** One archived spec's row, past the gate. */
+function archivedRow(
+  ctx: SpecViewsContext,
+  key: string,
+  ref: SpecRef,
+  marks: BranchMarks,
+  jobs: SpecJobs,
+  openCheckedAt: number | null,
+  summary: boolean,
+): ArchivedSpecView {
+  const { project, prWaiting, branchLeftBehind, notLanded } = marks;
+  // The newest landing's own reason its delete failed, when
+  // there is one — read off the job store rather than re-derived, so
+  // this can never disagree with what `mergeBranchIntoDefault` itself
+  // found. `undefined` here just means no job recorded one; the row
+  // still falls through to the plain `NOT_LANDED` wording.
+  const branchDeleteError = notLanded ? ctx.queue.branchDeleteErrorFor(project, ref.folder) : undefined;
+  // The spec's own creation date. A peek, never a
+  // take (the rule for every question on this route):
+  // `refreshSpecCaches` is what warms this, never a request.
+  const created = ctx.specCreatedAt.peekCreatedAtForArchived(ref.dir, ref.folder);
+  return {
+    project,
+    folder: ref.folder,
+    title: ref.title ?? undefined,
+    description: ref.description ?? undefined,
+    group: ref.group,
+    createdAt: created.createdAt ?? undefined,
+    notLanded,
+    notLandedCheckedAt: notLanded ? (openCheckedAt ?? undefined) : undefined,
+    branchDeleteError,
+    branchLeftBehind,
+    testsGreenOnRetry: jobs.retried.get(key),
+    prOpen: prWaiting,
+    // Off the newest job that reported one. The queue keeps two
+    // hundred jobs and the archive grows past that, so an old row
+    // simply has no link — the mark still says the branch is open,
+    // which is the part that matters.
+    prUrl: prWaiting ? ctx.queue.pullRequestFor(project, ref.folder).prUrl : undefined,
+    ...openedRowFields(ctx, key, project, ref, jobs, summary),
+  };
+}
+
+/** What the row opens on: its phases, and the acceptance rows and close
+ *  reason a full row reads. */
+function openedRowFields(ctx: SpecViewsContext, key: string, project: string, ref: SpecRef, jobs: SpecJobs, summary: boolean) {
+  return {
+    done: summary ? phaseRecords(ref.dir).done : archivedSteps(ref.dir),
+    models: summary ? {} : archivedModels(ref.dir),
+    phaseOutcomes: summary ? phaseRecords(ref.dir).outcomes : archivedPhaseOutcomes(ref.dir),
+    summaryDuration: summary ? recordedDuration(currentWorkRoundJobs(jobs.bySpec.get(key) ?? []), phaseRecords(ref.dir).outcomes, Date.now()) : undefined,
+    planReviewed: summary ? undefined : specPlanReviewed(ref.dir),
+    // Off the same `SpecRef` the scan already carries
+    // `closed` on — `readerGroup()` (data-model/group-builders.ts) is
+    // what turns this into the row's own `CLOSED_STATE`.
+    closed: ref.closed,
+    notVerified: ref.notVerified,
+    failed: ref.failed,
+    // Read for the specs that have something to unfold, no others.
+    acceptance:
+      !summary && (ref.notVerified ?? 0) + (ref.failed ?? 0) > 0 && !ref.closed
+        ? withAcCoverage(acceptanceRowsOf(specFileText(ref.dir, STATUS_FILE) ?? ""), readAcCoverage(ref.dir), ctx.machineryProjectDir?.(project))
+        : undefined,
+    closeReason: !summary && ref.closed ? (specCloseReason(ref.dir) ?? undefined) : undefined,
+  };
 }
 
 /** The page's own tab decides how much this has to ask git.

@@ -13,7 +13,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { createGitRunner } from "../../../src/git/process/index.ts";
-import { ensureDashboardCheckout } from "../../../src/git/dashboard-checkout.ts";
+import { ensureDashboardCheckout } from "../../../src/git/dashboard-checkout/index.ts";
 
 import { clearCheckoutFault, clearCheckoutFaults, setCheckoutFault, checkoutFaultPresentation } from "../../../src/render/ui/checkout-faults.ts";
 import { complain } from "../../../src/serve/project-checkout.ts";

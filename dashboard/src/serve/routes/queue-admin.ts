@@ -2,31 +2,22 @@
 // queue's model defaults, and add/settings/remove
 // for a project. Extracted from routes.ts (split of split
 // serve.ts step 2).
-import { realPathOrOriginal as realpathOr } from "../../git/real-path.ts";
-import { join } from "node:path";
-import { DEFAULT_DASHBOARD_CHECKOUT_ROOT, dashboardSettingsFile } from "../../git/dashboard-checkout.ts";
 import { MAIN_TEST_SERVER_KEY, restartMainTestServer, stopTestServer } from "../test-servers/lifecycle.ts";
 import { testServerFailedPage } from "./spec-edit/test-server-waiting.ts";
-import { listedModelName } from "../../queue/model-name.ts";
 import { CLEANUP_KEY, jobKind, inFlight } from "../../queue/queue.ts";
 import { cleanupProject } from "../process-cleanup/schedule.ts";
 import { hiddenProjects } from "./page-routes/project-hide.ts";
-import { providerKeyFrom, providerModelError } from "../../queue/providers/parse.ts";
-import { addProject, assessProjectReadiness, commitManifestEdits, detectRemoteTestCommand, projectNameError, removeProject, updateProjectSettings, type SaveManifest } from "../../project/project-admin";
-import { SETTINGS_STEPS } from "../../render";
-import { PICK_PARTS, PLAN_REVIEW, planReviewToSave } from "../../queue/providers/side-tools.ts";
+import { detectRemoteTestCommand, projectNameError, removeProject } from "../../project/project-admin";
 import { MAX_CREATE_BODY, bodyToObject, json, readBounded, readObjectBody, refusal } from "../serve-helpers";
 import type { RoutesContext } from "./";
 import { saveQueueSettings } from "./settings-save/index.ts";
 import { enqueueRequest } from "../../queue/request/index.ts";
 import { parseCreateRequest } from "../../queue/parse-request.ts";
 import { createSpecDirectly } from "./direct-create/index.ts";
+import { queueDefaultsRoute } from "./settings-save/defaults-route.ts";
+import { addProjectRoute, projectSettingsRoute } from "./project-admin/index.ts";
 
-export async function handleQueueAdminRoutes(
-  ctx: RoutesContext,
-  req: Request,
-  path: string,
-): Promise<Response | null> {
+async function cleanupRoute(ctx: RoutesContext, req: Request, path: string): Promise<Response | null> {
   if (path === "/api/queue/cleanup") {
     if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
     const existing = ctx.queue.list().find((job) => jobKind(job) === "cleanup" && inFlight(job));
@@ -38,6 +29,10 @@ export async function handleQueueAdminRoutes(
     await ctx.tickRunner();
     return json({ ok: true, job: result.job });
   }
+  return null;
+}
+
+async function createRoute(ctx: RoutesContext, req: Request, path: string): Promise<Response | null> {
   if (path === "/api/queue/create") {
     if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
     const sent = await readObjectBody(req, { cap: MAX_CREATE_BODY });
@@ -60,210 +55,10 @@ export async function handleQueueAdminRoutes(
     ctx.notifyQueueChanged();
     return json({ ok: true, specFolder: created.specFolder });
   }
+  return null;
+}
 
-  if (path === "/api/queue/settings") {
-    if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
-    const sent = await readObjectBody(req);
-    if ("refusal" in sent) return sent.refusal;
-    const asked = sent.body;
-    const models = asked.model;
-    const refuse = (error: string) => json({ error }, 400);
-    if (!ctx.opts.queueConfigFile) return refuse("this server has no queue config file");
-    if (!models || typeof models !== "object" || Array.isArray(models)) return refuse("model defaults are missing");
-    const table = models as Record<string, unknown>;
-    const knownSettings = [...SETTINGS_STEPS, ...PICK_PARTS] as readonly string[];
-    const unknown = Object.keys(table).find((step) => !knownSettings.includes(step));
-    if (unknown) return refuse(`unknown workflow step: ${unknown}`);
-    const next: Record<string, string> = {};
-    for (const step of SETTINGS_STEPS) {
-      const value = table[step];
-      if (Array.isArray(value)) return refuse(`duplicate model value for ${step}`);
-      if (typeof value !== "string" || !value) return refuse(`missing model for ${step}`);
-      const listed = listedModelName(Object.keys(ctx.queue.defaults.modelChoices ?? {}), value);
-      if ("candidates" in listed) {
-        const hint = listed.candidates.length ? ` (listed as ${listed.candidates.join(" or ")})` : "";
-        return refuse(`unknown or not-allowed model for ${step}: ${value}${hint}`);
-      }
-      next[step] = listed.name;
-    }
-    const sideModels: Record<string, string | null> = {};
-    for (const part of PICK_PARTS) {
-      const value = table[part];
-      if (value === undefined) continue;
-      if (Array.isArray(value) || typeof value !== "string") return refuse(`invalid model for ${part}`);
-      if (!value) { sideModels[part] = null; continue; }
-      const listed = listedModelName(Object.keys(ctx.queue.defaults.modelChoices ?? {}), value);
-      if ("candidates" in listed) return refuse(`unknown or not-allowed model for ${part}: ${value}`);
-      sideModels[part] = listed.name;
-    }
-
-    // The provider each phase runs on, posted as `provider.<step>` beside
-    // the model; a save that posts none leaves the defaults' providers as
-    // they are. Each must be configured and run the model saved with it.
-    const providers = asked.provider;
-    const nextProvider: Record<string, string | null> = {};
-    if (providers !== undefined && (providers === null || typeof providers !== "object" || Array.isArray(providers))) {
-      return refuse("provider defaults are malformed");
-    }
-    for (const [step, value] of Object.entries((providers ?? {}) as Record<string, unknown>)) {
-      if (!knownSettings.includes(step)) return refuse(`unknown workflow step: ${step}`);
-      if (value === "" || value === undefined) continue;
-      const found = providerKeyFrom(ctx.queue.defaults, value, ` for ${step}`);
-      if ("error" in found) return refuse(found.error);
-      const selectedModel = next[step] ?? sideModels[step];
-      if (!selectedModel) continue;
-      const refusal = providerModelError(ctx.queue.defaults, found.key, selectedModel);
-      if (refusal) return refuse(refusal.error);
-      nextProvider[step] = found.key;
-    }
-    // Review under Analyze is saved only as a choice of its own: a pair that
-    // follows Analyze, or a cleared model, removes both keys.
-    const before = ctx.queue.defaults;
-    const dropPlanReview = () => {
-      sideModels[PLAN_REVIEW] = null;
-      if (before.provider?.[PLAN_REVIEW] !== undefined) nextProvider[PLAN_REVIEW] = null;
-      else delete nextProvider[PLAN_REVIEW];
-    };
-    const planReview = sideModels[PLAN_REVIEW];
-    if (planReview === null) dropPlanReview();
-    if (planReview) {
-      const restedModel = before.model.analyze ?? before.model.default ?? "";
-      const listedRested = listedModelName(Object.keys(before.modelChoices ?? {}), restedModel);
-      const kept = planReviewToSave(
-        { model: planReview, provider: nextProvider[PLAN_REVIEW] ?? undefined },
-        { model: next.analyze ?? "", provider: nextProvider.analyze ?? undefined },
-        { model: "name" in listedRested ? listedRested.name : restedModel, provider: before.provider?.analyze },
-        before.model[PLAN_REVIEW] !== undefined,
-      );
-      if (!kept) dropPlanReview();
-    }
-
-    // timeoutSec: the ceiling a per-job request can only tighten
-    // (`tighten()` above), never loosen — this range catches an
-    // operator's typo.
-    const numField = (v: unknown, name: string, min: number, max: number): number | { error: string } => {
-      if (typeof v !== "number" || !Number.isFinite(v)) return { error: `invalid ${name}` };
-      if (v < min || v > max) return { error: `${name} must be between ${min} and ${max}` };
-      return v;
-    };
-
-    const askedTimeout = asked.timeoutSec;
-    if (!askedTimeout || typeof askedTimeout !== "object" || Array.isArray(askedTimeout)) {
-      return refuse("timeoutSec is missing");
-    }
-    const minutesTable = askedTimeout as Record<string, unknown>;
-    const timeoutSec: Record<string, number> = {};
-    for (const step of SETTINGS_STEPS) {
-      // Minutes on this route (matching the form and the existing
-      // render/job-state.ts:145 display convention) — converted to
-      // seconds, the unit every reader of `queue.defaults.timeoutSec`
-      // already expects.
-      const minutes = numField(minutesTable[step], `timeoutSec.${step}`, 1, 360);
-      if (typeof minutes !== "number") return refuse(minutes.error);
-      timeoutSec[step] = minutes * 60;
-    }
-
-    const modelUpdate = { ...next, ...sideModels };
-    const error = saveQueueSettings(ctx, { model: modelUpdate, timeoutSec, provider: nextProvider });
-    if (error) return refuse(error);
-    return json({ ok: true, model: next, timeoutSec });
-  }
-
-  if (path === "/api/queue/projects") {
-    if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
-    const sent = await readObjectBody(req);
-    if ("refusal" in sent) return sent.refusal;
-    const asked = sent.body;
-    const text = (v: unknown): string | undefined =>
-      typeof v === "string" && v.trim() ? v.trim() : undefined;
-    const rawName = typeof asked.name === "string" ? asked.name : "";
-    // A project's name is the directory the clone makes, so the name the
-    // allowlist gets is the one the form typed, trimmed.
-    const name = rawName.trim() || rawName;
-    // Adding a project means putting a directory under the projects
-    // root, and without `--root` there is no such root: refused in
-    // those words rather than half-done somewhere arbitrary.
-    if (!ctx.opts.projectRoot) {
-      return ctx.answerProjectChange(
-        "add-project",
-        name,
-        [{ step: "name", ok: false, error: "this server was started without --root, so it has no projects root to add to" }],
-      );
-    }
-    const result = await addProject(ctx.gitRun, ctx.opts.projectRoot, {
-      name: rawName,
-      gitUrl: text(asked.gitUrl),
-      description: text(asked.description),
-      specsPath: text(asked.specsPath),
-      worktreeLinks: text(asked.worktreeLinks),
-      codeLanding: text(asked.codeLanding),
-      previewFrom: text(asked.previewFrom),
-    }, ctx.opts.dashboardCheckoutRoot ?? DEFAULT_DASHBOARD_CHECKOUT_ROOT);
-    const steps = [...result.steps];
-    let readiness = result.readiness;
-    if (result.ok) {
-      ctx.allowed.add(name);
-      // The five-second scan is what every other list on this page
-      // reads; without this the very request after an Add would still
-      // not see the project.
-      ctx.invalidateScan();
-      steps.push(ctx.persistAllowlist("added to the allowlist"));
-      // What the form set beyond the name and the address is saved the way
-      // the Config tab's Save does it, now that the project exists: into
-      // `settings.yaml` or `.aide/config`, or committed to a tracked
-      // manifest. A field left empty and a default (Merge, `none`) write
-      // nothing, so an Add never overwrites a value a team's manifest
-      // already sets. For a project that tracks no manifest `addProject`
-      // has written the links, a `pr` landing and the description already,
-      // and a save writes only what differs from what is stored.
-      const previewFrom = text(asked.previewFrom);
-      const codeLanding = text(asked.codeLanding);
-      const later = {
-        ...(previewFrom && previewFrom !== "none" && { previewFrom }),
-        ...(codeLanding === "pr" && { codeLanding }),
-        ...(text(asked.worktreeLinks) && { worktreeLinks: text(asked.worktreeLinks) }),
-        ...(text(asked.description) && { description: text(asked.description) }),
-        ...(text(asked.testCmd) && { testCmd: text(asked.testCmd) }),
-        ...(text(asked.installCmd) && { installCmd: text(asked.installCmd) }),
-        ...(text(asked.previewCmd) && { previewCmd: text(asked.previewCmd) }),
-        ...(text(asked.worktreeSetup) && { worktreeSetup: text(asked.worktreeSetup) }),
-        ...(text(asked.acPrefix) && { acPrefix: text(asked.acPrefix) }),
-        ...(text(asked.icon) && { icon: text(asked.icon) }),
-      };
-      if (Object.keys(later).length) {
-        const saved = await updateProjectSettings(ctx.gitRun, join(ctx.opts.projectRoot, name), later, {
-          saveManifest: manifestSaver(ctx, name),
-          settingsFile: dashboardSettingsFile(ctx.opts.dashboardCheckoutRoot ?? DEFAULT_DASHBOARD_CHECKOUT_ROOT, name),
-        });
-        steps.push(...saved.steps);
-      }
-      // Eagerly, and here rather than inside `addProject` —
-      // the alternative is every project's first run, Save or Update
-      // paying a full clone inside the request that happens to need
-      // one, which is a latency regression nobody asked for. The
-      // readiness is re-taken afterwards so the answer describes the
-      // checkout that now exists, not the one that did not a moment
-      // ago.
-      // `clone: true`: this press is one of the two moments a clone may
-      // be made at all (`EnsureRequest.mayClone`).
-      await ctx.ensureCheckout(name, { clone: true });
-      // Again, after the ensure: the invalidation above can be refilled
-      // by a request that lands while the clone is still being made, and
-      // the clone's derived manifest is what lists a project whose own
-      // checkout holds none.
-      ctx.invalidateScan();
-      readiness = await assessProjectReadiness(
-        ctx.gitRun,
-        join(ctx.opts.projectRoot, name),
-        ctx.machineryProjectDir(name),
-      ).catch(() => readiness ?? undefined);
-    }
-    // Only for an add that got as far as writing its files: there is
-    // nothing to assess in a clone that never happened, and a
-    // readiness answer about a project that was not added would be an
-    // answer about somebody else's directory.
-    return ctx.answerProjectChange("add-project", name, steps, readiness);
-  }
+async function projectsTestCommandRoute(ctx: RoutesContext, req: Request, path: string): Promise<Response | null> {
 
   // What test command the root files of a git address point at, for the
   // Add form's placeholder. Matched by its exact path ahead of the
@@ -277,68 +72,10 @@ export async function handleQueueAdminRoutes(
     const gitUrl = sent.body.gitUrl;
     return json({ ok: true, testCmd: typeof gitUrl === "string" ? await detectRemoteTestCommand(ctx.gitRun, gitUrl) : null });
   }
+  return null;
+}
 
-  const settingsPost = path.match(/^\/api\/queue\/projects\/([^/]+)\/settings$/);
-  if (settingsPost) {
-    if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
-    const name = decodeURIComponent(settingsPost[1]!);
-    const sent = await readObjectBody(req);
-    if ("refusal" in sent) return sent.refusal;
-    if (!ctx.opts.projectRoot || !ctx.allowed.has(name)) {
-      return ctx.answerProjectChange(
-        "project-settings",
-        name,
-        [{ step: "name", ok: false, error: `"${name}" is not a project this dashboard knows` }],
-      );
-    }
-    const asked = sent.body;
-    const str = (v: unknown): string => (typeof v === "string" ? v : "");
-    // The manifest keys are committed and pushed in the checkout the
-    // settings are read from and written to, the moment they are saved —
-    // never left on disk for the next pull there to refuse over. On a
-    // serving host that entry is a link to the dashboard's own checkout
-    // (projects.md), so the lock is taken on the directory it resolves
-    // to: the same key a landing into that checkout takes.
-    const checkoutBase = ctx.opts.dashboardCheckoutRoot ?? DEFAULT_DASHBOARD_CHECKOUT_ROOT;
-    const settingsDir = join(ctx.opts.projectRoot, name);
-    const result = await updateProjectSettings(ctx.gitRun, settingsDir, {
-      ...("specsPath" in asked && { specsPath: str(asked.specsPath) }),
-      ...("worktreeLinks" in asked && { worktreeLinks: str(asked.worktreeLinks) }),
-      // Only when the form actually sent one: a caller posting only the older
-      // fields must not be read as clearing the ones it never
-      // mentioned.
-      ...("codeLanding" in asked && { codeLanding: str(asked.codeLanding) }),
-      ...("installCmd" in asked && { installCmd: str(asked.installCmd) }),
-      ...("previewCmd" in asked && { previewCmd: str(asked.previewCmd) }),
-      ...("worktreeSetup" in asked && { worktreeSetup: str(asked.worktreeSetup) }),
-      ...("testCmd" in asked && { testCmd: str(asked.testCmd) }),
-      ...("acPrefix" in asked && { acPrefix: str(asked.acPrefix) }),
-      ...("description" in asked && { description: str(asked.description) }),
-      ...("icon" in asked && { icon: str(asked.icon) }),
-      ...("previewFrom" in asked && { previewFrom: str(asked.previewFrom) }),
-    }, { saveManifest: manifestSaver(ctx, name), settingsFile: dashboardSettingsFile(checkoutBase, name) });
-    // The specs root a save just named is where the scan goes looking
-    // for this project's specs — without this the very next request
-    // would still read the old one.
-    if (result.ok) ctx.invalidateScan();
-    // And it is what `aide-run-spec` reads out of the DASHBOARD's own
-    // checkout: the write above reached the person's
-    // config, and `ensureCheckout` is what carries the new value
-    // across. Without this the next run would still read the old
-    // specs root — silently, which is the whole hazard of two config
-    // files.
-    // A fresh one, not any answer: a settings file saved a moment ago
-    // reaches the clone's derived manifest only in an ensure that
-    // started after the save.
-    const readiness = result.ok
-      ? await ctx.ensureCheckout(name, { fresh: true, clone: true }).then(() =>
-          assessProjectReadiness(ctx.gitRun, join(ctx.opts.projectRoot!, name), ctx.machineryProjectDir(name)).catch(
-            () => result.readiness,
-          ),
-        )
-      : result.readiness;
-    return ctx.answerProjectChange("project-settings", name, result.steps, readiness);
-  }
+async function projectsTestServerRoute(ctx: RoutesContext, req: Request, path: string): Promise<Response | null> {
 
   // The Deploy tab's "Testserver med testspecene" button.
   // Its form deliberately carries none of `deployform`/`actionform`/
@@ -368,6 +105,10 @@ export async function handleQueueAdminRoutes(
       headers: { location: `/projects/${encodeURIComponent(name)}?startTestServer=1` },
     });
   }
+  return null;
+}
+
+async function testServerStopRoute(ctx: RoutesContext, req: Request, path: string): Promise<Response | null> {
 
   // The Test servers list's own Stop button for a board tracked
   // under `MAIN_TEST_SERVER_KEY` — it has no real spec to be scoped to, so it
@@ -386,6 +127,10 @@ export async function handleQueueAdminRoutes(
     stopTestServer(ctx.testServers, name, MAIN_TEST_SERVER_KEY, "the Stop button on the Deploy tab");
     return json({ ok: true });
   }
+  return null;
+}
+
+async function projectsFetchSpecsRoute(ctx: RoutesContext, req: Request, path: string): Promise<Response | null> {
 
   // A session on another machine pushed specs and says so: ask origin again now instead of at the next sweep.
   // It takes nothing, so an unknown project is refused before anything is read.
@@ -402,6 +147,10 @@ export async function handleQueueAdminRoutes(
     await ctx.rereadProject(name).catch(() => {});
     return json({ ok: true });
   }
+  return null;
+}
+
+async function projectsRemoveRoute(ctx: RoutesContext, req: Request, path: string): Promise<Response | null> {
 
   const removal = path.match(/^\/api\/queue\/projects\/([^/]+)\/remove$/);
   if (removal) {
@@ -431,25 +180,26 @@ export async function handleQueueAdminRoutes(
     }
     return ctx.answerProjectChange("remove-project", name, steps);
   }
-
   return null;
 }
 
-/** Commits and pushes the manifest keys a save changed, in the checkout
- *  the project's settings are read from and written to, the moment they
- *  are saved — never left on disk for the next pull there to refuse
- *  over. On a serving host that entry is a link to the dashboard's own
- *  checkout (projects.md), so the lock is taken on the directory it
- *  resolves to: the same key a landing into that checkout takes. Both
- *  the settings route and the add route save through it. */
-function manifestSaver(ctx: RoutesContext, name: string): SaveManifest {
-  const codeRoot = realpathOr(join(ctx.opts.projectRoot!, name));
-  return (edits) =>
-    ctx.mergeLock.run(codeRoot, () =>
-      commitManifestEdits(
-        { run: ctx.gitRun, resolveBase: (root: string) => ctx.branchStatus.defaultBranch(root) },
-        codeRoot,
-        edits,
-      ),
-    );
+export async function handleQueueAdminRoutes(
+  ctx: RoutesContext,
+  req: Request,
+  path: string,
+): Promise<Response | null> {
+  return (
+    (await cleanupRoute(ctx, req, path)) ??
+    (await createRoute(ctx, req, path)) ??
+    (await queueDefaultsRoute(ctx, req, path)) ??
+    (await addProjectRoute(ctx, req, path)) ??
+    (await projectsTestCommandRoute(ctx, req, path)) ??
+    (await projectSettingsRoute(ctx, req, path)) ??
+    (await projectsTestServerRoute(ctx, req, path)) ??
+    (await testServerStopRoute(ctx, req, path)) ??
+    (await projectsFetchSpecsRoute(ctx, req, path)) ??
+    (await projectsRemoveRoute(ctx, req, path)) ??
+    null
+  );
 }
+

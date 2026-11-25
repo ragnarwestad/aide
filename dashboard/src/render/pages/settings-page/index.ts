@@ -149,62 +149,60 @@ function pageHelp(lang: Language): string {
   ).join("<br><br>");
 }
 
-export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opts: SettingsPageOptions): string {
-  const lang = opts.lang ?? "en";
+// timeoutSec is meaningful and already enforced (runner.ts) even on a
+// server with no modelChoices configured — only the AI/model columns
+// depend on a choice actually being offered.
+function settingsStepRow(opts: SettingsPageOptions, step: (typeof SETTINGS_STEPS)[number], lang: Language): string {
   const models = opts.modelChoices;
-  const back = backLink(
-    opts.backHref ?? "/",
-    t(lang, "shell.settings"),
-    helpPopover(t(lang, "settings.help.page.title"), pageHelp(lang)),
-    { keep: true, lang },
-  );
-  // timeoutSec is meaningful and already enforced (runner.ts) even on a
-  // server with no modelChoices configured — only the AI/model columns
-  // depend on a choice actually being offered.
-  const renderRow = (step: (typeof SETTINGS_STEPS)[number]): string => {
-    const timeout = opts.timeoutSec[step] ?? opts.timeoutSec.default ?? 1200;
-    const timeoutCell = `<td><input type="number" min="1" max="360" aria-label="${esc(t(lang, "settings.row.timeoutAria", { step: stepLabel(step, lang) }))}" ` +
-      `form="settings-form" name="timeoutSec.${step}" value="${toMinutes(timeout)}"></td>`;
-    if (!models.length) {
-      return `<tr data-step="${step}"><th scope="row">${esc(stepLabel(step, lang))}</th>${timeoutCell}</tr>`;
-    }
-    const configured = opts.defaultModels[step] ?? opts.defaultModels.default;
-    const { model: chosen } = settingsRowChoice(models, opts.defaultModels, step);
-    const providers = opts.providerChoices ?? [];
-    const resting = resolveProvider({ modelChoices: models, providerChoices: providers, defaultProviders: opts.defaultProviders }, step, chosen, []);
-    const pickerOpts = { modelChoices: models, providerChoices: providers };
-    return `<tr data-step="${step}"><th scope="row">${esc(stepLabel(step, lang))}</th>` +
-      `<td>${providerSelect({ name: `provider.${step}`, modelName: `model.${step}`, form: "settings-form", opts: pickerOpts, configured, chosenProvider: resting?.key, ariaLabel: t(lang, "settings.row.aiAria", { step: stepLabel(step, lang) }), wrap: false })}</td>` +
-      `<td>${modelSelect({ name: `model.${step}`, form: "settings-form", opts: pickerOpts, chosen, ariaLabel: t(lang, "settings.row.modelAria", { step: stepLabel(step, lang) }) })}</td>` +
-      `${timeoutCell}</tr>`;
-  };
-  const renderSideRow = (part: PickPart): string => {
-    if (!models.length) return "";
-    // Review under Analyze with no choice of its own rests on Analyze's pair.
-    const restsOn = part === PLAN_REVIEW && opts.defaultModels[part] === undefined ? "analyze" : part;
-    const { model: chosen } = settingsRowChoice(models, opts.defaultModels, restsOn);
-    const label = t(lang, `settings.side.${part}`);
-    const providers = opts.providerChoices ?? [];
-    const resting = resolveProvider({ modelChoices: models, providerChoices: providers, defaultProviders: opts.defaultProviders }, restsOn, chosen, []);
-    const pickerOpts = { modelChoices: models, providerChoices: providers };
-    return `<tr data-side="${part}"><th scope="row">${esc(label)}</th>` +
-      `<td>${providerSelect({ name: `provider.${part}`, modelName: `model.${part}`, form: "settings-form", opts: pickerOpts, configured: chosen, chosenProvider: resting?.key, ariaLabel: t(lang, "settings.row.aiAria", { step: label }), wrap: false })}</td>` +
-      `<td>${modelSelect({ name: `model.${part}`, form: "settings-form", opts: pickerOpts, chosen, ariaLabel: t(lang, "settings.row.modelAria", { step: label }) })}</td><td></td></tr>`;
-  };
+  const timeout = opts.timeoutSec[step] ?? opts.timeoutSec.default ?? 1200;
+  const timeoutCell = `<td><input type="number" min="1" max="360" aria-label="${esc(t(lang, "settings.row.timeoutAria", { step: stepLabel(step, lang) }))}" ` +
+    `form="settings-form" name="timeoutSec.${step}" value="${toMinutes(timeout)}"></td>`;
+  if (!models.length) {
+    return `<tr data-step="${step}"><th scope="row">${esc(stepLabel(step, lang))}</th>${timeoutCell}</tr>`;
+  }
+  const configured = opts.defaultModels[step] ?? opts.defaultModels.default;
+  const { model: chosen } = settingsRowChoice(models, opts.defaultModels, step);
+  const providers = opts.providerChoices ?? [];
+  const resting = resolveProvider({ modelChoices: models, providerChoices: providers, defaultProviders: opts.defaultProviders }, step, chosen, []);
+  const pickerOpts = { modelChoices: models, providerChoices: providers };
+  return `<tr data-step="${step}"><th scope="row">${esc(stepLabel(step, lang))}</th>` +
+    `<td>${providerSelect({ name: `provider.${step}`, modelName: `model.${step}`, form: "settings-form", opts: pickerOpts, configured, chosenProvider: resting?.key, ariaLabel: t(lang, "settings.row.aiAria", { step: stepLabel(step, lang) }), wrap: false })}</td>` +
+    `<td>${modelSelect({ name: `model.${step}`, form: "settings-form", opts: pickerOpts, chosen, ariaLabel: t(lang, "settings.row.modelAria", { step: stepLabel(step, lang) }) })}</td>` +
+    `${timeoutCell}</tr>`;
+}
+
+function settingsSideRow(opts: SettingsPageOptions, part: PickPart, lang: Language): string {
+  const models = opts.modelChoices;
+  if (!models.length) return "";
+  // Review under Analyze with no choice of its own rests on Analyze's pair.
+  const restsOn = part === PLAN_REVIEW && opts.defaultModels[part] === undefined ? "analyze" : part;
+  const { model: chosen } = settingsRowChoice(models, opts.defaultModels, restsOn);
+  const label = t(lang, `settings.side.${part}`);
+  const providers = opts.providerChoices ?? [];
+  const resting = resolveProvider({ modelChoices: models, providerChoices: providers, defaultProviders: opts.defaultProviders }, restsOn, chosen, []);
+  const pickerOpts = { modelChoices: models, providerChoices: providers };
+  return `<tr data-side="${part}"><th scope="row">${esc(label)}</th>` +
+    `<td>${providerSelect({ name: `provider.${part}`, modelName: `model.${part}`, form: "settings-form", opts: pickerOpts, configured: chosen, chosenProvider: resting?.key, ariaLabel: t(lang, "settings.row.aiAria", { step: label }), wrap: false })}</td>` +
+    `<td>${modelSelect({ name: `model.${part}`, form: "settings-form", opts: pickerOpts, chosen, ariaLabel: t(lang, "settings.row.modelAria", { step: label }) })}</td><td></td></tr>`;
+}
+
+/** The Phases tab: a row per step and side part, in two groups. */
+function settingsPhasesPanel(opts: SettingsPageOptions, lang: Language): string {
+  const models = opts.modelChoices;
   // One <tbody> per group, which is what makes the grouping structural
   // rather than a styled blank row: a reader of the markup, and anything
   // that walks the table, sees two bodies rather than one run of rows.
   const columns = models.length ? 4 : 2;
   const group = (label: string, steps: readonly (typeof SETTINGS_STEPS)[number][]): string =>
     `<tbody><tr class="settingsgroup"><th scope="rowgroup" colspan="${columns}">${esc(label)}</th></tr>` +
-    steps.flatMap((step) => [renderRow(step), ...(SIDE_PARTS_OF[step] ?? []).map(renderSideRow)]).join("") +
+    steps.flatMap((step) => [settingsStepRow(opts, step, lang), ...(SIDE_PARTS_OF[step] ?? []).map((part) => settingsSideRow(opts, part, lang))]).join("") +
     `</tbody>`;
   const rows =
     group(t(lang, "settings.group.onSpec"), SPEC_STEPS) +
     group(t(lang, "settings.group.offSpec"), OTHER_STEPS);
   const modelHeaders = models.length ? `<th>${esc(t(lang, "schedule.ai"))}</th><th>${esc(t(lang, "schedule.model"))}</th>` : "";
   const noModelsNote = models.length ? "" : `<p class="muted">${esc(t(lang, "settings.noModels"))}</p>`;
-  const phasesPanel =
+  return (
     `<form id="settings-form" class="settingsform" data-settings-form method="post" action="/api/queue/settings">` +
     messageSlot("refused", "failed") +
     messageSlot("notice", "info") +
@@ -213,7 +211,19 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
     `<div class="configactions">` +
     btn({ id: "settingsform-save", label: t(lang, "list.checksSave"), variant: "primary", pending: t(lang, "list.checksSaving") }) +
     btn({ id: "settingsform-cancel", label: t(lang, "dialog.cancel"), type: "button", disabled: true }) +
-    `</div></form>`;
+    `</div></form>`
+  );
+}
+
+export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opts: SettingsPageOptions): string {
+  const lang = opts.lang ?? "en";
+  const back = backLink(
+    opts.backHref ?? "/",
+    t(lang, "shell.settings"),
+    helpPopover(t(lang, "settings.help.page.title"), pageHelp(lang)),
+    { keep: true, lang },
+  );
+  const phasesPanel = settingsPhasesPanel(opts, lang);
   const open = resolveSettingsTab(opts.tab);
   const top = tabBar(SETTINGS_PANELS, SETTINGS_ROUTE, open, {}, "", { lang });
   const panel = open === "phases"

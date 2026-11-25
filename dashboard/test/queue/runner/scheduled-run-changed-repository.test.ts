@@ -6,7 +6,7 @@
 
 import { describe, expect, test } from "bun:test";
 import type { Job } from "../../../src/queue/queue.ts";
-import { stepDoneHandler } from "../../../src/serve/runner-setup.ts";
+import { stepDoneHandler } from "../../../src/serve/runner-setup/index.ts";
 
 const job = (over: Partial<Job> = {}): Job =>
   ({

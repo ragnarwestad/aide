@@ -94,18 +94,9 @@ function payloadFor(a: Attention, job: Job, lang: Language): { title: string; bo
 
 const where = (endpoint: string): string => `${new URL(endpoint).origin}/…${endpoint.slice(-12)}`;
 
-export function createPush(opts: PushOptions): Push {
-  const send = opts.fetch ?? fetch;
-  const log = opts.log ?? ((line: string) => console.error(line));
-  const seen = new Map<string, Seen>();
-  const pending = new Set<Promise<void>>();
-  const keys = loadOrCreateKeys(opts.keyPath);
-  const failedCreates = createFailedCreates(opts.failedCreatesPath);
-  const store: FailedCreates = { ...failedCreates, dismiss: (id) => {
-    const found = failedCreates.dismiss(id);
-    if (found) opts.notify?.();
-    return found;
-  } };
+/** The devices that asked for notifications, kept in a file or in memory;
+ *  reads and writes run one after another. */
+function subscriptionStore(opts: PushOptions, keys: ReturnType<typeof loadOrCreateKeys>) {
   let memory: Subscription[] = [];
   // Reads and writes of the subscriptions run one after another.
   let chain: Promise<unknown> = Promise.resolve();
@@ -127,24 +118,53 @@ export function createPush(opts: PushOptions): Push {
       if (subs.some((s) => s.endpoint === endpoint)) save(subs.filter((s) => s.endpoint !== endpoint));
     });
 
-  async function deliver(a: Attention, job: Job): Promise<void> {
-    const subs = await exclusive(load);
-    const vapid = await keys;
-    const waiting = opts.waiting?.();
-    await Promise.all(
-      subs.map(async (sub) => {
-        const payload = JSON.stringify({ ...payloadFor(a, job, sub.lang), ...(waiting === undefined ? {} : { waiting }) });
-        const outcome = await sendPush(sub, payload, vapid, send);
-        if ("error" in outcome) return log(`push: ${where(sub.endpoint)} could not be reached — ${outcome.error}`);
-        if (outcome.status >= 200 && outcome.status < 300) return;
-        // The push service says this device is gone for good.
-        if (outcome.status === 404 || outcome.status === 410) return void (await remove(sub.endpoint));
-        // Anything else may be this server's own fault (a rejected `sub`,
-        // a bad token): keep the device, say what the service said.
-        log(`push: ${where(sub.endpoint)} answered ${outcome.status} ${outcome.detail}`.trim());
-      }),
-    );
-  }
+  return { exclusive, load, save, remove };
+}
+
+async function deliverAttention(
+  a: Attention, job: Job,
+  ctx: { opts: PushOptions; keys: ReturnType<typeof loadOrCreateKeys>; subs: ReturnType<typeof subscriptionStore>; send: typeof fetch; log: (line: string) => void },
+): Promise<void> {
+  const { opts, keys, send, log } = ctx;
+  const { exclusive, load, remove } = ctx.subs;
+  const subs = await exclusive(load);
+  const vapid = await keys;
+  const waiting = opts.waiting?.();
+  await Promise.all(
+    subs.map(async (sub) => {
+      const payload = JSON.stringify({ ...payloadFor(a, job, sub.lang), ...(waiting === undefined ? {} : { waiting }) });
+      const outcome = await sendPush(sub, payload, vapid, send);
+      if ("error" in outcome) return log(`push: ${where(sub.endpoint)} could not be reached — ${outcome.error}`);
+      if (outcome.status >= 200 && outcome.status < 300) return;
+      // The push service says this device is gone for good.
+      if (outcome.status === 404 || outcome.status === 410) return void (await remove(sub.endpoint));
+      // Anything else may be this server's own fault (a rejected `sub`,
+      // a bad token): keep the device, say what the service said.
+      log(`push: ${where(sub.endpoint)} answered ${outcome.status} ${outcome.detail}`.trim());
+    }),
+  );
+}
+
+/** The failed creates, telling the page when one is dismissed. */
+function notifyingFailedCreates(failedCreates: FailedCreates, notify: (() => void) | undefined): FailedCreates {
+  return { ...failedCreates, dismiss: (id) => {
+    const found = failedCreates.dismiss(id);
+    if (found) notify?.();
+    return found;
+  } };
+}
+
+export function createPush(opts: PushOptions): Push {
+  const send = opts.fetch ?? fetch;
+  const log = opts.log ?? ((line: string) => console.error(line));
+  const seen = new Map<string, Seen>();
+  const pending = new Set<Promise<void>>();
+  const keys = loadOrCreateKeys(opts.keyPath);
+  const failedCreates = createFailedCreates(opts.failedCreatesPath);
+  const store = notifyingFailedCreates(failedCreates, opts.notify);
+  const subs = subscriptionStore(opts, keys);
+  const { exclusive, load, save, remove } = subs;
+  const deliver = (a: Attention, job: Job) => deliverAttention(a, job, { opts, keys, subs, send, log });
 
   const start = (a: Attention, job: Job): void => {
     const p = deliver(a, job).catch((e) => log(`push: delivery failed — ${e instanceof Error ? e.message : String(e)}`));

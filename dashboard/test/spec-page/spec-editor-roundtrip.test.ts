@@ -24,7 +24,7 @@
 
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { dirname, join } from "node:path";
-import { asFileText } from "../../src/git/specs-pull.ts";
+import { asFileText } from "../../src/git/specs-pull/index.ts";
 import { unescapeMarkdown } from "../../src/spec-editor/unescape-markdown.ts";
 
 const REAL_DESCRIPTION = `# Replace the spec-editing textarea with Toast UI Editor - Description

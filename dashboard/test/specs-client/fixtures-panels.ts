@@ -58,6 +58,23 @@ export function buildCreateForm(chips: Chip[], tokenInput: { value: string }, on
   return { createButton, slot, resets, projectSelect, createForm };
 }
 
+/** A form's submit button, rendered enabled, with the word it shows
+ *  while its request is out. */
+function pendingButton(text: string, pending: string, className: string) {
+  const button = {
+    textContent: text,
+    title: "",
+    disabled: false,
+    dataset: { pending },
+    className,
+    isConnected: true,
+    insertAdjacentHTML: () => {},
+    classList: {} as ReturnType<typeof classes>,
+  };
+  button.classList = classes(button);
+  return button;
+}
+
 /** The Projects panel: one Remove form, and one
  *  Add form, the one whose SUCCESS has something to say — the
  *  readiness answer the server worked out for the project that was
@@ -66,17 +83,7 @@ export function buildProjectsPanel(tokenInput: { value: string }, on: Record<str
   // The button is rendered ENABLED by the server — turning it off is
   // this code's job, and a fake that started it disabled could not
   // tell the two apart.
-  const removeButton = {
-    textContent: "Remove",
-    title: "",
-    disabled: false,
-    dataset: { pending: "removing…" },
-    className: "btn danger",
-    isConnected: true,
-    insertAdjacentHTML: () => {},
-    classList: {} as ReturnType<typeof classes>,
-  };
-  removeButton.classList = classes(removeButton);
+  const removeButton = pendingButton("Remove", "removing…", "btn danger");
   const removeSlot = { textContent: "" };
   // Remove project asks in a progress dialog, open since its button was
   // pressed: the refusal line is the dialog's, outside the posting form,
@@ -97,17 +104,7 @@ export function buildProjectsPanel(tokenInput: { value: string }, on: Record<str
     getAttribute: (name: string) => (name === "data-cover-note" ? "Removing…" : null),
     querySelector: (sel: string) => (sel.includes("refused") ? removeSlot : null),
   };
-  const addButton = {
-    textContent: "Save",
-    title: "",
-    disabled: false,
-    dataset: { pending: "saving…" },
-    className: "btn primary",
-    isConnected: true,
-    insertAdjacentHTML: () => {},
-    classList: {} as ReturnType<typeof classes>,
-  };
-  addButton.classList = classes(addButton);
+  const addButton = pendingButton("Save", "saving…", "btn primary");
   // `className` too: the slot the server renders is the REFUSAL slot,
   // and a success written into it must not stay the colour of one.
   const addSlot = { textContent: "", className: "refused rowmsg failed" };

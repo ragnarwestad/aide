@@ -81,106 +81,121 @@ def _starts_a_regex(src, i):
     return ch not in ")]}"
 
 
+def _read_template(src, j):
+    """The index after a template's closing backtick, from j inside it, or
+    minus the index after `${` when an expression opens first."""
+    n = len(src)
+    while j < n:
+        ch = src[j]
+        if ch == "\\":
+            j += 2
+        elif ch == "`":
+            return j + 1
+        elif ch == "$" and src[j + 1:j + 2] == "{":
+            return -(j + 2)
+        else:
+            j += 1
+    return n
+
+
+def _end_of_regex(src, i):
+    """The index after the regular expression literal starting at the slash
+    at i, or None when no closing slash comes before the line ends."""
+    j = i + 1
+    in_class = False
+    while j < len(src):
+        ch = src[j]
+        if ch == "\\":
+            j += 2
+            continue
+        if ch == "\n":
+            return None
+        if ch == "[":
+            in_class = True
+        elif ch == "]":
+            in_class = False
+        elif ch == "/" and not in_class:
+            return j + 1
+        j += 1
+    return None
+
+
+class _ScriptScan:
+    """The comment and string spans of one TypeScript or CSS source, read
+    token by token. A template literal's `${` expression is followed by
+    brace depth, so its closing `}` resumes the template."""
+
+    def __init__(self, src):
+        self.src = src
+        self.comments, self.strings = [], []
+        self.depth = 0
+        self.templates = []  # (start of the template, brace depth outside its open expression)
+
+    def comment(self, i, closer):
+        e = self.src.find(closer, i + len(closer) if closer != "\n" else i)
+        e = len(self.src) if e < 0 else e + (len(closer) if closer != "\n" else 0)
+        self.comments.append((i, e))
+        return e
+
+    def template_from(self, start, j):
+        """Read the template that started at start on from j; where an
+        expression opens, remember the depth outside it."""
+        r = _read_template(self.src, j)
+        if r < 0:
+            self.templates.append((start, self.depth))
+            self.depth = 0
+            return -r
+        self.strings.append((start, r))
+        return r
+
+    def close_brace(self, i):
+        if self.depth == 0 and self.templates:
+            start, outer = self.templates.pop()
+            self.depth = outer
+            return self.template_from(start, i + 1)
+        self.depth = max(0, self.depth - 1)
+        return i + 1
+
+    def slash(self, i):
+        """A regular expression literal or a division."""
+        if _starts_a_regex(self.src, i):
+            e = _end_of_regex(self.src, i)
+            if e is not None:
+                self.strings.append((i, e))
+                return e
+        return i + 1
+
+    def token(self, tok, i):
+        """Read the token at i, and return where the scan goes on."""
+        if tok == "//":
+            return self.comment(i, "\n")
+        if tok == "/*":
+            return self.comment(i, "*/")
+        if tok in "\"'":
+            e = _end_of_quote(self.src, i, tok)
+            self.strings.append((i, e))
+            return e
+        if tok == "`":
+            return self.template_from(i, i + 1)
+        if tok == "{":
+            self.depth += 1
+            return i + 1
+        if tok == "}":
+            return self.close_brace(i)
+        return self.slash(i)
+
+
 def scan_script(src, css=False):
     """Return the comment spans and the string spans of TypeScript or CSS."""
-    comments, strings = [], []
     pattern = CSS_TOKEN if css else TS_TOKEN
-    n = len(src)
+    scan = _ScriptScan(src)
     i = 0
-    depth = 0
-    templates = []  # (start of the template, brace depth outside its open expression)
-
-    def read_template(j):
-        # Returns the index after the closing backtick, or -1 when an expression opens.
-        while j < n:
-            ch = src[j]
-            if ch == "\\":
-                j += 2
-            elif ch == "`":
-                return j + 1
-            elif ch == "$" and src[j + 1:j + 2] == "{":
-                return -(j + 2)
-            else:
-                j += 1
-        return n
-
     while True:
         m = pattern.search(src, i)
         if not m:
             break
-        tok = m.group()
-        i = m.start()
-        if tok == "//":
-            e = src.find("\n", i)
-            e = n if e < 0 else e
-            comments.append((i, e))
-            i = e
-        elif tok == "/*":
-            e = src.find("*/", i + 2)
-            e = n if e < 0 else e + 2
-            comments.append((i, e))
-            i = e
-        elif tok in "\"'":
-            e = _end_of_quote(src, i, tok)
-            strings.append((i, e))
-            i = e
-        elif tok == "`":
-            templates.append((i, depth))
-            r = read_template(i + 1)
-            if r < 0:
-                templates[-1] = (i, depth)
-                depth = 0
-                i = -r
-            else:
-                strings.append((i, r))
-                templates.pop()
-                i = r
-        elif tok == "{":
-            depth += 1
-            i += 1
-        elif tok == "}":
-            if depth == 0 and templates:
-                start, outer = templates[-1]
-                depth = outer
-                r = read_template(i + 1)
-                if r < 0:
-                    templates[-1] = (start, depth)
-                    depth = 0
-                    i = -r
-                else:
-                    templates.pop()
-                    strings.append((start, r))
-                    i = r
-            else:
-                depth = max(0, depth - 1)
-                i += 1
-        else:  # a slash: a regular expression literal or a division
-            if _starts_a_regex(src, i):
-                j = i + 1
-                in_class = False
-                closed = False
-                while j < n:
-                    ch = src[j]
-                    if ch == "\\":
-                        j += 2
-                        continue
-                    if ch == "\n":
-                        break
-                    if ch == "[":
-                        in_class = True
-                    elif ch == "]":
-                        in_class = False
-                    elif ch == "/" and not in_class:
-                        j += 1
-                        closed = True
-                        break
-                    j += 1
-                if closed:
-                    strings.append((i, j))
-                    i = j
-                    continue
-            i += 1
-    return comments, strings
+        i = scan.token(m.group(), m.start())
+    return scan.comments, scan.strings
 
 
 def _closing(src, i, mask, open_ch, close_ch):

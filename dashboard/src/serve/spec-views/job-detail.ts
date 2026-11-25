@@ -5,6 +5,7 @@
 import type { JobDetailView, JobStepResultView } from "../../render";
 import { withModelId } from "../../render/ui/components/model-label.ts";
 import type { Job } from "../../queue/queue.ts";
+import type { QueueDefaults } from "../../queue/types.ts";
 import { existsSync, readdirSync } from "node:fs";
 import { resolveStepModel, tailFile, tailFileAt } from "../serve-helpers";
 import { stepLog } from "../../queue/parse-stream";
@@ -78,47 +79,65 @@ export async function jobDetailView(
     // assistant's own final message, and `r.repos` (its own commit
     // range) yields the changed-files list, via one `git diff --numstat`
     // per repo the step touched.
-    results: await Promise.all(
-      job.results.map(async (r) => {
-        const tool = r.tool ?? named;
-        // The run log first, the transcript second: every offset in the log is then at most
-        // the size the transcript has when it is read, whether or not the step is still running.
-        const runLog = r.streamFile ? readRunLog(r.streamFile) : undefined;
-        const tail = r.streamFile ? tailFileAt(r.streamFile, Infinity) : undefined;
-        const choice = resolveStepModel(job, r.step, defaults.model ?? {});
-        const changedFiles = r.repos
-          ? (
-              await Promise.all(
-                r.repos.map((repo) => diffStatBetween(ctx.gitRun, repo.root, repo.headBefore, repo.headAfter)),
-              )
-            ).flat()
-          : undefined;
-        const shown = tail ? stepLog(tail, runLog, { tool, final: true, codexSession: codexSessionReader(r.provider?.key ?? resolveStepProvider(job, r.step, defaults), defaults.providers) }) : undefined;
-        return {
-          ...r,
-          tokens: r.tokens?.total,
-          logs: shown?.logs,
-          errors: shown?.errors,
-          aiModel: withModelId(aiLabel(tool, choice, r.provider?.name), r.modelId),
-          changedFiles,
-          // Only the newest result of a step, which is the one the route serves.
-          screenshots: job.results.findLast((o) => o.step === r.step) === r ? stepScreenshots(job.id, r.step, r.streamFile) : undefined,
-        };
-      }),
-    ),
+    results: await Promise.all(job.results.map((r) => stepResultView(ctx, job, r, named, defaults))),
     // The step running RIGHT NOW, when one is: it has no `StepResult`
     // yet, so it cannot ride along in `results` above, and its
     // transcript is the job's own live pointer.
-    runningStep:
-      running && step
-        ? {
-            step,
-            sessionId: job.sessionId,
-            logs: live?.logs ?? [],
-            errors: live?.errors ?? [],
-            aiModel: aiLabel(tool, resolveStepModel(job, step, defaults.model ?? {}),
-              job.provider?.[step] ? (defaults.providers?.[job.provider[step]!]?.name ?? job.provider[step]) : undefined),
-          }
-        : undefined,
+    runningStep: running && step ? runningStepView(job, step, tool, live, defaults) : undefined,
+  };
+}
+
+type ProjectDefaults = QueueDefaults;
+type StepResult = Job["results"][number];
+
+/** One finished step, off its own transcript and its own commit range. */
+async function stepResultView(
+  ctx: SpecViewsContext,
+  job: Job,
+  r: StepResult,
+  named: StepResult["tool"],
+  defaults: ProjectDefaults,
+) {
+  const tool = r.tool ?? named;
+  // The run log first, the transcript second: every offset in the log is then at most
+  // the size the transcript has when it is read, whether or not the step is still running.
+  const runLog = r.streamFile ? readRunLog(r.streamFile) : undefined;
+  const tail = r.streamFile ? tailFileAt(r.streamFile, Infinity) : undefined;
+  const choice = resolveStepModel(job, r.step, defaults.model ?? {});
+  const changedFiles = r.repos
+    ? (
+        await Promise.all(
+          r.repos.map((repo) => diffStatBetween(ctx.gitRun, repo.root, repo.headBefore, repo.headAfter)),
+        )
+      ).flat()
+    : undefined;
+  const shown = tail ? stepLog(tail, runLog, { tool, final: true, codexSession: codexSessionReader(r.provider?.key ?? resolveStepProvider(job, r.step, defaults), defaults.providers) }) : undefined;
+  return {
+    ...r,
+    tokens: r.tokens?.total,
+    logs: shown?.logs,
+    errors: shown?.errors,
+    aiModel: withModelId(aiLabel(tool, choice, r.provider?.name), r.modelId),
+    changedFiles,
+    // Only the newest result of a step, which is the one the route serves.
+    screenshots: job.results.findLast((o) => o.step === r.step) === r ? stepScreenshots(job.id, r.step, r.streamFile) : undefined,
+  };
+}
+
+/** The step running now, off the job's live transcript. */
+function runningStepView(
+  job: Job,
+  step: string,
+  tool: string,
+  live: ReturnType<typeof stepLog> | undefined,
+  defaults: ProjectDefaults,
+): JobDetailView["runningStep"] {
+  return {
+    step,
+    sessionId: job.sessionId,
+    logs: live?.logs ?? [],
+    errors: live?.errors ?? [],
+    aiModel: aiLabel(tool, resolveStepModel(job, step, defaults.model ?? {}),
+      job.provider?.[step] ? (defaults.providers?.[job.provider[step]!]?.name ?? job.provider[step]) : undefined),
   };
 }

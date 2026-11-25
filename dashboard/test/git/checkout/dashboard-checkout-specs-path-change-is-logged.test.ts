@@ -17,7 +17,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { createGitRunner } from "../../../src/git/process/index.ts";
-import { dashboardCheckoutRoot, ensureDashboardCheckout } from "../../../src/git/dashboard-checkout.ts";
+import { dashboardCheckoutRoot, ensureDashboardCheckout } from "../../../src/git/dashboard-checkout/index.ts";
 import { configValue } from "../../../src/project/discover";
 
 const run = createGitRunner();

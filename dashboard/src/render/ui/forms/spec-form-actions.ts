@@ -34,6 +34,99 @@ import { FORM_ACTION_PREFIXES, FORM_SAVED, PAGE_DRAWN, SPEC_DETAIL_DRAWN } from 
 // anything; test/render/ui/spec-form-actions.test.ts runs the
 // transpiled source against a real DOM.
 
+type FormField = HTMLInputElement | HTMLTextAreaElement;
+type Snapshot = { el: FormField; value: string; checked: boolean }[];
+
+function formFields(form: HTMLFormElement): FormField[] {
+  return Array.from(form.elements).filter(
+    (el): el is FormField => "name" in el && !!(el as HTMLInputElement).name,
+  );
+}
+
+function takeSnapshot(fields: FormField[]): Snapshot {
+  return fields.map((el) => ({ el, value: el.value, checked: (el as HTMLInputElement).checked }));
+}
+
+// A field inside the form that names another form — the phase
+// table's AI and model, saved the moment they are picked — changes
+// nothing this Save would post. Nor does a disabled one: the page
+// disables the spec's fields while one of its saves is out, and the
+// editor's own change re-fired on its hidden field must not offer
+// that Save a second time.
+function isOwnFieldEvent(event: Event, form: HTMLFormElement): boolean {
+  const target = event.target as (Element & { disabled?: boolean }) | null;
+  if (target?.disabled) return false;
+  const named = target?.getAttribute?.("form");
+  return !named || named === form.id;
+}
+
+/** Cancel: the fields go back to the snapshot, and the page to
+ *  `leaveTo` when the form names one. */
+function cancelForm(form: HTMLFormElement, snapshot: Snapshot, leaveTo: string | null, setDirty: (dirty: boolean) => void): void {
+  for (const { el, value, checked } of snapshot) {
+    if (el.type === "checkbox" || el.type === "radio") (el as HTMLInputElement).checked = checked;
+    else el.value = value;
+  }
+    // The WYSIWYG view a reader actually sees is a separate DOM tree
+    // spec-editor/index.ts's editor library owns — this is the only
+    // way to tell a mounted one "redraw from your textarea" from
+    // outside it. A no-op where there is none (the Checks tab).
+    form.querySelector(".spec-editor-raw")?.dispatchEvent(new Event("spec-cancel"));
+    // Last: both controls go back to inactive, even if the redraw
+    // above fired its own change event along the way.
+    setDirty(false);
+    // The chips the lift script moved follow their boxes back: it
+    // listens for `change` on the document, and a restore is silent.
+    // Unquoted attribute value, which CSS allows for an identifier:
+    // quoted, the emitted script would contain the literal
+    // `name="dependsOn"`, and the shell inlines this file in the page
+    // head — where a test looking for that field would find the
+    // script instead.
+    for (const el of form.querySelectorAll("input[name=dependsOn]")) {
+      el.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+    setDirty(false);
+  if (leaveTo) setTimeout(() => {
+    const link = document.createElement("a");
+    link.href = leaveTo;
+    link.click();
+  }, 0);
+}
+
+function bindFormActions(form: HTMLFormElement | null, prefix: string): void {
+  const save = document.getElementById(`${prefix}-save`) as HTMLButtonElement | null;
+  const cancel = document.getElementById(`${prefix}-cancel`) as HTMLButtonElement | null;
+  // A form whose Cancel is a link back to the saved page has only its Save here.
+  if (!form || !save) return;
+  // On the form itself, so a second event for a form already bound adds nothing.
+  if (form.hasAttribute("data-actions-bound")) return;
+  form.setAttribute("data-actions-bound", "");
+
+  // Taken once, at load — used only if Cancel is actually pressed
+  // (the restore), never for the dirty check, which is the
+  // one-way latch and needs no snapshot of its own.
+  let snapshot = takeSnapshot(formFields(form));
+
+  // A form that names where Cancel goes (a page opened only to be read, or
+  // to change something) has a Cancel that is pressable from the start: it
+  // restores the fields and leaves.
+  const leaveTo = form.getAttribute("data-cancel-href");
+  const setDirty = (dirty: boolean): void => {
+    save.disabled = !dirty;
+    if (cancel) cancel.disabled = leaveTo ? false : !dirty;
+  };
+  // A Save that went through without the page being drawn again: what
+  // the fields hold now is what Cancel goes back to.
+  form.addEventListener(FORM_SAVED, () => {
+    snapshot = takeSnapshot(snapshot.map(({ el }) => el));
+    setDirty(false);
+  });
+  form.addEventListener("input", (event) => { if (isOwnFieldEvent(event, form)) setDirty(true); });
+  form.addEventListener("change", (event) => { if (isOwnFieldEvent(event, form)) setDirty(true); });
+  setDirty(false);
+  cancel?.addEventListener("click", () => cancelForm(form, snapshot, leaveTo, setDirty));
+}
+
 (() => {
   // Every form on the page that carries the pair, not just the one:
   // the spec page has the Checks/document form AND the tracking form
@@ -43,10 +136,10 @@ import { FORM_ACTION_PREFIXES, FORM_SAVED, PAGE_DRAWN, SPEC_DETAIL_DRAWN } from 
   // otherwise the first form of each kind has the pair named for the kind.
   const bindAll = (): void => {
     for (const prefix of FORM_ACTION_PREFIXES) {
-      bind(document.querySelector(`form.${prefix}:not([data-actions-id])`) as HTMLFormElement | null, prefix);
+      bindFormActions(document.querySelector(`form.${prefix}:not([data-actions-id])`) as HTMLFormElement | null, prefix);
     }
     for (const form of Array.from(document.querySelectorAll("form[data-actions-id]")) as HTMLFormElement[]) {
-      bind(form, form.getAttribute("data-actions-id")!);
+      bindFormActions(form, form.getAttribute("data-actions-id")!);
     }
   };
   document.addEventListener("DOMContentLoaded", bindAll);
@@ -55,88 +148,4 @@ import { FORM_ACTION_PREFIXES, FORM_SAVED, PAGE_DRAWN, SPEC_DETAIL_DRAWN } from 
   // too: this script imports nothing).
   document.addEventListener(SPEC_DETAIL_DRAWN, bindAll);
   document.addEventListener(PAGE_DRAWN, bindAll);
-
-  function bind(form: HTMLFormElement | null, prefix: string): void {
-    const save = document.getElementById(`${prefix}-save`) as HTMLButtonElement | null;
-    const cancel = document.getElementById(`${prefix}-cancel`) as HTMLButtonElement | null;
-    // A form whose Cancel is a link back to the saved page has only its Save here.
-    if (!form || !save) return;
-    // On the form itself, so a second event for a form already bound adds nothing.
-    if (form.hasAttribute("data-actions-bound")) return;
-    form.setAttribute("data-actions-bound", "");
-
-    const fields = (): (HTMLInputElement | HTMLTextAreaElement)[] =>
-      Array.from(form.elements).filter(
-        (el): el is HTMLInputElement | HTMLTextAreaElement => "name" in el && !!(el as HTMLInputElement).name,
-      );
-    // Taken once, at load — used only if Cancel is actually pressed
-    // (the restore below), never for the dirty check, which is the
-    // one-way latch and needs no snapshot of its own.
-    let snapshot = fields().map((el) => ({
-      el,
-      value: el.value,
-      checked: (el as HTMLInputElement).checked,
-    }));
-
-    // A form that names where Cancel goes (a page opened only to be read, or
-    // to change something) has a Cancel that is pressable from the start: it
-    // restores the fields and leaves.
-    const leaveTo = form.getAttribute("data-cancel-href");
-    const setDirty = (dirty: boolean): void => {
-      save.disabled = !dirty;
-      if (cancel) cancel.disabled = leaveTo ? false : !dirty;
-    };
-    // A field inside the form that names another form — the phase
-    // table's AI and model, saved the moment they are picked — changes
-    // nothing this Save would post. Nor does a disabled one: the page
-    // disables the spec's fields while one of its saves is out, and the
-    // editor's own change re-fired on its hidden field must not offer
-    // that Save a second time.
-    const ours = (event: Event): boolean => {
-      const target = event.target as (Element & { disabled?: boolean }) | null;
-      if (target?.disabled) return false;
-      const named = target?.getAttribute?.("form");
-      return !named || named === form.id;
-    };
-    // A Save that went through without the page being drawn again: what
-    // the fields hold now is what Cancel goes back to.
-    form.addEventListener(FORM_SAVED, () => {
-      snapshot = snapshot.map(({ el }) => ({ el, value: el.value, checked: (el as HTMLInputElement).checked }));
-      setDirty(false);
-    });
-    form.addEventListener("input", (event) => { if (ours(event)) setDirty(true); });
-    form.addEventListener("change", (event) => { if (ours(event)) setDirty(true); });
-    setDirty(false);
-
-    cancel?.addEventListener("click", () => {
-      for (const { el, value, checked } of snapshot) {
-        if (el.type === "checkbox" || el.type === "radio") (el as HTMLInputElement).checked = checked;
-        else el.value = value;
-      }
-      // The WYSIWYG view a reader actually sees is a separate DOM tree
-      // spec-editor/index.ts's editor library owns — this is the only
-      // way to tell a mounted one "redraw from your textarea" from
-      // outside it. A no-op where there is none (the Checks tab).
-      form.querySelector(".spec-editor-raw")?.dispatchEvent(new Event("spec-cancel"));
-      // Last: both controls go back to inactive, even if the redraw
-      // above fired its own change event along the way.
-      setDirty(false);
-      // The chips the lift script moved follow their boxes back: it
-      // listens for `change` on the document, and a restore is silent.
-      // Unquoted attribute value, which CSS allows for an identifier:
-      // quoted, the emitted script would contain the literal
-      // `name="dependsOn"`, and the shell inlines this file in the page
-      // head — where a test looking for that field would find the
-      // script instead.
-      for (const el of form.querySelectorAll("input[name=dependsOn]")) {
-        el.dispatchEvent(new Event("change", { bubbles: true }));
-      }
-      setDirty(false);
-      if (leaveTo) setTimeout(() => {
-        const link = document.createElement("a");
-        link.href = leaveTo;
-        link.click();
-      }, 0);
-    });
-  }
 })();

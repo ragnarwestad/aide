@@ -1,11 +1,8 @@
-import { dispatchFor } from "../../queue/waiting/dispatch.ts";
-import { mergeWaitEntry } from "../../queue/waiting/jobs.ts";
 // The landing every self-landing step shares: merge a step's own
 // branch into the default branch of every repo it pushed to, and
 // report per repo.
 
 import { realPathOrOriginal as real } from "../../git/real-path.ts";
-import { join } from "node:path";
 
 /** Whether two paths name the same directory, whatever each side spells
  *  it. `aide-run-spec` reports the root git gave it, and git resolves
@@ -24,21 +21,20 @@ export function sameRoot(a: string, b: string): boolean {
 }
 import type { Job } from "../../queue/queue.ts";
 import type { StepOutcome } from "../../queue/runner";
-import { formatSentence, type Sentence } from "../../messages/format.ts";
-import { deleteBranchOnly, LANDING_RETRIES, landingRepeats, mergeBranchIntoDefault, type RepoMergeResult } from "../../git/branch-merge/index.ts";
-import { landSpecFolderOnly } from "../../git/spec-folder-landing.ts";
-import { STATUS_FILE } from "../../project/spec-names.ts";
-import { specFileText } from "../../project/discover";
-import { isGoneHistoryRoot, logSkippedRoot } from "./gone-root.ts";
+import { formatSentence } from "../../messages/format.ts";
+import type { RepoMergeResult } from "../../git/branch-merge/index.ts";
 import { installCheckout } from "../deployment";
-import { handedToMerge, rememberMergedUnderRoots, rememberUnderRoots } from "./handed-to-merge.ts";
+import { rememberMergedUnderRoots, rememberUnderRoots } from "./handed-to-merge.ts";
 import { isDashboardRoot } from "../deployment";
 import type { LandContext, Landing } from "./types.ts";
-import { clearsLandingError, firstLandingError as firstOf, keepsItsStopReason } from "./stopped-reason.ts";
-import { landingCancelled, takeLandingCancel } from "./cancel-landing.ts";
-import { retryArchiveLanding } from "./retry";
 import { landingPolicy } from "./policy/index.ts";
-import { isJobStop } from "../../step-endings.ts";
+import { emptyTally, landingPlan, type LandingRun } from "./merge-steps/run.ts";
+import { mergeRepo } from "./merge-steps/repo.ts";
+import { checkOrigin } from "./merge-steps/origin-check.ts";
+import { recordLanded, recordLandingFailure, recordLandingThrew } from "./merge-steps/settle.ts";
+
+export { pickRefusal } from "./merge-steps/repo.ts";
+
 /** Merge a step's own branch into the default branch of every repo it
  *  pushed to, and report per repo — the landing every self-landing
  *  step shares.
@@ -64,17 +60,6 @@ import { isJobStop } from "../../step-endings.ts";
  *  them: a run records the project before its specs root, so a reader
  *  watching the page saw the code land before the plan describing it,
  *  and the code is the one that matters. */
-/** Which refusal a row gets when the retries failed too: the FIRST one,
- *  which says what actually happened, unless a retry reached a verdict
- *  of its own (a conflict, a red suite). A retry that merely refused
- *  again used to overwrite "main moved on origin under this landing
- *  twice" with "cannot fast-forward main". */
-export function pickRefusal(first: RepoMergeResult, last: RepoMergeResult): RepoMergeResult {
-  if (first.ok) return last;
-  if (last.reason && last.reason !== first.reason) return last;
-  return { ...last, error: first.error, detail: first.detail ?? last.detail, reason: first.reason };
-}
-
 export async function landBranch(
   ctx: LandContext,
   job: Job,
@@ -82,414 +67,122 @@ export async function landBranch(
   what: Landing,
 ): Promise<void> {
   if (ctx.beforeLanding && !(await ctx.beforeLanding(job))) return;
-  const firstLandingError = (msg: Sentence | Sentence[]): Sentence | Sentence[] =>
-    firstOf(ctx.queue.get(job.id)?.landingError, msg, what.step);
   try {
     const branch = outcome.branch;
-    // What this step's landing does is its policy's (`policy/index.ts`):
-    // the order of the roots, what the code root gets, the origin check.
-    // `sort` is stable, so two repos of the same kind keep the order the
-    // run recorded them in.
-    const policy = landingPolicy(what.step);
     const codeRoot = ctx.machineryProjectDir(job.project);
     const codeRoots = { has: (root: string) => sameRoot(root, codeRoot) };
-    const codeFirst = policy.codeFirst;
-    const repos = [...(what.repos ?? outcome.branchUrls ?? [])].sort((a, b) => {
-      const av = Number(codeRoots.has(a.root));
-      const bv = Number(codeRoots.has(b.root));
-      return codeFirst ? bv - av : av - bv;
-    });
-    /** Roots this landing deliberately does not merge: a project whose
-     *  manifest says `codeLanding: pr` has its CODE reviewed before it
-     *  reaches the default branch, and the run has already opened the
-     *  pull request. The code root alone: the specs root is bookkeeping. */
-    const leaveOpen = (root: string): boolean =>
-      policy.codeRoot === "merge-unless-pr" && codeRoots.has(root) && ctx.codeLanding(job.project) === "pr";
-    /** A code root whose branch is deleted, never merged; the specs root
-     *  merges normally. Specs inside the code root land their folder
-     *  alone first (`handed.specOnly`). */
-    const discard = (root: string): boolean => policy.codeRoot === "discard" && codeRoots.has(root);
-    if (!branch || repos.length === 0) {
+    const plan = landingPlan(ctx, job, landingPolicy(what.step), codeRoots, what.repos ?? outcome.branchUrls ?? []);
+    if (!branch || plan.repos.length === 0) {
       if (what.nothingToLand) ctx.queue.update(job.id, { error: what.nothingToLand });
       return;
     }
-    const failures: Sentence[] = [];
-    // Raw git output behind each failure above, if any — joined the
-    // same way, so a title carrying several repos' detail lines up
-    // with the sentence it belongs to.
-    const failureDetails: string[] = [];
-    // Which refusal it was, when it is one the row can offer a way out
-    // of. A conflict is the only one a `resolve` step could finish.
-    let reason: Job["errorReason"];
-    let landingTerminalReason: string | undefined;
-    // A merge that succeeded but whose delete failed, per
-    // repo. `leftBehindRoots` is what stops the post-loop check below
-    // from re-flagging a root THIS loop already knows the story of;
-    // `deleteErrors` is what the row reads afterwards instead of the
-    // generic "not landed".
-    const deleteErrors: Sentence[] = [];
-    const leftBehindRoots = new Set<string>();
-    const retryUnlanded = new Map<string, () => Promise<RepoMergeResult>>();
-    for (const repo of repos) {
-      if (leaveOpen(repo.root)) {
-        // Nothing merged, nothing deleted, nothing installed: the code
-        // is on its branch, which is where the review happens, and
-        // installing it here would deploy exactly the change the
-        // review exists to hold back.
-        console.error(
-          `queue: landing ${job.project}/${job.specFolder} in ${repo.root} — left open for review (codeLanding: pr)`,
-        );
-        continue;
-      }
-      const base = await ctx.branchStatus.defaultBranch(repo.root);
-      if (!base) {
-        if (isGoneHistoryRoot(repo.root, repos, outcome.branchUrls ?? [])) {
-          logSkippedRoot(job, repo.root);
-          continue;
-        }
-        // Guessing which branch to merge INTO is the one guess with no
-        // safe direction.
-        failures.push({ key: "landing.cannotWorkOutDefaultBranch", values: { root: repo.root } });
-        continue;
-      }
-      // Repeated after a refusal as often as `landingRepeats` says
-      // (`LANDING_RETRIES`, the one place every landing bound is written).
-      //
-      // The lock goes around the git-mutating call and nothing else:
-      // `defaultBranch` above only asks a question, and holding the
-      // root while asking it would serialize page loads too.
-      const handed = handedToMerge(ctx, job, what, repo.root, branch, codeRoots);
-      const merge = () =>
-        dispatchFor(ctx.queue.waiting).run(
-          mergeWaitEntry(ctx.queue, job, what.step, repo.root, branch),
-          ctx.mergeLock, repo.root,
-          () => {
-            ctx.queue.update(job.id, { landBegan: true });
-            return handed.specOnly
-              ? landSpecFolderOnly(ctx.gitRun, repo.root, branch, base, handed.specOnly)
-              : discard(repo.root)
-                ? deleteBranchOnly(ctx.gitRun, repo.root, branch)
-                : mergeBranchIntoDefault(ctx.gitRun, repo.root, branch, base, undefined, handed.gate, handed.finalizeCreate, handed.hooks);
-          },
-          () => !!what.cancelled?.() || landingCancelled(job.id) || ctx.queue.get(job.id)?.state === "cancelled",
-        );
-      retryUnlanded.set(repo.root, merge);
-      let result = await merge();
-      if (what.cancelled?.()) return;
-      // A red suite is an answer: the gate already gave it its retry.
-      const first = result;
-      const repeats = landingRepeats(first, !!handed.specOnly);
-      for (
-        let retry = 0;
-        !result.ok && result.reason !== "tests-red" && retry < repeats;
-        retry++
-      ) {
-        await new Promise((r) => setTimeout(r, LANDING_RETRIES.repeatWaitMs * (retry + 1)));
-        result = await merge();
-      }
-      if (!result.ok) result = pickRefusal(first, result);
-      if (result.ok) {
-        // The real folder name, reported by the finalize step
-        // that just ran under this repo's own merge — never guessed
-        // from `outcome`, which still carries the provisional key a
-        // create step wrote its files under.
-        if (result.assignedSpecFolder) what.landed = { ...what.landed, specFolder: result.assignedSpecFolder };
-        ctx.branchStatus.invalidate(repo.root, branch);
-        // The open-branch cache is the other half of the same
-        // correction, and it is what the archived row reads. The branch
-        // was forgotten before the checkout moved (`handed-to-merge.ts`);
-        // a branch still on origin because its delete failed IS open,
-        // so it is taken back here, and the sentence for that
-        // case is written from `deleteErrors` below.
-        if (result.branchDeleteError) rememberUnderRoots(ctx, job.project, repo.root, branch);
-        // Merged, so only a cleanup is left — never for a close's discarded
-        // branch or a folder copied alone, whose branch did not merge.
-        if (result.branchDeleteError && !result.discarded && !handed.specOnly) {
-          rememberMergedUnderRoots(ctx, job.project, repo.root, branch);
-        }
-        // A discarded root never merged anything — nothing to
-        // install. The block below is `mergeBranchIntoDefault`'s own
-        // success handling, which `deleteBranchOnly` never earns.
-        if (!result.discarded) {
-          // Merged is not deployed. For a tool that lives in
-          // `~/.local/bin`, the code landing on the default branch
-          // changes nothing on the machine until it is installed —
-          // which is why merged code can keep running as the old
-          // version. The install belongs to the project, so the project
-          // says what it is.
-          if (codeRoots.has(repo.root)) {
-            // A landing never restarts the dashboard (a restart kills every
-            // job's process), and in its own checkout never installs either:
-            // a runner newer than the served page refuses its calls. Deploy
-            // installs and restarts together, when the person chooses.
-            if (!isDashboardRoot(ctx, repo.root)) {
-              const installed = await installCheckout(repo.root, ctx.queueInstallTimeoutMs);
-              if (!installed.ok) {
-                result.installError = installed.error;
-                result.installDetail = installed.detail;
-              }
-            }
-            else console.error(
-              `queue: a code change landed in the dashboard's own checkout (${repo.root}) — the served page and the installed scripts still run the older code; install and restart it with Deploy when it suits`,
-            );
-            // Never fatal, and never silent either: the merge already
-            // happened, so this is reported beside it rather than
-            // turning a successful merge into a failure. A server log has
-            // no reader whose `lang` could apply; English is the source
-            // language throughout this catalog (Recommended solution,
-            // Storage, point 3).
-            if (result.installError) {
-              console.error(
-                `queue: landing ${job.project}/${job.specFolder} in ${repo.root} — ${formatSentence("en", result.installError)}`,
-              );
-            }
-          }
-        }
-        if (result.branchDeleteError) {
-          console.error(
-            `queue: landing ${job.project}/${job.specFolder} in ${repo.root} — ${formatSentence("en", result.branchDeleteError)}`,
-          );
-          leftBehindRoots.add(repo.root);
-          // The ROOT is folded into the message's own template here —
-          // this is the one place that knows whether several repos are
-          // being reported at once. `git/branch-merge/` always
-          // composes this as a `BoardMessage`, never a plain string.
-          const del = result.branchDeleteError;
-          deleteErrors.push(
-            typeof del === "object"
-              ? {
-                  key: result.detail ? ("landing.branchDeleteFailedWhy" as const) : del.key,
-                  values: { ...del.values, root: repo.root, ...(result.detail ? { detail: result.detail } : {}) },
-                }
-              : del,
-          );
-        }
-      } else if (result.reason === "gone") {
-        // Nothing to land in this repo, and not a failure of this
-        // landing. An archive looks back through every
-        // branch the spec's steps pushed, and a
-        // `resolve` lands AND DELETES its own — so by the time archive
-        // gets here, that branch is provably gone. Job 15932abc
-        // (2026-08-21) was the first: archived, `ok: true`, and an
-        // error on the row saying there was nothing left to merge.
-        //
-        // The refusal also disproves the cached answer from the other
-        // side: the branch is not on origin at all.
-        ctx.branchStatus.invalidate(repo.root, branch);
-      } else {
-        failures.push(result.error ?? { key: "landing.cannotMergeFallback", values: { branch, root: repo.root } });
-        if (result.detail) failureDetails.push(result.detail);
-        if (result.reason === "conflict") reason = "conflict";
-        if (result.reason === "tests-red") reason = landingTerminalReason = "tests-red";
-        if (result.reason === "timeout") landingTerminalReason = "timeout";
-        // Code first: a code root that fails to land stops the loop
-        // here, before the specs root's own merge has run.
-        if (codeFirst && codeRoots.has(repo.root)) break;
-      }
-    }
-    // Origin decides, not the queue's memory of its own pushes.
-    // Archive's contract is that nothing of the spec stays
-    // open, and the loop above can only merge repos it was TOLD
-    // about — a step run by hand, a job the LRU cap has evicted, a
-    // push that half-succeeded, all leave a branch no `branchUrls`
-    // entry ever mentioned. Three specs reached the archive that way
-    // with every row saying done.
-    //
-    // `fresh`, because `mergeBranchIntoDefault` has just deleted the
-    // branch on origin and a cached answer would report every
-    // successful landing as unlanded.
-    //
-    // Only where the policy asks for it: an `analyze` landing runs while
-    // implement's code branch is legitimately open, and the same check
-    // there would call a healthy landing failed.
-    // The gate stopping the landing is its own case: nothing was merged
-    // and nothing was pushed, so of course the branch is still on
-    // origin. The gate's own verdict says so, and names the branch the
-    // work is on — one sentence, and nothing added beside it.
-    // One reason per row. A landing that has already said why it failed
-    // (a conflict, a rejected push) is not joined by this check: it
-    // exists for the landing that reported ok while a branch stayed on
-    // origin, and beside a conflict its "run archive again" — once per
-    // root — contradicted the sentence the reader had just been given.
-    if (policy.checksOrigin && reason !== "tests-red" && failures.length === 0) {
-      for (let n = 0; n < LANDING_RETRIES.originRechecks; n++) {
-        for (const root of await ctx.rootsStillHolding(job.project, branch, true)) {
-          const retry = leaveOpen(root) || leftBehindRoots.has(root) ? undefined : retryUnlanded.get(root);
-          if (retry && (await retry()).ok) ctx.branchStatus.invalidate(root, branch);
-        }
-      }
-      const holding: string[] = [];
-      for (const root of await ctx.rootsStillHolding(job.project, branch, true)) {
-        // A root the loop above CHOSE not to merge is not a root that
-        // failed to merge. Without this, every working
-        // PR-mode archive reports itself as an unlanded failure — the
-        // check asks origin about the project's roots with no
-        // knowledge of which ones the landing skipped, and in `pr`
-        // mode the code root always still holds the branch, by design.
-        if (leaveOpen(root)) continue;
-        // This loop already knows WHY this root still holds the branch:
-        // its own merge just succeeded and only the delete failed.
-        // Not a second, contradicting "not landed" — `deleteErrors`
-        // above already carries the sentence that says what actually
-        // happened, and the row reads it from there.
-        if (leftBehindRoots.has(root)) continue;
-        holding.push(root);
-      }
-      if (holding.length) {
-        // One sentence however many roots hold the branch: the roots
-        // are data inside it, never a sentence each. It carries the
-        // move as well as the state: the way out is the step that just
-        // ran, and the row's own button already offers it. Phrased as
-        // an instruction rather than as a quote of that button's label,
-        // so a future rename leaves the sentence less exact but never
-        // wrong.
-        failures.push(
-          holding.length === 1
-            ? { key: "landing.stillOnOriginRunArchiveAgain", values: { branch, root: holding[0]! } }
-            : { key: "landing.stillOnOriginRunArchiveAgainMany", values: { branch, roots: holding } },
-        );
-        // Only where nothing more specific was found: a conflict is
-        // the reason, and "unlanded" is what a conflict LOOKS like
-        // from origin.
-        reason ??= "unlanded";
-      }
-    }
-    if (failures.length > 0) {
-      // Whatever the success path would have written is NOT written: a
-      // create job keeps its provisional key, because the job is still
-      // the only handle on a branch that has not landed, and renaming
-      // it to a folder the page cannot see would hide the work rather
-      // than report it. The branch stays on the row either way.
-      //
-      // `errorReason` is STORED rather than carried in a redirect, and
-      // that is the whole difference between this and the Merge button's
-      // redirect: nobody's browser is attached to a landing, so
-      // the row has to be able to read the reason on any later request
-      // (`specs-list.ts`, `resolveForm`).
-      // A red suite is the one failure here that is not a fault: the
-      // step ran, the merge was built, and the project's own tests said
-      // the result is not green. That stops the job rather than failing
-      // it, the same way a cap-stop does: nothing was pushed.
-      const held = isJobStop(landingTerminalReason);
-      // One message per row: the first failure is the row's sentence,
-      // and any further one — a second root that could not merge —
-      // goes behind it as detail, in the catalog's source language,
-      // rather than joined onto the sentence with a semicolon.
-      const [first, ...rest] = failures as [Sentence, ...Sentence[]];
-      const detail = [...rest.map((f) => formatSentence("en", f) ?? ""), ...failureDetails].filter(Boolean);
-      const patch = {
-        error: first,
-        errorDetail: detail.length ? detail.join("\n") : undefined,
-        errorReason: reason,
-        landingError: firstLandingError(first),
-        landingErrorStep: ctx.queue.get(job.id)?.landingError ? ctx.queue.get(job.id)?.landingErrorStep : what.step,
-        landingErrorDetail: ctx.queue.get(job.id)?.landingErrorDetail ?? (detail.length ? detail.join("\n") : undefined),
-        ...(held ? { stopReason: landingTerminalReason } : {}),
-      }; const cancelled = takeLandingCancel(job.id); if (!cancelled && landingTerminalReason && retryArchiveLanding(ctx.queue, job.id, what.step, landingTerminalReason, [formatSentence("en", first), ...detail].filter(Boolean).join("\n"))) return;
-      const result = cancelled ? ctx.queue.transition(job.id, "landing-cancelled", { finishedAt: new Date().toISOString() }) : ctx.queue.transition(job.id, held ? "landing-held" : "landing-failed", patch);
-      // The runner may already have queued this job's next step, or
-      // held it for a reason of its own, in the gap between this
-      // step's own completion and this landing settling
-      // (job-states.md, "Done to failed"). `error`/`errorReason`/
-      // `stopReason` say what the row is waiting for RIGHT NOW, and a
-      // job that has moved on is waiting for something else — only
-      // `landingError`, the permanent record of this attempt,
-      // survives onto it.
-      if (!result.ok) ctx.queue.update(job.id, { landingError: patch.landingError, landingErrorStep: patch.landingErrorStep, landingErrorDetail: patch.landingErrorDetail });
+    const run: LandingRun = { ctx, job, outcome, what, branch, plan, tally: emptyTally() };
+    if (!(await mergeRepos(run))) return;
+    await checkOrigin(run);
+    if (run.tally.failures.length > 0) {
+      recordLandingFailure(run);
       return;
     }
-    // Landed. The branch is on the default branch now, so the job stops
-    // advertising one: a compare page for a merged branch shows
-    // nothing, and the row would otherwise name a branch it can
-    // no longer derive (`specBranch` reads the RENAMED folder).
-    // ...except what was deliberately left open, which
-    // still has a branch and still wants naming: the row is where a
-    // reader learns the code is waiting on a review rather than
-    // already on the default branch.
-    const stillOpen = repos.filter((repo) => leaveOpen(repo.root));
-    // And the review it is waiting on is named on THIS job, whichever
-    // job opened it. `implement` pushed the code and called `gh`;
-    // `archive` is the row a reader is looking at when the spec goes
-    // quiet, and a link they have to go hunting for on an older row is
-    // a link that is not there.
-    const review = stillOpen.length ? ctx.queue.pullRequestFor(job.project, job.specFolder) : {};
-    const keepsItsReason = keepsItsStopReason(ctx.queue.get(job.id));
-    // This step's own landing resolves this step's own failure
-    // (`stopped-reason.ts`).
-    const cleared = clearsLandingError(ctx.queue.get(job.id), what.step);
-    ctx.queue.update(job.id, {
-      ...what.landed,
-      ...cleared,
-      branchUrl: stillOpen.length ? (stillOpen[0]!.url ?? job.branchUrl) : undefined,
-      branchUrls: stillOpen,
-      prUrl: review.prUrl,
-      branchDeleteError: deleteErrors.length ? deleteErrors : undefined,
-      ...(keepsItsReason ? {} : { error: undefined, errorReason: undefined }),
-    });
-    // The page caches its scan for five seconds. Without this the very
-    // request that follows a landing would still not show the spec —
-    // nor, for an archive, that it has left the list.
-    ctx.invalidateScan();
-    // After the scan is invalidated, so anything this reads sees the
-    // landing rather than the five-second-old picture of the world
-    // before it.
-    //
-    // `specFolder` is read from the landing, not the job: a create
-    // step's job still carries its provisional key here, and is only
-    // renamed once every repo is through the loop. Without this
-    // substitution the warm silently no-ops for every create landing —
-    // no directory exists yet under the provisional key.
-    const landedFolder = what.landed?.specFolder ?? job.specFolder;
-    const landedRoot = ctx.machinerySpecsRoot(job.project);
-    const landedDir = landedRoot
-      ? [join(landedRoot, "archive", landedFolder), join(landedRoot, landedFolder)].find(
-          (candidate) => specFileText(candidate, STATUS_FILE) !== null,
-        )
-      : undefined;
-    // The landing moved the spec's history and its files: every cached
-    // answer is due for a fresh read, under whichever of the two paths
-    // the folder is read from now — before the warm, so the landed spec
-    // is read again here rather than on the schedule's next pass.
-    for (const dir of landedRoot ? [join(landedRoot, "archive", landedFolder), join(landedRoot, landedFolder)] : []) {
-      ctx.forgetSpec(dir, landedFolder);
-    }
-    if (landedDir) await ctx.warmSpec({ dir: landedDir, specFolder: landedFolder });
-    if (what.onLanded) {
-      try {
-        await what.onLanded();
-      } catch (err) {
-        console.error(
-          `queue: landing ${job.project}/${job.specFolder} — ${err instanceof Error ? err.message : String(err)}`,
-        );
-      }
-    }
+    await recordLanded(run);
   } catch (err) {
-    if (what.cancelled?.()) return;
-    if (takeLandingCancel(job.id)) {
-      ctx.queue.transition(job.id, "landing-cancelled", { finishedAt: new Date().toISOString() });
-      return;
-    }
-    // Never rethrown: the `landing` flag holds this job's own next
-    // step, and the runner clears it when this promise settles — which
-    // it must do, however this went.
-    const rawMsg = err instanceof Error ? err.message : String(err);
-    const note = what.failedNote(rawMsg);
-    const patch = {
-      error: note,
-      // Raw exception text — `note` itself carries
-      // none, so a reader who needs the exact words has it on hover.
-      errorDetail: rawMsg,
-      // A thrown landing is not a conflict — the merge never got far
-      // enough to be one, and offering Resolve for it would send a
-      // whole run at a problem it cannot fix.
-      errorReason: undefined,
-      landingError: firstLandingError(note),
-      landingErrorStep: ctx.queue.get(job.id)?.landingError ? ctx.queue.get(job.id)?.landingErrorStep : what.step,
-      landingErrorDetail: ctx.queue.get(job.id)?.landingErrorDetail ?? rawMsg,
-    };
-    const result = ctx.queue.transition(job.id, "landing-failed", patch);
-    // Same reasoning as the ordinary failure branch above:
-    // a job that has moved on keeps only the permanent record.
-    if (!result.ok) ctx.queue.update(job.id, { landingError: patch.landingError, landingErrorStep: patch.landingErrorStep, landingErrorDetail: patch.landingErrorDetail });
+    recordLandingThrew(ctx, job, what, err);
   }
+}
+
+/** Every repo in landing order, one at a time; false when the landing
+ *  was cancelled under a merge and nothing more is to be written. */
+async function mergeRepos(run: LandingRun): Promise<boolean> {
+  for (const repo of run.plan.repos) {
+    const step = await mergeRepo(run, repo);
+    if (step === "cancelled") return false;
+    if (step === "stop") break;
+    if (step === "next") continue;
+    await repoLanded(run, repo, step.merged, !!step.handed.specOnly);
+  }
+  return true;
+}
+
+/** One repo merged: the caches it corrects, the install it owes, and
+ *  the branch delete that may have failed after it. */
+async function repoLanded(run: LandingRun, repo: { root: string }, result: RepoMergeResult, specOnly: boolean): Promise<void> {
+  const { ctx, job, what, branch } = run;
+  // The real folder name, reported by the finalize step
+  // that just ran under this repo's own merge — never guessed
+  // from `outcome`, which still carries the provisional key a
+  // create step wrote its files under.
+  if (result.assignedSpecFolder) what.landed = { ...what.landed, specFolder: result.assignedSpecFolder };
+  ctx.branchStatus.invalidate(repo.root, branch);
+  // The open-branch cache is the other half of the same
+  // correction, and it is what the archived row reads. The branch
+  // was forgotten before the checkout moved (`handed-to-merge.ts`);
+  // a branch still on origin because its delete failed IS open,
+  // so it is taken back here, and the sentence for that
+  // case is written from `deleteErrors` below.
+  if (result.branchDeleteError) rememberUnderRoots(ctx, job.project, repo.root, branch);
+  // Merged, so only a cleanup is left — never for a close's discarded
+  // branch or a folder copied alone, whose branch did not merge.
+  if (result.branchDeleteError && !result.discarded && !specOnly) {
+    rememberMergedUnderRoots(ctx, job.project, repo.root, branch);
+  }
+  // A discarded root never merged anything — nothing to
+  // install. The step below is `mergeBranchIntoDefault`'s own
+  // success handling, which `deleteBranchOnly` never earns.
+  if (!result.discarded) await installLanded(run, repo, result);
+  if (result.branchDeleteError) recordDeleteError(run, repo.root, result);
+}
+
+/** Merged is not deployed. For a tool that lives in `~/.local/bin`, the
+ *  code landing on the default branch changes nothing on the machine
+ *  until it is installed — which is why merged code can keep running as
+ *  the old version. The install belongs to the project, so the project
+ *  says what it is. */
+async function installLanded(run: LandingRun, repo: { root: string }, result: RepoMergeResult): Promise<void> {
+  const { ctx, job, plan } = run;
+  if (!plan.codeRoots.has(repo.root)) return;
+  // A landing never restarts the dashboard (a restart kills every
+  // job's process), and in its own checkout never installs either:
+  // a runner newer than the served page refuses its calls. Deploy
+  // installs and restarts together, when the person chooses.
+  if (!isDashboardRoot(ctx, repo.root)) {
+    const installed = await installCheckout(repo.root, ctx.queueInstallTimeoutMs);
+    if (!installed.ok) {
+      result.installError = installed.error;
+      result.installDetail = installed.detail;
+    }
+  }
+  else console.error(
+    `queue: a code change landed in the dashboard's own checkout (${repo.root}) — the served page and the installed scripts still run the older code; install and restart it with Deploy when it suits`,
+  );
+  // Never fatal, and never silent either: the merge already
+  // happened, so this is reported beside it rather than
+  // turning a successful merge into a failure. A server log has
+  // no reader whose `lang` could apply; English is the source
+  // language throughout this catalog (Recommended solution,
+  // Storage, point 3).
+  if (result.installError) {
+    console.error(
+      `queue: landing ${job.project}/${job.specFolder} in ${repo.root} — ${formatSentence("en", result.installError)}`,
+    );
+  }
+}
+
+function recordDeleteError(run: LandingRun, root: string, result: RepoMergeResult): void {
+  const { job, tally } = run;
+  const del = result.branchDeleteError!;
+  console.error(
+    `queue: landing ${job.project}/${job.specFolder} in ${root} — ${formatSentence("en", del)}`,
+  );
+  tally.leftBehindRoots.add(root);
+  // The ROOT is folded into the message's own template here —
+  // this is the one place that knows whether several repos are
+  // being reported at once. `git/branch-merge/` always
+  // composes this as a `BoardMessage`, never a plain string.
+  tally.deleteErrors.push(
+    typeof del === "object"
+      ? {
+          key: result.detail ? ("landing.branchDeleteFailedWhy" as const) : del.key,
+          values: { ...del.values, root, ...(result.detail ? { detail: result.detail } : {}) },
+        }
+      : del,
+  );
 }

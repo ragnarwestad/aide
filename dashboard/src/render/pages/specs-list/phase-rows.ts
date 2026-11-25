@@ -8,19 +8,20 @@ import { esc } from "../../ui/html.ts";
 import { wordPhase } from "../../ui/job-state";
 import type { QueueRowView } from "../../ui/job-state";
 import type { SpecsPageOptions } from "./";
-import { RUN_STEPS, groupKey, isArchivedRow, lockedAsArchived, type SpecGroup } from "./data-model";
+import { RUN_STEPS, groupKey, isArchivedRow, type SpecGroup, type Phase } from "./data-model";
 import { costCell, phaseDurationCell, phaseWordCell } from "./cell-helpers.ts";
-import { aiPicker, compactAiModel, lockedDuration, modelPicker, phaseAiModel, phaseCaptionCells, sidePickers } from "./model-picker";
+import { lockedDuration, phaseCaptionCells, sidePickers } from "./model-picker";
+import { aiModel, analyzeRests } from "./model-picker/ai-model.ts";
 import { chosenSteps, runFormId, specLocked, specRunChoices } from "./row-state.ts";
 import { phaseHasRun, phaseMessagesFold, phaseMessagesRow } from "./phase-messages";
 import { sideLines, sideRunOf } from "./phase-messages/side-lines.ts";
 import { dependsOnLine } from "./depends-on";
-import { pickerFor, type PickerOptions } from "./model-resolve.ts";
-import { resolveProvider } from "../../ui/ai-model";
 import { PLAN_REVIEW, SIDE_PARTS_OF } from "../../../queue/providers/side-tools.ts";
 import { isGuardEnding } from "../../../step-endings.ts";
 import { specReference } from "../../../project/spec-folder.ts";
 import { eligibleGroupMembers } from "../../../queue/execution-groups/eligibility.ts";
+
+export { analyzeRests };
 
 /** The archive gates' own refusals: nothing was tried, so nothing is
  *  counted as an attempt. Hand-paired with run-spec/record/outcome.sh. */
@@ -100,219 +101,281 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number, 
     group.project === g.project && group.name === g.group?.name && group.members.length > 1);
   g.phases
     .filter((phase) => !(sharedGroup && phase.step === "archive"))
-    .forEach((p) => {
-      const latest = p.attempts[0];
-      const word = wordPhase(g.done.includes(p.step), p.heldBack, latest, { ...p.history, waiting: p.waiting, step: p.step, fileResult: p.fileResult }, opts.lang);
-      // The phase's own name, plain text: a phase line used to open the
-      // tab the phase wrote, but the mapping did not hold for
-      // every phase — archive writes no file of its own, and a step
-      // outside the fixed four pointed at its job page instead, with
-      // nothing on the row saying why the destination differed — so the
-      // name is text now, and the spec page stays reachable from the
-      // spec's own name in the row's header line.
-      //
-      // It wore a fold control on mobile until
-      // 2026-09-07 — a chevron per phase line, whose only job was to
-      // hide the AI/model pair on a narrow screen. The pair fits beside
-      // the name at every width this list is drawn for (`narrow.css`
-      // states the floor), so there is nothing left to fold and no
-      // control to explain.
-      const name = `<span class="phasefold">${esc(stepLabel(p.step, opts.lang))}</span>`;
-      // The latest attempt, with a count when there have been more —
-      // three archive runs on one spec is a real history, not a row to
-      // repeat three times. The State/Action cell says the standard word
-      // and nothing else: what explains it — a description changed since
-      // the analysis, a pull request that could not be opened — is said
-      // in the phase's log (`phaseExplanations`).
-      // The larger of what the queue remembers and what the phase's own
-      // file has stamped — the queue wins while it still
-      // holds every attempt (including one still in flight, not yet
-      // stamped); the file wins once the queue has forgotten the
-      // earliest of them, or once the phase is archived and the queue
-      // has nothing left for it at all.
-      // A run the archive gates turned away before anything was tried
-      // is a guard, not an attempt (2026-09-11) — the same two reasons
-      // aide-run-spec leaves out of the file's own stamp
-      // (run-spec/record/outcome.sh).
-      const tried = p.attempts.filter((a) => !isGuardEnding(stepResultOf(a, p.step)?.terminalReason));
-      const attemptCount = Math.max(tried.length, p.attemptCount ?? 0);
-
-      // Live although the row is busy: a phase this run has
-      // not reached, which the reader may add to it or drop from it as
-      // the run goes.
-      const live = editable.has(p.step);
-      // What the last run used is not spelled out in text any more —
-      // it IS the picker's pre-filled value, in the column the caption
-      // calls "Model".
-      // `create` gets a box that is ticked and cannot be untucked: the
-      // folder being on disk IS its answer, and a spec that exists
-      // cannot be created again. It had no box at all until
-      // 2026-08-21, and the hole where the other four have one made
-      // the line read as a different KIND of thing rather than as the
-      // one phase already behind you. It carries no `name`, so no
-      // press can ever post `steps=create` — a disabled input is not
-      // submitted either, and this is the belt as well as the braces.
-      const box = mode.groupArchive ? "" : locked
-        ? phaseChip({
-            dataAttr: "data-phase",
-            value: p.step,
-            label: "",
-            ariaLabel: `${stepLabel(p.step, opts.lang)} — ${t(opts.lang ?? "en", "list.specArchived")}`,
-            lang: opts.lang,
-            // Nothing to post and no form to post it to: `reopen` is the
-            // one step an archived spec may be asked for, and the row's
-            // Reopen carries it as a hidden field of its own.
-            name: "",
-            // What HAPPENED, not what a press would run next.
-            // `chosenSteps` answers the second question — and for a spec
-            // whose workflow is over, with no recorded choice, it falls
-            // back to `{archive}` alone, which would tick the one step
-            // this row did not have and leave the ones it did unticked.
-            checked: g.done.includes(p.step),
-            disabled: true,
-            // Inert, not padlocked — the same reason as for
-            // a phase queued behind the running one: the tick says what
-            // there is to say, and a padlock on all four of them would
-            // be the row saying "archived" a fifth time.
-            plain: true,
-          })
-        : RUN_STEPS.includes(p.step)
-        ? phaseChip({
-            // `data-phase`, not `data-step`: the line already carries
-            // `data-step`, and one attribute per question keeps a test
-            // that enumerates boxes from finding the lines too.
-            dataAttr: "data-phase",
-            value: p.step,
-            // No visible label — the phase's own name leads the line
-            // and the caption calls this column "Select". The
-            // accessible one is given outright, since a wrapper with
-            // no text has no name to offer.
-            label: "",
-            ariaLabel: stepLabel(p.step, opts.lang),
-            lang: opts.lang,
-            // An editable box is never posted with the Run form: while
-            // a job runs, that form asks for a SECOND job and the
-            // queue refuses it as a clash. It still NAMES the form,
-            // because that is how a press finds every control on the
-            // row to lock — and a field with no name is submitted by
-            // nobody, whatever it names.
-            name: live ? "" : "steps",
-            form: runFormId(g),
-            postTo: live ? `/api/queue/${esc(g.lead!.id)}/steps` : undefined,
-            // While busy this says what the RUNNING job will do with
-            // the step, not what a fresh press would pre-tick
-            // (`ticked`) — a step queued behind the running one is
-            // still one this job named, and still reads as ticked.
-            checked: busy || (g.lead && automaticProviderWait(g.lead)) ? !!g.lead?.steps.includes(p.step) : ticked.has(p.step),
-            // The step being run needs no carve-out here: a running
-            // step is never `live` — `live` names a step the
-            // run has NOT reached — so `busy && !live` disables it.
-            disabled: !!g.executionGroupAutomaticWait || (busy && !live),
-            // Inert, but not padlocked: the tick already says whether
-            // this job will get to the step.
-            plain: true,
-            // No `title` saying why the row will not take a click:
-            // the State column says what is running (`aiModel()` below).
-          })
-        : finishedPhaseChip(p.step, opts.lang ?? "en"); // `create`'s own arm, same shape
-      // The three choices this line offers, in one cell: the
-      // AI, then the model it fills in, then the phase's box. In the
-      // order they are made in — which AI a phase runs on decides which
-      // models there ARE to pick from, so it comes first.
-      //
-      // The AI has no column of its own and no span over the group:
-      // every line writes this cell, whichever step it
-      // names, and `aiPicker` simply draws nothing when there is one
-      // configured AI and nothing to choose between.
-      // The recorded string is always "<tool> <model>" (the
-      // `aide-run-spec` format), so the model half — the one the live
-      // picker's own options are keyed on — is everything after the
-      // first word.
-      const recordedModel = p.model?.split(" ").slice(1).join(" ") || undefined;
-      // The Select box's own answer, read once for the two selects beside
-      // it: a phase whose box is drawn ticked and disabled cannot be
-      // given an AI or a model either. That is `create` alone: a phase
-      // that has run may be run again, and it is the reader's to choose
-      // (the route refuses only a start out of order). The archived row
-      // and the busy one are the pickers' own, already.
-      const alreadyRun = !RUN_STEPS.includes(p.step);
-      const pickCell =
-        `<td class="modelcell"><span class="row">` +
-        // No effort control: the line names the AI and the model, and
-        // the effort a step runs at is a configuration answer, not a
-        // per-row pick.
-        aiModel(g, opts, p.step, busy, live, latest?.model, recordedModel, alreadyRun,
-          latest?.results?.findLast((x) => x.step === p.step)?.tool, p.attempts[0]?.modelId ?? p.modelId,
-          latest?.stepProviders?.[p.step] ?? latest?.results?.findLast((x) => x.step === p.step)?.provider?.key) +
-        `${box}</span></td>`;
-      // Does this phase's own file say it ran at all (the
-      // fallback in `phasesFor`), even with no Cost line recorded? Used
-      // by BOTH branches below — an archived `create` line is exactly as
-      // permanently costless as a live one, so the blank-vs-unknown fix
-      // has to reach both, not just the live row.
-      const ran = phaseHasRun(g, p);
-      const ranWithNoCost = p.timeSpentMs !== undefined || p.cost !== undefined || p.tokens !== undefined;
-      lines.push({
-        tag: `<tr class="subrow" data-step="${esc(p.step)}">`,
-        cells:
-          // The name alone, hard left: it is what the eye lands on
-          // first, and the box sits in beside the model, so it needs no indent.
-          `<td class="phasecell" colspan="2">${phaseMessagesFold(g, p, opts, ran)}${name}</td>` +
-          pickCell +
-          `<td data-col="state">${phaseWordCell(word, attemptCount, opts.lang)}</td>` +
-          // The phase's own duration, not when it began.
-          // Same physical column, a different question per row type —
-          // which this column already did before, and which is what
-          // makes "how long did this take?" readable without a column
-          // of its own. A live row with no queue-job attempt falls back
-          // to the same file-stamped figure a locked row reads.
-          `<td data-col="started">${
-            phaseDurationCell(latest, p.step, now) || lockedDuration(p.timeSpentMs)
-          }</td>` +
-          // `p.cost !== undefined`, not `ranWithNoCost`: a
-          // phase can have run (a stamped Time spent) with NO Cost: line
-          // at all — still an explicit "–", since
-          // "ran" and "a real $0 was recorded" are different claims.
-          // `ranWithNoCost` still decides the BLANK text (a phase that
-          // ran at all reads "–", not empty); `p.cost !== undefined`
-          // alone decides whether the figure itself is trusted as a
-          // settled $0.
-          `<td class="num" data-col="cost">${
-            locked
-              ? costCell(p.cost ?? 0, p.tokens, ranWithNoCost ? "–" : "", p.cost !== undefined)
-              : latest
-                ? costCell(latest.spentUsd, latest.spentTokens, "", latest.state === "done")
-                // No queue job for this phase, but its own file carries
-                // a stamped record: it ran, and — when the file's own
-                // Cost: line is present — its cost is genuinely $0
-                // rather than unattempted, never a blank indistinguishable
-                // from "not run".
-                : ranWithNoCost
-                  ? costCell(p.cost ?? 0, p.tokens, "–", p.cost !== undefined)
-                  : ""
-          }</td>`,
-      });
-      // The model's own messages, unfolded under the line.
-      lines.push(...phaseMessagesRow(g, p, opts, ran, now));
-      if ((opts.modelChoices ?? []).length) {
-        for (const part of SIDE_PARTS_OF[p.step] ?? []) {
-          const rests = part === PLAN_REVIEW ? analyzeRests(g, opts) : undefined;
-          const sideRun = sideRunOf(p, part);
-          const recordedProvider = part === PLAN_REVIEW
-            ? latest?.stepProviders?.[part]
-            : sideRun?.provider?.key ?? latest?.stepProviders?.[part];
-          const pickers = sidePickers(g, opts, part, locked || (busy && !editable.has(p.step)), sideRun?.modelId, recordedProvider, rests,
-            undefined, latest?.stepModels?.[part]);
-          lines.push(...sideLines(g, p, opts, part, pickers));
-        }
-      }
-    });
+    .forEach((p) => lines.push(...phaseLines(g, opts, p, { now, busy, locked, ticked, editable, groupArchive: !!mode.groupArchive })));
   // No switch like the New-spec page's on a row of its own here: the
   // choice lives on the spec page's own banner and is recorded on the spec itself,
   // so a later job for this spec reads that record instead of asking
   // again from a checkbox unchecked by default on every render.
   //
   return lines.map((l) => `${l.tag}${l.cells}</tr>`).join("") + (mode.groupArchive ? "" : dependsOnLine(g, opts));
+}
+
+/** One phase's line, its messages and its side parts' lines. */
+function phaseLines(g: SpecGroup, opts: SpecsPageOptions, p: Phase, ctx: { now: number; busy: boolean; locked: boolean; ticked: Set<string>; editable: Set<string>; groupArchive: boolean }): { tag: string; cells: string }[] {
+  const { now, busy, locked, editable } = ctx;
+  const lines: { tag: string; cells: string }[] = [];
+  const latest = p.attempts[0];
+  const word = wordPhase(g.done.includes(p.step), p.heldBack, latest, { ...p.history, waiting: p.waiting, step: p.step, fileResult: p.fileResult }, opts.lang);
+  const name = phaseName(p.step, opts.lang);
+  const attemptCount = attemptCountOf(p);
+  // Live although the row is busy: a phase this run has
+  // not reached, which the reader may add to it or drop from it as
+  // the run goes.
+  const live = editable.has(p.step);
+  const box = phaseBox(g, opts, p.step, live, ctx);
+  const pickCell = phasePickCell(g, opts, p, { latest, busy, live, box });
+  // Does this phase's own file say it ran at all (the
+  // fallback in `phasesFor`), even with no Cost line recorded? Used
+  // by BOTH branches below — an archived `create` line is exactly as
+  // permanently costless as a live one, so the blank-vs-unknown fix
+  // has to reach both, not just the live row.
+  const ran = phaseHasRun(g, p);
+  lines.push({
+    tag: `<tr class="subrow" data-step="${esc(p.step)}">`,
+    cells:
+      // The name alone, hard left: it is what the eye lands on
+      // first, and the box sits in beside the model, so it needs no indent.
+      `<td class="phasecell" colspan="2">${phaseMessagesFold(g, p, opts, ran)}${name}</td>` +
+      pickCell +
+      `<td data-col="state">${phaseWordCell(word, attemptCount, opts.lang)}</td>` +
+      // The phase's own duration, not when it began.
+      // Same physical column, a different question per row type —
+      // which this column already did before, and which is what
+      // makes "how long did this take?" readable without a column
+      // of its own. A live row with no queue-job attempt falls back
+      // to the same file-stamped figure a locked row reads.
+      `<td data-col="started">${
+        phaseDurationCell(latest, p.step, now) || lockedDuration(p.timeSpentMs)
+      }</td>` +
+      phaseCostCell(p, latest, locked),
+  });
+  // The model's own messages, unfolded under the line.
+  lines.push(...phaseMessagesRow(g, p, opts, ran, now));
+  lines.push(...phaseSideLines(g, opts, p, latest, locked || (busy && !editable.has(p.step))));
+  return lines;
+}
+
+/** The phase's own name, plain text. */
+// The phase's own name, plain text: a phase line used to open the
+// tab the phase wrote, but the mapping did not hold for
+// every phase — archive writes no file of its own, and a step
+// outside the fixed four pointed at its job page instead, with
+// nothing on the row saying why the destination differed — so the
+// name is text now, and the spec page stays reachable from the
+// spec's own name in the row's header line.
+//
+// It wore a fold control on mobile until
+// 2026-09-07 — a chevron per phase line, whose only job was to
+// hide the AI/model pair on a narrow screen. The pair fits beside
+// the name at every width this list is drawn for (`narrow.css`
+// states the floor), so there is nothing left to fold and no
+// control to explain.
+function phaseName(step: string, lang: Language | undefined): string {
+  return `<span class="phasefold">${esc(stepLabel(step, lang))}</span>`;
+}
+
+// The latest attempt, with a count when there have been more —
+// three archive runs on one spec is a real history, not a row to
+// repeat three times. The State/Action cell says the standard word
+// and nothing else: what explains it — a description changed since
+// the analysis, a pull request that could not be opened — is said
+// in the phase's log (`phaseExplanations`).
+// The larger of what the queue remembers and what the phase's own
+// file has stamped — the queue wins while it still
+// holds every attempt (including one still in flight, not yet
+// stamped); the file wins once the queue has forgotten the
+// earliest of them, or once the phase is archived and the queue
+// has nothing left for it at all.
+// A run the archive gates turned away before anything was tried
+// is a guard, not an attempt (2026-09-11) — the same two reasons
+// aide-run-spec leaves out of the file's own stamp
+// (run-spec/record/outcome.sh).
+function attemptCountOf(p: Phase): number {
+  const tried = p.attempts.filter((a) => !isGuardEnding(stepResultOf(a, p.step)?.terminalReason));
+  const attemptCount = Math.max(tried.length, p.attemptCount ?? 0);
+  return attemptCount;
+}
+
+/** The AI, the model and the box of one phase line, in one cell. */
+function phasePickCell(
+  g: SpecGroup, opts: SpecsPageOptions, p: Phase,
+  o: { latest: QueueRowView | undefined; busy: boolean; live: boolean; box: string },
+): string {
+  const { latest, busy, live, box } = o;
+  // The three choices this line offers, in one cell: the
+  // AI, then the model it fills in, then the phase's box. In the
+  // order they are made in — which AI a phase runs on decides which
+  // models there ARE to pick from, so it comes first.
+  //
+  // The AI has no column of its own and no span over the group:
+  // every line writes this cell, whichever step it
+  // names, and `aiPicker` simply draws nothing when there is one
+  // configured AI and nothing to choose between.
+  // The recorded string is always "<tool> <model>" (the
+  // `aide-run-spec` format), so the model half — the one the live
+  // picker's own options are keyed on — is everything after the
+  // first word.
+  const recordedModel = p.model?.split(" ").slice(1).join(" ") || undefined;
+  // The Select box's own answer, read once for the two selects beside
+  // it: a phase whose box is drawn ticked and disabled cannot be
+  // given an AI or a model either. That is `create` alone: a phase
+  // that has run may be run again, and it is the reader's to choose
+  // (the route refuses only a start out of order). The archived row
+  // and the busy one are the pickers' own, already.
+  const alreadyRun = !RUN_STEPS.includes(p.step);
+  return (
+    `<td class="modelcell"><span class="row">` +
+    // No effort control: the line names the AI and the model, and
+    // the effort a step runs at is a configuration answer, not a
+    // per-row pick.
+    aiModel(g, opts, p.step, busy, live, latest?.model, recordedModel, alreadyRun,
+      latest?.results?.findLast((x) => x.step === p.step)?.tool, p.attempts[0]?.modelId ?? p.modelId,
+      latest?.stepProviders?.[p.step] ?? latest?.results?.findLast((x) => x.step === p.step)?.provider?.key) +
+    `${box}</span></td>`
+  );
+}
+
+/** An archived row's box: what happened, inert. */
+function archivedPhaseChip(g: SpecGroup, opts: SpecsPageOptions, step: string): string {
+  const p = { step };
+  return phaseChip({
+      dataAttr: "data-phase",
+      value: p.step,
+      label: "",
+      ariaLabel: `${stepLabel(p.step, opts.lang)} — ${t(opts.lang ?? "en", "list.specArchived")}`,
+      lang: opts.lang,
+      // Nothing to post and no form to post it to: `reopen` is the
+      // one step an archived spec may be asked for, and the row's
+      // Reopen carries it as a hidden field of its own.
+      name: "",
+      // What HAPPENED, not what a press would run next.
+      // `chosenSteps` answers the second question — and for a spec
+      // whose workflow is over, with no recorded choice, it falls
+      // back to `{archive}` alone, which would tick the one step
+      // this row did not have and leave the ones it did unticked.
+      checked: g.done.includes(p.step),
+      disabled: true,
+      // Inert, not padlocked — the same reason as for
+      // a phase queued behind the running one: the tick says what
+      // there is to say, and a padlock on all four of them would
+      // be the row saying "archived" a fifth time.
+      plain: true,
+    });
+}
+
+/** A live row's box: the Run form's field, or a box that posts itself
+ *  for a phase the running job has not reached. */
+function runPhaseChip(g: SpecGroup, opts: SpecsPageOptions, step: string, o: { busy: boolean; live: boolean; ticked: Set<string> }): string {
+  const { busy, live, ticked } = o;
+  const p = { step };
+  return phaseChip({
+      // `data-phase`, not `data-step`: the line already carries
+      // `data-step`, and one attribute per question keeps a test
+      // that enumerates boxes from finding the lines too.
+      dataAttr: "data-phase",
+      value: p.step,
+      // No visible label — the phase's own name leads the line
+      // and the caption calls this column "Select". The
+      // accessible one is given outright, since a wrapper with
+      // no text has no name to offer.
+      label: "",
+      ariaLabel: stepLabel(p.step, opts.lang),
+      lang: opts.lang,
+      // An editable box is never posted with the Run form: while
+      // a job runs, that form asks for a SECOND job and the
+      // queue refuses it as a clash. It still NAMES the form,
+      // because that is how a press finds every control on the
+      // row to lock — and a field with no name is submitted by
+      // nobody, whatever it names.
+      name: live ? "" : "steps",
+      form: runFormId(g),
+      postTo: live ? `/api/queue/${esc(g.lead!.id)}/steps` : undefined,
+      // While busy this says what the RUNNING job will do with
+      // the step, not what a fresh press would pre-tick
+      // (`ticked`) — a step queued behind the running one is
+      // still one this job named, and still reads as ticked.
+      checked: busy || (g.lead && automaticProviderWait(g.lead)) ? !!g.lead?.steps.includes(p.step) : ticked.has(p.step),
+      // The step being run needs no carve-out here: a running
+      // step is never `live` — `live` names a step the
+      // run has NOT reached — so `busy && !live` disables it.
+      disabled: !!g.executionGroupAutomaticWait || (busy && !live),
+      // Inert, but not padlocked: the tick already says whether
+      // this job will get to the step.
+      plain: true,
+      // No `title` saying why the row will not take a click:
+      // the State column says what is running (`aiModel()` below).
+    });
+}
+
+/** The phase's own box: ticked and locked on an archived row, the Run
+ *  form's field on a live one, and `create`'s finished chip. */
+function phaseBox(g: SpecGroup, opts: SpecsPageOptions, step: string, live: boolean, ctx: { now: number; busy: boolean; locked: boolean; ticked: Set<string>; editable: Set<string>; groupArchive: boolean }): string {
+  const { busy, locked, ticked, groupArchive } = ctx;
+  const p = { step };
+  // What the last run used is not spelled out in text any more —
+  // it IS the picker's pre-filled value, in the column the caption
+  // calls "Model".
+  // `create` gets a box that is ticked and cannot be untucked: the
+  // folder being on disk IS its answer, and a spec that exists
+  // cannot be created again. It had no box at all until
+  // 2026-08-21, and the hole where the other four have one made
+  // the line read as a different KIND of thing rather than as the
+  // one phase already behind you. It carries no `name`, so no
+  // press can ever post `steps=create` — a disabled input is not
+  // submitted either, and this is the belt as well as the braces.
+  return groupArchive ? "" : locked
+    ? archivedPhaseChip(g, opts, p.step)
+    : RUN_STEPS.includes(p.step)
+    ? runPhaseChip(g, opts, p.step, { busy, live, ticked })
+    : finishedPhaseChip(p.step, opts.lang ?? "en"); // `create`'s own arm, same shape
+}
+
+/** The phase's cost: a locked row's stamped figure, the latest attempt's,
+ *  or the file's own record when the queue has no job for the phase. */
+function phaseCostCell(p: Phase, latest: QueueRowView | undefined, locked: boolean): string {
+  const ranWithNoCost = p.timeSpentMs !== undefined || p.cost !== undefined || p.tokens !== undefined;
+  return (
+  // `p.cost !== undefined`, not `ranWithNoCost`: a
+  // phase can have run (a stamped Time spent) with NO Cost: line
+  // at all — still an explicit "–", since
+  // "ran" and "a real $0 was recorded" are different claims.
+  // `ranWithNoCost` still decides the BLANK text (a phase that
+  // ran at all reads "–", not empty); `p.cost !== undefined`
+  // alone decides whether the figure itself is trusted as a
+  // settled $0.
+  `<td class="num" data-col="cost">${
+    locked
+      ? costCell(p.cost ?? 0, p.tokens, ranWithNoCost ? "–" : "", p.cost !== undefined)
+      : latest
+        ? costCell(latest.spentUsd, latest.spentTokens, "", latest.state === "done")
+        // No queue job for this phase, but its own file carries
+        // a stamped record: it ran, and — when the file's own
+        // Cost: line is present — its cost is genuinely $0
+        // rather than unattempted, never a blank indistinguishable
+        // from "not run".
+        : ranWithNoCost
+          ? costCell(p.cost ?? 0, p.tokens, "–", p.cost !== undefined)
+          : ""
+    }</td>`
+  );
+}
+
+/** The lines of a phase's side parts — the plan review under Analyze. */
+function phaseSideLines(g: SpecGroup, opts: SpecsPageOptions, p: Phase, latest: QueueRowView | undefined, off: boolean): { tag: string; cells: string }[] {
+  const lines: { tag: string; cells: string }[] = [];
+  if ((opts.modelChoices ?? []).length) {
+    for (const part of SIDE_PARTS_OF[p.step] ?? []) {
+      const rests = part === PLAN_REVIEW ? analyzeRests(g, opts) : undefined;
+      const sideRun = sideRunOf(p, part);
+      const recordedProvider = part === PLAN_REVIEW
+        ? latest?.stepProviders?.[part]
+        : sideRun?.provider?.key ?? latest?.stepProviders?.[part];
+      const pickers = sidePickers(g, opts, part, off, sideRun?.modelId, recordedProvider, rests,
+        undefined, latest?.stepModels?.[part]);
+      lines.push(...sideLines(g, p, opts, part, pickers));
+    }
+  }
+  return lines;
 }
 
 /** The specs a Run dialog may run together with its own, for one project. */
@@ -403,67 +466,4 @@ function phaseChoiceTable(
     }
   }
   return `<table class="list phasechoices"><tbody>${captionRow}${rows.join("")}</tbody></table>`;
-}
-
-/** The AI and the model a phase line offers, in one place.
- *
- *  Two shapes out of one DOM. Wide, the two selects stand side by side
- *  as they always have. Narrow, they do not fit — a 360px phone has
- *  room for one of them, not two — so a box eight characters wide says
- *  what the line is ON ("Claude/sonnet"), and a tap lays the two
- *  selects over it. The stylesheet decides which; the selects
- *  themselves are drawn once, with the same `name` and `form` they have
- *  always had, so nothing about what a press posts changes.
- *
- *  No JavaScript opens it: the box is a `<label>` for a checkbox, the
- *  same technique the phase fold used, and `menu-script.ts` closes it
- *  on a click outside or Escape the way it already closes the "…" menu.
- *  A locked line draws the box unpressable — its selects are a record,
- *  not a choice. */
-function aiModel(
-  g: SpecGroup,
-  opts: SpecsPageOptions,
-  step: string,
-  busy: boolean,
-  live: boolean,
-  used?: string,
-  recordedModel?: string,
-  alreadyRun = false,
-  usedTool?: string,
-  ranModelId?: string,
-  usedProvider?: string,
-  formIdOverride?: string,
-): string {
-  const lang = opts.lang ?? "en";
-  // One set of facts for the button and the two selects inside it.
-  const facts = { live, used, recordedModel, usedTool, usedProvider };
-  const ai = aiPicker(g, opts, step, busy, facts, formIdOverride, alreadyRun);
-  const model = modelPicker(g, opts, step, busy, facts, formIdOverride, alreadyRun, ranModelId);
-  const locked = lockedAsArchived(g, step) || (busy && !live) || alreadyRun;
-  // No "(?)" on a phase line: the State column already says what is
-  // running, and an archived or already-run phase needs no sentence to
-  // say it cannot run again. The column has no room for a mark.
-  if (!model) return `<span class="aimodel">${ai}</span>`;
-  const on = phaseAiModel(g, opts, step, facts);
-  return compactAiModel({
-    id: `aim-${groupKey(g.project, g.specFolder)}-${step}`,
-    lang,
-    ai,
-    model,
-    locked,
-    on,
-    ...(on?.fromProject && !locked ? { fromProject: on.model } : {}),
-  });
-}
-
-/** What the Review line under Analyze follows without a choice of its own:
- *  the model and provider the Analyze line would run on next. */
-export function analyzeRests(
-  g: SpecGroup, board: PickerOptions,
-): { model: string; provider?: string; fromProject?: boolean } | undefined {
-  const opts = pickerFor(board, g.project);
-  const on = phaseAiModel(g, opts, "analyze", { live: false });
-  if (!on) return undefined;
-  const pick = isArchivedRow(g) ? undefined : opts.pendingProviders?.[groupKey(g.project, g.specFolder)]?.analyze;
-  return { model: on.model, provider: resolveProvider(opts, "analyze", on.model, [pick])?.key, ...(on.fromProject ? { fromProject: true } : {}) };
 }

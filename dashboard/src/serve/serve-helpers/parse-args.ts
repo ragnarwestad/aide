@@ -78,6 +78,23 @@ function readFlags(argv: string[], opts: ServerOptions): { root?: string; queueC
 export function parseArgs(argv: string[]): ServerOptions {
   const opts: ServerOptions = { port: 8788 };
   const { root, queueConfigFile } = readFlags(argv, opts);
+  fillDefaultPaths(opts);
+  if (queueConfigFile) readQueueConfig(opts, queueConfigFile);
+  if (root) {
+    opts.projectRoot = root;
+    // The checkouts and the manifests live under the same root here.
+    opts.queueProjectRoot = root;
+  }
+  // The nav is the same entries whatever the projects are — a project
+  // is reached from the Projects page, not from the bar. `serve.ts`'s
+  // own fallback computes the identical constant when this is unset, so
+  // setting it here only with `root` is not load-bearing any more.
+  if (root) opts.navEntries = navEntries();
+  return opts;
+}
+
+/** The mirror and queue files no flag named, at their default places. */
+function fillDefaultPaths(opts: ServerOptions): void {
   if (!opts.mirrorPath) opts.mirrorPath = join(homedir(), ".aide", "dashboard", "aide-runs.json");
   if (!opts.queueMirrorPath) opts.queueMirrorPath = join(homedir(), ".aide", "dashboard", "aide-queue.json");
   // Beside the queue mirror, not the served board's own directory: a
@@ -92,57 +109,52 @@ export function parseArgs(argv: string[]): ServerOptions {
   if (!opts.pushSubscriptionsPath) opts.pushSubscriptionsPath = join(queueDir, "push-subscriptions.json");
   if (!opts.failedCreatesPath) opts.failedCreatesPath = join(queueDir, "failed-creates.json");
   if (!opts.pushKeyPath) opts.pushKeyPath = join(queueDir, "push-key.json");
-  if (queueConfigFile) {
-    // Kept whether or not the file is readable: the Add/Remove routes
-    // write the allowlist back here, and a first install has no such
-    // file yet.
-    opts.queueConfigFile = queueConfigFile;
-    // A missing or broken config leaves the built-in defaults in place.
-    try {
-      const raw = parseJsonc(readFileSync(queueConfigFile, "utf-8")) as Record<string, unknown>;
-      opts.queueDefaults = mergeQueueDefaults(QUEUE_DEFAULTS, raw);
-      // The notify command is an argv ARRAY: it is run with no shell,
-      // so a string would have to be split by someone, and that someone
-      // would get quoting wrong.
-      if (Array.isArray(raw.notifyCommand) && raw.notifyCommand.every((a) => typeof a === "string")) {
-        opts.queueNotifyCommand = raw.notifyCommand as string[];
-      }
-      if (raw.push === "none" || raw.push === "branch" || raw.push === "pr") opts.queuePush = raw.push;
-      opts.queueConcurrency = parseQueueConcurrency(raw.concurrency);
-      // The allowlist WINS over `--queue-projects` when the file has
-      // one: the flag is the seed for a first install, and the file is
-      // what every Add and Remove since has written. A
-      // malformed field is ignored entirely, leaving the flag — the
-      // same direction every other key here fails in.
-      const projects = parseQueueProjects(raw.projects);
-      if (projects) opts.queueProjects = projects;
-      // Off unless the file names one — a malformed block is
-      // ignored, the same direction every sibling key here fails in.
-      // Whether the bind address makes it safe to HONOR is not this
-      // parser's question; that is `createServer`'s own refusal.
-      if (typeof raw.headerAuth !== "undefined") {
-        const headerAuth = parseHeaderAuth(raw.headerAuth);
-        if (headerAuth) opts.headerAuth = headerAuth;
-        else console.error(`headerAuth in ${queueConfigFile} is malformed — ignored`);
-      }
-      if (typeof raw.allowedHosts !== "undefined") {
-        const allowedHosts = parseAllowedHosts(raw.allowedHosts);
-        if (allowedHosts) opts.allowedHosts = allowedHosts;
-        else console.error(`allowedHosts in ${queueConfigFile} is malformed — ignored`);
-      }
-    } catch {
-      console.error(`cannot read ${queueConfigFile} — keeping the built-in defaults`);
+}
+
+/** Sets on `opts` what the queue config file `--queue-config` names says. */
+function readQueueConfig(opts: ServerOptions, queueConfigFile: string): void {
+  // Kept whether or not the file is readable: the Add/Remove routes
+  // write the allowlist back here, and a first install has no such
+  // file yet.
+  opts.queueConfigFile = queueConfigFile;
+  // A missing or broken config leaves the built-in defaults in place.
+  try {
+    const raw = parseJsonc(readFileSync(queueConfigFile, "utf-8")) as Record<string, unknown>;
+    opts.queueDefaults = mergeQueueDefaults(QUEUE_DEFAULTS, raw);
+    // The notify command is an argv ARRAY: it is run with no shell,
+    // so a string would have to be split by someone, and that someone
+    // would get quoting wrong.
+    if (Array.isArray(raw.notifyCommand) && raw.notifyCommand.every((a) => typeof a === "string")) {
+      opts.queueNotifyCommand = raw.notifyCommand as string[];
     }
+    if (raw.push === "none" || raw.push === "branch" || raw.push === "pr") opts.queuePush = raw.push;
+    opts.queueConcurrency = parseQueueConcurrency(raw.concurrency);
+    // The allowlist WINS over `--queue-projects` when the file has
+    // one: the flag is the seed for a first install, and the file is
+    // what every Add and Remove since has written. A
+    // malformed field is ignored entirely, leaving the flag — the
+    // same direction every other key here fails in.
+    const projects = parseQueueProjects(raw.projects);
+    if (projects) opts.queueProjects = projects;
+    readAccessKeys(opts, raw, queueConfigFile);
+  } catch {
+    console.error(`cannot read ${queueConfigFile} — keeping the built-in defaults`);
   }
-  if (root) {
-    opts.projectRoot = root;
-    // The checkouts and the manifests live under the same root here.
-    opts.queueProjectRoot = root;
+}
+
+// Off unless the file names one — a malformed block is
+// ignored, the same direction every sibling key here fails in.
+// Whether the bind address makes it safe to HONOR is not this
+// parser's question; that is `createServer`'s own refusal.
+function readAccessKeys(opts: ServerOptions, raw: Record<string, unknown>, queueConfigFile: string): void {
+  if (typeof raw.headerAuth !== "undefined") {
+    const headerAuth = parseHeaderAuth(raw.headerAuth);
+    if (headerAuth) opts.headerAuth = headerAuth;
+    else console.error(`headerAuth in ${queueConfigFile} is malformed — ignored`);
   }
-  // The nav is the same entries whatever the projects are — a project
-  // is reached from the Projects page, not from the bar. `serve.ts`'s
-  // own fallback computes the identical constant when this is unset, so
-  // setting it here only with `root` is not load-bearing any more.
-  if (root) opts.navEntries = navEntries();
-  return opts;
+  if (typeof raw.allowedHosts !== "undefined") {
+    const allowedHosts = parseAllowedHosts(raw.allowedHosts);
+    if (allowedHosts) opts.allowedHosts = allowedHosts;
+    else console.error(`allowedHosts in ${queueConfigFile} is malformed — ignored`);
+  }
 }

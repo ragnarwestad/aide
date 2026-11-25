@@ -1,12 +1,12 @@
 // One `ensureDashboardCheckout` per project at a time, and who may ask
 // for an answer no older than their own call.
 //
-// Split out of dashboard-checkout.ts to keep that file inside the
+// Split out of dashboard-checkout/index.ts to keep that file inside the
 // 500-line limit (`dashboard/AGENTS.md`, "Code health"): the decision
 // here is its own — who waits for whose answer — and nothing else in
 // that file shares it.
 
-import type { DashboardCheckout } from "./dashboard-checkout.ts";
+import type { DashboardCheckout } from "./dashboard-checkout/index.ts";
 
 /** Who may be handed a bring-up-to-date that is already running, and who
  *  may not.

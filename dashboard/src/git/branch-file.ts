@@ -27,7 +27,7 @@ import { tmpdir } from "node:os";
 import { basename, dirname, join, relative } from "node:path";
 import type { BranchStatusChecker } from "./branch-status.ts";
 import type { GitRunner } from "./process/index.ts";
-import { asFileText } from "./specs-pull.ts";
+import { asFileText } from "./specs-pull/index.ts";
 import { branchForSpec } from "../project/discover/group.ts";
 
 export interface BranchFileRead {
@@ -172,55 +172,14 @@ export async function writeStatusToBranch(
   const fileName = primary.relPath.split("/").pop() ?? primary.relPath;
   let scratchDir: string | null = null;
   try {
-    const fetched = await run(root, ["fetch", "--quiet", "origin", branch]);
-    if (fetched.code !== 0) return refuse(`origin could not be reached — nothing was saved`);
-
-    const ref = `refs/remotes/origin/${branch}`;
-    const tipOut = await run(root, ["rev-parse", ref]);
-    const tip = tipOut.code === 0 ? tipOut.stdout.trim() : "";
-    if (!tip) return refuse(`${branch} is no longer on origin — nothing was saved`);
-
-    const currentOut = await run(root, ["log", "-1", "--format=%H", ref, "--", primary.relPath]);
-    const currentSha = currentOut.code === 0 ? currentOut.stdout.trim() : "";
-    if ((currentSha || null) !== expectedBaseSha) {
-      return refuse(`${fileName} has changed since you opened it — nothing was saved, open it again`);
-    }
-
-    const tipTreeOut = await run(root, ["rev-parse", `${tip}^{tree}`]);
-    if (tipTreeOut.code !== 0) return refuse(`${branch}'s tree could not be read — nothing was saved`);
-    const tipTree = tipTreeOut.stdout.trim();
+    const at = await tipStillAsOpened(run, root, branch, primary.relPath, expectedBaseSha, fileName);
+    if ("note" in at) return at;
 
     scratchDir = mkdtempSync(join(tmpdir(), "aide-branch-write-"));
-    const indexPath = join(scratchDir, "index");
-    const env = { GIT_INDEX_FILE: indexPath };
-    const readTree = await run(root, ["read-tree", tipTree], undefined, env);
-    if (readTree.code !== 0) return refuse(`${fileName} could not be written — nothing was saved`);
+    const newTree = await treeWithEdits(run, root, scratchDir, at.tipTree, edits);
+    if (newTree === null) return refuse(`${fileName} could not be written — nothing was saved`);
 
-    for (const [i, edit] of edits.entries()) {
-      const blobPath = join(scratchDir, `content-${i}`);
-      writeFileSync(blobPath, asFileText(edit.text));
-      const blobOut = await run(root, ["hash-object", "-w", "--", blobPath]);
-      if (blobOut.code !== 0) return refuse(`${fileName} could not be written — nothing was saved`);
-      const blobSha = blobOut.stdout.trim();
-      // `--add`: every existing single-file caller updated a path
-      // `read-tree` already staged, so this was never needed before —
-      // the second entry (`4-status.json`) is often a path the
-      // tip's tree has never had, and a bare `--cacheinfo` refuses to
-      // ADD a new path, only update one already in the index.
-      const updateIndex = await run(
-        root,
-        ["update-index", "--add", "--cacheinfo", `100644,${blobSha},${edit.relPath}`],
-        undefined,
-        env,
-      );
-      if (updateIndex.code !== 0) return refuse(`${fileName} could not be written — nothing was saved`);
-    }
-
-    const writeTreeOut = await run(root, ["write-tree"], undefined, env);
-    if (writeTreeOut.code !== 0) return refuse(`${fileName} could not be written — nothing was saved`);
-    const newTree = writeTreeOut.stdout.trim();
-
-    const commitTreeOut = await run(root, ["commit-tree", newTree, "-p", tip, "-m", message]);
+    const commitTreeOut = await run(root, ["commit-tree", newTree, "-p", at.tip, "-m", message]);
     if (commitTreeOut.code !== 0) return refuse(`${fileName} could not be committed — nothing was saved`);
     const newCommit = commitTreeOut.stdout.trim();
 
@@ -240,6 +199,75 @@ export async function writeStatusToBranch(
   } finally {
     if (scratchDir) rmSync(scratchDir, { recursive: true, force: true });
   }
+}
+
+/** The branch's tip on origin and that tip's tree, fetched fresh, when
+ *  `relPath`'s last commit there is still `expectedBaseSha`; the refusal
+ *  otherwise. */
+async function tipStillAsOpened(
+  run: GitRunner,
+  root: string,
+  branch: string,
+  relPath: string,
+  expectedBaseSha: string | null,
+  fileName: string,
+): Promise<{ tip: string; tipTree: string } | BranchWriteResult> {
+  const fetched = await run(root, ["fetch", "--quiet", "origin", branch]);
+  if (fetched.code !== 0) return refuse(`origin could not be reached — nothing was saved`);
+
+  const ref = `refs/remotes/origin/${branch}`;
+  const tipOut = await run(root, ["rev-parse", ref]);
+  const tip = tipOut.code === 0 ? tipOut.stdout.trim() : "";
+  if (!tip) return refuse(`${branch} is no longer on origin — nothing was saved`);
+
+  const currentOut = await run(root, ["log", "-1", "--format=%H", ref, "--", relPath]);
+  const currentSha = currentOut.code === 0 ? currentOut.stdout.trim() : "";
+  if ((currentSha || null) !== expectedBaseSha) {
+    return refuse(`${fileName} has changed since you opened it — nothing was saved, open it again`);
+  }
+
+  const tipTreeOut = await run(root, ["rev-parse", `${tip}^{tree}`]);
+  if (tipTreeOut.code !== 0) return refuse(`${branch}'s tree could not be read — nothing was saved`);
+  return { tip, tipTree: tipTreeOut.stdout.trim() };
+}
+
+/** `tipTree` with every edit written into it, built in a temporary index
+ *  inside `scratchDir` so the checkout's own index never moves; `null`
+ *  when git refuses any part of it. */
+async function treeWithEdits(
+  run: GitRunner,
+  root: string,
+  scratchDir: string,
+  tipTree: string,
+  edits: BranchFileEdit[],
+): Promise<string | null> {
+  const env = { GIT_INDEX_FILE: join(scratchDir, "index") };
+  const readTree = await run(root, ["read-tree", tipTree], undefined, env);
+  if (readTree.code !== 0) return null;
+
+  for (const [i, edit] of edits.entries()) {
+    const blobPath = join(scratchDir, `content-${i}`);
+    writeFileSync(blobPath, asFileText(edit.text));
+    const blobOut = await run(root, ["hash-object", "-w", "--", blobPath]);
+    if (blobOut.code !== 0) return null;
+    const blobSha = blobOut.stdout.trim();
+    // `--add`: every existing single-file caller updated a path
+    // `read-tree` already staged, so this was never needed before —
+    // the second entry (`4-status.json`) is often a path the
+    // tip's tree has never had, and a bare `--cacheinfo` refuses to
+    // ADD a new path, only update one already in the index.
+    const updateIndex = await run(
+      root,
+      ["update-index", "--add", "--cacheinfo", `100644,${blobSha},${edit.relPath}`],
+      undefined,
+      env,
+    );
+    if (updateIndex.code !== 0) return null;
+  }
+
+  const writeTreeOut = await run(root, ["write-tree"], undefined, env);
+  if (writeTreeOut.code !== 0) return null;
+  return writeTreeOut.stdout.trim();
 }
 
 export interface OpenBranchTarget {

@@ -233,7 +233,7 @@ describe("the archive-held-back reason", () => {
 // unticked Acceptance criteria row (no AI spent), but that reason never
 // reached this page: a fresh archive attempt refusing again showed a
 // "ready" row with nothing saying why a retry would refuse the same
-// way. `acceptanceCriteriaUnticked` is the read `spec-lookup.ts` feeds
+// way. `acceptanceCriteriaUnticked` is the read `spec-lookup/` feeds
 // into the same `archiveHeldBack` field `restingChip()` already reads,
 // so the row explains itself without a second field to thread through.
 describe("acceptance criteria left unticked", () => {

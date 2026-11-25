@@ -187,6 +187,32 @@ const PAD = (sha: string) => sha.padEnd(40, "0");
 export const BRANCH_TIP_SHA = PAD("branchtip");
 export const BRANCH_FILE_SHA = PAD("branchfile");
 
+/** What `branchAwareGitRunner` is told about the branch. */
+export interface BranchAwareOptions {
+  /** `false` models no open branch: the disk read/write is untouched. */
+  open?: boolean;
+  /** Which spec file this branch-aware read/write is about. Defaults
+   *  to `4-status.md`, this fixture's original and still most common
+   *  use; the write side covers any of the four
+   *  files, and a save-route test for one of the others passes its
+   *  own here. */
+  file?: string;
+  /** The branch's own file content (the whole point of a branch-aware read). */
+  branchText?: string;
+  /** The last commit that touched the file ON THE BRANCH — what a
+   *  branch-aware page's `baseSha` names, and what a tick's
+   *  `statusBaseSha` has to match for the write to go through. */
+  branchFileSha?: string;
+  /** The branch's own HEAD, used to build the new commit on a write.
+   *  Defaults to `branchFileSha` — the ordinary case where the last
+   *  commit on the branch is also the one that touched the file. */
+  branchTipSha?: string;
+  folder?: string;
+  /** The push is rejected — a headless run raced this write. */
+  pushFails?: boolean;
+  extra?: Record<string, { code: number; stdout?: string }>;
+}
+
 /** A `GitRunner` that answers every question `savable`'s does, PLUS the
  *  branch-open question `resolveOpenBranchTarget` asks and the
  *  read/write plumbing `readStatusFromBranch`/`writeStatusToBranch`
@@ -207,30 +233,7 @@ export const BRANCH_FILE_SHA = PAD("branchfile");
  *  today's tests already tolerate (`specsRoot()`'s return value is a
  *  merge-lock KEY everywhere except this feature's own new code). */
 export function branchAwareGitRunner(
-  opts: {
-    /** `false` models no open branch: the disk read/write is untouched. */
-    open?: boolean;
-    /** Which spec file this branch-aware read/write is about. Defaults
-     *  to `4-status.md`, this fixture's original and still most common
-     *  use; the write side covers any of the four
-     *  files, and a save-route test for one of the others passes its
-     *  own here. */
-    file?: string;
-    /** The branch's own file content (the whole point of a branch-aware read). */
-    branchText?: string;
-    /** The last commit that touched the file ON THE BRANCH — what a
-     *  branch-aware page's `baseSha` names, and what a tick's
-     *  `statusBaseSha` has to match for the write to go through. */
-    branchFileSha?: string;
-    /** The branch's own HEAD, used to build the new commit on a write.
-     *  Defaults to `branchFileSha` — the ordinary case where the last
-     *  commit on the branch is also the one that touched the file. */
-    branchTipSha?: string;
-    folder?: string;
-    /** The push is rejected — a headless run raced this write. */
-    pushFails?: boolean;
-    extra?: Record<string, { code: number; stdout?: string }>;
-  } = {},
+  opts: BranchAwareOptions = {},
 ): { run: GitRunner; calls: { args: string[]; env?: Record<string, string> }[] } {
   const folder = opts.folder ?? SPEC;
   const branch = specBranch(folder);

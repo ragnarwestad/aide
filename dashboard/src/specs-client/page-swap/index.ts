@@ -100,6 +100,42 @@ function draw(next: Document, url: URL, options: DrawOptions): void {
   shownAddress = url.href;
 }
 
+/** The page the reader is leaving is kept, and the one asked for drawn at
+ *  once from the copy kept of it, when there is one; returns that copy. */
+function drawRememberedCopy(requestedUrl: URL, options: SwapOptions, referrer: string): Document | null {
+  const elsewhere = !sameAddress(requestedUrl.href, shownAddress);
+  if (elsewhere) rememberPage(shownAddress, document);
+  const kept = options.remembered && elsewhere ? rememberedPage(requestedUrl.href) : null;
+  const copy = kept && isBoardPage(kept, requestedUrl) ? kept : null;
+  if (copy) {
+    draw(copy, requestedUrl, {
+      history: options.history,
+      historyIndex: options.historyIndex,
+      scroll: "top",
+      referrer,
+      background: false,
+      html: "",
+    });
+  }
+  return copy;
+}
+
+/** The board page an answer carries, or null when the swap was abandoned
+ *  meanwhile; throws for an answer that is no board page. */
+async function boardPageFrom(
+  response: Response, requestedUrl: URL, from: string, signal: AbortSignal,
+): Promise<{ next: Document; finalUrl: URL; html: string } | null> {
+  const contentType = response.headers.get("content-type") ?? "";
+  const finalUrl = new URL(response.url || requestedUrl.href, from);
+  if (!finalUrl.hash) finalUrl.hash = requestedUrl.hash;
+  if (!response.ok || !contentType.includes("text/html") || finalUrl.origin !== location.origin) throw new Error("not a board page");
+  const html = await response.text();
+  if (signal.aborted) return null;
+  const next = new DOMParser().parseFromString(html, "text/html");
+  if (!isBoardPage(next, finalUrl)) throw new Error("not a board page");
+  return { next, finalUrl, html };
+}
+
 export async function swapPage(target: string, options: SwapOptions): Promise<boolean> {
   if (typeof document.dispatchEvent !== "function" || typeof DOMParser === "undefined") {
     location.href = target;
@@ -127,30 +163,11 @@ export async function swapPage(target: string, options: SwapOptions): Promise<bo
       signal: controller.signal,
       referrerPolicy: options.referrer === "none" ? "no-referrer" : undefined,
     });
-    const elsewhere = !sameAddress(requestedUrl.href, shownAddress);
-    if (elsewhere) rememberPage(shownAddress, document);
-    const kept = options.remembered && elsewhere ? rememberedPage(requestedUrl.href) : null;
-    copy = kept && isBoardPage(kept, requestedUrl) ? kept : null;
-    if (copy) {
-      draw(copy, requestedUrl, {
-        history: options.history,
-        historyIndex: options.historyIndex,
-        scroll: "top",
-        referrer,
-        background: false,
-        html: "",
-      });
-    }
+    copy = drawRememberedCopy(requestedUrl, options, referrer);
     document.dispatchEvent(new Event(PAGE_FETCHING));
-    const response = await answer;
-    const contentType = response.headers.get("content-type") ?? "";
-    const finalUrl = new URL(response.url || requestedUrl.href, from);
-    if (!finalUrl.hash) finalUrl.hash = requestedUrl.hash;
-    if (!response.ok || !contentType.includes("text/html") || finalUrl.origin !== location.origin) throw new Error("not a board page");
-    const html = await response.text();
-    if (controller.signal.aborted) return false;
-    const next = new DOMParser().parseFromString(html, "text/html");
-    if (!isBoardPage(next, finalUrl)) throw new Error("not a board page");
+    const page = await boardPageFrom(await answer, requestedUrl, from, controller.signal);
+    if (!page) return false;
+    const { next, finalUrl, html } = page;
     // A newer server drew it: loaded whole, so the script that runs it is the new one too.
     if (servedByAnother(document, next)) throw new Error("served by a newer server");
     draw(next, finalUrl, {

@@ -30,14 +30,8 @@ function onAiChange(event: Event): void {
   if (ai) return applyAiPick(ai);
 }
 
-export function mountPage(doc: Document, options: { referrer: string; background?: boolean }): () => void {
-  // `?.`: the page script's tests run it against a stand-in document with no root element.
-  const root = doc.documentElement as HTMLElement | undefined;
-  if (root?.dataset) root.dataset.pageMounted = "true";
-  const cleanups: (() => void)[] = [];
-  // The count under every bounded text field. Its listeners are on the
-  // document, which outlives the page, and are bound once at load.
-  drawLimits(doc);
+/** The Projects pages' forms and dialogs, and the Settings page's Notifications tab. */
+function mountProjectForms(doc: Document, cleanups: (() => void)[], options: { referrer: string; background?: boolean }): void {
   // The Providers tab's Add dialog, when it is the one open.
   const providerAdd = doc.getElementById("provider-add") as HTMLDialogElement | null;
   if (providerAdd) bindProviderAdd(providerAdd);
@@ -64,6 +58,10 @@ export function mountPage(doc: Document, options: { referrer: string; background
       offerAgainAfterReset(form);
     }
   }
+}
+
+/** The Settings page's Phases form. */
+function mountSettingsForm(doc: Document): void {
   // `hasAttribute`: a stand-in document in the tests answers with a form of another page.
   const settingsCandidate = doc.querySelector("form[data-settings-form]") as HTMLFormElement | null;
   const settingsForm = settingsCandidate?.hasAttribute?.("data-settings-form") ? settingsCandidate : null;
@@ -77,10 +75,10 @@ export function mountPage(doc: Document, options: { referrer: string; background
       (why) => settingsAnswer(settingsForm, why, false),
     );
   }) as EventListener);
-  bindLists(doc);
-  const jobrows = doc.getElementById("jobrows");
-  if (jobrows) acceptListWindow(jobrows);
-  cleanups.push(bindListWindow(doc));
+}
+
+/** The New spec form. */
+function mountNewSpecForm(doc: Document): void {
   // The one listener that is NOT delegated: this form is the whole of its
   // own page, with no swapped container to hang a delegated one off.
   // The handler's promise is returned rather than dropped — a listener's
@@ -94,6 +92,9 @@ export function mountPage(doc: Document, options: { referrer: string; background
   // browser finds one of its required fields empty.
   syncDependsOn();
   newSpec?.querySelector("select[name=project]")?.addEventListener("change", syncDependsOn);
+}
+
+function mountSchedule(doc: Document, cleanups: (() => void)[], options: { referrer: string; background?: boolean }): void {
   // The /schedule page's own controls: none of these sit inside `#jobrows`,
   // and nothing on this page is swapped from the server on a timer, so each
   // is bound here rather than delegated.
@@ -123,6 +124,24 @@ export function mountPage(doc: Document, options: { referrer: string; background
     // the form is posted.
     form.addEventListener("change", onAiChange);
   }
+}
+
+export function mountPage(doc: Document, options: { referrer: string; background?: boolean }): () => void {
+  // `?.`: the page script's tests run it against a stand-in document with no root element.
+  const root = doc.documentElement as HTMLElement | undefined;
+  if (root?.dataset) root.dataset.pageMounted = "true";
+  const cleanups: (() => void)[] = [];
+  // The count under every bounded text field. Its listeners are on the
+  // document, which outlives the page, and are bound once at load.
+  drawLimits(doc);
+  mountProjectForms(doc, cleanups, options);
+  mountSettingsForm(doc);
+  bindLists(doc);
+  const jobrows = doc.getElementById("jobrows");
+  if (jobrows) acceptListWindow(jobrows);
+  cleanups.push(bindListWindow(doc));
+  mountNewSpecForm(doc);
+  mountSchedule(doc, cleanups, options);
   // A page that carries `data-reload-every` reloads from here, and waits while a dialog is open.
   if (options.background !== false) cleanups.push(startReloadWhileIdle(doc));
   // The server draws every model, and each select is narrowed to the tool its own value belongs to.

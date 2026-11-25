@@ -2,7 +2,7 @@
 // turn (split 2026-09-04: the file had reached 567 lines). Every
 // check is the one it was, in the order it was in, and answers
 // `null` for a path that is not its own.
-import { saveSpecFiles } from "../../../git/specs-pull.ts";
+import { saveSpecFiles } from "../../../git/specs-pull/index.ts";
 import { readStatusFromBranch, resolveOpenBranchTarget, writeStatusToBranch } from "../../../git/branch-file.ts";
 import { lastCommitOf } from "../../../git/description-freshness.ts";
 import { runAideWriteSpec } from "../../../git/run-aide-write-spec.ts";
@@ -33,12 +33,264 @@ import { stateRelPath } from "./shared.ts";
 import type { RoutesContext } from "..";
 import { dirname } from "node:path";
 
-export async function checkRoutes(
-  ctx: RoutesContext,
-  req: Request,
-  url: URL,
-  path: string,
-): Promise<Response | null> {
+// `bodyToObject` wraps a lone value in an array for the New-spec
+// form's chip set, exactly as it does for `dependsOn`, so both
+// shapes are taken apart the same way.
+// The boxes the reader left TICKED — the whole state of the section,
+// not a list of additions. A browser posts only the checked boxes,
+// so a row missing from this set is a row whose check was taken off,
+// and every box clear is a legitimate press rather than an empty
+// one. That is what makes a mis-click correctable here instead of by
+// hand in `4-status.md`.
+function tickRequest(body: Record<string, unknown>) {
+  const ticks = (Array.isArray(body.tick) ? body.tick : [body.tick]).filter((v): v is string => typeof v === "string");
+  // Every row the form DREW, ticked or not, as its own hidden field.
+  // It is what scopes the press: only these rows are decided by it, so
+  // a request that carries none changes nothing rather than clearing
+  // the section, and a row a run added since the page was drawn is
+  // left alone instead of being answered for by a reader who never
+  // saw it.
+  // The second box: rows whose Not verified box was left checked.
+  const unverifieds = (Array.isArray(body.unverified) ? body.unverified : [body.unverified]).filter(
+    (v): v is string => typeof v === "string",
+  );
+  const drawn = (Array.isArray(body.row) ? body.row : [body.row]).filter((v): v is string => typeof v === "string");
+  // The archived form's third choice: rows marked Failed, and the note for
+  // the n-th drawn row, in the order the rows were drawn.
+  const failedLines = new Set(
+    (Array.isArray(body.failed) ? body.failed : [body.failed]).filter((v): v is string => typeof v === "string"),
+  );
+  const failNote = (line: string): string => {
+    const at = drawn.indexOf(line);
+    const text = at < 0 ? undefined : body[`failnote-${at}`];
+    return typeof text === "string" ? text : "";
+  };
+  // Boxes with no phase to read them against is a request that
+  // never came from this form.
+  return { ticks, unverifieds, drawn, failedLines, failNote };
+}
+
+/** The ticks, unticks and marks the press asked for, applied to the status
+ *  text in order; why the press is refused, else. */
+function applyTicks(
+  ticked: string, phase: string, asked: ReturnType<typeof tickRequest>, archived: boolean,
+): { text: string } | { error: string; solution?: string; archivedRefusal?: boolean } {
+  const state = new Map(
+    parseStatusChecks(ticked)
+      .filter((row) => row.phase === phase)
+      .map((row) => [row.line, checkStateOf(row)] as const),
+  );
+  const { drawn, failedLines, failNote } = asked;
+  const wanted = new Set(asked.ticks);
+  const unverified = new Set(asked.unverifieds);
+  // An archived spec answers for every row the request names, drawn or not:
+  // a post that names a box it never drew is not a press of its form.
+  for (const line of archived ? new Set([...drawn, ...asked.ticks, ...failedLines]) : drawn) {
+    const current = state.get(line);
+    // A Failed row is never drawn as a box: it leaves that state through Reopen.
+    if (current === undefined || current === "failed") {
+      return { error: "that check is not there to change any more", solution: "reload the page and look again" };
+    }
+    // An archived spec is the record of what was judged: a check that was
+    // put off may still be completed or marked Failed, and nothing else
+    // moves. A row left as it is is skipped.
+    if (archived && current !== "notVerified") {
+      // Answered without the body, like the closed spec's: the list is not
+      // sent back to a view of a spec it has no criteria to unfold for.
+      return { error: ARCHIVED_REFUSAL, archivedRefusal: true };
+    }
+    const target: CheckState = archived
+      ? wanted.has(line)
+        ? "done"
+        : failedLines.has(line)
+          ? "failed"
+          : current
+      : wantedState(wanted.has(line), unverified.has(line), current);
+    if (target === current) continue;
+    if (target === "failed") {
+      const note = failNote(line);
+      if (!cleanFailNote(note)) {
+        return { error: "say what did not hold before marking a check Failed — nothing was saved" };
+      }
+      if (failNoteTooLong(note)) {
+        return { error: `the note is over ${FAIL_NOTE_MAX} characters, so nothing was saved`, solution: "shorten it and press Save again" };
+      }
+    }
+    const next =
+      target === "done"
+        ? tickStatusLine(ticked, phase, line)
+        : target === "open"
+          ? untickStatusLine(ticked, phase, line)
+          : target === "failed"
+            ? markFailedStatusLine(ticked, phase, line, failNote(line))
+            : markNotVerifiedStatusLine(ticked, phase, line);
+    // One row that is not there refuses the WHOLE press, the boxes
+    // beside it included — never applied silently while one of them
+    // is dropped.
+    if (next === null) {
+      return { error: "that check is not there to change any more", solution: "reload the page and look again" };
+    }
+    ticked = next;
+  }
+  // A press that moved nothing: the reader opened the tab, pressed
+  // Save and changed their mind about nothing. Not a refusal, and not
+  // a commit either.
+  return { text: ticked };
+}
+
+/** The state file derived from the ticked status by the installed scripts. */
+async function derivedState(ctx: RoutesContext, specFolder: string, ticked: string): Promise<{ stateJson: string } | { reason: string }> {
+  const derived = await runAideWriteSpec(
+    specFolder, STATUS_SPEC_FILE, ticked,
+    ctx.opts.queueRunnerBin ? dirname(ctx.opts.queueRunnerBin) : undefined,
+  );
+  if (!derived.ok || !derived.stateJson) return { reason: derived.error ?? "the state file could not be derived" };
+  // A state derived by scripts older than this dashboard has no flag, and
+  // would hold archive back on a row the reader has just marked.
+  const derivedRows = parseSpecStateText(derived.stateJson)?.acceptanceCriteria ?? [];
+  const written = parseStatusChecks(ticked);
+  if (notVerifiedCount(derivedRows) < notVerifiedCount(written) || failedCount(derivedRows) < failedCount(written)) {
+    return { reason: "the installed scripts are older than the dashboard" };
+  }
+  return { stateJson: derived.stateJson };
+}
+
+/** The status and its state file written together: to the open branch, or saved in the checkout. */
+async function writeTicks(
+  ctx: RoutesContext, dir: string, specFolder: string,
+  o: { branchTarget: Awaited<ReturnType<typeof resolveOpenBranchTarget>>; ticked: string; stateJson: string; statusBaseSha: string | null },
+) {
+  const { branchTarget, ticked, stateJson, statusBaseSha } = o;
+  const currentState = await lastCommitOf(ctx.gitRun, dir, STATE_FILE);
+  // An open branch writes straight onto `refs/heads/aide/<folder>`
+  // at origin — never through `saveSpecFiles`, which structurally
+  // cannot target anything but the shared checkout's own `HEAD`
+  // (see 2-analysis.md's "The write side"). No open branch keeps the
+  // exact `saveSpecFiles` call this route has always made.
+  // Both cases now land `4-status.md` and `4-status.json` together, in
+  // the ONE commit the tick makes.
+  return branchTarget
+    ? await ctx.mergeLock.run(branchTarget.root, () =>
+        writeStatusToBranch(
+          ctx.gitRun,
+          branchTarget.root,
+          branchTarget.branch,
+          [
+            { relPath: branchTarget.relPath, text: ticked },
+            { relPath: stateRelPath(branchTarget.relPath), text: stateJson },
+          ],
+          statusBaseSha,
+          tickMessage(specFolder),
+        ),
+      )
+    : await ctx.mergeLock.run(await ctx.specsRoot(dir), () =>
+        saveSpecFiles(
+          ctx.gitRun,
+          dir,
+          (root) => ctx.branchStatus.defaultBranch(root),
+          [
+            { file: STATUS_SPEC_FILE, text: ticked, baseSha: statusBaseSha },
+            { file: STATE_FILE, text: stateJson, baseSha: currentState?.sha ?? null },
+          ],
+          { specLabel: specFolder, message: tickMessage(specFolder) },
+        ),
+      );
+}
+
+/** Why a tick is refused before its body is read: a closed spec, or a job
+ *  writing the spec's files. */
+function tickRefusal(ctx: RoutesContext, project: string, specFolder: string): string | undefined {
+  const ref = ctx.specRef(project, specFolder);
+  if (ref?.archived && ref.closed) return ARCHIVED_REFUSAL;
+  const activeJob = ctx.queue.list().some(
+    (job) => job.project === project && job.specFolder === specFolder && writing(job),
+  );
+  return activeJob ? "another job for this spec is still running — nothing was saved" : undefined;
+}
+
+/** The status commit a tick writes over: the one just read for a press from
+ *  the list, the one the page was drawn from otherwise. */
+async function tickBaseSha(
+  ctx: RoutesContext, dir: string, fromList: boolean,
+  read: { branchTarget: unknown; branchRead: { sha: string | null } | null }, posted: unknown,
+): Promise<string | null> {
+  const { branchTarget, branchRead } = read;
+  return fromList
+    ? branchTarget
+      ? (branchRead?.sha ?? null)
+      : ((await lastCommitOf(ctx.gitRun, dir, STATUS_SPEC_FILE))?.sha ?? null)
+    : typeof posted === "string" && posted
+      ? posted
+      : null;
+}
+
+// A press from the Specs list says so on the action URL:
+// it has no file-level base sha to send (see `statusBaseSha` below).
+// `changed` is false for a press that committed nothing, so the page
+//  can say so instead of loading again.
+// Before the body is even read: this one WRITES, commits and
+// pushes, and an archived spec's folder is in `archive/`. Hiding
+// the boxes leaves this route reachable for anyone who already
+// has the URL, so the refusal is here and not only on the page.
+//
+// A CLOSED spec is refused whole. An archived one is refused row by
+// row further down, once the body is read: the one move it allows is
+// completing a check that was marked Not verified.
+// A step that is RUNNING, or a landing in flight, is writing the
+// file this tick would commit onto. A job that is merely queued is
+// not — and an archive job parked on this very tick ("held back:
+// the Acceptance criteria are not all ticked yet") is queued, so
+// refusing on `queued` made the tick and the hold-back wait for
+// each other.
+// The same "is this branch open" question the
+// read side asks (`resolveOpenBranchTarget`) — but FRESH, never the
+// cached answer. A branch opened moments ago by `create` or
+// `analyze` must be seen by the very next Save press, or the write
+// silently falls through to `saveSpecFiles`/`main` — the exact bug
+// this spec fixes, reintroduced on the write side by a stale cache
+// hit (see 3-solution.md's Plan review, Coherence's must-fix).
+// An archived spec's own branch has landed already — its folder sits under
+// `archive/` on the default branch — so there is no branch to ask about.
+// The row-level guard, on top of the file-level `baseSha` one
+// below. A `null` is every way the page can be out of date at
+// once: no such phase, no such row inside it, or a row someone
+// has already ticked in the very commit the page was drawn from
+// — which a sha alone cannot tell from a fresh render.
+//
+// Read fresh off the branch when one is open — never trusting the
+// page's own copy, since a headless run may have moved the branch
+// since the page was drawn — and off disk otherwise.
+//
+// Chained one row after another, which is safe because exactly
+// one character moves per tick and the cell keeps its padding:
+// a tick never reflows the table, so every other row's text is
+// still what it was.
+// What the file says now, so the press can be read as a state rather
+// than as a list: a row the reader left ticked that is already done
+// needs nothing, and a row that is done and no longer ticked is a
+// check to take off. Read from the same text every write below goes
+// on to change, so the two can never disagree about what was there.
+// The hold-back note goes with the last check it was
+// waiting on. A declined archive run writes `## Archive held
+// back` naming one open row and where to close it out; ticking
+// that row IS closing it out, so leaving the section behind
+// makes the page go on reporting a spec held back after the
+// reason is gone.
+//
+// The ACCEPTANCE rows, not the whole file's: the Phase tables gate
+// nothing (archive's only gate is the Acceptance section), so an implement run that left one of its own rows
+// unticked used to keep the note — and the "held back" wording with
+// it — standing on a spec whose person had judged everything that
+// was theirs to judge.
+// A press from the list draws no file-level base sha: it takes the sha
+// of the read it has just made, and the row-level guard above is what
+// refuses a row that moved.
+// The tick lands through the same spawned
+// aide-write-spec every skill's own write already goes through —
+// never a second, TypeScript-side computation of the derived state.
+// Refuses rather than ticking with a state file that would fall out
+// of step with what was just ticked.
+async function tickRoute(ctx: RoutesContext, req: Request, url: URL, path: string): Promise<Response | null> {
   const tick = path.match(/^\/api\/queue\/specs\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)\/tick$/);
   if (tick) {
     if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
@@ -46,259 +298,47 @@ export async function checkRoutes(
     const found = ctx.specDir(project!, specFolder!);
     if (!found) return new Response("not found", { status: 404 });
     const dir = await ctx.machinerySpecDir(project!, found);
-    // A press from the Specs list says so on the action URL:
-    // it has no file-level base sha to send (see `statusBaseSha` below).
     const fromList = url.searchParams.get("fromList") === "1";
     const spec = `${project}/${specFolder}`;
     const refuse = (error: string, solution?: string): Response => refusal({ error, solution }, { spec }, 409);
-    /** `changed` is false for a press that committed nothing, so the page
-     *  can say so instead of loading again. */
     const succeed = (note: string, changed: boolean): Response => json({ ok: true, note, changed });
-    // Before the body is even read: this one WRITES, commits and
-    // pushes, and an archived spec's folder is in `archive/`. Hiding
-    // the boxes leaves this route reachable for anyone who already
-    // has the URL, so the refusal is here and not only on the page.
-    //
-    // A CLOSED spec is refused whole. An archived one is refused row by
-    // row further down, once the body is read: the one move it allows is
-    // completing a check that was marked Not verified.
-    const ref = ctx.specRef(project!, specFolder!);
-    const archived = !!ref?.archived;
-    if (ref?.archived && ref.closed) {
-      logRefusal("tick", `${project}/${specFolder}`, ARCHIVED_REFUSAL);
-      return refuse(ARCHIVED_REFUSAL);
-    }
-    // A step that is RUNNING, or a landing in flight, is writing the
-    // file this tick would commit onto. A job that is merely queued is
-    // not — and an archive job parked on this very tick ("held back:
-    // the Acceptance criteria are not all ticked yet") is queued, so
-    // refusing on `queued` made the tick and the hold-back wait for
-    // each other.
-    const activeJob = ctx.queue.list().some(
-      (job) => job.project === project && job.specFolder === specFolder && writing(job),
-    );
-    if (activeJob) {
-      const reason = "another job for this spec is still running — nothing was saved";
-      logRefusal("tick", `${project}/${specFolder}`, reason);
-      return refuse(reason);
+    const archived = !!ctx.specRef(project!, specFolder!)?.archived;
+    const refused = tickRefusal(ctx, project!, specFolder!);
+    if (refused) {
+      logRefusal("tick", `${project}/${specFolder}`, refused);
+      return refuse(refused);
     }
     const sent = await readObjectBody(req, { cap: MAX_SAVE_BODY });
     if ("refusal" in sent) return sent.refusal;
     const body = sent.body;
-    // `bodyToObject` wraps a lone value in an array for the New-spec
-    // form's chip set, exactly as it does for `dependsOn`, so both
-    // shapes are taken apart the same way.
-    // The boxes the reader left TICKED — the whole state of the section,
-    // not a list of additions. A browser posts only the checked boxes,
-    // so a row missing from this set is a row whose check was taken off,
-    // and every box clear is a legitimate press rather than an empty
-    // one. That is what makes a mis-click correctable here instead of by
-    // hand in `4-status.md`.
-    const ticks = (Array.isArray(body.tick) ? body.tick : [body.tick]).filter((v): v is string => typeof v === "string");
-    // Every row the form DREW, ticked or not, as its own hidden field.
-    // It is what scopes the press: only these rows are decided by it, so
-    // a request that carries none changes nothing rather than clearing
-    // the section, and a row a run added since the page was drawn is
-    // left alone instead of being answered for by a reader who never
-    // saw it.
-    // The second box: rows whose Not verified box was left checked.
-    const unverifieds = (Array.isArray(body.unverified) ? body.unverified : [body.unverified]).filter(
-      (v): v is string => typeof v === "string",
-    );
-    const drawn = (Array.isArray(body.row) ? body.row : [body.row]).filter((v): v is string => typeof v === "string");
-    // The archived form's third choice: rows marked Failed, and the note for
-    // the n-th drawn row, in the order the rows were drawn.
-    const failedLines = new Set(
-      (Array.isArray(body.failed) ? body.failed : [body.failed]).filter((v): v is string => typeof v === "string"),
-    );
-    const failNote = (line: string): string => {
-      const at = drawn.indexOf(line);
-      const text = at < 0 ? undefined : body[`failnote-${at}`];
-      return typeof text === "string" ? text : "";
-    };
-    // Boxes with no phase to read them against is a request that
-    // never came from this form.
+    const asked = tickRequest(body);
     if (typeof body.checksPhase !== "string") {
       return refuse("no phase was submitted — nothing was saved");
     }
-    // The same "is this branch open" question the
-    // read side asks (`resolveOpenBranchTarget`) — but FRESH, never the
-    // cached answer. A branch opened moments ago by `create` or
-    // `analyze` must be seen by the very next Save press, or the write
-    // silently falls through to `saveSpecFiles`/`main` — the exact bug
-    // this spec fixes, reintroduced on the write side by a stale cache
-    // hit (see 3-solution.md's Plan review, Coherence's must-fix).
-    // An archived spec's own branch has landed already — its folder sits under
-    // `archive/` on the default branch — so there is no branch to ask about.
     const branchTarget = archived ? null : await resolveOpenBranchTarget(ctx, dir, specFolder!, STATUS_SPEC_FILE, true);
-    // The row-level guard, on top of the file-level `baseSha` one
-    // below. A `null` is every way the page can be out of date at
-    // once: no such phase, no such row inside it, or a row someone
-    // has already ticked in the very commit the page was drawn from
-    // — which a sha alone cannot tell from a fresh render.
-    //
-    // Read fresh off the branch when one is open — never trusting the
-    // page's own copy, since a headless run may have moved the branch
-    // since the page was drawn — and off disk otherwise.
-    //
-    // Chained one row after another, which is safe because exactly
-    // one character moves per tick and the cell keeps its padding:
-    // a tick never reflows the table, so every other row's text is
-    // still what it was.
     const branchRead = branchTarget
       ? await readStatusFromBranch(ctx.gitRun, branchTarget.root, branchTarget.branch, branchTarget.relPath)
       : null;
     let ticked = branchTarget ? (branchRead?.text ?? "") : (specFileText(dir, STATUS_SPEC_FILE) ?? "");
-    // What the file says now, so the press can be read as a state rather
-    // than as a list: a row the reader left ticked that is already done
-    // needs nothing, and a row that is done and no longer ticked is a
-    // check to take off. Read from the same text every write below goes
-    // on to change, so the two can never disagree about what was there.
     const asRead = ticked;
-    const state = new Map(
-      parseStatusChecks(ticked)
-        .filter((row) => row.phase === body.checksPhase)
-        .map((row) => [row.line, checkStateOf(row)] as const),
-    );
-    const wanted = new Set(ticks);
-    const unverified = new Set(unverifieds);
-    // An archived spec answers for every row the request names, drawn or not:
-    // a post that names a box it never drew is not a press of its form.
-    for (const line of archived ? new Set([...drawn, ...ticks, ...failedLines]) : drawn) {
-      const current = state.get(line);
-      // A Failed row is never drawn as a box: it leaves that state through Reopen.
-      if (current === undefined || current === "failed") {
-        return refuse("that check is not there to change any more", "reload the page and look again");
-      }
-      // An archived spec is the record of what was judged: a check that was
-      // put off may still be completed or marked Failed, and nothing else
-      // moves. A row left as it is is skipped.
-      if (archived && current !== "notVerified") {
-        logRefusal("tick", `${project}/${specFolder}`, ARCHIVED_REFUSAL);
-        // Answered without the body, like the closed spec's: the list is not
-        // sent back to a view of a spec it has no criteria to unfold for.
-        return refuse(ARCHIVED_REFUSAL);
-      }
-      const target: CheckState = archived
-        ? wanted.has(line)
-          ? "done"
-          : failedLines.has(line)
-            ? "failed"
-            : current
-        : wantedState(wanted.has(line), unverified.has(line), current);
-      if (target === current) continue;
-      if (target === "failed") {
-        const note = failNote(line);
-        if (!cleanFailNote(note)) {
-          return refuse("say what did not hold before marking a check Failed — nothing was saved");
-        }
-        if (failNoteTooLong(note)) {
-          return refuse(`the note is over ${FAIL_NOTE_MAX} characters, so nothing was saved`, "shorten it and press Save again");
-        }
-      }
-      const next =
-        target === "done"
-          ? tickStatusLine(ticked, body.checksPhase, line)
-          : target === "open"
-            ? untickStatusLine(ticked, body.checksPhase, line)
-            : target === "failed"
-              ? markFailedStatusLine(ticked, body.checksPhase, line, failNote(line))
-              : markNotVerifiedStatusLine(ticked, body.checksPhase, line);
-      // One row that is not there refuses the WHOLE press, the boxes
-      // beside it included — never applied silently while one of them
-      // is dropped.
-      if (next === null) {
-        return refuse("that check is not there to change any more", "reload the page and look again");
-      }
-      ticked = next;
+    const changed = applyTicks(ticked, body.checksPhase, asked, archived);
+    if ("error" in changed) {
+      if (changed.archivedRefusal) logRefusal("tick", `${project}/${specFolder}`, ARCHIVED_REFUSAL);
+      return refuse(changed.error, changed.solution);
     }
-    // A press that moved nothing: the reader opened the tab, pressed
-    // Save and changed their mind about nothing. Not a refusal, and not
-    // a commit either.
+    ticked = changed.text;
     if (ticked === asRead) return succeed("no check was changed — nothing was saved", false);
-    // The hold-back note goes with the last check it was
-    // waiting on. A declined archive run writes `## Archive held
-    // back` naming one open row and where to close it out; ticking
-    // that row IS closing it out, so leaving the section behind
-    // makes the page go on reporting a spec held back after the
-    // reason is gone.
-    //
-    // The ACCEPTANCE rows, not the whole file's: the Phase tables gate
-    // nothing (archive's only gate is the Acceptance section), so an implement run that left one of its own rows
-    // unticked used to keep the note — and the "held back" wording with
-    // it — standing on a spec whose person had judged everything that
-    // was theirs to judge.
     if (!acceptanceCriteriaUnticked(ticked)) {
       const cleared = clearArchiveHeldBack(ticked);
       if (cleared !== null) ticked = cleared;
     }
-    // A press from the list draws no file-level base sha: it takes the sha
-    // of the read it has just made, and the row-level guard above is what
-    // refuses a row that moved.
-    const statusBaseSha = fromList
-      ? branchTarget
-        ? (branchRead?.sha ?? null)
-        : ((await lastCommitOf(ctx.gitRun, dir, STATUS_SPEC_FILE))?.sha ?? null)
-      : typeof body.statusBaseSha === "string" && body.statusBaseSha
-        ? body.statusBaseSha
-        : null;
-    // The tick lands through the same spawned
-    // aide-write-spec every skill's own write already goes through —
-    // never a second, TypeScript-side computation of the derived state.
-    // Refuses rather than ticking with a state file that would fall out
-    // of step with what was just ticked.
-    const derived = await runAideWriteSpec(
-      specFolder!, STATUS_SPEC_FILE, ticked,
-      ctx.opts.queueRunnerBin ? dirname(ctx.opts.queueRunnerBin) : undefined,
-    );
-    if (!derived.ok || !derived.stateJson) {
-      const reason = derived.error ?? "the state file could not be derived";
-      logRefusal("tick", `${project}/${specFolder}`, reason);
-      return refuse(`${reason} — nothing was saved`);
+    const statusBaseSha = await tickBaseSha(ctx, dir, fromList, { branchTarget, branchRead }, body.statusBaseSha);
+    const derived = await derivedState(ctx, specFolder!, ticked);
+    if ("reason" in derived) {
+      logRefusal("tick", `${project}/${specFolder}`, derived.reason);
+      return refuse(`${derived.reason} — nothing was saved`);
     }
-    // A state derived by scripts older than this dashboard has no flag, and
-    // would hold archive back on a row the reader has just marked.
-    const derivedRows = parseSpecStateText(derived.stateJson)?.acceptanceCriteria ?? [];
-    const written = parseStatusChecks(ticked);
-    if (notVerifiedCount(derivedRows) < notVerifiedCount(written) || failedCount(derivedRows) < failedCount(written)) {
-      const reason = "the installed scripts are older than the dashboard";
-      logRefusal("tick", `${project}/${specFolder}`, reason);
-      return refuse(`${reason} — nothing was saved`);
-    }
-    const currentState = await lastCommitOf(ctx.gitRun, dir, STATE_FILE);
-    // An open branch writes straight onto `refs/heads/aide/<folder>`
-    // at origin — never through `saveSpecFiles`, which structurally
-    // cannot target anything but the shared checkout's own `HEAD`
-    // (see 2-analysis.md's "The write side"). No open branch keeps the
-    // exact `saveSpecFiles` call this route has always made.
-    // Both cases now land `4-status.md` and `4-status.json` together, in
-    // the ONE commit the tick makes.
-    const result = branchTarget
-      ? await ctx.mergeLock.run(branchTarget.root, () =>
-          writeStatusToBranch(
-            ctx.gitRun,
-            branchTarget.root,
-            branchTarget.branch,
-            [
-              { relPath: branchTarget.relPath, text: ticked },
-              { relPath: stateRelPath(branchTarget.relPath), text: derived.stateJson! },
-            ],
-            statusBaseSha,
-            tickMessage(specFolder!),
-          ),
-        )
-      : await ctx.mergeLock.run(await ctx.specsRoot(dir), () =>
-          saveSpecFiles(
-            ctx.gitRun,
-            dir,
-            (root) => ctx.branchStatus.defaultBranch(root),
-            [
-              { file: STATUS_SPEC_FILE, text: ticked, baseSha: statusBaseSha },
-              { file: STATE_FILE, text: derived.stateJson!, baseSha: currentState?.sha ?? null },
-            ],
-            { specLabel: specFolder!, message: tickMessage(specFolder!) },
-          ),
-        );
+    const result = await writeTicks(ctx, dir, specFolder!, { branchTarget, ticked, stateJson: derived.stateJson, statusBaseSha });
     if (!result.ok) {
       logRefusal("tick", `${project}/${specFolder}`, result.note);
       return refuse(result.note);
@@ -306,8 +346,19 @@ export async function checkRoutes(
     await afterTick(ctx, dir, specFolder!);
     return succeed(result.note, (result as { committed?: boolean }).committed !== false);
   }
-
   return null;
+}
+
+export async function checkRoutes(
+  ctx: RoutesContext,
+  req: Request,
+  url: URL,
+  path: string,
+): Promise<Response | null> {
+  return (
+    (await tickRoute(ctx, req, url, path)) ??
+    null
+  );
 }
 
 /** The state a row is to end in, from its two boxes and where it is now. Both

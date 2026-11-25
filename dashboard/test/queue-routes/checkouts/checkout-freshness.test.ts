@@ -5,7 +5,7 @@ import {
   createServer,
 } from "../../../src/serve/serve.ts";
 import { createGitRunner, type GitRunner } from "../../../src/git/process/index.ts";
-import { ensureDashboardCheckout } from "../../../src/git/dashboard-checkout.ts";
+import { ensureDashboardCheckout } from "../../../src/git/dashboard-checkout/index.ts";
 import { checkoutSafetySuite } from "./checkout-safety-fixtures.ts";
 
 /** The temp directories this suite makes for itself, outside the harness,
@@ -56,34 +56,9 @@ describe("the dashboard works in checkouts of its own", () => {
     });
     expect(made.ok).toBe(true);
 
-    let releaseFetch = (): void => {};
-    const held = new Promise<void>((r) => (releaseFetch = r));
-    let holding = false;
-    let heldOnce = false;
-    const real = createGitRunner();
-    // The answer is TAKEN before the push and delivered after it.
-    // Delaying the call instead would fetch the push itself, which is
-    // the one thing this race is not.
-    const gated: GitRunner = async (dir, args, timeoutMs) => {
-      const result = await real(dir, args, timeoutMs);
-      if (args[0] === "fetch" && dir === ownedCode && !heldOnce) {
-        heldOnce = true;
-        holding = true;
-        await held;
-        holding = false;
-      }
-      return result;
-    };
-
-    // The step itself, standing in for `aide-run-spec`: it records
-    // whether the checkout it was pointed at had the pushed commit.
-    const record = join(site, "what-the-step-saw.txt");
-    const bin = join(site, "fake-run-spec");
-    writeFileSync(
-      bin,
-      `#!/bin/sh\nif [ -f "$2/pushed.md" ]; then echo current > ${record}; else echo stale > ${record}; fi\n`,
-      { mode: 0o755 },
-    );
+    const gate = heldFetch(ownedCode);
+    const gated = gate.run;
+    const { record, bin } = recordingStep(site);
 
     const server = createServer({
       port: 0,
@@ -94,7 +69,7 @@ describe("the dashboard works in checkouts of its own", () => {
     try {
       // The boot-time warm's bring-up-to-date, in flight and going
       // nowhere: the "unrelated caller" of the incident.
-      expect(await until(() => holding)).toBe(true);
+      expect(await until(() => gate.holding())).toBe(true);
 
       // Somebody pushes — after that fetch took its picture.
       writeFileSync(join(person, "pushed.md"), "on origin before the job was queued\n");
@@ -112,14 +87,50 @@ describe("the dashboard works in checkouts of its own", () => {
         body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"] }),
       });
       await new Promise((r) => setTimeout(r, 500));
-      releaseFetch();
+      gate.release();
       expect((await posted).status).toBe(200);
 
       expect(await until(() => existsSync(record), 25000)).toBe(true);
       expect(readFileSync(record, "utf-8").trim()).toBe("current");
     } finally {
-      releaseFetch();
+      gate.release();
       server.stop();
     }
   }, 45000);
 });
+
+/** A git runner whose first fetch in `dir` takes its answer and then holds
+ *  it until released. The answer is TAKEN before a push and delivered
+ *  after it: delaying the call instead would fetch the push itself, which
+ *  is the one thing this race is not. */
+function heldFetch(dir: string): { run: GitRunner; holding: () => boolean; release: () => void } {
+  let release = (): void => {};
+  const held = new Promise<void>((r) => (release = r));
+  let holding = false;
+  let heldOnce = false;
+  const real = createGitRunner();
+  const run: GitRunner = async (cwd, args, timeoutMs) => {
+    const result = await real(cwd, args, timeoutMs);
+    if (args[0] === "fetch" && cwd === dir && !heldOnce) {
+      heldOnce = true;
+      holding = true;
+      await held;
+      holding = false;
+    }
+    return result;
+  };
+  return { run, holding: () => holding, release: () => release() };
+}
+
+/** The step itself, standing in for `aide-run-spec`: it records whether
+ *  the checkout it was pointed at had the pushed commit. */
+function recordingStep(site: string): { record: string; bin: string } {
+  const record = join(site, "what-the-step-saw.txt");
+  const bin = join(site, "fake-run-spec");
+  writeFileSync(
+    bin,
+    `#!/bin/sh\nif [ -f "$2/pushed.md" ]; then echo current > ${record}; else echo stale > ${record}; fi\n`,
+    { mode: 0o755 },
+  );
+  return { record, bin };
+}

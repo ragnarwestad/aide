@@ -1,39 +1,28 @@
-import { canCancelScheduleWait, cancelScheduleWait, scheduleCancellationFields } from "../../queue/schedule-attempt";
 import { canCancelDeploy } from "../../queue/job-rules/activity.ts";
 import { handleJobRowAction } from "./job-row/index.ts";
-import { stopLand } from "../land-job/control.ts";
-import { groupStartPlan, readGroupPhaseChoices } from "../../queue/execution-groups/phase-plan.ts";
 // The job-level API routes: listing/creating a job at /api/queue,
 // cancel, and the two tail-edit routes (steps, model). Extracted
 // from routes.ts (split of split serve.ts step 2).
-import { lockedGroupMembers, orderGroupMembers, validateExecutionGroupEdit } from "../../queue/execution-groups/eligibility.ts";
 import { previousGroupMember } from "../../project/discover/group.ts";
-import { signalGroup } from "../serve-helpers/signal-group.ts";
-import { cancelLanding } from "../land-branch/cancel-landing.ts";
 import { isLegalMove, phaseFromState } from "../../queue/spec-transitions.ts";
-import { inFlight, jobKind, type Job } from "../../queue/queue.ts";
-import { endStep } from "../../queue/runner/step-result.ts";
-import { cancelCleanupJob } from "../process-cleanup/job.ts";
+import { inFlight, jobKind } from "../../queue/queue.ts";
 import { getErrorMessage } from "../../messages/shared/written.ts";
 import { json, logRefusal, readBounded, readObjectBody, refusal } from "../serve-helpers";
 import type { RoutesContext } from "./";
+import type { Job } from "../../queue/types.ts";
+import type { SpecTarget } from "../../render";
 import { specReference } from "../../project/spec-folder.ts";
 import { workflowArc } from "../../workflow-steps.ts";
-import { groupBranch } from "../../project/spec-names.ts";
-import { enqueueRequest, groupRowPicks, withRowPicks } from "../../queue/request/index.ts";
-import { executionGroupAction, memberImplemented, waitingGroupJob, type ExecutionGroup, type ExecutionGroupAction } from "../../queue/execution-groups";
+import { enqueueRequest, groupRowPicks } from "../../queue/request/index.ts";
+import { type ExecutionGroup } from "../../queue/execution-groups";
 import { groupBlocksIndividualRun } from "../../queue/execution-groups/actions.ts";
-import { createExecutionGroup, editGroup, removeExecutionGroup } from "./spec-edit/group.ts";
-import { executionGroupForAction } from "./spec-edit/execution-group-action.ts";
+import { createExecutionGroup } from "./spec-edit/group.ts";
 export { executionGroupForAction } from "./spec-edit/execution-group-action.ts";
+import { cancelJob, groupsActionRoute } from "./spec-edit/group-action.ts";
 
 /** The steps a spec's phase moves through: the ones the run route checks
  *  against the transition table. */
 const PHASE_STEPS = new Set(workflowArc().map((step) => step.name));
-
-/** Start on a group before the board's first specs sweep: what each member has
- *  done is not known yet, and an unread member reads as having done nothing. */
-const SPECS_NOT_READ = "The board is still reading the specs: press Start again in a moment.";
 
 /** A press on a grouped spec's own row runs as its group's job: the card
  *  follows it, it waits while the group already has a job, and it never
@@ -54,133 +43,181 @@ function joinExecutionGroup(ctx: RoutesContext, askedFor: Record<string, unknown
   return undefined;
 }
 
-export async function handleJobActionRoutes(
-  ctx: RoutesContext,
-  req: Request,
-  path: string,
-): Promise<Response | null> {
-  const groupAction = path.match(/^\/api\/queue\/groups\/([^/]+)\/action$/);
-  if (groupAction) {
-    if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
-    const sent = await readObjectBody(req);
-    if ("refusal" in sent) return sent.refusal;
-    let memberSteps: Record<string, string[]> = {};
-    let askedAction: ExecutionGroupAction | undefined;
-    let askedModel: string | undefined;
-    let askedProvider: string | undefined;
-    try {
-      const body = sent.body;
-      memberSteps = readGroupPhaseChoices(body.memberSteps);
-      if (body.action === "start" || body.action === "stop" || body.action === "archive" || body.action === "remove") askedAction = body.action;
-      if (typeof body.model === "string" && body.model) askedModel = body.model;
-      if (typeof body.provider === "string" && body.provider) askedProvider = body.provider;
-    } catch { return json({ error: "malformed body" }, 400); }
-    let groupId: string;
-    try { groupId = decodeURIComponent(groupAction[1]!); } catch { return json({ error: "invalid group" }, 400); }
-    if (askedAction === "remove") return removeExecutionGroup(ctx, groupId);
-    const execution = executionGroupForAction(ctx.queue.executionGroups, groupId, ctx.withFreshness(ctx.targets()));
-    if (!execution) return json({ error: "the group no longer exists" }, 409);
-    const { project, name } = execution;
-    const members = ctx.withFreshness(ctx.targets())
-      .filter((target) => target.project === project && target.group?.name === name)
-      .sort((a, b) => a.group!.position - b.group!.position || a.specFolder.localeCompare(b.specFolder));
-    // A member already archived is done with, not gone: the rest still archive.
-    const archived = execution.members.filter((folder) =>
-      !members.some((member) => member.specFolder === folder) && ctx.specRef(project, folder)?.archived);
-    if (members.length === 0 || members.length + archived.length < 2) return json({ error: "the group no longer exists" }, 409);
-    if (Object.keys(memberSteps).some((folder) => !members.some((member) => member.specFolder === folder))) return json({ error: "unknown group member" }, 400);
-    const plan = groupStartPlan(members, Object.fromEntries(members.map((member) => [member.specFolder,
-      ctx.queue.pendingSteps[`${project}/${member.specFolder}`] ?? []])), memberSteps);
-    const next = members.find((member) => plan[member.specFolder]!.length > 0);
-    const input = {
-      project,
-      name,
-      members: members.map((member) => member.specFolder),
-      branch: groupBranch(members[0]!.specFolder, name),
-    };
-    const historical = ctx.queue.list().filter((job) => job.project === project && input.members.includes(job.specFolder));
-    const waiting = waitingGroupJob(execution, historical);
-    const available = executionGroupAction(execution, [...members.map((member) => ({
-      implemented: memberImplemented(execution, member.specFolder, member.done ?? []) && !memberSteps[member.specFolder]?.length,
-      archived: false,
-      acceptanceOpen: !!member.acceptanceOpen,
-      automaticWaiting: waiting?.specFolder === member.specFolder,
-      busy: historical.some((job) => job.specFolder === member.specFolder && inFlight(job)),
-    })), ...archived.map(() => ({ implemented: true, archived: true, acceptanceOpen: false, busy: false }))])
-      ?? (execution.state === "prepared" ? "start" : undefined);
-    // A POST that names no action never removes, and is refused as before.
-    const action = askedAction ?? (available === "remove" ? undefined : available);
-    if (!action || action !== available) return json({ error: `the execution group cannot ${askedAction ?? "run"} while it is ${execution.state}` }, 409);
-    if (action === "stop") {
-      ctx.queue.executionGroups.stop(execution.id, true);
-      for (const job of historical) {
-        if (inFlight(job)) cancelJob(ctx, job);
-        else if (job.state === "waiting") ctx.queue.transition(job.id, "cancel-schedule-wait", { usageLimitWait: undefined, usageLimitProbe: undefined, finishedAt: new Date().toISOString() });
-      }
-      return json({ ok: true, group: ctx.queue.executionGroups.get(execution.id) });
-    }
-    if (action === "start") {
-      if (ctx.specsScanned?.() === false) {
-        logRefusal("group start", `${project}/${name}`, SPECS_NOT_READ);
-        return json({ error: SPECS_NOT_READ }, 409);
-      }
-      const targets = ctx.withFreshness(ctx.targets());
-      const activeGroup = { ...execution, members: members.map((member) => member.specFolder) };
-      const checked = members.length === 1 ? orderGroupMembers(activeGroup.members, members) : validateExecutionGroupEdit({
-        project, group: activeGroup, members: activeGroup.members,
-        locked: lockedGroupMembers({ group: activeGroup, targets, jobs: ctx.queue.list() }),
-        targets, groups: ctx.queue.executionGroups.list(), jobs: ctx.queue.list(),
-      });
-      if (!checked.ok) return json({ error: checked.error }, 409);
-      if (checked.members.some((folder, index) => folder !== members[index]?.specFolder)) {
-        const saved = await editGroup(ctx, new Request(req.url, {
-          method: "POST", headers: { "content-type": "application/json" },
-          body: JSON.stringify({ name, member: checked.members }),
-        }), execution.id);
-        if (!saved.ok) return saved;
-        return handleJobActionRoutes(ctx, new Request(req.url, {
-          method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "start", memberSteps }),
-        }), path);
-      }
-    }
-    const raw = action === "start"
-      ? next ? withRowPicks({
-          project, specFolder: next.specFolder, executionGroupId: execution.id,
-          steps: plan[next.specFolder],
-        }, ctx.queue) : null
-      : action === "archive" && !members.some((member) => member.acceptanceOpen)
-        ? (() => {
-          const base = withRowPicks({
-            project,
-            specFolder: members[0]!.specFolder,
-            steps: ["archive"],
-            // One member left archives as an ordinary spec, on the group's
-            // branch through its record: a group archive moves two or more.
-            ...(members.length > 1 ? { groupMembers: members.map((member) => member.specFolder), groupBranch: execution.branch } : {}),
-            executionGroupId: execution.id,
-          }, ctx.queue);
-          const model = askedModel ?? execution.archiveModel ?? base.model.archive;
-          const provider = askedProvider ?? execution.archiveProvider ?? base.provider.archive;
-          if (askedModel) ctx.queue.executionGroups.update(execution.id, {
-            archiveModel: askedModel,
-            archiveProvider: askedProvider,
-          });
-          return {
-            ...base,
-            model: { ...base.model, ...(model ? { archive: model } : {}) },
-            provider: { ...base.provider, ...(provider ? { archive: provider } : {}) },
-          };
-        })()
-        : null;
-    if (!raw) return json({ error: action === "start" ? "select a member phase before Start" : "every acceptance criterion in the group must be ticked before Archive" }, 409);
-    const result = enqueueRequest(ctx.queue, raw, "manual");
-    if (!result.ok) return refusal(result, { spec: `${project}/${raw.specFolder}` });
-    if (action === "start") ctx.queue.executionGroups.update(execution.id, { memberSteps: plan, sharedChoices: false,
-      completedMembers: execution.completedMembers.filter((folder) => !plan[folder]?.length) });
-    ctx.queue.executionGroups.update(execution.id, { state: action === "start" ? "queued" : "archiving", currentMember: raw.specFolder, error: undefined });
-    await ctx.tickRunner();
-    return json({ ok: true, job: result.job });
+// A backward move — `analyze` or `create`
+// requested on a spec that has already reached a later phase — is
+// refused before the job ever reaches the queue, naming `reset` (or
+// `reopen`, for an archived spec) as the way back. This is the one
+// HTTP-reachable path both the spec-page Reopen control and the
+// specs-list row's Run/Reopen forms post through, and `ctx.specDir`
+// is the resolver the rest of this route reads — no new
+// resolver plumbing. A spec with no state file yet reads as
+// `created`, which the table refuses nothing forward-legal from.
+function phaseRefusal(ctx: RoutesContext, askedFor: Record<string, unknown>): Response | undefined {
+  if (typeof askedFor.project !== "string" || typeof askedFor.specFolder !== "string" || !Array.isArray(askedFor.steps)) return undefined;
+  const asked = askedFor as Record<string, unknown> & { project: string; specFolder: string; steps: unknown[] };
+  const dir = ctx.specDir(asked.project, asked.specFolder);
+  if (!dir) return undefined;
+  // The phases by the rule the specs list and the runner's holds read:
+  // the spec's own branch when it is settled, main otherwise, and the
+  // history. Implement lands nothing, so its step is on the branch
+  // alone until archive merges it; read off main alone an archive was
+  // refused as "not reached implement yet".
+  const { completedPhases, onMain } = ctx.specProgress(dir, asked.specFolder);
+  const row = ctx.withFreshness(
+    ctx.targets().filter((t) => t.project === asked.project && t.specFolder === asked.specFolder),
+  )[0];
+  if (row?.group) {
+    const refusedForGroup = groupRunRefusal(ctx, asked, row as SpecTarget & { group: NonNullable<SpecTarget["group"]> });
+    if (refusedForGroup) return refusedForGroup;
   }
+  // ctx.specRef, not a fresh **Archived:** prose scan: the one
+  // resolved answer for this request's own project/specFolder.
+  const archived = ctx.specRef(asked.project, asked.specFolder)?.archived
+    ? { date: "" }
+    : null;
+  // The same ref, the same reasoning — closed is a fact
+  // about this request's own project/specFolder, read off the one
+  // resolved answer rather than a second, independent check.
+  const closed = ctx.specRef(asked.project, asked.specFolder)?.closed
+    ? { date: "" }
+    : null;
+  return stepsRefusal(asked, { completedPhases, onMain, archived, closed });
+}
+
+/** A grouped spec runs after the member before it has implemented, and as its group's job. */
+function groupRunRefusal(ctx: RoutesContext, askedFor: Record<string, unknown> & { project: string; specFolder: string }, row: SpecTarget & { group: NonNullable<SpecTarget["group"]> }): Response | undefined {
+  const earlier = previousGroupMember(
+    ctx.withFreshness(ctx.targets()).filter((target) => target.project === askedFor.project), row,
+  );
+  if (earlier) {
+    const spec = `${askedFor.project}/${askedFor.specFolder}`;
+    const implemented = earlier.done?.includes("implement");
+    if (!implemented) {
+      const reason = `${earlier.specFolder} must finish Implement before this grouped spec can start`;
+      logRefusal("run", spec, reason);
+      return json({ error: reason, spec }, 409);
+    }
+  }
+  const joined = joinExecutionGroup(ctx, askedFor, row.group.name);
+  if (joined) return joined;
+  return undefined;
+}
+
+/** Each step against the phase the ones before it in this request reach. */
+function stepsRefusal(
+  askedFor: Record<string, unknown> & { project: string; specFolder: string; steps: unknown[] },
+  o: { completedPhases: string[]; onMain: string[]; archived: { date: string } | null; closed: { date: string } | null },
+): Response | undefined {
+  const { completedPhases, onMain, archived, closed } = o;
+  // A bundled job (e.g. analyze+implement+archive queued together
+  // for a fresh spec, spec-transitions.md's "Into create") asks for
+  // several steps at once, each meant to run only once the one
+  // before it has landed — so each step is checked against the
+  // phase the ones before it in THIS request would reach, not all
+  // against today's snapshot. Only a step this request itself
+  // would make illegal is refused; a spec already mid-workflow
+  // (implement queued alone while analyzed) starts from its real
+  // phase, unaffected by steps it was not asked to run.
+  let phase = phaseFromState(completedPhases, archived, closed);
+  // Implement starts from main: an analysis that ran but never merged
+  // there (its landing failed) is refused as that, not as "not analyzed".
+  const analyzedOnMain = onMain.includes("analyze") || askedFor.steps.includes("analyze");
+  // An archived or closed spec answers to the queue's own rules —
+  // reopen, or archive again while its branch is still on origin
+  // (`parse-request.ts`) — not to the phase table.
+  for (const step of archived || closed ? [] : askedFor.steps) {
+    if (typeof step !== "string") continue;
+    if (step === "implement" && phase === "analyzed" && !analyzedOnMain && completedPhases.includes("analyze")) {
+      const spec = `${askedFor.project}/${askedFor.specFolder}`;
+      const said = getErrorMessage({
+        what: `${specReference(askedFor.project, askedFor.specFolder)}'s analysis has run, but it has not been merged into main, which implement starts from`,
+        resolve: "press Analyze again to merge it",
+      });
+      logRefusal("run", spec, said.text);
+      return refusal(said.solution ? { error: said.problem, solution: said.solution } : { error: said.problem }, { spec });
+    }
+    const move = isLegalMove(phase, step, askedFor.specFolder);
+    // Refused here, at the press, with the table's own sentence:
+    // a start the runner would refuse — implement before analyze,
+    // archive before implement — used to be queued and fail there,
+    // minutes later and out of sight. The state is the one the
+    // runner reads, the default branch's, so the two cannot differ.
+    // Only the four phases: a step the table has no row for
+    // (explore …) is not a phase move at all.
+    if (!move.ok && !PHASE_STEPS.has(step)) continue;
+    if (!move.ok) {
+      const spec = `${askedFor.project}/${askedFor.specFolder}`;
+      logRefusal("run", spec, move.message);
+      return json({ error: move.message, spec }, 400);
+    }
+    phase = move.next;
+  }
+  return undefined;
+}
+
+const selected = (value: unknown): string[] =>
+  (Array.isArray(value) ? value : value === undefined ? [] : [value]).map(String);
+
+/** A run with peers ticked makes their execution group first, and runs as its job. */
+async function groupForRun(ctx: RoutesContext, askedFor: Record<string, unknown>): Promise<ExecutionGroup | undefined | Response> {
+  const peers = selected(askedFor.member);
+  if (!peers.length || typeof askedFor.project !== "string" || typeof askedFor.specFolder !== "string") return undefined;
+  {
+    const groupName = typeof askedFor.groupName === "string" ? askedFor.groupName.trim() : "";
+    if (!groupName) return json({ error: "group name is required" }, 400);
+    const steps = selected(askedFor.steps).filter((step) => step !== "archive");
+    if (!steps.length) return json({ error: "a group starts with Analyze or Implement; Archive runs on the group" }, 409);
+    askedFor.steps = steps;
+    const positions = selected(askedFor.position).map(Number);
+    const orderedPeers = peers.map((member, index) => ({ member, position: positions[index] ?? index + 1 }))
+      .sort((a, b) => a.position - b.position).map(({ member }) => member);
+    const made = await createExecutionGroup(ctx, {
+      project: askedFor.project,
+      name: groupName,
+      members: [askedFor.specFolder, ...orderedPeers],
+      lead: askedFor.specFolder,
+      sharedChoices: true,
+    });
+    if (!made.ok) return made.response;
+    const archiveModel = typeof askedFor.model === "string" ? askedFor.model : (askedFor.model as Record<string, unknown> | undefined)?.archive;
+    const archiveProvider = (askedFor.provider as Record<string, unknown> | undefined)?.archive;
+    const createdGroup = ctx.queue.executionGroups.update(made.group.id, {
+      ...(typeof archiveModel === "string" && archiveModel ? { archiveModel } : {}),
+      ...(typeof archiveProvider === "string" && archiveProvider ? { archiveProvider } : {}),
+    });
+    askedFor.executionGroupId = made.group.id;
+    askedFor.specFolder = made.group.members[0]!;
+    return createdGroup;
+  }
+}
+
+// The row's own Run form is the one HTTP route a reader's
+// phase-checkbox tick actually reaches after create, so it is the
+// ordinary-run counterpart to `enqueueCreate()`'s own seeding
+// (`store.ts`) — only on a SUCCESSFUL enqueue, and only here. Other
+// request paths carry synthetic step lists with no reader's own tick,
+// and must never overwrite a recorded choice with one.
+function recordRunChoices(ctx: RoutesContext, askedFor: Record<string, unknown>, job: Job, createdGroup: ExecutionGroup | undefined): void {
+  ctx.queue.setPendingSteps(job.project, job.specFolder, job.steps.filter((s) => s !== "create"));
+  if (createdGroup) {
+    ctx.queue.executionGroups.queueMember(createdGroup.id, job.specFolder);
+    for (const pick of groupRowPicks(askedFor, job)) {
+      for (const folder of createdGroup.members) {
+        const saved = ctx.queue.setPendingModel(createdGroup.project, folder, pick.part, pick.model, pick.provider);
+        if (!saved.ok) logRefusal("model", `${createdGroup.project}/${folder}`, saved.error);
+      }
+    }
+  }
+}
+
+// Which spec was asked for, off the SUBMITTED fields — the two
+// `parseJobRequest` already requires, so this adds no trust
+// surface. It is never rendered as text either: the page only
+// compares it against a row's own key.
+// `spec` for the same reason merge's answer carries it: the page
+// shows a refusal on the row it belongs to, so the answer has to
+// say which.
+async function runRoute(ctx: RoutesContext, req: Request, path: string): Promise<Response | null> {
 
   if (path === "/api/queue") {
     if (req.method === "GET") {
@@ -197,171 +234,29 @@ export async function handleJobActionRoutes(
       logRefusal("run", spec, error);
       return json({ error, spec }, 409);
     }
-    // A backward move — `analyze` or `create`
-    // requested on a spec that has already reached a later phase — is
-    // refused before the job ever reaches the queue, naming `reset` (or
-    // `reopen`, for an archived spec) as the way back. This is the one
-    // HTTP-reachable path both the spec-page Reopen control and the
-    // specs-list row's Run/Reopen forms post through, and `ctx.specDir`
-    // is the resolver the rest of this route reads — no new
-    // resolver plumbing. A spec with no state file yet reads as
-    // `created`, which the table refuses nothing forward-legal from.
-    if (
-      typeof askedFor.project === "string" &&
-      typeof askedFor.specFolder === "string" &&
-      Array.isArray(askedFor.steps)
-    ) {
-      const dir = ctx.specDir(askedFor.project, askedFor.specFolder);
-      if (dir) {
-        // The phases by the rule the specs list and the runner's holds read:
-        // the spec's own branch when it is settled, main otherwise, and the
-        // history. Implement lands nothing, so its step is on the branch
-        // alone until archive merges it; read off main alone an archive was
-        // refused as "not reached implement yet".
-        const { completedPhases, onMain } = ctx.specProgress(dir, askedFor.specFolder);
-        const row = ctx.withFreshness(
-          ctx.targets().filter((t) => t.project === askedFor.project && t.specFolder === askedFor.specFolder),
-        )[0];
-        if (row?.group) {
-          const earlier = previousGroupMember(
-            ctx.withFreshness(ctx.targets()).filter((target) => target.project === askedFor.project), row,
-          );
-          if (earlier) {
-            const spec = `${askedFor.project}/${askedFor.specFolder}`;
-            const implemented = earlier.done?.includes("implement");
-            if (!implemented) {
-              const reason = `${earlier.specFolder} must finish Implement before this grouped spec can start`;
-              logRefusal("run", spec, reason);
-              return json({ error: reason, spec }, 409);
-            }
-          }
-          const joined = joinExecutionGroup(ctx, askedFor, row.group.name);
-          if (joined) return joined;
-        }
-        // ctx.specRef, not a fresh **Archived:** prose scan: the one
-        // resolved answer for this request's own project/specFolder.
-        const archived = ctx.specRef(askedFor.project, askedFor.specFolder)?.archived
-          ? { date: "" }
-          : null;
-        // The same ref, the same reasoning — closed is a fact
-        // about this request's own project/specFolder, read off the one
-        // resolved answer rather than a second, independent check.
-        const closed = ctx.specRef(askedFor.project, askedFor.specFolder)?.closed
-          ? { date: "" }
-          : null;
-        // A bundled job (e.g. analyze+implement+archive queued together
-        // for a fresh spec, spec-transitions.md's "Into create") asks for
-        // several steps at once, each meant to run only once the one
-        // before it has landed — so each step is checked against the
-        // phase the ones before it in THIS request would reach, not all
-        // against today's snapshot. Only a step this request itself
-        // would make illegal is refused; a spec already mid-workflow
-        // (implement queued alone while analyzed) starts from its real
-        // phase, unaffected by steps it was not asked to run.
-        let phase = phaseFromState(completedPhases, archived, closed);
-        // Implement starts from main: an analysis that ran but never merged
-        // there (its landing failed) is refused as that, not as "not analyzed".
-        const analyzedOnMain = onMain.includes("analyze") || askedFor.steps.includes("analyze");
-        // An archived or closed spec answers to the queue's own rules —
-        // reopen, or archive again while its branch is still on origin
-        // (`parse-request.ts`) — not to the phase table.
-        for (const step of archived || closed ? [] : askedFor.steps) {
-          if (typeof step !== "string") continue;
-          if (step === "implement" && phase === "analyzed" && !analyzedOnMain && completedPhases.includes("analyze")) {
-            const spec = `${askedFor.project}/${askedFor.specFolder}`;
-            const said = getErrorMessage({
-              what: `${specReference(askedFor.project, askedFor.specFolder)}'s analysis has run, but it has not been merged into main, which implement starts from`,
-              resolve: "press Analyze again to merge it",
-            });
-            logRefusal("run", spec, said.text);
-            return refusal(said.solution ? { error: said.problem, solution: said.solution } : { error: said.problem }, { spec });
-          }
-          const move = isLegalMove(phase, step, askedFor.specFolder);
-          // Refused here, at the press, with the table's own sentence:
-          // a start the runner would refuse — implement before analyze,
-          // archive before implement — used to be queued and fail there,
-          // minutes later and out of sight. The state is the one the
-          // runner reads, the default branch's, so the two cannot differ.
-          // Only the four phases: a step the table has no row for
-          // (explore …) is not a phase move at all.
-          if (!move.ok && !PHASE_STEPS.has(step)) continue;
-          if (!move.ok) {
-            const spec = `${askedFor.project}/${askedFor.specFolder}`;
-            logRefusal("run", spec, move.message);
-            return json({ error: move.message, spec }, 400);
-          }
-          phase = move.next;
-        }
-      }
-    }
+    const refused = phaseRefusal(ctx, askedFor);
+    if (refused) return refused;
 
-    const selected = (value: unknown): string[] =>
-      (Array.isArray(value) ? value : value === undefined ? [] : [value]).map(String);
-    const peers = selected(askedFor.member);
-    let createdGroup: ExecutionGroup | undefined;
-    if (peers.length && typeof askedFor.project === "string" && typeof askedFor.specFolder === "string") {
-      const groupName = typeof askedFor.groupName === "string" ? askedFor.groupName.trim() : "";
-      if (!groupName) return json({ error: "group name is required" }, 400);
-      const steps = selected(askedFor.steps).filter((step) => step !== "archive");
-      if (!steps.length) return json({ error: "a group starts with Analyze or Implement; Archive runs on the group" }, 409);
-      askedFor.steps = steps;
-      const positions = selected(askedFor.position).map(Number);
-      const orderedPeers = peers.map((member, index) => ({ member, position: positions[index] ?? index + 1 }))
-        .sort((a, b) => a.position - b.position).map(({ member }) => member);
-      const made = await createExecutionGroup(ctx, {
-        project: askedFor.project,
-        name: groupName,
-        members: [askedFor.specFolder, ...orderedPeers],
-        lead: askedFor.specFolder,
-        sharedChoices: true,
-      });
-      if (!made.ok) return made.response;
-      const archiveModel = typeof askedFor.model === "string" ? askedFor.model : (askedFor.model as Record<string, unknown> | undefined)?.archive;
-      const archiveProvider = (askedFor.provider as Record<string, unknown> | undefined)?.archive;
-      createdGroup = ctx.queue.executionGroups.update(made.group.id, {
-        ...(typeof archiveModel === "string" && archiveModel ? { archiveModel } : {}),
-        ...(typeof archiveProvider === "string" && archiveProvider ? { archiveProvider } : {}),
-      });
-      askedFor.executionGroupId = made.group.id;
-      askedFor.specFolder = made.group.members[0]!;
-    }
+    const created = await groupForRun(ctx, askedFor);
+    if (created instanceof Response) return created;
+    const createdGroup = created;
     const result = enqueueRequest(ctx.queue, askedFor, "manual");
-    // The row's own Run form is the one HTTP route a reader's
-    // phase-checkbox tick actually reaches after create, so it is the
-    // ordinary-run counterpart to `enqueueCreate()`'s own seeding
-    // (`store.ts`) — only on a SUCCESSFUL enqueue, and only here. Other
-    // request paths carry synthetic step lists with no reader's own tick,
-    // and must never overwrite a recorded choice with one.
-    if (result.ok) {
-      ctx.queue.setPendingSteps(result.job.project, result.job.specFolder, result.job.steps.filter((s) => s !== "create"));
-      if (createdGroup) {
-        ctx.queue.executionGroups.queueMember(createdGroup.id, result.job.specFolder);
-        for (const pick of groupRowPicks(askedFor, result.job)) {
-          for (const folder of createdGroup.members) {
-            const saved = ctx.queue.setPendingModel(createdGroup.project, folder, pick.part, pick.model, pick.provider);
-            if (!saved.ok) logRefusal("model", `${createdGroup.project}/${folder}`, saved.error);
-          }
-        }
-      }
-    }
+    if (result.ok) recordRunChoices(ctx, askedFor, result.job, createdGroup);
     if (!result.ok) {
-      // Which spec was asked for, off the SUBMITTED fields — the two
-      // `parseJobRequest` already requires, so this adds no trust
-      // surface. It is never rendered as text either: the page only
-      // compares it against a row's own key.
       const spec =
         typeof askedFor.project === "string" && typeof askedFor.specFolder === "string"
           ? `${askedFor.project}/${askedFor.specFolder}`
           : undefined;
       logRefusal("run", spec, result.error);
-      // `spec` for the same reason merge's answer carries it: the page
-      // shows a refusal on the row it belongs to, so the answer has to
-      // say which.
       return refusal(result, { spec });
     }
     await ctx.tickRunner();
     return json({ ok: true, job: result.job });
   }
+  return null;
+}
+
+async function cancelRoute(ctx: RoutesContext, req: Request, path: string): Promise<Response | null> {
 
   const action = path.match(/^\/api\/queue\/([A-Za-z0-9-]+)\/cancel$/);
   if (action) {
@@ -399,9 +294,17 @@ export async function handleJobActionRoutes(
     }
     return json({ ok: true, job: result.job });
   }
+  return null;
+}
+
+async function jobRowRoute(ctx: RoutesContext, req: Request, path: string): Promise<Response | null> {
 
   const rowAction = await handleJobRowAction(ctx, req, path);
   if (rowAction) return rowAction;
+  return null;
+}
+
+async function stepsRoute(ctx: RoutesContext, req: Request, path: string): Promise<Response | null> {
 
   const tailEdit = path.match(/^\/api\/queue\/([A-Za-z0-9-]+)\/steps$/);
   if (tailEdit) {
@@ -431,6 +334,10 @@ export async function handleJobActionRoutes(
     await ctx.tickRunner();
     return json({ ok: true, job: result.job });
   }
+  return null;
+}
+
+async function modelRoute(ctx: RoutesContext, req: Request, path: string): Promise<Response | null> {
 
   const tailModelEdit = path.match(/^\/api\/queue\/([A-Za-z0-9-]+)\/model$/);
   if (tailModelEdit) {
@@ -456,24 +363,22 @@ export async function handleJobActionRoutes(
     if (!(job.steps as string[]).includes(step)) ctx.queue.setPendingModel(job.project, job.specFolder, step, model, provider);
     return json({ ok: true, job: result.job });
   }
-
   return null;
 }
 
-function cancelJob(ctx: RoutesContext, job: Job): ReturnType<typeof endStep> {
-  if (canCancelScheduleWait(job)) return cancelScheduleWait(ctx.queue, job);
-  if (job.state === "running" && jobKind(job) === "land") stopLand(job.id);
-  const result = endStep(ctx.queue, job.id, "cancel", {
-    ...(jobKind(job) === "schedule" ? scheduleCancellationFields : {}),
-    // A usage-limit wait cancelled is not retried when the limit resets.
-    ...(job.state === "waiting" ? { usageLimitWait: undefined, usageLimitProbe: undefined, stopReason: undefined } : {}),
-    finishedAt: new Date().toISOString(), error: undefined, errorReason: undefined,
-  });
-  if (!result.ok && job.state === "done" && job.landing) cancelLanding(job.id);
-  if (result.ok) {
-    if (jobKind(job) === "cleanup") cancelCleanupJob(job.id);
-    signalGroup(job.pgid);
-  }
-  return result;
+export async function handleJobActionRoutes(
+  ctx: RoutesContext,
+  req: Request,
+  path: string,
+): Promise<Response | null> {
+  return (
+    (await groupsActionRoute(ctx, req, path)) ??
+    (await runRoute(ctx, req, path)) ??
+    (await cancelRoute(ctx, req, path)) ??
+    (await jobRowRoute(ctx, req, path)) ??
+    (await stepsRoute(ctx, req, path)) ??
+    (await modelRoute(ctx, req, path)) ??
+    null
+  );
 }
 

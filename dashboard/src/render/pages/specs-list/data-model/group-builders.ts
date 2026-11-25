@@ -90,6 +90,93 @@ function fromTarget(
 
 const isCreate = (r: QueueRowView): boolean => r.steps.includes("create");
 
+function jobsByKey(rows: QueueRowView[]): Map<string, QueueRowView[]> {
+const byKey = new Map<string, QueueRowView[]>();
+for (const r of rows) {
+  const key = groupKey(r.project, r.specFolder);
+  const list = byKey.get(key);
+  if (list) list.push(r);
+  else byKey.set(key, [r]);
+}
+  return byKey;
+}
+
+// Which projects we are entitled to judge. An empty target list is
+// "we do not know", never "everything is archived": a specs root that
+// is not checked out on this host looks exactly the same from here,
+// and a project losing its whole history to a momentarily unreadable
+// disk is not recoverable by a filter.
+// A project the scan has ANY spec of, active or archived: a project
+// whose specs are all archived is still one this list knows, and a
+// create cancelled before it made a folder has no row there either
+// (seen on aide with every spec archived, 2026-09-15).
+function judgeableProjects(targets: SpecTarget[], archived?: string[], archivedSpecs?: ArchivedSpecView[]): Set<string> {
+  return new Set([
+    ...targets.map((t) => t.project),
+    ...(archived ?? []).map((key) => key.split("/")[0]!),
+    ...(archivedSpecs ?? []).map((s) => s.project),
+  ]);
+}
+
+// Archived beats every other reason to keep a group visible. An
+// unreadable specs root and an in-flight create job both argue for
+// showing something anyway; a folder already in archive/ answers
+// "did this spec finish" with certainty, so none of the other
+// branches get a vote. The check used to sit on the create branch
+// alone, and a project with no other live target still slipped an
+// archived spec's row through `judgeable` — every phase reading
+// "not run yet" under a job reporting done.
+// There is no exception for a spec whose own branch is STILL on
+// origin: it would keep an ordinary, fully-interactive job row,
+// offering a Run the server would refuse. Every archived spec gets a
+// reader row, and the "branch still on origin" answer rides on that
+// row as a MARK (`ArchivedSpecView.notLanded`) instead of as a reason
+// to draw a different row. The two must not be re-separated: a
+// second, different kind of archived row is what 1-description.md
+// rules out by name.
+function showsJobRow(
+  key: string, all: QueueRowView[], archivedSet: Set<string>, known: Set<string>, judgeable: Set<string>,
+): boolean {
+  return (
+    !archivedSet.has(key) &&
+    // A create that is over and left no folder is a message at the top
+    // of the list (`failed-create-notices.ts`), never a row, in every
+    // project — including one the list knows no spec of.
+    !all.every(createEndedWithoutSpec) &&
+    // A create job's spec is not a known target BY CONSTRUCTION: the
+    // folder is what the job is making, and until it lands there is
+    // nothing on disk to match. Without this it would be filtered out
+    // in exactly the projects that already have specs — so the job the
+    // reader just started would render nothing at all.
+    (known.has(key) || !judgeable.has(all[0]!.project) ||
+      // …unless every job the row would stand for was CANCELLED and
+      // the folder never landed (2026-09-10): there is nothing on
+      // disk, nothing to press, and the row outlived the spec it
+      // named — the one such row had to be cut out of the queue file
+      // by hand.
+      (all.some(isCreate) && !all.every((r) => r.state === "cancelled")))
+  );
+}
+
+/** What a group knows beyond its own jobs: whether it has any, its
+ *  recorded work, and the execution group it runs in. */
+function withGroupFacts(
+  g: SpecGroup, byKey: Map<string, QueueRowView[]>, byKeyTarget: Map<string, SpecTarget>,
+  executionGroups: readonly ExecutionGroup[], automaticWaitGroups: Set<string>,
+): SpecGroup {
+  const executionGroup = activeGroupForSpec(executionGroups, g.project, g.specFolder);
+  return {
+    ...g,
+    hasJobs: byKey.has(groupKey(g.project, g.specFolder)),
+    recordedWork: !!byKeyTarget.get(groupKey(g.project, g.specFolder))?.historyDone?.some((step) => step !== "create") || Object.keys(byKeyTarget.get(groupKey(g.project, g.specFolder))?.stopped ?? {}).some((step) => step !== "create"),
+    ...(executionGroup ? {
+      executionGroupActive: true,
+      executionGroupAutomaticWait: automaticWaitGroups.has(executionGroup.id),
+      executionGroupReserved: executionGroupActivity(executionGroup.state) !== "idle",
+    } : {}),
+  };
+}
+
 /** One group per spec. `only` is the keys to build a group for: absent, every
  *  key gets one; an empty set builds none. What a key's group reads of the
  *  whole list (which keys are archived, which projects the list knows a spec
@@ -108,68 +195,13 @@ export function groupBySpec(
   const summarized = (key: string) => typeof summary === "function" ? summary(key) : summary;
   const automaticWaitGroups = new Set(executionGroups.filter((group) => waitingGroupJob(group, rows)).map((group) => group.id));
   const wanted = (key: string): boolean => !only || only.has(key);
-  const byKey = new Map<string, QueueRowView[]>();
-  for (const r of rows) {
-    const key = groupKey(r.project, r.specFolder);
-    const list = byKey.get(key);
-    if (list) list.push(r);
-    else byKey.set(key, [r]);
-  }
+  const byKey = jobsByKey(rows);
   const byKeyTarget = new Map(targets.map((t) => [groupKey(t.project, t.specFolder), t]));
   const known = new Set(byKeyTarget.keys());
-  // Which projects we are entitled to judge. An empty target list is
-  // "we do not know", never "everything is archived": a specs root that
-  // is not checked out on this host looks exactly the same from here,
-  // and a project losing its whole history to a momentarily unreadable
-  // disk is not recoverable by a filter.
-  // A project the scan has ANY spec of, active or archived: a project
-  // whose specs are all archived is still one this list knows, and a
-  // create cancelled before it made a folder has no row there either
-  // (seen on aide with every spec archived, 2026-09-15).
-  const judgeable = new Set([
-    ...targets.map((t) => t.project),
-    ...(archived ?? []).map((key) => key.split("/")[0]!),
-    ...(archivedSpecs ?? []).map((s) => s.project),
-  ]);
+  const judgeable = judgeableProjects(targets, archived, archivedSpecs);
   const archivedSet = new Set(archived ?? []);
   const fromJobs = [...byKey.entries()]
-    // Archived beats every other reason to keep a group visible. An
-    // unreadable specs root and an in-flight create job both argue for
-    // showing something anyway; a folder already in archive/ answers
-    // "did this spec finish" with certainty, so none of the other
-    // branches get a vote. The check used to sit on the create branch
-    // alone, and a project with no other live target still slipped an
-    // archived spec's row through `judgeable` — every phase reading
-    // "not run yet" under a job reporting done.
-    // There is no exception for a spec whose own branch is STILL on
-    // origin: it would keep an ordinary, fully-interactive job row,
-    // offering a Run the server would refuse. Every archived spec gets a
-    // reader row, and the "branch still on origin" answer rides on that
-    // row as a MARK (`ArchivedSpecView.notLanded`) instead of as a reason
-    // to draw a different row. The two must not be re-separated: a
-    // second, different kind of archived row is what 1-description.md
-    // rules out by name.
-    .filter(
-      ([key, all]) =>
-        wanted(key) &&
-        !archivedSet.has(key) &&
-        // A create that is over and left no folder is a message at the top
-        // of the list (`failed-create-notices.ts`), never a row, in every
-        // project — including one the list knows no spec of.
-        !all.every(createEndedWithoutSpec) &&
-        // A create job's spec is not a known target BY CONSTRUCTION: the
-        // folder is what the job is making, and until it lands there is
-        // nothing on disk to match. Without this it would be filtered out
-        // in exactly the projects that already have specs — so the job the
-        // reader just started would render nothing at all.
-        (known.has(key) || !judgeable.has(all[0]!.project) ||
-          // …unless every job the row would stand for was CANCELLED and
-          // the folder never landed (2026-09-10): there is nothing on
-          // disk, nothing to press, and the row outlived the spec it
-          // named — the one such row had to be cut out of the queue file
-          // by hand.
-          (all.some(isCreate) && !all.every((r) => r.state === "cancelled"))),
-    )
+    .filter(([key, all]) => wanted(key) && showsJobRow(key, all, archivedSet, known, judgeable))
     .map(([key, all]) => [key, currentWorkRoundJobs(all)] as const)
     .filter(([, all]) => all.length > 0)
     .map(([key, all]) => jobGroup(all, byKeyTarget.get(key), now, summarized(key)));
@@ -189,51 +221,22 @@ export function groupBySpec(
       const jobs = byKey.get(groupKey(t.project, t.specFolder));
       return !jobs || currentWorkRoundJobs(jobs).length === 0;
     }).map((t) => emptyGroup(t, now, summarized(groupKey(t.project, t.specFolder)))),
-  ].map((g) => {
-    const executionGroup = activeGroupForSpec(executionGroups, g.project, g.specFolder);
-    return {
-      ...g,
-      hasJobs: byKey.has(groupKey(g.project, g.specFolder)),
-      recordedWork: !!byKeyTarget.get(groupKey(g.project, g.specFolder))?.historyDone?.some((step) => step !== "create") || Object.keys(byKeyTarget.get(groupKey(g.project, g.specFolder))?.stopped ?? {}).some((step) => step !== "create"),
-      ...(executionGroup ? {
-        executionGroupActive: true,
-        executionGroupAutomaticWait: automaticWaitGroups.has(executionGroup.id),
-        executionGroupReserved: executionGroupActivity(executionGroup.state) !== "idle",
-      } : {}),
-    };
-  });
+  ].map((g) => withGroupFacts(g, byKey, byKeyTarget, executionGroups, automaticWaitGroups));
 }
 
-/** An archived spec's row: a record, not a control.
+/** An archived spec's four phase lines, off its files and any job the
+ *  queue still remembers.
  *
- *  It goes through neither `jobGroup` nor `emptyGroup`, and that is the
- *  point. Both build a row off JOBS — a lead job to speak for it, an
- *  attempt per phase — and an archived spec's jobs are gone from the
- *  queue's two-hundred-deep memory for all but the newest of them.
- *
- *  It is still the same ROW, though, and it is drawn by
- *  the same builder: `isArchivedRow` is what locks it, and the lock is
- *  what keeps every control on it from offering a press the server
- *  would refuse (`ARCHIVE_ONLY_STEP`, queue.ts). Two row
- *  builders kept level by hand drift — no fold and no phase lines on
- *  one side only.
- *
- *  The four phases, therefore, and not `phases: []`:
- *  the row opens, and what it opens on is what the
- *  spec's own `4-status.md` claims. No `attempts`, because there is no
- *  job to attribute one to — `wordPhase` renders a truthful "done" from
- *  `happened` alone, so the lines and the pip strip are correct without
- *  one, and the duration and cost cells are simply blank. */
-function readerGroup(s: ArchivedSpecView, jobs: QueueRowView[], now: number, summary = false): SpecGroup {
-  // The phase lines this row's total is a sum over — cost,
-  // tokens and model still read `s.phaseOutcomes`/`s.models` exactly as
-  // before; only `attempts` (and therefore `totalDuration`'s own
-  // queue-preferred duration) is new. `attemptsPerStep` deliberately
-  // does not go through `specPhases`'s file-fallback join, which would
-  // blank a locked phase's real, file-recorded cost the moment a job
-  // happens to still be remembered for it (2-analysis.md, "Patterns").
-  const attemptsByStep = attemptsPerStep(jobs);
-  const phases = summary ? [] : PHASE_LINES.map((step) => {
+ *  The phase lines this row's total is a sum over — cost,
+ *  tokens and model still read `s.phaseOutcomes`/`s.models` exactly as
+ *  before; only `attempts` (and therefore `totalDuration`'s own
+ *  queue-preferred duration) is new. `attemptsPerStep` deliberately
+ *  does not go through `specPhases`'s file-fallback join, which would
+ *  blank a locked phase's real, file-recorded cost the moment a job
+ *  happens to still be remembered for it (2-analysis.md, "Patterns").
+ */
+function readerPhases(s: ArchivedSpecView, attemptsByStep: ReturnType<typeof attemptsPerStep>) {
+  return PHASE_LINES.map((step) => {
     const outcome = s.phaseOutcomes[step];
     // The file records the phase as one figure, review and verification
     // included; the runs the queue still holds say how much of it they were.
@@ -265,6 +268,31 @@ function readerGroup(s: ArchivedSpecView, jobs: QueueRowView[], now: number, sum
       ...(step === "analyze" ? { planReviewed: s.planReviewed } : {}),
     };
   });
+}
+
+/** An archived spec's row: a record, not a control.
+ *
+ *  It goes through neither `jobGroup` nor `emptyGroup`, and that is the
+ *  point. Both build a row off JOBS — a lead job to speak for it, an
+ *  attempt per phase — and an archived spec's jobs are gone from the
+ *  queue's two-hundred-deep memory for all but the newest of them.
+ *
+ *  It is still the same ROW, though, and it is drawn by
+ *  the same builder: `isArchivedRow` is what locks it, and the lock is
+ *  what keeps every control on it from offering a press the server
+ *  would refuse (`ARCHIVE_ONLY_STEP`, queue.ts). Two row
+ *  builders kept level by hand drift — no fold and no phase lines on
+ *  one side only.
+ *
+ *  The four phases, therefore, and not `phases: []`:
+ *  the row opens, and what it opens on is what the
+ *  spec's own `4-status.md` claims. No `attempts`, because there is no
+ *  job to attribute one to — `wordPhase` renders a truthful "done" from
+ *  `happened` alone, so the lines and the pip strip are correct without
+ *  one, and the duration and cost cells are simply blank. */
+function readerGroup(s: ArchivedSpecView, jobs: QueueRowView[], now: number, summary = false): SpecGroup {
+  const attemptsByStep = attemptsPerStep(jobs);
+  const phases = summary ? [] : readerPhases(s, attemptsByStep);
   const total = summary ? s.summaryDuration : totalDurationOf(phases, now);
   return {
     project: s.project,
@@ -317,21 +345,40 @@ function readerGroup(s: ArchivedSpecView, jobs: QueueRowView[], now: number, sum
   };
 }
 
+/** What the lead job, or the newest that has one, says about the push,
+ *  the merge and a pull request. */
+function leadAnswers(lead: QueueRowView, recent: QueueRowView[]) {
+  return {
+  // Newest-first, so the first job that reported one wins.
+  prUrl: recent.find((r) => r.prUrl)?.prUrl,
+  // The LEAD job's own answer, not the newest job
+  // that happens to have one set: `recent.find(...)` used to scan
+  // past a lead job with no `pushError` straight to an older job that
+  // had one, so a spec whose current job pushed fine still showed a
+  // stale failure with advice that no longer applied.
+  pushError: lead.pushError,
+  landingError: lead.landingError,
+  // From the same lead job, and for the landing mark beside it: a
+  // landing the project's own suite refused is waiting, not broken.
+  errorReason: lead.errorReason,
+  };
+}
+
+// The four, always, in order — a phase nobody has run yet still holds
+// its place, which is what makes progress readable at a glance. A
+// step outside them (reopen, close, explore) draws no
+// line; the Logs tab lists it. `create` is one of
+// the four, so a create job lands on its own line at
+// the front rather than being appended after archive.
+// Built before the group, because the spec's total is a sum over
+// these same lines and re-deriving them would be two answers to one
+// question. `phasesFor` is where that join lives now —
+// the file-side answers this page shows on a line are added on top of
+// it, and the total reads neither.
 function jobGroup(all: QueueRowView[], target: SpecTarget | undefined, now: number, summary = false): SpecGroup {
   const recent = [...all].sort((a, b) => activityMs(b) - activityMs(a));
   const spec = fromTarget(target, summary);
   const lead = recent.find(inFlight) ?? recent[0]!;
-  // The four, always, in order — a phase nobody has run yet still holds
-  // its place, which is what makes progress readable at a glance. A
-  // step outside them (reopen, close, explore) draws no
-  // line; the Logs tab lists it. `create` is one of
-  // the four, so a create job lands on its own line at
-  // the front rather than being appended after archive.
-  // Built before the group, because the spec's total is a sum over
-  // these same lines and re-deriving them would be two answers to one
-  // question. `phasesFor` is where that join lives now —
-  // the file-side answers this page shows on a line are added on top of
-  // it, and the total reads neither.
   const phases = summary ? [] : phasesFor(all, target);
   const total = summary ? summaryDuration(all, target, now) : totalDurationOf(phases, now);
   return {
@@ -352,18 +399,7 @@ function jobGroup(all: QueueRowView[], target: SpecTarget | undefined, now: numb
     spentTokens: all.some((r) => r.spentTokens !== undefined)
       ? all.reduce((sum, r) => sum + (r.spentTokens ?? 0), 0)
       : undefined,
-    // Newest-first, so the first job that reported one wins.
-    prUrl: recent.find((r) => r.prUrl)?.prUrl,
-    // The LEAD job's own answer, not the newest job
-    // that happens to have one set: `recent.find(...)` used to scan
-    // past a lead job with no `pushError` straight to an older job that
-    // had one, so a spec whose current job pushed fine still showed a
-    // stale failure with advice that no longer applied.
-    pushError: lead.pushError,
-    landingError: lead.landingError,
-    // From the same lead job, and for the landing mark beside it: a
-    // landing the project's own suite refused is waiting, not broken.
-    errorReason: lead.errorReason,
+    ...leadAnswers(lead, recent),
     phases,
     // The same roll-up shape as `spentUsd` above, over time instead of
     // money — and EVERY attempt of every phase counts now, a

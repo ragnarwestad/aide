@@ -19,7 +19,7 @@ import { afterEach, describe, expect, spyOn, test } from "bun:test";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { saveSpecFile, saveSpecFiles } from "../../../src/git/specs-pull.ts";
+import { saveSpecFile, saveSpecFiles } from "../../../src/git/specs-pull/index.ts";
 import { fakeGit, type Answer } from "../../helpers/fake-git.ts";
 import { heldLock, watchLock } from "../../helpers/held-lock.ts";
 import { saveGoesThrough } from "../../helpers/setup/git-answers.ts";

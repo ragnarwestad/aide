@@ -329,60 +329,65 @@ export function persistQueueSettings(file: string, next: QueueSettingsUpdate): s
   return "error" in result ? result.error : null;
 }
 
+// The numeric sibling of `table` below: `timeoutSec` is per step since
+// and a file still carrying the old flat number is dropped
+// in favour of the built-in defaults rather than crashing — the same
+// direction every other malformed key here fails in.
+function numTable(v: unknown, fallback: Record<string, number>): Record<string, number> {
+  if (v === null || typeof v !== "object" || Array.isArray(v)) return fallback;
+  const out: Record<string, number> = { ...fallback };
+  for (const [k, val] of Object.entries(v as Record<string, unknown>)) {
+    if (typeof val === "number" && Number.isFinite(val) && val > 0) out[k] = val;
+  }
+  return out;
+}
+
+function table(v: unknown, fallback: Record<string, string>): Record<string, string> {
+  if (v === null || typeof v !== "object" || Array.isArray(v)) return fallback;
+  const out: Record<string, string> = { ...fallback };
+  for (const [k, val] of Object.entries(v as Record<string, unknown>)) {
+    if (typeof val === "string" && val) out[k] = val;
+  }
+  return out;
+}
+
+// A providers table with no entry at all is what Remove leaves after the
+// last provider; it stays empty. One whose entries are all invalid is a
+// mistake, and the built-in providers stand in.
+const emptiedProviders = (v: unknown): boolean =>
+  v !== null && typeof v === "object" && !Array.isArray(v) && Object.keys(v).length === 0;
+// Providers have no default: an old `provider.default` is not read.
+const withoutDefault = (t: Record<string, string>): Record<string, string> =>
+  Object.fromEntries(Object.entries(t).filter(([k]) => k !== "default"));
+
+// A malformed `tool` or `model` drops that FIELD, not the whole
+// entry: an entry that loses its tool falls back to claude — which
+// is the default every other entry already has.
+function modelChoicesFrom(v: unknown, fallback: Record<string, ModelChoice> | undefined): Record<string, ModelChoice> | undefined {
+  if (v === null || typeof v !== "object" || Array.isArray(v)) return fallback;
+  const out: Record<string, ModelChoice> = {};
+  for (const [name, entry] of Object.entries(v as Record<string, unknown>)) {
+    if (!NAME_RE.test(name) || entry === null || typeof entry !== "object" || Array.isArray(entry)) continue;
+    const e = entry as Record<string, unknown>;
+    const choice: ModelChoice = {};
+    // Read from the one list (`steps.ts`), never spelled out again:
+    // the names written here by hand are what kept `opencode` out of
+    // the picker after every type in the codebase already knew it.
+    const tool = asRunnableTool(e.tool);
+    if (tool) choice.tool = tool;
+    if (typeof e.model === "string" && e.model) choice.model = e.model;
+    out[name] = choice;
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
 // Caps and per-step policy belong in a file on the machine that runs
 // the jobs, never in the code: a number that turns out wrong should
 // cost a config edit and a restart, not a release.
 export function mergeQueueDefaults(base: QueueDefaults, raw: unknown): QueueDefaults {
   if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return base;
   const r = raw as Record<string, unknown>;
-  // The numeric sibling of `table` below: `timeoutSec` is per step since
-  // and a file still carrying the old flat number is dropped
-  // in favour of the built-in defaults rather than crashing — the same
-  // direction every other malformed key here fails in.
-  const numTable = (v: unknown, fallback: Record<string, number>) => {
-    if (v === null || typeof v !== "object" || Array.isArray(v)) return fallback;
-    const out: Record<string, number> = { ...fallback };
-    for (const [k, val] of Object.entries(v as Record<string, unknown>)) {
-      if (typeof val === "number" && Number.isFinite(val) && val > 0) out[k] = val;
-    }
-    return out;
-  };
-  const table = (v: unknown, fallback: Record<string, string>) => {
-    if (v === null || typeof v !== "object" || Array.isArray(v)) return fallback;
-    const out: Record<string, string> = { ...fallback };
-    for (const [k, val] of Object.entries(v as Record<string, unknown>)) {
-      if (typeof val === "string" && val) out[k] = val;
-    }
-    return out;
-  };
-  // A providers table with no entry at all is what Remove leaves after the
-  // last provider; it stays empty. One whose entries are all invalid is a
-  // mistake, and the built-in providers stand in.
-  const emptiedProviders = (v: unknown): boolean =>
-    v !== null && typeof v === "object" && !Array.isArray(v) && Object.keys(v).length === 0;
-  // Providers have no default: an old `provider.default` is not read.
-  const withoutDefault = (t: Record<string, string>): Record<string, string> =>
-    Object.fromEntries(Object.entries(t).filter(([k]) => k !== "default"));
-  // A malformed `tool` or `model` drops that FIELD, not the whole
-  // entry: an entry that loses its tool falls back to claude — which
-  // is the default every other entry already has.
-  const choices = (v: unknown): Record<string, ModelChoice> | undefined => {
-    if (v === null || typeof v !== "object" || Array.isArray(v)) return base.modelChoices;
-    const out: Record<string, ModelChoice> = {};
-    for (const [name, entry] of Object.entries(v as Record<string, unknown>)) {
-      if (!NAME_RE.test(name) || entry === null || typeof entry !== "object" || Array.isArray(entry)) continue;
-      const e = entry as Record<string, unknown>;
-      const choice: ModelChoice = {};
-      // Read from the one list (`steps.ts`), never spelled out again:
-      // the names written here by hand are what kept `opencode` out of
-      // the picker after every type in the codebase already knew it.
-      const tool = asRunnableTool(e.tool);
-      if (tool) choice.tool = tool;
-      if (typeof e.model === "string" && e.model) choice.model = e.model;
-      out[name] = choice;
-    }
-    return Object.keys(out).length > 0 ? out : undefined;
-  };
+  const choices = (v: unknown) => modelChoicesFrom(v, base.modelChoices);
 
   // The built-in `opus` means whichever choice this host lists under
   // that name in any case; the file's own names are left as written.

@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, spyOn, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createQueueRunner, type RunnerSetupContext } from "../../../src/serve/runner-setup.ts";
+import { createQueueRunner, type RunnerSetupContext } from "../../../src/serve/runner-setup/index.ts";
 import { QueueStore, type Job } from "../../../src/queue/queue.ts";
 import { archiveFailureContext, previousAttemptContext } from "../../../src/serve/serve-helpers/runner-argv.ts";
 

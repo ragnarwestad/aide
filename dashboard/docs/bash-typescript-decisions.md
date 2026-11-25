@@ -120,7 +120,7 @@ Each side has a test of its own, and neither reads the other:
   `--command`.
 
 Nothing tests that the root handed to it is the dashboard's own answer
-(`specsRoot: ctx.machinerySpecsRoot(job.project)` in `runner-setup.ts`),
+(`specsRoot: ctx.machinerySpecsRoot(job.project)` in `runner-setup/`),
 and a flag renamed on one side fails neither test.
 
 ## Not a pair: the workflow's own vocabulary

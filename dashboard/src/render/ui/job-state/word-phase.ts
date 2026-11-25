@@ -110,47 +110,44 @@ const landingRefused = (attempt: QueueRowView): boolean =>
   attempt.errorReason === "conflict" ||
   attempt.errorReason === "unlanded";
 
-function decidePhase(
-  happened: boolean,
-  heldBack: { reason: string } | undefined,
-  attempt: QueueRowView | undefined,
-  /** What the spec's own git history says about this phase, beyond
-   *  whether it happened. `stopped` is the reason the last
-   *  run for this phase gave for not finishing; `fileDisagrees` is
-   *  `4-status.md` claiming something the history does not show, or the
-   *  reverse. */
-  history: {
-    stopped?: string;
-    fileDisagrees?: boolean;
-    fileResult?: "completed" | "stopped";
-    /** Whether a completion commit for this phase exists anywhere in
-     *  git — what tells the two situations behind "last run
-     *  reported done, but the files disagree" apart: the work is on an
-     *  unlanded branch, or nothing was written at all. */
-    historyDone?: boolean;
-    /** The phase this line is about, for the sentences that name it. */
-    step?: string;
-    waiting?: QueueRowView["queuePosition"];
-    /** This phase's latest run ended after the files and history were
-     *  last read, so neither has seen it yet: nothing they say about it
-     *  is a disagreement, only a picture from before it ran. */
-    settling?: boolean;
-  } = {},
-  lang: Language = "en",
-): PhaseWord {
-  const pending = history.waiting ?? waitingFor(attempt, history.step);
-  const shown = attempt ? jobPresentation(attempt, history.step, pending) : undefined;
-  if (pending?.id && (!shown || shown.queued)) {
-    const pos = pending;
-    return { pip: "queued", waiting: pos, badge: { variant: "idle", label: t(lang, "list.stateQueuedPosition", { n: pos.n, total: pos.total }) }, qualifier: pos.reason };
-  }
-  const running = !!attempt && inFlight(attempt);
-  const disagrees = !!attempt && !running && attempt.state !== "done";
-  // Said when the file and the history part company, and never over a
-  // qualifier that has something sharper to say: an attempt that ended
-  // badly is the more useful sentence, and two sentences about one
-  // phase is the row saying two things at once.
-  const filesDisagree = history.fileDisagrees && !history.settling ? filesDisagreeSentence(history.step) : undefined;
+/** What the spec's own git history says about a phase, beyond whether
+ *  it happened. `stopped` is the reason the last run for this phase gave
+ *  for not finishing; `fileDisagrees` is `4-status.md` claiming something
+ *  the history does not show, or the reverse. */
+export interface PhaseHistory {
+  stopped?: string;
+  fileDisagrees?: boolean;
+  fileResult?: "completed" | "stopped";
+  /** Whether a completion commit for this phase exists anywhere in
+   *  git — what tells the two situations behind "last run
+   *  reported done, but the files disagree" apart: the work is on an
+   *  unlanded branch, or nothing was written at all. */
+  historyDone?: boolean;
+  /** The phase this line is about, for the sentences that name it. */
+  step?: string;
+  waiting?: QueueRowView["queuePosition"];
+  /** This phase's latest run ended after the files and history were
+   *  last read, so neither has seen it yet: nothing they say about it
+   *  is a disagreement, only a picture from before it ran. */
+  settling?: boolean;
+}
+
+/** Everything one phase's word is decided from. */
+interface PhaseContext {
+  happened: boolean;
+  heldBack: { reason: string } | undefined;
+  attempt: QueueRowView | undefined;
+  history: PhaseHistory;
+  lang: Language;
+  pending: QueueRowView["queuePosition"];
+  shown: ReturnType<typeof jobPresentation> | undefined;
+  running: boolean;
+  disagrees: boolean;
+  filesDisagree: BoardMessage | undefined;
+}
+
+function activeWord(ctx: PhaseContext): PhaseWord | undefined {
+  const { attempt, shown, history, pending, lang, filesDisagree } = ctx;
   // A phase that is running says so, whatever happened the last time it
   // ran. The history's "done" is about a previous attempt; this one is
   // in flight, and a line reading "done · 2 attempts" over a spec the
@@ -165,6 +162,11 @@ function decidePhase(
         : capitalizeFirst(stateWord({ ...attempt, queuePosition: shown.waiting }, lang)) },
       qualifier: pending?.reason ?? filesDisagree };
   }
+  return undefined;
+}
+
+function runningWord(ctx: PhaseContext): PhaseWord | undefined {
+  const { attempt, running, lang, filesDisagree } = ctx;
   if (running) {
     // A step whose own process already ended is still "running" from a
     // reader's chair while its work is being merged:
@@ -202,6 +204,11 @@ function decidePhase(
       qualifier: filesDisagree,
     };
   }
+  return undefined;
+}
+
+function happenedWord(ctx: PhaseContext): PhaseWord | undefined {
+  const { happened, attempt, running, history, disagrees, lang, filesDisagree } = ctx;
   // The history says the phase ran, but its own merge was refused — red
   // tests, a conflict, a branch that never landed: nothing of it reached
   // the default branch, and "Done" beside the row's "stopped" said two
@@ -232,6 +239,11 @@ function decidePhase(
       qualifier: disagrees ? attemptQualifier(attempt!, lang) : filesDisagree,
     };
   }
+  return undefined;
+}
+
+function heldBackWord(ctx: PhaseContext): PhaseWord | undefined {
+  const { heldBack, attempt, running, disagrees, lang, filesDisagree } = ctx;
   // Not while something is running: a note from an earlier decline must
   // not upstage the retry that may be clearing it, and a pip reading
   // "now" beside a badge reading "held back" is the row saying two
@@ -250,6 +262,11 @@ function decidePhase(
       qualifier: disagrees ? attemptQualifier(attempt!, lang) : filesDisagree,
     };
   }
+  return undefined;
+}
+
+function stoppedWord(ctx: PhaseContext): PhaseWord | undefined {
+  const { history, running, lang } = ctx;
   // A step that RAN and did not finish, with nothing live left to say
   // so. An implement killed by its own time
   // limit with RED and GREEN committed on the branch, and by the time
@@ -280,6 +297,11 @@ function decidePhase(
       qualifier: { key: "message.lead", values: { lead: `${word}:` }, inner: stopSentence(history.stopped, history.step) },
     };
   }
+  return undefined;
+}
+
+function noAttemptWord(ctx: PhaseContext): PhaseWord | undefined {
+  const { attempt, history, lang, filesDisagree } = ctx;
   // The queue has no job for this phase, and the git-verified history
   // names none: the LAST place that knows anything is the phase's own
   // file, which records what its run came to (`Result:`). Read here and
@@ -300,6 +322,12 @@ function decidePhase(
     }
     return { pip: "todo", qualifier: filesDisagree };
   }
+  return undefined;
+}
+
+function lastAttemptWord(ctx: PhaseContext): PhaseWord {
+  const { history, running, lang } = ctx;
+  const attempt = ctx.attempt!;
   // Ended since the files were last read: the run's own word, and no
   // sentence about files that have not caught up with it yet.
   if (attempt.state === "done" && history.settling) {
@@ -329,6 +357,38 @@ function decidePhase(
     pip: running ? "now" : "todo",
     badge: { variant: BADGE_VARIANT[attempt.state], label: capitalizeFirst(stateWord(attempt, lang)) },
   };
+}
+
+function decidePhase(
+  happened: boolean,
+  heldBack: { reason: string } | undefined,
+  attempt: QueueRowView | undefined,
+  /** What the spec's own git history says about this phase, beyond
+   *  whether it happened. `stopped` is the reason the last
+   *  run for this phase gave for not finishing; `fileDisagrees` is
+   *  `4-status.md` claiming something the history does not show, or the
+   *  reverse. */
+  history: PhaseHistory = {},
+  lang: Language = "en",
+): PhaseWord {
+  const pending = history.waiting ?? waitingFor(attempt, history.step);
+  const shown = attempt ? jobPresentation(attempt, history.step, pending) : undefined;
+  if (pending?.id && (!shown || shown.queued)) {
+    const pos = pending;
+    return { pip: "queued", waiting: pos, badge: { variant: "idle", label: t(lang, "list.stateQueuedPosition", { n: pos.n, total: pos.total }) }, qualifier: pos.reason };
+  }
+  const running = !!attempt && inFlight(attempt);
+  // Said when the file and the history part company, and never over a
+  // qualifier that has something sharper to say: an attempt that ended
+  // badly is the more useful sentence, and two sentences about one
+  // phase is the row saying two things at once.
+  const ctx: PhaseContext = {
+    happened, heldBack, attempt, history, lang, pending, shown, running,
+    disagrees: !!attempt && !running && attempt.state !== "done",
+    filesDisagree: history.fileDisagrees && !history.settling ? filesDisagreeSentence(history.step) : undefined,
+  };
+  return activeWord(ctx) ?? runningWord(ctx) ?? happenedWord(ctx) ?? heldBackWord(ctx) ?? stoppedWord(ctx) ??
+    noAttemptWord(ctx) ?? lastAttemptWord(ctx);
 }
 
 /** The pip takes the badge's colour (2026-09-11): a phase held back or

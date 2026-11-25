@@ -15,7 +15,7 @@ import type { BranchStatusChecker } from "../../git/branch-status.ts";
 import type { GitRunner } from "../../git/process/index.ts";
 import { formatSentence, type Sentence } from "../../messages/format.ts";
 import { t } from "../../i18n";
-import type { QueueStore } from "../../queue/queue.ts";
+import type { Job, QueueStore } from "../../queue/queue.ts";
 import { boardStep } from "../board-step.ts";
 import { servedOlder, type InstallResult } from "../deployment";
 import { DEPLOY_RESTART_WAIT_MS } from "../serve-helpers";
@@ -52,15 +52,24 @@ export interface DeployRunDeps {
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
-export async function runDeploy(deps: DeployRunDeps, jobId: string, resultFile: string): Promise<void> {
-  // The runner writes `start` (with the step's stamp and log) once `spawn` has returned.
-  await Promise.resolve();
-  const first = deps.queue.get(jobId);
-  if (!first) return;
+/** One deploy run: where it deploys, and how it marks its steps, holds its
+ *  row and ends. The current step and the hold live here, shared by every part. */
+interface DeployRun {
+  deps: DeployRunDeps;
+  jobId: string;
+  resultFile: string;
+  project: string;
+  root: string;
+  active: () => boolean;
+  mark: (which: DeployStep, ending: DeployMark) => void;
+  at: (which: DeployStep, ending: DeployMark) => void;
+  hold: (on: boolean) => void;
+  fail: (sentence: Sentence, detail?: string) => void;
+  succeed: () => void;
+}
+
+function startDeployRun(deps: DeployRunDeps, jobId: string, resultFile: string, first: Job): DeployRun {
   const { project } = first;
-  if (!first.deployWaitForLandings) deps.queue.update(jobId, {
-    deployWaitForLandings: deps.queue.list().filter((job) => job.landing && job.id !== jobId).map((job) => job.id),
-  });
   const output = boardStep({ resultFile, streamFile: first.streamFile!, startedAt: first.stepStartedAt });
   const root = deps.projectRoot(project);
   let step: DeployStep = "fetch";
@@ -94,103 +103,137 @@ export async function runDeploy(deps: DeployRunDeps, jobId: string, resultFile: 
     hold(false);
     output.done();
   };
+  return { deps, jobId, resultFile, project, root, active, mark, at, hold, fail, succeed };
+}
+
+/** Runs `fn` holding the checkout's merge lock, through the waiting list when the queue has one. */
+function claimLock<T>(run: DeployRun, root: string, fn: () => Promise<T>): Promise<T> {
+  const { deps, jobId, project } = run;
+  return deps.queue.waiting && "tryRun" in deps.mergeLock
+    ? dispatchFor(deps.queue.waiting).run({ id: `deploy:${jobId}`, jobId, project, label: project, operation: "deploy", reason: "Waiting for the repository merge lock" }, deps.mergeLock as typeof deps.mergeLock & RootAdmission, root, fn, () => !run.active())
+    : deps.mergeLock.run(root, fn);
+}
+
+/** Fetch and install under the merge lock. `installed` remembers the commit
+ *  last installed, so a second prepare of the same commit installs nothing. */
+async function fetchAndInstall(run: DeployRun, installed: { commit?: string }): Promise<boolean | "retry" | void> {
+  const { deps, jobId, root } = run;
+  if (!run.active()) return false;
+  if (deployWaitsFor(deps.queue.list(), jobId).length) return "retry";
+  const base = await deps.branchStatus.defaultBranch(root);
+  if (!base) return run.fail({ key: "landing.deployNoDefaultBranch", values: { root } });
+  const before = await deps.gitRun(root, ["rev-parse", "HEAD"]);
+  const from = deps.queue.get(jobId)?.deploy?.from ?? (before.code === 0 ? before.stdout.trim() : "");
+  const pulled = await fastForwardToOrigin(deps.gitRun, root, base);
+  if (!pulled.ok) return run.fail(pulled.error ?? `cannot bring ${root} up to date`, pulled.detail);
+  const head = await deps.gitRun(root, ["rev-parse", "HEAD"]);
+  const commit = head.code === 0 ? head.stdout.trim() : undefined;
+  deps.queue.update(jobId, { deploy: { root, ...(from ? { from } : {}), ...(commit ? { commit } : {}) } });
+  run.mark("fetch", "done");
+  if (commit && commit === installed.commit) return true;
+  run.at("install", "started");
+  const result = await deps.installCheckout(root);
+  await deps.branchStatus.commitsBehindOrigin(root, true);
+  if (!result.ok) {
+    const older = await servedOlder(deps, root);
+    if (typeof older === "object") deps.setFault({ key: "landing.deployServiceOlder", values: older });
+    return run.fail(result.error, result.detail);
+  }
+  installed.commit = commit;
+  run.mark("install", "done");
+  return true;
+}
+
+/** The fetch and install, waiting first for landings and the merge lock; run
+ *  again by the restart when a landing came in while it waited. */
+function deployPreparer(run: DeployRun): () => Promise<boolean> {
+  const { deps, jobId, project, root } = run;
+  const installed: { commit?: string } = {};
+  return async (): Promise<boolean> => {
+    while (run.active()) {
+      run.at("fetch", "started");
+      deps.setFailure(project, null);
+      const waiting = () => deps.mergeLock.roots().includes(root) || deployWaitsFor(deps.queue.list(), jobId).length > 0;
+      if (waiting()) {
+        run.hold(true);
+        while (waiting() && run.active()) await sleep(deps.lockPollMs ?? 250);
+        run.hold(false);
+      }
+      if (!run.active()) return false;
+      const prepared = await claimLock(run, root, () => fetchAndInstall(run, installed));
+      if (prepared !== "retry") return prepared === true;
+    }
+    return false;
+  };
+}
+
+/** The restart, through the wait for landings. True when the run has ended
+ *  here — the restart fired or the job stopped — and false when nothing restarted. */
+async function restartThroughLandings(run: DeployRun, prepare: () => Promise<boolean>): Promise<boolean> {
+  const { deps, jobId, resultFile, root } = run;
+  run.at("restart", "started");
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const fired = await deps.restartWhenSettled({
+    prepare,
+    landings: () => deployWaitsFor(deps.queue.list(), jobId).map((job) => `${job.project}:${job.specFolder}`),
+    cancelled: () => !run.active() || existsSync(resultFile),
+    onWait: (landings) => run.hold(landings.length > 0),
+    beforeFire: () => {
+      run.hold(false);
+      const current = deps.queue.get(jobId);
+      deps.queue.update(jobId, {
+        deploy: { ...(current?.deploy ?? { root }), restartedAt: new Date().toISOString(), leaving: deps.startedAt },
+      });
+      run.mark("restart", "done");
+      run.at("wait", "started");
+      // A process still alive when this ends was never replaced.
+      timer = setTimeout(() => {
+        if (deps.queue.get(jobId)?.state !== "running" || existsSync(resultFile)) return;
+        run.fail({ key: "landing.deployNoAnswer" });
+      }, deps.restartWaitMs ?? DEPLOY_RESTART_WAIT_MS);
+      timer.unref?.();
+    },
+  });
+  if (fired || !run.active() || existsSync(resultFile)) return true;
+  clearTimeout(timer);
+  return false;
+}
+
+/** Nothing restarted the service: it is checked as it stands. */
+async function checkServiceAsItStands(run: DeployRun): Promise<void> {
+  run.mark("restart", "skipped");
+  run.mark("wait", "skipped");
+  run.at("check", "started");
+  const older = await servedOlder(run.deps, run.root);
+  if (typeof older === "object") {
+    const fault: Sentence = { key: "landing.deployNoRestart", values: older };
+    run.deps.setFault(fault);
+    return run.fail(fault);
+  }
+  if (older === "equal") run.deps.setFault(null);
+  run.mark("check", "done");
+  run.succeed();
+}
+
+export async function runDeploy(deps: DeployRunDeps, jobId: string, resultFile: string): Promise<void> {
+  // The runner writes `start` (with the step's stamp and log) once `spawn` has returned.
+  await Promise.resolve();
+  const first = deps.queue.get(jobId);
+  if (!first) return;
+  if (!first.deployWaitForLandings) deps.queue.update(jobId, {
+    deployWaitForLandings: deps.queue.list().filter((job) => job.landing && job.id !== jobId).map((job) => job.id),
+  });
+  const run = startDeployRun(deps, jobId, resultFile, first);
 
   try {
-    if (!deps.isBoard(root)) {
-      return fail(`only the board itself is deployed as a job — ${project} deploys from its own Deploy tab`);
+    if (!deps.isBoard(run.root)) {
+      return run.fail(`only the board itself is deployed as a job — ${run.project} deploys from its own Deploy tab`);
     }
-
-    let installedCommit: string | undefined;
-    const prepare = async (): Promise<boolean> => {
-      while (active()) {
-        at("fetch", "started");
-        deps.setFailure(project, null);
-        const waitingJobs = () => deployWaitsFor(deps.queue.list(), jobId);
-        const waiting = () => deps.mergeLock.roots().includes(root) || waitingJobs().length > 0;
-        if (waiting()) {
-          hold(true);
-          while (waiting() && active()) await sleep(deps.lockPollMs ?? 250);
-          hold(false);
-        }
-        if (!active()) return false;
-        const claim = <T>(root: string, fn: () => Promise<T>): Promise<T> => deps.queue.waiting && "tryRun" in deps.mergeLock
-          ? dispatchFor(deps.queue.waiting).run({ id: `deploy:${jobId}`, jobId, project, label: project, operation: "deploy", reason: "Waiting for the repository merge lock" }, deps.mergeLock as typeof deps.mergeLock & RootAdmission, root, fn, () => !active())
-          : deps.mergeLock.run(root, fn);
-        const prepared = await claim(root, async () => {
-          if (!active()) return false;
-          if (waitingJobs().length) return "retry";
-          const base = await deps.branchStatus.defaultBranch(root);
-          if (!base) return fail({ key: "landing.deployNoDefaultBranch", values: { root } });
-          const before = await deps.gitRun(root, ["rev-parse", "HEAD"]);
-          const from = deps.queue.get(jobId)?.deploy?.from ?? (before.code === 0 ? before.stdout.trim() : "");
-          const pulled = await fastForwardToOrigin(deps.gitRun, root, base);
-          if (!pulled.ok) return fail(pulled.error ?? `cannot bring ${root} up to date`, pulled.detail);
-          const head = await deps.gitRun(root, ["rev-parse", "HEAD"]);
-          const commit = head.code === 0 ? head.stdout.trim() : undefined;
-          deps.queue.update(jobId, { deploy: { root, ...(from ? { from } : {}), ...(commit ? { commit } : {}) } });
-          mark("fetch", "done");
-          if (commit && commit === installedCommit) return true;
-          at("install", "started");
-          const installed = await deps.installCheckout(root);
-          await deps.branchStatus.commitsBehindOrigin(root, true);
-          if (!installed.ok) {
-            const older = await servedOlder(deps, root);
-            if (typeof older === "object") deps.setFault({ key: "landing.deployServiceOlder", values: older });
-            return fail(installed.error, installed.detail);
-          }
-          installedCommit = commit;
-          mark("install", "done");
-          return true;
-        });
-        if (prepared !== "retry") return prepared === true;
-      }
-      return false;
-    };
+    const prepare = deployPreparer(run);
     if (!(await prepare())) return;
-
-    // --- restart: through the wait for landings, when anything restarts the service.
-    if (await deps.restartRegistered()) {
-      at("restart", "started");
-      let timer: ReturnType<typeof setTimeout> | undefined;
-      const fired = await deps.restartWhenSettled({
-        prepare,
-        landings: () => deployWaitsFor(deps.queue.list(), jobId).map((job) => `${job.project}:${job.specFolder}`),
-        cancelled: () => !active() || existsSync(resultFile),
-        onWait: (landings) => hold(landings.length > 0),
-        beforeFire: () => {
-          hold(false);
-          const current = deps.queue.get(jobId);
-          deps.queue.update(jobId, {
-            deploy: { ...(current?.deploy ?? { root }), restartedAt: new Date().toISOString(), leaving: deps.startedAt },
-          });
-          mark("restart", "done");
-          at("wait", "started");
-          // A process still alive when this ends was never replaced.
-          timer = setTimeout(() => {
-            if (deps.queue.get(jobId)?.state !== "running" || existsSync(resultFile)) return;
-            fail({ key: "landing.deployNoAnswer" });
-          }, deps.restartWaitMs ?? DEPLOY_RESTART_WAIT_MS);
-          timer.unref?.();
-        },
-      });
-      if (fired || !active() || existsSync(resultFile)) return;
-      clearTimeout(timer);
-    }
-
-    // --- nothing restarts the service: it is checked as it stands.
-    mark("restart", "skipped");
-    mark("wait", "skipped");
-    at("check", "started");
-    const older = await servedOlder(deps, root);
-    if (typeof older === "object") {
-      const fault: Sentence = { key: "landing.deployNoRestart", values: older };
-      deps.setFault(fault);
-      return fail(fault);
-    }
-    if (older === "equal") deps.setFault(null);
-    mark("check", "done");
-    succeed();
+    if (await deps.restartRegistered() && await restartThroughLandings(run, prepare)) return;
+    await checkServiceAsItStands(run);
   } catch (err) {
-    fail({ key: "landing.deployBroke" }, err instanceof Error ? (err.stack ?? err.message) : String(err));
+    run.fail({ key: "landing.deployBroke" }, err instanceof Error ? (err.stack ?? err.message) : String(err));
   }
 }

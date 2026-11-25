@@ -11,7 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { renderSpecsRows, type SpecTarget } from "../../../src/render";
 import { withFreshness, type LandContext } from "../../../src/serve/land-branch";
-import { targets, type ScanState, type SpecLookupContext } from "../../../src/serve/spec-lookup.ts";
+import { targets, type ScanState, type SpecLookupContext } from "../../../src/serve/spec-lookup/index.ts";
 import { openKeys, row } from "../../render/pages/fixtures.ts";
 
 const FOLDER = "480-transition";

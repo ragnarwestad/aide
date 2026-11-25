@@ -74,6 +74,12 @@ function liveMarks(
   testServerAvailable: (project: string, specFolder: string) => boolean,
   branchPreview: (project: string, specFolder: string) => string | undefined,
 ): LiveMark[] {
+  const quiet = rowQuiet(g);
+  return [...errorMarks(g, lang), ...holdMarks(g, lang, quiet), ...branchMarks(g, lang, quiet, testServerAvailable, branchPreview)];
+}
+
+/** The marks that say something went wrong: a push, a merge, a pull request. */
+function errorMarks(g: SpecGroup, lang: Language): LiveMark[] {
   const marks: LiveMark[] = [];
   if (g.pushError) marks.push({ variant: "refused", label: NOT_PUSHED(lang), sentence: pushErrorSentence(lang) });
   // A landing the project's own suite refused is the one that is not a
@@ -98,14 +104,11 @@ function liveMarks(
   if (g.phases.some((p) => prErrorOf(p))) {
     marks.push({ variant: "refused", label: NO_PULL_REQUEST(lang), sentence: prErrorSentence(lang) });
   }
-  // The same field `resting.ts` already reads to draw the
-  // "ready" badge for this exact state — a spec waiting on the round,
-  // not on a person deciding something. Two marks together, not one
-  // replacing the other: the row has to name the Checks tab as where
-  // the hold clears, and also carry the test-server sentence verbatim —
-  // the pair joins with " · " the same way any other two marks do rather
-  // than one silently dropping the other fact.
-  const heldBackReason = g.phases.find((p) => p.step === "archive")?.heldBack?.reason;
+  return marks;
+}
+
+/** Whether a step of this spec is running, so that nothing waits on a person. */
+function rowQuiet(g: SpecGroup): boolean {
   // Not while the archive is running. The note lives in `4-status.md`
   // and is only rewritten when that run gets far enough to write it, so
   // a reader who ticks the last check — which starts the run at once —
@@ -123,7 +126,20 @@ function liveMarks(
   // spec waiting on a person, and a spec whose Analyze or Implement is
   // running is waiting on the run. The link is the sharper case of the
   // two — it offers a board built from a branch the run is moving.
-  const quiet = archiveRunning || roundUnderWay(g);
+  return archiveRunning || roundUnderWay(g);
+}
+
+/** The marks for a spec held for a person: unticked criteria, an approach to choose. */
+function holdMarks(g: SpecGroup, lang: Language, quiet: boolean): LiveMark[] {
+  const marks: LiveMark[] = [];
+  // The same field `resting.ts` already reads to draw the
+  // "ready" badge for this exact state — a spec waiting on the round,
+  // not on a person deciding something. Two marks together, not one
+  // replacing the other: the row has to name the Checks tab as where
+  // the hold clears, and also carry the test-server sentence verbatim —
+  // the pair joins with " · " the same way any other two marks do rather
+  // than one silently dropping the other fact.
+  const heldBackReason = g.phases.find((p) => p.step === "archive")?.heldBack?.reason;
   if (heldBackReason === ACCEPTANCE_CRITERIA_UNTICKED_NOTE && !quiet) {
     marks.push({ variant: "waiting", label: t(lang, "list.archiveHeldBackWord", { step: stepLabel("archive", lang) }), sentence: getHeldBackReasonMessage(lang, heldBackReason), own: true, kind: "acceptance-hold" });
   }
@@ -140,6 +156,16 @@ function liveMarks(
       kind: "approach-choice",
     });
   }
+  return marks;
+}
+
+/** The marks that offer the branch to try: a test server, a preview, a pull request. */
+function branchMarks(
+  g: SpecGroup, lang: Language, quiet: boolean,
+  testServerAvailable: (project: string, specFolder: string) => boolean,
+  branchPreview: (project: string, specFolder: string) => string | undefined,
+): LiveMark[] {
+  const marks: LiveMark[] = [];
   // Independent of WHY archive has not run — implement's own
   // git-proved history (`historyDone`, never `g.done`: implement lands
   // nothing, so a live row's `done` never names it) is the one fact that

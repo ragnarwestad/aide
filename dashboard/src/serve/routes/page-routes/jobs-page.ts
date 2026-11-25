@@ -87,12 +87,36 @@ export async function jobsPage(
     historySpecs: summaryArchive, scheduleEntryExists, specsScanned: ctx.specsScanned?.() ?? true,
     list: { ...rowOptions, summary: true, filter, archivedSpecs: summaryArchive },
   };
+  const picked = pickRows(url, summaryView, filter, { shown, specJobs }, cut, only);
+  const built = new Map(
+    (await Promise.all([...new Set([...picked.kept.specJobs, ...picked.kept.shown])].map(ctx.jobRow))).map((r) => [r.id, r]),
+  );
+  if (!unchanged()) return retry ? jobsPage(ctx, req, url, path, false) : new Response("List changed; refresh the list.", { status: 409 });
+  const view = await fullView(ctx, url, langResult.currentUrl, { rowOptions, filter, executionGroups, summaryView, cut, picked, built });
+  return jobsResponse(ctx, url, path, view, only, [langResult.setCookie, choice.setCookie]);
+}
+
+type Job = ReturnType<RoutesContext["queue"]["list"]>[number];
+type Filter = JobsView["list"]["filter"] & {};
+type Cut = ReturnType<typeof rowInputs<Job>>;
+
+/** The rows the request's window selects out of the tab's summaries, and the
+ *  jobs and spec keys those rows are built from. A cut view has no summaries:
+ *  its one row's inputs are what is kept. */
+function pickRows(
+  url: URL,
+  summaryView: JobsView,
+  filter: Filter,
+  jobs: { shown: Job[]; specJobs: Job[] },
+  cut: Cut,
+  only: string | null,
+) {
   const summaries = cut || only ? undefined : jobsEntries(summaryView, () => false).sort((a, b) => byTabPlace(a.place, b.place) || a.key.localeCompare(b.key));
   const matching = summaries ? jobsViewRows(summaries, filter) : [];
   const opened = new Set((filter.open ?? "").split(",").filter(Boolean));
   for (const row of summaries ?? []) if (row.facts.members?.some((member) => opened.has(`${member.project}/${member.specFolder}`))) opened.add(row.key);
   const selection = summaries ? requestWindow(matching, url, filter, opened) : undefined;
-  const rowKeys = jobRowKeys(shown);
+  const rowKeys = jobRowKeys(jobs.shown);
   const selectedKeys = new Set(selection?.rows.map((row) => row.key) ?? []);
   const keys = cut?.specs ?? new Set(selection?.rows.flatMap((row) => {
     const entry = summaries!.find((candidate) => candidate.key === row.key)!;
@@ -100,14 +124,30 @@ export async function jobsPage(
     return (entry.facts.members ?? [entry.facts]).map((member) => `${member.project}/${member.specFolder}`);
   }) ?? []);
   const kept = cut ?? {
-    shown: shown.filter((job) => selectedKeys.has(rowKeys.get(job.id)!)),
-    specJobs: specJobs.filter((job) => keys.has(`${job.project}/${job.specFolder}`)),
+    shown: jobs.shown.filter((job) => selectedKeys.has(rowKeys.get(job.id)!)),
+    specJobs: jobs.specJobs.filter((job) => keys.has(`${job.project}/${job.specFolder}`)),
   };
-  const built = new Map(
-    (await Promise.all([...new Set([...kept.specJobs, ...kept.shown])].map(ctx.jobRow))).map((r) => [r.id, r]),
-  );
-  if (!unchanged()) return retry ? jobsPage(ctx, req, url, path, false) : new Response("List changed; refresh the list.", { status: 409 });
-  const view: JobsView = {
+  return { summaries, selection, rowKeys, keys, kept };
+}
+
+/** The tab's whole view: the picked rows built in full, and the list's options. */
+async function fullView(
+  ctx: RoutesContext,
+  url: URL,
+  currentUrl: string,
+  parts: {
+    rowOptions: ReturnType<typeof specRowOptions>;
+    filter: Filter;
+    executionGroups: JobsView["executionGroups"];
+    summaryView: JobsView;
+    cut: Cut;
+    picked: ReturnType<typeof pickRows>;
+    built: Map<string, Awaited<ReturnType<RoutesContext["jobRow"]>>>;
+  },
+): Promise<JobsView> {
+  const { rowOptions, filter, executionGroups, summaryView, cut, picked, built } = parts;
+  const { summaries, selection, rowKeys, keys, kept } = picked;
+  return {
     selection, summaryEntries: summaries, summaryExecutionGroups: cut ? undefined : activeExecutionGroups(summaryView),
     limit: url.searchParams.get("limit") ?? undefined,
     shown: kept.shown.map((j) => built.get(j.id)!),
@@ -129,11 +169,21 @@ export async function jobsPage(
       // The Project filter's list: the projects a spec can be created in.
       createProjects: projectChoices(ctx),
       failedCreates: ctx.push.failedCreates.list(),
-      currentUrl: langResult.currentUrl,
+      currentUrl,
       script: await specsClientScript(),
     },
   };
+}
 
+/** The answer for the view: the app's start redirect, the rows alone, or the page. */
+function jobsResponse(
+  ctx: RoutesContext,
+  url: URL,
+  path: string,
+  view: JobsView,
+  only: string | null,
+  setCookies: (string | undefined)[],
+): Response {
   // The installed app's start: on to this tab when its saved view leaves a
   // row, and to the Specs list, bare, when it leaves none, so the list opens
   // with the state filter and sort its cookies keep.
@@ -142,8 +192,7 @@ export async function jobsPage(
   }
 
   const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
-  if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
-  if (choice.setCookie) headers.append("set-cookie", choice.setCookie);
+  for (const cookie of setCookies) if (cookie) headers.append("set-cookie", cookie);
   // The rows alone, as the Specs list answers its own redraw; `only` is the
   // one spec a fold opened or shut.
   if (url.searchParams.get("rows")) {

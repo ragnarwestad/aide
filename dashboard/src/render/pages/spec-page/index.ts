@@ -81,6 +81,24 @@ interface SpecDetailOpts {
   view?: ListView;
 }
 
+/** What stands above the tabs: a closed spec's line, the test server's
+ *  status and the two lines a press on the page answers in. */
+function specBanner(view: SpecPageView, lang: Language): string {
+  return (
+    // Where the description's editor would have been, in words: a
+    // reader who came looking for it should not have to work out from a
+    // missing textarea that the spec is closed.
+    closedLine(view, lang) +
+    // What a board asked for is doing, in words. Its button lives in
+    // the tab row below, which holds buttons only.
+    testServerStatus(view, lang) +
+    // Where the page script writes what a press on this page answered:
+    // Update, Save, the banner, the Status tab's tick, Stop test server.
+    messageSlot("refused", "failed", { id: SPEC_REFUSED_LINE }) +
+    messageSlot("notice", "info", { id: SPEC_NOTICE_LINE })
+  );
+}
+
 /** The whole spec as it sits in the open row of the Specs list: what each
  *  phase runs on beside the spec's settings, the banner, the tab bar
  *  and the open tab's panel. The page's own frame — its "← Back" link and
@@ -101,18 +119,7 @@ export function renderSpecDetail(view: SpecPageView, opts: SpecDetailOpts = {}):
   // neighbour already answers.
   // Three spellings of one name on one page; the document's own heading
   // below is the file's text and stays as it is.
-  const banner =
-    // Where the description's editor would have been, in words: a
-    // reader who came looking for it should not have to work out from a
-    // missing textarea that the spec is closed.
-    closedLine(view, opts.lang ?? "en") +
-    // What a board asked for is doing, in words. Its button lives in
-    // the tab row below, which holds buttons only.
-    testServerStatus(view, opts.lang ?? "en") +
-    // Where the page script writes what a press on this page answered:
-    // Update, Save, the banner, the Status tab's tick, Stop test server.
-    messageSlot("refused", "failed", { id: SPEC_REFUSED_LINE }) +
-    messageSlot("notice", "info", { id: SPEC_NOTICE_LINE });
+  const banner = specBanner(view, opts.lang ?? "en");
 
   const actions = "";
 

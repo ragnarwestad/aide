@@ -81,18 +81,21 @@ const ageText = (ms: number): string => `${Math.floor(ms / 3_600_000)}h`;
 const DONE_PROGRESS = "done" as const;
 const STOPPED_PROGRESS = "stopped" as const;
 
-export async function cleanupProcesses(deps: CleanupDependencies): Promise<{ stopped: number[]; log: string }> {
-  deps.progress?.({ step: "protect", state: "started" });
-  const snapshot = await deps.processes();
-  const byPid = new Map(snapshot.map((process) => [process.pid, process]));
-  const registered = deps.registeredPids();
-  let protectedPids = protectedTree(snapshot, new Set([...registered, ...deps.protectedPids()]));
+/** Every process the cleanup must leave alone: the registered and
+ *  protected pids, what runs under a protected root, and their children. */
+function protectedProcesses(deps: CleanupDependencies, snapshot: CleanupProcess[], registered: Set<number>): Set<number> {
+  const protectedPids = protectedTree(snapshot, new Set([...registered, ...deps.protectedPids()]));
   for (const process of snapshot) {
     if (deps.protectedRoots().some((root) => under(process.cwd, root))) protectedPids.add(process.pid);
   }
-  protectedPids = protectedTree(snapshot, protectedPids);
+  const result = protectedTree(snapshot, protectedPids);
   deps.progress?.({ step: "protect", state: DONE_PROGRESS });
+  return result;
+}
 
+/** The processes holding one of the dashboard's ports that no registered
+ *  job owns. */
+async function portOwnerPids(deps: CleanupDependencies, registered: Set<number>): Promise<Set<number>> {
   deps.progress?.({ step: "ports", state: "started" });
   const portPids = new Set<number>();
   for (const port of deps.ports) {
@@ -100,7 +103,12 @@ export async function cleanupProcesses(deps: CleanupDependencies): Promise<{ sto
     if (pid !== undefined && !registered.has(pid)) portPids.add(pid);
   }
   deps.progress?.({ step: "ports", state: DONE_PROGRESS });
+  return portPids;
+}
 
+/** The unprotected processes to stop: port owners, and old orphans
+ *  working in or naming a temporary root. */
+function selectCandidates(deps: CleanupDependencies, snapshot: CleanupProcess[], protectedPids: Set<number>, portPids: Set<number>): CleanupProcess[] {
   deps.progress?.({ step: "orphans", state: "started" });
   const selected = snapshot.filter((process) => {
     if (protectedPids.has(process.pid)) return false;
@@ -109,7 +117,16 @@ export async function cleanupProcesses(deps: CleanupDependencies): Promise<{ sto
     return process.ppid === 1 && deps.now() - process.startedAt > ORPHAN_AGE_MS && temporary;
   });
   deps.progress?.({ step: "orphans", state: DONE_PROGRESS });
+  return selected;
+}
 
+/** Stops each candidate still running as the same process, SIGTERM then
+ *  SIGKILL, and answers which stopped. */
+async function stopCandidates(
+  deps: CleanupDependencies,
+  selected: CleanupProcess[],
+  byPid: Map<number, CleanupProcess>,
+): Promise<CleanupProcess[]> {
   deps.progress?.({ step: "stop", state: "started" });
   const stopped: CleanupProcess[] = [];
   const survivors: CleanupProcess[] = [];
@@ -136,6 +153,18 @@ export async function cleanupProcesses(deps: CleanupDependencies): Promise<{ sto
     if (survivors.length) deps.progress?.({ step: "stop", state: STOPPED_PROGRESS, text: `PID ${survivors.map(({ pid }) => pid).join(", ")} is still running` });
     else deps.progress?.({ step: "stop", state: stopped.length ? DONE_PROGRESS : "skipped" });
   }
+  return stopped;
+}
+
+export async function cleanupProcesses(deps: CleanupDependencies): Promise<{ stopped: number[]; log: string }> {
+  deps.progress?.({ step: "protect", state: "started" });
+  const snapshot = await deps.processes();
+  const byPid = new Map(snapshot.map((process) => [process.pid, process]));
+  const registered = deps.registeredPids();
+  const protectedPids = protectedProcesses(deps, snapshot, registered);
+  const portPids = await portOwnerPids(deps, registered);
+  const selected = selectCandidates(deps, snapshot, protectedPids, portPids);
+  const stopped = await stopCandidates(deps, selected, byPid);
   const removed = deps.cancelled?.() ? [] : await removeStaleTempDirs(deps);
   return {
     stopped: stopped.map((process) => process.pid),

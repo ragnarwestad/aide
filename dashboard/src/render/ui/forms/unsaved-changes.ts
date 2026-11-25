@@ -27,26 +27,130 @@ import { FORM_SAVED, PAGE_DRAWN, PAGE_LEAVE, TRACKED_FORM_SELECTOR } from "../..
 // export anything; test/render/ui/forms/unsaved-changes.test.ts runs the
 // transpiled source against a fake document and window.
 
+const TRACKED = TRACKED_FORM_SELECTOR;
+
+type LeaveDetail = { ask(): void; proceed(): void; stay(): void; drop(): void };
+type Pending = { link: HTMLAnchorElement } | { swap: LeaveDetail };
+
+/** The tracked forms holding edits, and the navigation the leave dialog
+ *  is open for. */
+const guard: { dirty: Set<Element>; pending: Pending | null; dialogWired: boolean } = {
+  dirty: new Set<Element>(),
+  pending: null,
+  dialogWired: false,
+};
+const isDirty = (): boolean => guard.dirty.size > 0;
+
+function markDirty(event: Event): void {
+  const target = event.target as Element | null;
+  const own = target?.closest?.(TRACKED);
+  if (!own) return;
+  if (target!.closest("[data-unit-choice]")) return;
+  // A field that names a form other than a tracked one is saved some
+  // other way: the phase table's AI and model are saved the moment
+  // they are picked.
+  const named = target!.getAttribute?.("form");
+  const form = named ? document.getElementById(named)?.closest?.(TRACKED) : own;
+  if (!form) return;
+  guard.dirty.add(form);
+}
+
+// Cancel: the existing `${prefix}-cancel` id convention, plus
+// `data-discard-changes` on a Cancel link that has no such id. A Cancel
+// inside a tracked form disarms that form; one outside every form, all.
+//
+// An in-app link click while dirty is an exit path a page's own
+// script CAN intercept — a closed tab, a typed address and a
+// Back/Forward the in-place swap does not take still fall to the
+// native beforeunload prompt below.
+// The `leaveapp` dialog (shell.ts) is a real <dialog>, always positioned
+// inside the document's own viewport rather than by the OS, unlike
+// that native prompt. Registered before NAV_BUSY_SCRIPT/
+// NAV_OVERLAY_SCRIPT in shell.ts's own script concatenation, so this
+// listener's preventDefault() is seen by both before either adds its
+// own busy-indicator side effect: same-type listeners on one element
+// run in the order they were added.
+//
+// Back/Forward through the in-place page swap asks the same dialog, by
+// `aide-page-leave` (page-swap/index.ts): `ask()` tells the swap to wait
+// for the answer, which arrives as `proceed()` or `stay()`. One dialog,
+// one `close` listener, and the navigation that opened it last owns the
+// answer: an older swap is told `drop()`, and an older link is forgotten.
+function answerLeave(dialog: HTMLDialogElement): void {
+  const p = guard.pending;
+  guard.pending = null;
+  const leave = dialog.returnValue === "leave";
+  if (leave) guard.dirty.clear();
+  // The link itself is pressed again, now that nothing is dirty, so it
+  // leaves the way it always would — `rel="noreferrer"` on Back
+  // included, which an assigned address would lose.
+  if (p && "link" in p) {
+    if (leave) p.link.click();
+  } else if (p) {
+    if (leave) p.swap.proceed();
+    else p.swap.stay();
+  }
+}
+
+function openLeaveFor(dialog: HTMLDialogElement, next: Pending): void {
+  if (guard.pending && "swap" in guard.pending) guard.pending.swap.drop();
+  guard.pending = next;
+  if (!guard.dialogWired) {
+    guard.dialogWired = true;
+    dialog.addEventListener("close", () => answerLeave(dialog));
+  }
+  if (!dialog.open) {
+    // Escape closes a dialog without setting its value, so an OK left
+    // over from an earlier opening must not answer this one.
+    dialog.returnValue = "";
+    dialog.showModal();
+  }
+}
+
+function leaveDialog(): HTMLDialogElement | null {
+  const dialog = document.getElementById("leaveapp") as HTMLDialogElement | null;
+  return dialog && typeof dialog.showModal === "function" ? dialog : null;
+}
+
+/** A link this page would leave by: same tab, plain primary click, a real address. */
+function leavingLink(event: Event, target: Element | null): HTMLAnchorElement | null {
+  const e = event as MouseEvent;
+  if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return null;
+  const link = target?.closest?.("a[href]") as HTMLAnchorElement | null;
+  if (!link || link.target === "_blank" || link.hasAttribute("download")) return null;
+  const href = link.getAttribute("href") || "";
+  if (!href || href.startsWith("#") || href.startsWith("mailto:") || href.startsWith("tel:")) return null;
+  return link;
+}
+
+function onGuardedClick(event: Event): void {
+  const target = event.target as Element | null;
+  if (target?.closest?.("[id$='-cancel'], [data-discard-changes]")) {
+    const own = target.closest(TRACKED);
+    if (own) guard.dirty.delete(own);
+    else guard.dirty.clear();
+    return;
+  }
+  if (!isDirty()) return;
+  const link = leavingLink(event, target);
+  if (!link) return;
+  const dialog = leaveDialog();
+  if (!dialog) return;
+  event.preventDefault();
+  openLeaveFor(dialog, { link });
+}
+
+function onPageLeave(event: Event): void {
+  if (!isDirty()) return;
+  const dialog = leaveDialog();
+  if (!dialog) return;
+  event.preventDefault();
+  const swap = (event as CustomEvent<LeaveDetail>).detail;
+  swap.ask();
+  openLeaveFor(dialog, { swap });
+}
+
 (() => {
-  const TRACKED = TRACKED_FORM_SELECTOR;
-  /** The tracked forms holding edits. */
-  const dirty = new Set<Element>();
-  const isDirty = (): boolean => dirty.size > 0;
-
-  const markDirty = (event: Event): void => {
-    const target = event.target as Element | null;
-    const own = target?.closest?.(TRACKED);
-    if (!own) return;
-    if (target!.closest("[data-unit-choice]")) return;
-    // A field that names a form other than a tracked one is saved some
-    // other way: the phase table's AI and model are saved the moment
-    // they are picked.
-    const named = target!.getAttribute?.("form");
-    const form = named ? document.getElementById(named)?.closest?.(TRACKED) : own;
-    if (!form) return;
-    dirty.add(form);
-  };
-
   document.addEventListener("input", markDirty);
   document.addEventListener("change", markDirty);
 
@@ -54,106 +158,15 @@ import { FORM_SAVED, PAGE_DRAWN, PAGE_LEAVE, TRACKED_FORM_SELECTOR } from "../..
   // (settings-page.ts, the document tabs).
   document.addEventListener("submit", (event: Event) => {
     const form = (event.target as Element | null)?.closest?.(TRACKED);
-    if (form && !form.hasAttribute?.("data-dirty-until-saved")) dirty.delete(form);
+    if (form && !form.hasAttribute?.("data-dirty-until-saved")) guard.dirty.delete(form);
   });
   document.addEventListener(FORM_SAVED, (event: Event) => {
     const form = (event.target as Element | null)?.closest?.(TRACKED);
-    if (form) dirty.delete(form);
+    if (form) guard.dirty.delete(form);
   });
-
-  // Cancel: the existing `${prefix}-cancel` id convention, plus
-  // `data-discard-changes` on a Cancel link that has no such id. A Cancel
-  // inside a tracked form disarms that form; one outside every form, all.
-  //
-  // An in-app link click while dirty is an exit path a page's own
-  // script CAN intercept — a closed tab, a typed address and a
-  // Back/Forward the in-place swap does not take still fall to the
-  // native beforeunload prompt below.
-  // The `leaveapp` dialog (shell.ts) is a real <dialog>, always positioned
-  // inside the document's own viewport rather than by the OS, unlike
-  // that native prompt. Registered before NAV_BUSY_SCRIPT/
-  // NAV_OVERLAY_SCRIPT in shell.ts's own script concatenation, so this
-  // listener's preventDefault() is seen by both before either adds its
-  // own busy-indicator side effect: same-type listeners on one element
-  // run in the order they were added.
-  //
-  // Back/Forward through the in-place page swap asks the same dialog, by
-  // `aide-page-leave` (page-swap/index.ts): `ask()` tells the swap to wait
-  // for the answer, which arrives as `proceed()` or `stay()`. One dialog,
-  // one `close` listener, and the navigation that opened it last owns the
-  // answer: an older swap is told `drop()`, and an older link is forgotten.
-  type LeaveDetail = { ask(): void; proceed(): void; stay(): void; drop(): void };
-  type Pending = { link: HTMLAnchorElement } | { swap: LeaveDetail };
-  let pending: Pending | null = null;
-  let dialogWired = false;
-
-  const answer = (dialog: HTMLDialogElement): void => {
-    const p = pending;
-    pending = null;
-    const leave = dialog.returnValue === "leave";
-    if (leave) dirty.clear();
-    // The link itself is pressed again, now that nothing is dirty, so it
-    // leaves the way it always would — `rel="noreferrer"` on Back
-    // included, which an assigned address would lose.
-    if (p && "link" in p) {
-      if (leave) p.link.click();
-    } else if (p) {
-      if (leave) p.swap.proceed();
-      else p.swap.stay();
-    }
-  };
-
-  const openFor = (dialog: HTMLDialogElement, next: Pending): void => {
-    if (pending && "swap" in pending) pending.swap.drop();
-    pending = next;
-    if (!dialogWired) {
-      dialogWired = true;
-      dialog.addEventListener("close", () => answer(dialog));
-    }
-    if (!dialog.open) {
-      // Escape closes a dialog without setting its value, so an OK left
-      // over from an earlier opening must not answer this one.
-      dialog.returnValue = "";
-      dialog.showModal();
-    }
-  };
-
-  const leaveDialog = (): HTMLDialogElement | null => {
-    const dialog = document.getElementById("leaveapp") as HTMLDialogElement | null;
-    return dialog && typeof dialog.showModal === "function" ? dialog : null;
-  };
-
-  document.addEventListener("click", (event: Event) => {
-    const target = event.target as Element | null;
-    if (target?.closest?.("[id$='-cancel'], [data-discard-changes]")) {
-      const own = target.closest(TRACKED);
-      if (own) dirty.delete(own);
-      else dirty.clear();
-      return;
-    }
-    if (!isDirty()) return;
-    const e = event as MouseEvent;
-    if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
-    const link = target?.closest?.("a[href]") as HTMLAnchorElement | null;
-    if (!link || link.target === "_blank" || link.hasAttribute("download")) return;
-    const href = link.getAttribute("href") || "";
-    if (!href || href.startsWith("#") || href.startsWith("mailto:") || href.startsWith("tel:")) return;
-    const dialog = leaveDialog();
-    if (!dialog) return;
-    event.preventDefault();
-    openFor(dialog, { link });
-  });
-
-  document.addEventListener(PAGE_LEAVE, (event: Event) => {
-    if (!isDirty()) return;
-    const dialog = leaveDialog();
-    if (!dialog) return;
-    event.preventDefault();
-    const swap = (event as CustomEvent<LeaveDetail>).detail;
-    swap.ask();
-    openFor(dialog, { swap });
-  });
-  document.addEventListener(PAGE_DRAWN, () => { dirty.clear(); });
+  document.addEventListener("click", onGuardedClick);
+  document.addEventListener(PAGE_LEAVE, onPageLeave);
+  document.addEventListener(PAGE_DRAWN, () => { guard.dirty.clear(); });
 
   window.addEventListener("beforeunload", (event: BeforeUnloadEvent) => {
     if (!isDirty()) return;

@@ -541,7 +541,7 @@ def test_the_reason_is_read_for_close_alone(runner, workspace, fake_claude):
 
 # --- the close's own word reaches the caller --------------------------------
 #
-# The dashboard lands a close on `closed` alone (runner-setup.ts). A
+# The dashboard lands a close on `closed` alone (runner-setup/step-done.ts). A
 # session's terminal reason is `completed` whatever it did, so without
 # the runner asking `aide-close-spec` the merge was skipped in silence:
 # the folder was stamped and moved on the branch and main never saw it.

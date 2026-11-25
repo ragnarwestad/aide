@@ -17,6 +17,43 @@ import { enqueueRequest, followOnRequest } from "../../../queue/request/index.ts
 
 import type { RoutesContext } from "..";
 import { DESCRIPTION_FILE, SOLUTION_FILE } from "../../../project/spec-names.ts";
+import type { Job } from "../../../queue/types.ts";
+
+/** The plan, read fresh from the open branch when there is one. */
+async function readSolution(ctx: RoutesContext, dir: string, specFolder: string) {
+  const branchTarget = await resolveOpenBranchTarget(ctx, dir, specFolder, SOLUTION_FILE, true);
+  const branchRead = branchTarget
+    ? await readStatusFromBranch(ctx.gitRun, branchTarget.root, branchTarget.branch, branchTarget.relPath)
+    : null;
+  const solution = branchTarget ? (branchRead?.text ?? "") : (specFileText(dir, SOLUTION_FILE) ?? "");
+  return { branchTarget, branchRead, solution };
+}
+
+/** The job held for the choice, cancelled when another approach is chosen;
+ *  a refusal's words, with its solution after a `|`, when it cannot be. */
+function cancelHeldForChoice(ctx: RoutesContext, ours: Job[], recommended: boolean): Job | undefined | string {
+  // Another approach replaces the job held for the choice with one that
+  // starts with analyze. Any other job still waiting for this spec would
+  // clash with that one, so it is refused before anything is changed.
+  const held = recommended
+    ? undefined
+    : ours.find((job) => job.state === "queued" && job.steps[job.stepIndex] === "implement");
+  if (!recommended && ours.some((job) => job.state === "queued" && job !== held)) {
+    return "another job for this spec is waiting|cancel it first, then save again";
+  }
+  // Cancelled BEFORE the write: a tick between the two would otherwise
+  // find the choice recorded, release the hold, and start implement on
+  // the plan that was not chosen.
+  if (held) {
+    const cancelled = endStep(ctx.queue, held.id, "cancel", {
+      finishedAt: new Date().toISOString(),
+      error: undefined,
+      errorReason: undefined,
+    });
+    if (!cancelled.ok) return "the held run could not be cancelled — nothing was saved";
+  }
+  return held;
+}
 
 export async function approachRoutes(ctx: RoutesContext, req: Request, path: string): Promise<Response | null> {
   const m = path.match(/^\/api\/queue\/specs\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)\/approach$/);
@@ -45,47 +82,21 @@ export async function approachRoutes(ctx: RoutesContext, req: Request, path: str
 
   // Read fresh, from the open branch when there is one, as the tick reads
   // the status file: the plan analyze wrote is there before it lands.
-  const branchTarget = await resolveOpenBranchTarget(ctx, dir, specFolder!, SOLUTION_FILE, true);
-  const branchRead = branchTarget
-    ? await readStatusFromBranch(ctx.gitRun, branchTarget.root, branchTarget.branch, branchTarget.relPath)
-    : null;
-  const solution = branchTarget ? (branchRead?.text ?? "") : (specFileText(dir, SOLUTION_FILE) ?? "");
+  const { branchTarget, branchRead, solution } = await readSolution(ctx, dir, specFolder!);
   const pending = pendingChoice(chooseApproachIn(specFileText(dir, DESCRIPTION_FILE) ?? ""), parseApproaches(solution));
   const picked = pending?.find((a) => a.letter === letter);
   if (!picked) return refuse("there is no approach to choose here any more", "reload the page");
 
   const recommended = picked.mark === "recommended";
-  // Another approach replaces the job held for the choice with one that
-  // starts with analyze. Any other job still waiting for this spec would
-  // clash with that one, so it is refused before anything is changed.
-  const held = recommended
-    ? undefined
-    : ours.find((job) => job.state === "queued" && job.steps[job.stepIndex] === "implement");
-  if (!recommended && ours.some((job) => job.state === "queued" && job !== held)) {
-    return refuse("another job for this spec is waiting", "cancel it first, then save again");
-  }
-  // Cancelled BEFORE the write: a tick between the two would otherwise
-  // find the choice recorded, release the hold, and start implement on
-  // the plan that was not chosen.
-  if (held) {
-    const cancelled = endStep(ctx.queue, held.id, "cancel", {
-      finishedAt: new Date().toISOString(),
-      error: undefined,
-      errorReason: undefined,
-    });
-    if (!cancelled.ok) return refuse("the held run could not be cancelled — nothing was saved");
-  }
+  const held = cancelHeldForChoice(ctx, ours, recommended);
+  if (typeof held === "string") return refuse(...(held.split("|") as [string, string?]));
 
   const text = withChosenApproach(solution, letter);
   const baseSha = branchTarget
     ? (branchRead?.sha ?? null)
     : ((await lastCommitOf(ctx.gitRun, dir, SOLUTION_FILE))?.sha ?? null);
-  const result = await writeSpecFile(
-    ctx,
-    { dir, specFolder: specFolder!, file: SOLUTION_FILE, branch: branchTarget },
-    text,
-    baseSha,
-  );
+  const target = { dir, specFolder: specFolder!, file: SOLUTION_FILE, branch: branchTarget };
+  const result = await writeSpecFile(ctx, target, text, baseSha);
   if (!result.ok) {
     return held ? refuse(`${result.note}; the held run was cancelled`, "press Save again") : refuse(result.note);
   }

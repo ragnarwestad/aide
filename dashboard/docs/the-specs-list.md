@@ -826,7 +826,7 @@ carries when it was read (`SpecTarget.sourcesCheckedAt`: the oldest of the histo
 and, when the disk copy is the one compared, the disk scan's read). A phase whose latest run ended after that reads
 as its run's own word, with no sentence about the files disagreeing, because they have not seen the run yet. A step
 with no merge of its own (`implement`, a failed step) has those answers read again as soon as its result is
-written (`stepDoneHandler`, `src/serve/runner-setup.ts`); a step with a merge has them read again by the merge.
+written (`stepDoneHandler`, `src/serve/runner-setup/step-done.ts`); a step with a merge has them read again by the merge.
 
 **The list, the runner's holds and the Run route read a spec's phases and acceptance by one rule.** The branch copy of
 the spec's files answers once it has been read and no write has marked it due, however long ago that read was; the copy

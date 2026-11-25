@@ -106,9 +106,7 @@ export function landingJobNames(
     .map((j) => (j.project && j.specFolder ? `${j.project}:${j.specFolder}` : j.id.slice(0, 8)));
 }
 
-/** Answers whether the restart fired: false when nothing is registered to
- *  restart the service. */
-export async function restartAfterLanding(ctx: {
+type RestartContext = {
   mergeLock: ReturnType<typeof createRootLock>;
   restart: RestartHook;
   restartPollMs?: number;
@@ -125,11 +123,13 @@ export async function restartAfterLanding(ctx: {
   prepare?: () => Promise<boolean>;
   cancelled?: () => boolean;
   landings?: () => string[];
-}): Promise<boolean> {
-  if (!(await ctx.restart.registered())) {
-    ctx.onJobsWaitChange?.([]);
-    return false;
-  }
+};
+
+/** Polls until no landing and no merge lock is left, the deadline passes
+ *  or the restart is cancelled, then runs `prepare` and waits again when
+ *  a landing started meanwhile. Answers the landings still in flight, or
+ *  null when the restart was cancelled or `prepare` refused it. */
+async function waitForLandings(ctx: RestartContext): Promise<string[] | null> {
   const pollMs = ctx.restartPollMs ?? RESTART_POLL_MS;
   const running = (): string[] => ctx.landings?.() ?? landingJobNames(ctx.queue, ctx.exceptJobId);
   const deadline = Date.now() + (ctx.restartDeferTimeoutMs ?? RESTART_DEFER_TIMEOUT_MS);
@@ -144,24 +144,41 @@ export async function restartAfterLanding(ctx: {
       waiting = running();
       ctx.onJobsWaitChange?.(waiting);
     }
-    if (ctx.cancelled?.() || (ctx.prepare && !(await ctx.prepare())) || ctx.cancelled?.()) {
-      ctx.onJobsWaitChange?.([]);
-      return false;
-    }
+    if (ctx.cancelled?.() || (ctx.prepare && !(await ctx.prepare())) || ctx.cancelled?.()) return null;
     waiting = running();
     if (ctx.prepare && (waiting.length > 0 || ctx.mergeLock.size > 0) && Date.now() < deadline) continue;
-    break;
+    return waiting;
   }
+}
+
+/** Names, in serve.log, every landing a restart past the deadline may
+ *  cut short. */
+function warnInFlight(waiting: string[], mergeLock: ReturnType<typeof createRootLock>): void {
   if (waiting.length > 0) {
     console.error(
       `queue: restarting the dashboard while landings are still in flight: ${waiting.join(", ")} — verify those branches reached their default branch by hand`,
     );
   }
-  if (ctx.mergeLock.size > 0) {
+  if (mergeLock.size > 0) {
     console.error(
-      `queue: restarting the dashboard while a landing is still in flight for: ${ctx.mergeLock.roots().join(", ")} — verify those branches reached their default branch by hand`,
+      `queue: restarting the dashboard while a landing is still in flight for: ${mergeLock.roots().join(", ")} — verify those branches reached their default branch by hand`,
     );
   }
+}
+
+/** Answers whether the restart fired: false when nothing is registered to
+ *  restart the service. */
+export async function restartAfterLanding(ctx: RestartContext): Promise<boolean> {
+  if (!(await ctx.restart.registered())) {
+    ctx.onJobsWaitChange?.([]);
+    return false;
+  }
+  const waiting = await waitForLandings(ctx);
+  if (waiting === null) {
+    ctx.onJobsWaitChange?.([]);
+    return false;
+  }
+  warnInFlight(waiting, ctx.mergeLock);
   // The success path used to be silent: nothing here told a reader of
   // serve.log whether this ever ran at all, so a restart that quietly
   // stopped firing and one that never needed to look identical. Logged

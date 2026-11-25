@@ -18,12 +18,9 @@ export type QueueContextInputs = Omit<
   "readScan" | "invalidateScan" | "notifyQueueChanged" | "readServing" | "readPendingRestart" | "readDeployFailure" | "readBranchPreview" | "selfStopExit"
 >;
 
-export function setupQueueContext(state: ServerState, inputs: QueueContextInputs): RoutesContext {
+/** The fields this stage builds itself, off `state` and the watchers. */
+function stateReads(state: ServerState, inputs: QueueContextInputs): Omit<RoutesContext, keyof QueueContextInputs> {
   return {
-    opts: inputs.opts,
-    nav: inputs.nav,
-    allowed: inputs.allowed,
-    scheduleStore: inputs.scheduleStore,
     readScan: () => state.scan,
     invalidateScan: () => {
       state.scan = null;
@@ -34,6 +31,24 @@ export function setupQueueContext(state: ServerState, inputs: QueueContextInputs
       const event = countedChangedEvent();
       for (const c of [...inputs.watchers]) inputs.writeTo(c, event);
     },
+    readServing: () => ({ sha: state.servingSha, repoRoot: state.servingRepoRoot }),
+    readPendingRestart: () => state.pendingRestart,
+    readDeployFailure: (project) => state.deployFailures.get(project),
+    readBranchPreview: (project, specFolder) => state.branchPreviews.get(`${project}/${specFolder}`),
+    // Never a bare `process.exit()` in the route itself — a
+    // test posting to `/api/self-stop` must not end the `bun test`
+    // runner it is running inside.
+    selfStopExit: inputs.opts.selfStopExit ?? (() => process.exit(0)),
+  };
+}
+
+/** The fields every earlier stage built, handed on as they are. */
+function passedOn(inputs: QueueContextInputs): QueueContextInputs {
+  return {
+    opts: inputs.opts,
+    nav: inputs.nav,
+    allowed: inputs.allowed,
+    scheduleStore: inputs.scheduleStore,
     forgetSpec: inputs.forgetSpec,
     specProgress: inputs.specProgress,
     rereadSpec: inputs.rereadSpec,
@@ -69,18 +84,14 @@ export function setupQueueContext(state: ServerState, inputs: QueueContextInputs
     archivedSpecSummaries: inputs.archivedSpecSummaries,
     specPageView: inputs.specPageView,
     jobDetailView: inputs.jobDetailView,
-    readServing: () => ({ sha: state.servingSha, repoRoot: state.servingRepoRoot }),
-    readPendingRestart: () => state.pendingRestart,
-    readDeployFailure: (project) => state.deployFailures.get(project),
-    readBranchPreview: (project, specFolder) => state.branchPreviews.get(`${project}/${specFolder}`),
     pdfCacheDir: inputs.pdfCacheDir,
     pdfGeneratorBin: inputs.pdfGeneratorBin,
     pdfToolAvailable: inputs.pdfToolAvailable,
     testServers: inputs.testServers,
     push: inputs.push,
-    // Never a bare `process.exit()` in the route itself — a
-    // test posting to `/api/self-stop` must not end the `bun test`
-    // runner it is running inside.
-    selfStopExit: inputs.opts.selfStopExit ?? (() => process.exit(0)),
   };
+}
+
+export function setupQueueContext(state: ServerState, inputs: QueueContextInputs): RoutesContext {
+  return { ...passedOn(inputs), ...stateReads(state, inputs) };
 }

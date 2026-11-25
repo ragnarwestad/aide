@@ -345,6 +345,74 @@ export async function swapSpec(key: string): Promise<void> {
   }
 }
 
+type SearchDraft = { value: string; focused: boolean; start: number | null; end: number | null } | undefined;
+
+/** What the reader has typed into the search field and not sent yet. */
+function searchDraft(body: HTMLElement, params: URLSearchParams): SearchDraft {
+  const search = body.querySelector('input[name="q"]') as HTMLInputElement | null;
+  return search && search.defaultValue === (params.get("q") ?? "")
+    ? { value: search.value, focused: document.activeElement === search, start: search.selectionStart, end: search.selectionEnd }
+    : undefined;
+}
+
+function restoreSearchDraft(body: HTMLElement, draft: SearchDraft): void {
+  const nextSearch = body.querySelector('input[name="q"]') as HTMLInputElement | null;
+  if (draft && nextSearch) {
+    nextSearch.value = draft.value;
+    if (draft.focused) {
+      nextSearch.focus();
+      nextSearch.setSelectionRange(draft.start, draft.end);
+    }
+  }
+}
+
+/** The fetched rows put in place: by a keyed diff where it can, the whole
+ *  list where it cannot, with what the reader had open, typed and scrolled
+ *  to kept across it. */
+function placeRows(body: HTMLElement, html: string, params: URLSearchParams): void {
+  // How far down the list is scrolled, kept across the
+  // redraw the way `restoreChosen` keeps a reader's own picks. The
+  // wholesale replace below builds `.tablewrap` afresh, and a new
+  // element starts at the top — so somebody reading the middle of the
+  // archive would be thrown back to the first row.
+  //
+  // Unconditional, on both paths. The keyed diff never touches the
+  // box, so putting the same number back is a no-op there; the
+  // fallback is not the rare path it sounds like, because
+  // `applyGroupDiff` declines whenever anything outside the rows
+  // differs — a chip's count changing when a job starts or finishes
+  // is exactly that.
+  const restoreAnchor = holdListAnchor(body);
+  const scrolled = (body.querySelector(".tablewrap") as HTMLElement | null)?.scrollTop ?? 0;
+  const open = openTestFiles(body);
+  const openPhaseLogs = openPhaseAttemptLogs([body]);
+  // The first paint has nothing to diff against, markup the
+  // split cannot account for is redrawn the old way, and a diff that
+  // could not finish is repaired by the same line.
+  const next = splitGroups(html);
+  const draft = searchDraft(body, params);
+  // The open spec is not in the answer: it is held across the replace.
+  const restore = holdSpecDetail(body);
+  const reopenMenu = holdOpenFilterMenu(body);
+  const replacedAll = !next || !lastRows || !applyGroupDiff(lastRows, next);
+  if (replacedAll) {
+    body.innerHTML = html;
+    syncExecutionGroupEditors(body);
+  }
+  restoreSearchDraft(body, draft);
+  restore();
+  reopenMenu();
+  reopenPhaseAttemptLogs([body], openPhaseLogs);
+  const added = addedRowKeys(lastRows, next);
+  lastRows = next;
+  const wrap = body.querySelector(".tablewrap") as HTMLElement | null;
+  if (wrap) wrap.scrollTop = scrolled;
+  restoreAnchor();
+  acceptListWindow(body);
+  redrawn(body, open);
+  showAddedRow(body, added);
+}
+
 // The filter and the sort live in the address bar, so the refresh has
 // to ask for the same list the reader is looking at — otherwise every
 // tick would quietly throw the filter away.
@@ -378,57 +446,7 @@ export async function swapRows(onAccepted?: () => void): Promise<void> {
     // away after its OK. The
     // next change once it is closed draws what this one would have.
     if (body.querySelector("dialog[open][data-progress-dialog], dialog.formdialog[open], tr.execution-group details.menu[open]")) return;
-    // How far down the list is scrolled, kept across the
-    // redraw the way `restoreChosen` keeps a reader's own picks. The
-    // wholesale replace below builds `.tablewrap` afresh, and a new
-    // element starts at the top — so somebody reading the middle of the
-    // archive would be thrown back to the first row.
-    //
-    // Unconditional, on both paths. The keyed diff never touches the
-    // box, so putting the same number back is a no-op there; the
-    // fallback is not the rare path it sounds like, because
-    // `applyGroupDiff` declines whenever anything outside the rows
-    // differs — a chip's count changing when a job starts or finishes
-    // is exactly that.
-    const restoreAnchor = holdListAnchor(body);
-    const scrolled = (body.querySelector(".tablewrap") as HTMLElement | null)?.scrollTop ?? 0;
-    const open = openTestFiles(body);
-    const openPhaseLogs = openPhaseAttemptLogs([body]);
-    // The first paint has nothing to diff against, markup the
-    // split cannot account for is redrawn the old way, and a diff that
-    // could not finish is repaired by the same line.
-    const next = splitGroups(html);
-    const search = body.querySelector('input[name="q"]') as HTMLInputElement | null;
-    const draft = search && search.defaultValue === (params.get("q") ?? "")
-      ? { value: search.value, focused: document.activeElement === search, start: search.selectionStart, end: search.selectionEnd }
-      : undefined;
-    // The open spec is not in the answer: it is held across the replace.
-    const restore = holdSpecDetail(body);
-    const reopenMenu = holdOpenFilterMenu(body);
-    const replacedAll = !next || !lastRows || !applyGroupDiff(lastRows, next);
-    if (replacedAll) {
-      body.innerHTML = html;
-      syncExecutionGroupEditors(body);
-    }
-    const nextSearch = body.querySelector('input[name="q"]') as HTMLInputElement | null;
-    if (draft && nextSearch) {
-      nextSearch.value = draft.value;
-      if (draft.focused) {
-        nextSearch.focus();
-        nextSearch.setSelectionRange(draft.start, draft.end);
-      }
-    }
-    restore();
-    reopenMenu();
-    reopenPhaseAttemptLogs([body], openPhaseLogs);
-    const added = addedRowKeys(lastRows, next);
-    lastRows = next;
-    const wrap = body.querySelector(".tablewrap") as HTMLElement | null;
-    if (wrap) wrap.scrollTop = scrolled;
-    restoreAnchor();
-    acceptListWindow(body);
-    redrawn(body, open);
-    showAddedRow(body, added);
+    placeRows(body, html, params);
     onAccepted?.();
   } catch {
     // offline, server restarting, tailnet hiccup: try again next tick

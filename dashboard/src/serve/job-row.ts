@@ -24,13 +24,7 @@ export interface JobRowContext {
 }
 
 export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView> {
-  const standaloneMerge = jobKind(job) === "land";
-  const target = standaloneMerge ? Promise.resolve().then(() => ctx.mergeTarget?.(job.project)).catch(() => undefined) : undefined;
-  const gone = standaloneMerge && (job.state === "failed" || job.state === "cancelled") && job.branch
-    ? Promise.resolve().then(() => ctx.branchGone?.(job.project, job.branch!)).catch(() => undefined) : undefined;
-  const mark = standaloneMerge && writing(job)
-    ? jobMarks(job, "en").marks.findLast(mark => mark.state === "running" && /^Step [1-4] of 4$/.test(mark.key))?.key : undefined;
-  const mergeActivity = mark === "Step 2 of 4" ? "testing" : mark === "Step 1 of 4" ? "merging" : mark ? "running" : undefined;
+  const merge = mergeFacts(ctx, job);
   // The step whose model the row is about: the one running, or the
   // last one for a job that has finished.
   const step = job.steps[job.stepIndex] ?? job.steps[job.steps.length - 1];
@@ -56,12 +50,36 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
     state: job.state,
     landing: job.landing,
     branch: job.branch,
-    mergeTarget: (await target) ?? undefined,
-    mergeActivity,
+    mergeTarget: (await merge.target) ?? undefined,
+    mergeActivity: merge.mergeActivity,
     landPushStarted: job.landPushStarted,
-    branchGone: (await gone) || undefined,
+    branchGone: (await merge.gone) || undefined,
     removedAt: job.removedAt,
     deploy: job.deploy,
+    ...stepModelFields(ctx, job, step, defaults),
+    ...runFields(ctx, job, step, providerKey),
+    results: job.results.map(resultView),
+  };
+}
+
+/** What a standalone Merge's row asks beyond the job itself: the branch it
+ *  merges into, whether origin still has a failed or cancelled one's
+ *  branch, and which part of the merge is running. Both questions are
+ *  started here and awaited by the row. */
+function mergeFacts(ctx: JobRowContext, job: Job) {
+  const standaloneMerge = jobKind(job) === "land";
+  const target = standaloneMerge ? Promise.resolve().then(() => ctx.mergeTarget?.(job.project)).catch(() => undefined) : undefined;
+  const gone = standaloneMerge && (job.state === "failed" || job.state === "cancelled") && job.branch
+    ? Promise.resolve().then(() => ctx.branchGone?.(job.project, job.branch!)).catch(() => undefined) : undefined;
+  const mark = standaloneMerge && writing(job)
+    ? jobMarks(job, "en").marks.findLast(mark => mark.state === "running" && /^Step [1-4] of 4$/.test(mark.key))?.key : undefined;
+  const mergeActivity = mark === "Step 2 of 4" ? "testing" : mark === "Step 1 of 4" ? "merging" : mark ? "running" : undefined;
+  return { target, gone, mergeActivity } as const;
+}
+
+/** The model, effort, spend and time limit of the step the row speaks for. */
+function stepModelFields(ctx: JobRowContext, job: Job, step: string | undefined, defaults: ReturnType<typeof forProject>) {
+  return {
     model: step ? resolveStepModel(job, step, defaults.model) : job.modelChoice,
     // The newest run of this step that named one; a running step has no
     // result yet and speaks with the id of the attempt before it.
@@ -78,6 +96,12 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
     // it into words ("stopped — 45 min") and has no step to resolve
     // against of its own.
     timeoutSec: resolveTimeoutSec(job.timeoutSec, step ?? "default", ctx.queue.defaults.timeoutSec),
+  };
+}
+
+/** When the job ran, what it reported and why it stopped. */
+function runFields(ctx: JobRowContext, job: Job, step: string | undefined, providerKey: string | undefined) {
+  return {
     createdAt: job.createdAt,
     startedAt: job.startedAt,
     finishedAt: job.finishedAt,
@@ -109,25 +133,29 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
       step === "implement" && job.state === "running" && job.sessionId
         ? ctx.store.get(job.sessionId)?.phase
         : undefined,
-    results: job.results.map((r) => ({
-      step: r.step, ok: r.ok, tool: r.tool, costUsd: r.costUsd, tokens: r.tokens?.total, modelId: r.modelId, terminalReason: r.terminalReason,
-      providerLimit: r.providerLimit,
-      provider: r.provider,
-      // When the step ENDED — what a phase's own duration
-      // is sliced out of, together with its own recorded start below.
-      at: r.at,
-      // This step's own recorded start, when there is one.
-      startedAt: r.startedAt,
-      // Carried, not dropped: the totals the list and the overview tab
-      // build out of these results have no other way to know a figure
-      // they are summing was over-charged.
-      costMeasured: r.costMeasured,
-      // The review and the verification, each on its own, with tokens as the total.
-      review: sideView(r.review), verify: sideView(r.verify),
-      // Why `gh` opened no pull request: the step's own answer, said in
-      // that phase's log.
-      prError: r.prError,
-    })),
+  };
+}
+
+/** One step result as the list draws it. */
+function resultView(r: Job["results"][number]) {
+  return {
+    step: r.step, ok: r.ok, tool: r.tool, costUsd: r.costUsd, tokens: r.tokens?.total, modelId: r.modelId, terminalReason: r.terminalReason,
+    providerLimit: r.providerLimit,
+    provider: r.provider,
+    // When the step ENDED — what a phase's own duration
+    // is sliced out of, together with its own recorded start below.
+    at: r.at,
+    // This step's own recorded start, when there is one.
+    startedAt: r.startedAt,
+    // Carried, not dropped: the totals the list and the overview tab
+    // build out of these results have no other way to know a figure
+    // they are summing was over-charged.
+    costMeasured: r.costMeasured,
+    // The review and the verification, each on its own, with tokens as the total.
+    review: sideView(r.review), verify: sideView(r.verify),
+    // Why `gh` opened no pull request: the step's own answer, said in
+    // that phase's log.
+    prError: r.prError,
   };
 }
 

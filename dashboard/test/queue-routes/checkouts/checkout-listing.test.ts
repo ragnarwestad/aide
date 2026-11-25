@@ -6,7 +6,7 @@ import {
   createServer,
 } from "../../../src/serve/serve.ts";
 import { createGitRunner, type GitRunner } from "../../../src/git/process/index.ts";
-import { ensureDashboardCheckout } from "../../../src/git/dashboard-checkout.ts";
+import { ensureDashboardCheckout } from "../../../src/git/dashboard-checkout/index.ts";
 import { statusSaying } from "../../helpers/queue-server.ts";
 import { checkoutSafetySuite } from "./checkout-safety-fixtures.ts";
 

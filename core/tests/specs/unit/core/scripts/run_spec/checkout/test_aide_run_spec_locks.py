@@ -21,39 +21,87 @@ from ..run_spec_origins import origin
 from ..run_spec_results import RESULT_OK
 
 
+SECOND = "82-second-spec"
+
+
 def _add_second_spec(specs):
-    """Commits a second spec, 82-second-spec, and returns its folder. It
-    is analyzed already: an implement is refused on a spec whose steps
-    line lacks analyze, and the runs these tests start are implements."""
-    second = "82-second-spec"
-    (specs / second).mkdir()
-    (specs / second / "1-description.md").write_text("# Second - Description\n")
-    (specs / second / "4-status.md").write_text(
+    """A second spec in the same specs repository, analyzed already: an
+    implement is refused on a spec whose steps line lacks analyze, and
+    the runs here are implements."""
+    (specs / SECOND).mkdir()
+    (specs / SECOND / "1-description.md").write_text("# Second - Description\n")
+    (specs / SECOND / "4-status.md").write_text(
         "# Second - Status\n\n## Tracking info\n\n- **Task:** `82-second-spec/`\n"
         "- **Workflow steps completed:** create, analyze\n"
     )
     git(specs, "add", "-A")
     git(specs, "commit", "-q", "-m", "add second spec")
-    return second
+    return SECOND
 
 
-def _start_implement(runner, workspace, folder, result_file, env):
-    """An implement of `folder` started without waiting for it, so a test
-    can run two at once."""
+def _start_run(runner, workspace, tmp_path, folder, name, env, command="implement"):
+    """The runner started in the background for one spec, its stdout and
+    stderr kept for the test to read."""
     return subprocess.Popen(
         [
             str(runner),
             "--project-dir", str(workspace["project"]),
             "--project-name", "aide",
-            "--command", "implement",
+            "--command", command,
             "--spec", folder,
             "--timeout-sec", "60",
             "--permission-mode", "acceptEdits",
-            "--result-file", str(result_file),
+            "--result-file", str(tmp_path / f"result-{name}.json"),
             "--worktree-base", str(workspace["wtbase"]),
         ],
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env,
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+        env=env,
     )
+
+
+def _assert_each_branch_has_only_its_own(project, branches_and_files):
+    """Each run's file is on its own branch and not on the other's."""
+    (first_branch, first_file), (second_branch, second_file) = branches_and_files
+    first_files = git(project, "ls-tree", "-r", "--name-only", first_branch)
+    second_files = git(project, "ls-tree", "-r", "--name-only", second_branch)
+    assert first_file in first_files
+    assert second_file not in first_files
+    assert second_file in second_files
+    assert first_file not in second_files
+
+
+def _assert_all_completed(procs):
+    for name, p in procs.items():
+        out = json.loads(p.stdout.read().strip().splitlines()[-1])
+        assert out["terminalReason"] == "completed", (name, out, p.stderr.read())
+
+
+def _gated_claude(tmp_path, name, folder):
+    """A stand-in model that writes its file, says it is ready, and waits
+    for its go file before it answers."""
+    ready, go = tmp_path / f"{name}-ready", tmp_path / f"{name}-go"
+    body = (
+        "cat > /dev/null\n"
+        + READ_SPECS
+        + f'echo "{name}" > "$PWD/{name}-code.txt"\n'
+        + f'echo "{name}" > "$specs/{folder}/2-analysis.md"\n'
+        + f"touch {ready}\n"
+        + f"while [ ! -f {go} ]; do sleep 0.05; done\n"
+        + f"echo '{json.dumps(RESULT_OK)}'\n"
+    )
+    claude = tmp_path / f"fake-claude-{name}"
+    stand_in(claude, "#!/usr/bin/env bash\n" + body)
+    return claude, (ready, go)
+
+
+def _wait_until_all_ready(procs, gates):
+    deadline = time.time() + 60
+    while time.time() < deadline and not all(g[0].exists() for g in gates.values()):
+        for name, p in procs.items():
+            if p.poll() is not None:
+                raise AssertionError(f"{name} ended early: {p.communicate()}")
+        time.sleep(0.05)
+    assert all(g[0].exists() for g in gates.values()), "both runs must be going at once"
 
 
 def test_two_runs_on_the_same_repos_do_not_see_each_other(runner, workspace, tmp_path):
@@ -66,31 +114,10 @@ def test_two_runs_on_the_same_repos_do_not_see_each_other(runner, workspace, tmp
     gates = {}
     procs = {}
     for folder, name in ((workspace["folder"], "first"), (second, "second")):
-        ready, go = tmp_path / f"{name}-ready", tmp_path / f"{name}-go"
-        gates[name] = (ready, go)
-        body = (
-            "cat > /dev/null\n"
-            + READ_SPECS
-            + f'echo "{name}" > "$PWD/{name}-code.txt"\n'
-            + f'echo "{name}" > "$specs/{folder}/2-analysis.md"\n'
-            + f"touch {ready}\n"
-            + f"while [ ! -f {go} ]; do sleep 0.05; done\n"
-            + f"echo '{json.dumps(RESULT_OK)}'\n"
-        )
-        claude = tmp_path / f"fake-claude-{name}"
-        stand_in(claude, "#!/usr/bin/env bash\n" + body)
-        procs[name] = _start_implement(
-            runner, workspace, folder, tmp_path / f"result-{name}.json",
-            {**os.environ, "AIDE_CLAUDE_BIN": str(claude)},
-        )
+        claude, gates[name] = _gated_claude(tmp_path, name, folder)
+        procs[name] = _start_run(runner, workspace, tmp_path, folder, name, {**os.environ, "AIDE_CLAUDE_BIN": str(claude)})
     try:
-        deadline = time.time() + 60
-        while time.time() < deadline and not all(g[0].exists() for g in gates.values()):
-            for name, p in procs.items():
-                if p.poll() is not None:
-                    raise AssertionError(f"{name} ended early: {p.communicate()}")
-            time.sleep(0.05)
-        assert all(g[0].exists() for g in gates.values()), "both runs must be going at once"
+        _wait_until_all_ready(procs, gates)
         # BOTH are inside their step, in different checkouts, against the
         # same two repositories.
         assert git(workspace["project"], "rev-parse", "--abbrev-ref", "HEAD") == "main"
@@ -101,14 +128,85 @@ def test_two_runs_on_the_same_repos_do_not_see_each_other(runner, workspace, tmp
         for p in procs.values():
             p.wait(timeout=60)
 
-    for name, p in procs.items():
-        out = json.loads(p.stdout.read().strip().splitlines()[-1])
-        assert out["terminalReason"] == "completed", (name, out)
-    first_branch, second_branch = f"aide/{workspace['folder']}", f"aide/{second}"
-    assert "first-code.txt" in git(workspace["project"], "ls-tree", "-r", "--name-only", first_branch)
-    assert "second-code.txt" not in git(workspace["project"], "ls-tree", "-r", "--name-only", first_branch)
-    assert "second-code.txt" in git(workspace["project"], "ls-tree", "-r", "--name-only", second_branch)
-    assert "first-code.txt" not in git(workspace["project"], "ls-tree", "-r", "--name-only", second_branch)
+    _assert_all_completed(procs)
+    _assert_each_branch_has_only_its_own(workspace["project"], (
+        (f"aide/{workspace['folder']}", "first-code.txt"), (f"aide/{second}", "second-code.txt"),
+    ))
+
+def _ready_names(events):
+    return {
+        line.split()[0]
+        for line in events.read_text().splitlines()
+        if line.split()[1:2] == ["ready"]
+    }
+
+
+def _release_in_turn(events, gos):
+    """Either both reach `worktree add` together (no lock — the
+    unmodified script's actual failure mode) or only one does (a working
+    lock blocks the other before it ever reaches git). A short grace
+    window tells the two apart without hardcoding which is true.
+
+    120 s, not 30: on the serving host the archive gate runs this suite
+    beside a full bun suite, and a runner took over 30 s to reach its
+    worktree add there. The bound only has to be finite; it is not part
+    of what the test measures."""
+    wait_until(
+        lambda: len(_ready_names(events)) >= 1, 120,
+        "neither run ever reached its own git worktree add call",
+    )
+    time.sleep(0.3)
+    together = _ready_names(events)
+    if len(together) == 2:
+        for go in gos.values():
+            go.touch()
+        return
+    first = next(iter(together))
+    second_name = "second" if first == "first" else "first"
+    gos[first].touch()
+    wait_until(
+        lambda: second_name in _ready_names(events), 60,
+        f"{second_name} never reached its own worktree add call — "
+        "the lock is stuck",
+    )
+    gos[second_name].touch()
+
+
+def _assert_second_waited_for_first(events):
+    """Whichever process reached its own worktree add SECOND must not
+    have started it before the FIRST one's had already returned."""
+    log = [line.split() for line in events.read_text().splitlines() if line.strip()]
+    ready_order = [name for name, event in log if event == "ready"]
+    if len(ready_order) != 2 or ready_order[0] == ready_order[1]:
+        return
+    first_name, second_name = ready_order
+    first_done_idx = next(
+        i for i, (name, event) in enumerate(log) if name == first_name and event == "done"
+    )
+    second_ready_idx = next(
+        i for i, (name, event) in enumerate(log) if name == second_name and event == "ready"
+    )
+    assert first_done_idx < second_ready_idx, (
+        f"{second_name} started its own worktree add before {first_name}'s had "
+        f"returned: {log}"
+    )
+
+
+def _give_each_spec_a_pushed_branch(runner, workspace, tmp_path, specs_and_names):
+    """Round 1, sequential: give each spec an existing branch, ahead of
+    base and pushed to origin — so a concurrent round after it actually
+    exercises `sync_branch_with_origin`/`branch_already_landed`'s
+    fixed-name temp refs (both early-return as a no-op when there is no
+    origin at all), instead of only the fresh-branch `git worktree add -b`
+    path."""
+    for folder, name in specs_and_names:
+        claude = make_named_writing_claude(tmp_path, f"{name}-r1", folder, f"{name}-round1")
+        rc, out, _ = run(runner, workspace, claude, spec=folder, command="implement")
+        assert rc == 0, out
+        branch = f"aide/{folder}"
+        git(workspace["project"], "push", "-q", "origin", branch)
+        git(workspace["specs"], "push", "-q", "origin", branch)
+
 
 def test_two_runs_against_the_same_project_for_different_specs_do_not_race(
     runner, workspace, tmp_path, origin
@@ -125,114 +223,43 @@ def test_two_runs_against_the_same_project_for_different_specs_do_not_race(
     # `origin/main` would cut the second spec's branch without its own
     # folder, silently dropping every write this test makes into it.
     git(specs, "push", "-q", "origin", "main")
-
-    # Round 1, sequential: give each spec an existing branch, ahead of
-    # base and pushed to origin — so round 2 below actually exercises
-    # `sync_branch_with_origin`/`branch_already_landed`'s fixed-name temp
-    # refs (both early-return as a no-op when there is no origin at all),
-    # instead of only the fresh-branch `git worktree add -b` path.
-    for folder, name in ((workspace["folder"], "first"), (second, "second")):
-        claude = make_named_writing_claude(tmp_path, f"{name}-r1", folder, f"{name}-round1")
-        rc, out, _ = run(runner, workspace, claude, spec=folder, command="implement")
-        assert rc == 0, out
-        branch = f"aide/{folder}"
-        git(project, "push", "-q", "origin", branch)
-        git(specs, "push", "-q", "origin", branch)
+    specs_and_names = ((workspace["folder"], "first"), (second, "second"))
+    _give_each_spec_a_pushed_branch(runner, workspace, tmp_path, specs_and_names)
 
     # Round 2, concurrent: both branches already exist, so this run's
     # loop body actually calls `sync_branch_with_origin`/
     # `branch_already_landed` before its own `git worktree add`.
     events = tmp_path / "events.log"
     events.write_text("")
-    project_root = project
-
     procs, gos = {}, {}
-    for folder, name in ((workspace["folder"], "first"), (second, "second")):
-        shim_dir, go = make_worktree_add_gate(tmp_path, name, project_root, events)
-        gos[name] = go
+    for folder, name in specs_and_names:
+        shim_dir, gos[name] = make_worktree_add_gate(tmp_path, name, project, events)
         claude = make_named_writing_claude(tmp_path, f"{name}-r2", folder, f"{name}-round2")
         env = {
             **os.environ,
             "AIDE_CLAUDE_BIN": str(claude),
             "PATH": f"{shim_dir}{os.pathsep}{os.environ['PATH']}",
         }
-        procs[name] = _start_implement(runner, workspace, folder, tmp_path / f"result-{name}.json", env)
-
-    def ready_names():
-        return {
-            line.split()[0]
-            for line in events.read_text().splitlines()
-            if line.split()[1:2] == ["ready"]
-        }
+        procs[name] = _start_run(runner, workspace, tmp_path, folder, name, env)
 
     try:
-        # Either both reach `worktree add` together (no lock — the
-        # unmodified script's actual failure mode) or only one does (a
-        # working lock blocks the other before it ever reaches git). A
-        # short grace window tells the two apart without hardcoding which
-        # is true — Step 3 of the implementation plan runs this same test
-        # against both states of the script.
-        # 120 s, not 30: on the serving host the archive gate runs this
-        # suite beside a full bun suite, and a runner took over 30 s to
-        # reach its worktree add there (2026-09-02). The bound only has
-        # to be finite; it is not part of what the test measures.
-        wait_until(
-            lambda: len(ready_names()) >= 1, 120,
-            "neither run ever reached its own git worktree add call",
-        )
-        time.sleep(0.3)
-        together = ready_names()
-        if len(together) == 2:
-            for go in gos.values():
-                go.touch()
-        else:
-            first = next(iter(together))
-            second_name = "second" if first == "first" else "first"
-            gos[first].touch()
-            wait_until(
-                lambda: second_name in ready_names(), 60,
-                f"{second_name} never reached its own worktree add call — "
-                "the lock is stuck",
-            )
-            gos[second_name].touch()
+        _release_in_turn(events, gos)
     finally:
         for go in gos.values():
             go.touch()
         for p in procs.values():
             p.wait(timeout=60)
 
-    for name, p in procs.items():
-        out = json.loads(p.stdout.read().strip().splitlines()[-1])
-        assert out["terminalReason"] == "completed", (name, out, p.stderr.read())
-
-    # Whichever process reached its own worktree add SECOND
-    # must not have started it before the FIRST one's had already returned.
-    log = [line.split() for line in events.read_text().splitlines() if line.strip()]
-    ready_order = [name for name, event in log if event == "ready"]
-    if len(ready_order) == 2 and ready_order[0] != ready_order[1]:
-        first_name, second_name = ready_order
-        first_done_idx = next(
-            i for i, (name, event) in enumerate(log) if name == first_name and event == "done"
-        )
-        second_ready_idx = next(
-            i for i, (name, event) in enumerate(log) if name == second_name and event == "ready"
-        )
-        assert first_done_idx < second_ready_idx, (
-            f"{second_name} started its own worktree add before {first_name}'s had "
-            f"returned: {log}"
-        )
+    _assert_all_completed(procs)
+    _assert_second_waited_for_first(events)
 
     # The fixed-name temp refs (refs/aide-branch/tip,
     # refs/aide-branch/landed-base), exercised for real above since both
     # branches pre-existed and were pushed to origin, must not have
     # leaked either run's branch data into the other's.
-    first_branch, second_branch = f"aide/{workspace['folder']}", f"aide/{second}"
-    first_files = git(project, "ls-tree", "-r", "--name-only", first_branch)
-    second_files = git(project, "ls-tree", "-r", "--name-only", second_branch)
-    assert "first-round2.txt" in first_files
-    assert "second-round2.txt" not in first_files
-    assert "second-round2.txt" in second_files
-    assert "first-round2.txt" not in second_files
+    _assert_each_branch_has_only_its_own(project, (
+        (f"aide/{workspace['folder']}", "first-round2.txt"), (f"aide/{second}", "second-round2.txt"),
+    ))
 
 
 def test_a_stale_lock_left_by_a_killed_run_is_reclaimed_without_waiting(
@@ -279,6 +306,32 @@ def test_a_lock_without_a_pid_times_out_with_the_path_and_safe_removal_condition
     assert "remove that lock" in out["errorSolution"], out
     assert "no aide-run-spec process is using that checkout" in out["errorSolution"], out
 
+def _sigterm_at_worktree_add(proc, events, go, lock):
+    """Wait for the run to pause at its own worktree add, holding the
+    lock, then send it SIGTERM and let the paused git return."""
+    try:
+        wait_until(
+            lambda: "victim ready" in events.read_text(), 30,
+            "the run never reached its own git worktree add call",
+        )
+        # On the unmodified script nothing ever creates this directory, so
+        # this is where a run without the fix already fails — the SIGTERM
+        # below would otherwise "release" a lock that was never held,
+        # passing for the wrong reason.
+        assert lock.exists(), (
+            "acquire_worktree_lock must have created the lock by the time "
+            "the run reaches its own worktree add"
+        )
+        proc.send_signal(signal.SIGTERM)
+        go.touch()
+        proc.wait(timeout=30)
+    finally:
+        go.touch()
+        if proc.poll() is None:
+            proc.kill()
+            proc.wait(timeout=10)
+
+
 def test_a_run_killed_with_sigterm_while_holding_the_lock_releases_it(
     runner, workspace, fake_claude, tmp_path
 ):
@@ -312,43 +365,11 @@ def test_a_run_killed_with_sigterm_while_holding_the_lock_releases_it(
         "AIDE_CLAUDE_BIN": str(fake_claude("exit 1")),
         "PATH": f"{shim_dir}{os.pathsep}{os.environ['PATH']}",
     }
-    proc = subprocess.Popen(
-        [
-            str(runner),
-            "--project-dir", str(project),
-            "--project-name", "aide",
-            "--command", "analyze",
-            "--spec", workspace["folder"],
-            "--timeout-sec", "60",
-            "--permission-mode", "acceptEdits",
-            "--result-file", str(tmp_path / "result-victim.json"),
-            "--worktree-base", str(workspace["wtbase"]),
-        ],
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-        env=env,
+    proc = _start_run(
+        runner, workspace, tmp_path, workspace["folder"], "victim", env, command="analyze"
     )
     lock = project / ".git" / "aide-run-spec-worktree.lock"
-    try:
-        wait_until(
-            lambda: "victim ready" in events.read_text(), 30,
-            "the run never reached its own git worktree add call",
-        )
-        # On the unmodified script nothing ever creates this directory, so
-        # this is where a run without the fix already fails — the SIGTERM
-        # below would otherwise "release" a lock that was never held,
-        # passing for the wrong reason.
-        assert lock.exists(), (
-            "acquire_worktree_lock must have created the lock by the time "
-            "the run reaches its own worktree add"
-        )
-        proc.send_signal(signal.SIGTERM)
-        go.touch()
-        proc.wait(timeout=30)
-    finally:
-        go.touch()
-        if proc.poll() is None:
-            proc.kill()
-            proc.wait(timeout=10)
+    _sigterm_at_worktree_add(proc, events, go, lock)
 
     assert not lock.exists(), (
         "a run killed with SIGTERM while holding the lock must release it "

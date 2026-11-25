@@ -74,44 +74,67 @@ export function specHeadRow(
   // flight, one whose last job is over, and an archived one. Written as
   // `data-run`, a marker no stylesheet styles.
   const runState = locked ? "archived" : !g.lead ? "new" : inFlight(g.lead) ? "live" : "past";
-  // The spec name is the way IN, and it opens the SPEC —
-  // all four of its files as they stand — rather than whichever job
-  // happened to run last. Which means EVERY spec has somewhere to point:
-  // the old branch here said "a spec that has never run has no job page
-  // to point at, so the name is text", and that is the sentence the spec
-  // page invalidates. The phase lines below still link to jobs, because
-  // a phase's page is that phase's own run.
-  // The diff link sits beside it rather than replacing it — nothing a
-  // reader uses today disappears.
-  // `.label` so the name clamps to two lines with an ellipsis
-  // (src/render/css.ts `.spec-name > .label`, reworked 2026-08-26): a
-  // one-line clamp hid most of a long folder name behind a click.
-  // `<project>:<folder>` since 2026-08-21. The project used to open the
-  // line under the name, beside the title; it belongs to the NAME — a
-  // folder number is only unique within its project — and the line
-  // under it now carries what nothing else says.
-  // `data-goto`: a real navigation to a different document,
-  // which no script can swap in — so the click is MARKED and the
-  // browser is left to get on with it. Without it the reader saw the
-  // old page, unchanged, for however long `specPageView` took, and a
-  // click that changes nothing reads as a click that did not register.
-  // A create job's spec has no folder yet, so
-  // the row names itself after the title given on the New spec form.
-  // The PROJECT is known from the first moment either way, and is drawn
-  // on both: a create row without it was the one row on the list shaped
-  // differently from every other, for no reason a reader could see.
-  // What changes when the folder lands is that the name becomes a link
-  // — there is a page to open now — and gains its number, the
-  // identifier every other surface uses for this spec.
-  // The number, then the spec's own TITLE. The number is the identifier
-  // every other surface uses and is never reused; the title is what a
-  // reader recognises the spec by. The slug between them said the title
-  // over again in hyphens, and is left to the link's href.
-  // A create job has neither number nor folder yet, so its row is the
-  // title alone until the folder lands.
-  // No title on disk — a spec whose 1-description.md says none — leaves
-  // the folder name standing on its own: it already carries the number,
-  // and prefixing it again read "81-81-queue-and-runner".
+  const spec = specNameLabel(g, opts, lang);
+  const stateBadge = headStateBadge(g, lang, !!opts.openSpec);
+  const run = opts.openSpec ? specRunDialog(g, opts) : { control: "", dialog: "" };
+  const columns = opts.openSpec ? SPECS_LIST_COLUMNS : LIST_COLUMNS;
+  const actionView = headActionView(g, opts, locked);
+  const actions = !opts.openSpec ? "" : !g.named ? run.control + run.dialog : specActions(actionView, run.control + run.dialog, lang);
+  // The PDF link stands at the right end of the title line, as a group's menu does on its card.
+  const pdf = opts.openSpec && g.named ? pdfControl(actionView, lang) : "";
+  // What goes under the name. A locked row draws nothing here
+  // — `specSummary` has no path for it at all: it draws a title
+  // for an unnamed create job and the dependency list, and an archived
+  // row is `named` with nothing left to depend on. The description
+  // stays searchable (`g.description`, read by `matchesSearch`); only
+  // showing it under the title goes.
+  const under = locked ? "" : `<div class="spec-title">${specSummary(g)}</div>`;
+  return (
+    specTitleRow(g, opts, opened, { lang, runState, columns, spec, pdf, under }) +
+    specStateRow(g, opts, { lang, locked, openAction, stateBadge, actions })
+  );
+}
+
+// The spec name is the way IN, and it opens the SPEC —
+// all four of its files as they stand — rather than whichever job
+// happened to run last. Which means EVERY spec has somewhere to point:
+// the old branch here said "a spec that has never run has no job page
+// to point at, so the name is text", and that is the sentence the spec
+// page invalidates. The phase lines below still link to jobs, because
+// a phase's page is that phase's own run.
+// The diff link sits beside it rather than replacing it — nothing a
+// reader uses today disappears.
+// `.label` so the name clamps to two lines with an ellipsis
+// (src/render/css.ts `.spec-name > .label`, reworked 2026-08-26): a
+// one-line clamp hid most of a long folder name behind a click.
+// `<project>:<folder>` since 2026-08-21. The project used to open the
+// line under the name, beside the title; it belongs to the NAME — a
+// folder number is only unique within its project — and the line
+// under it now carries what nothing else says.
+// `data-goto`: a real navigation to a different document,
+// which no script can swap in — so the click is MARKED and the
+// browser is left to get on with it. Without it the reader saw the
+// old page, unchanged, for however long `specPageView` took, and a
+// click that changes nothing reads as a click that did not register.
+// A create job's spec has no folder yet, so
+// the row names itself after the title given on the New spec form.
+// The PROJECT is known from the first moment either way, and is drawn
+// on both: a create row without it was the one row on the list shaped
+// differently from every other, for no reason a reader could see.
+// What changes when the folder lands is that the name becomes a link
+// — there is a page to open now — and gains its number, the
+// identifier every other surface uses for this spec.
+// The number, then the spec's own TITLE. The number is the identifier
+// every other surface uses and is never reused; the title is what a
+// reader recognises the spec by. The slug between them said the title
+// over again in hyphens, and is left to the link's href.
+// A create job has neither number nor folder yet, so its row is the
+// title alone until the folder lands.
+// No title on disk — a spec whose 1-description.md says none — leaves
+// the folder name standing on its own: it already carries the number,
+// and prefixing it again read "81-81-queue-and-runner".
+/** The spec's name on its row: the project, then the number and title. */
+function specNameLabel(g: SpecGroup, opts: SpecsPageOptions, lang: Language): string {
   const number = g.named ? g.specFolder.split("-")[0] : "";
   const specName = g.title ? (number ? `${number}-${g.title}` : g.title) : g.specFolder;
   // The project is a link to its page and the rest, from the colon, the
@@ -129,45 +152,18 @@ export function specHeadRow(
   const identifier = `${g.project}:${g.specFolder}`;
   const base = { project: g.project, kind: "spec" as const, name: specName, lang };
   const jobsHref = `/?q=${encodeURIComponent(`${g.project}:${number}`)}`;
-  const spec = g.named && opts.openSpec
+  return g.named && opts.openSpec
     ? rowLabel({ ...base, title: identifier, href: g.hasJobs ? jobsHref : undefined })
     : g.named
     ? rowLabel({ ...base, title: identifier, href: `${specPagePath(g.project, g.specFolder)}#${rowAnchorId(g)}` })
     : rowLabel(base);
-  // A pull request open for this row's branch is a fact about the work,
-  // not a second state the spec is IN: it is true for the whole window
-  // from implement opening one to the branch finally landing, so it says
-  // nothing about which of the states the spec passes through in between
-  // it sits beside. It is said on the notice line instead, ranked among
-  // this row's other marks (`errorMarkNotices`/`archivedRowNotices`,
-  // row-marks.ts).
-  // The earliest phase the spec's own files say has not happened — the
-  // same one `chosenSteps`/`actionState` name a box or a button for
-  // (from the same `nextPhase()` call below, so the badge and the button cannot name
-  // different phases).
-  // Worded for a reader here through `stepLabel`, so a phase added to
-  // `STEP_LABELS` later reaches this sentence too.
-  // NOT on a locked row. `nextPhase` deletes `archive` from
-  // the done-set before it looks for what is missing — right for a spec
-  // still on the active list, and wrong for one whose folder has already
-  // moved: it resolves to "archive" for every archived spec there is,
-  // and `restingChip` would draw "ready" beside a spec that is finished.
-  // What the State column says for a locked row, drawn directly rather
-  // than through `stateCell`/`restingChip`: those two answer "what is
-  // happening, and what can happen next", and for this row the answer to
-  // both is that it is over — the bare word, always.
-  // A branch left open or not landed is an ERROR, not a second state,
-  // and is said on the notice line instead (`archivedRowNotices`).
-  // A closed row's badge word is CLOSED_STATE
-  // ("closed"), never ARCHIVED_STATE — same literal-word precedent this
-  // badge already followed for "archived", now told apart by `g.state`.
-  const stateBadge = headStateBadge(g, lang, !!opts.openSpec);
-  const run = opts.openSpec ? specRunDialog(g, opts) : { control: "", dialog: "" };
-  const columns = opts.openSpec ? SPECS_LIST_COLUMNS : LIST_COLUMNS;
+}
+
+/** A create job whose folder has not landed has no spec to close or print
+ *  yet: its row offers Run alone. */
+function headActionView(g: SpecGroup, opts: SpecsPageOptions, locked: boolean): SpecActionView {
   const specLanding = ownMergeRunning(g, opts);
-  // A create job whose folder has not landed has no spec to close or print
-  // yet: its row offers Run alone.
-  const actionView: SpecActionView = {
+  return {
     project: g.project,
     specFolder: g.specFolder,
     archived: locked,
@@ -177,16 +173,14 @@ export function specHeadRow(
       : specLocked(g) ? "another job for this spec is still running" : undefined,
     pdfUnavailableReason: opts.pdfAvailable === false ? PDF_UNAVAILABLE : undefined,
   };
-  const actions = !opts.openSpec ? "" : !g.named ? run.control + run.dialog : specActions(actionView, run.control + run.dialog, lang);
-  // The PDF link stands at the right end of the title line, as a group's menu does on its card.
-  const pdf = opts.openSpec && g.named ? pdfControl(actionView, lang) : "";
-  // What goes under the name. A locked row draws nothing here
-  // — `specSummary` has no path for it at all: it draws a title
-  // for an unnamed create job and the dependency list, and an archived
-  // row is `named` with nothing left to depend on. The description
-  // stays searchable (`g.description`, read by `matchesSearch`); only
-  // showing it under the title goes.
-  const under = locked ? "" : `<div class="spec-title">${specSummary(g)}</div>`;
+}
+
+/** The head row's first line: the fold, and the name across the whole row. */
+function specTitleRow(
+  g: SpecGroup, opts: SpecsPageOptions, opened: Set<string>,
+  o: { lang: Language; runState: string; columns: number; spec: string; pdf: string; under: string },
+): string {
+  const { lang, runState, columns, spec, pdf, under } = o;
   return (
     // `data-folder`, not `data-spec`: the attribute NAME would otherwise
     // end in the same "a-spec" that half the fixtures use as a folder,
@@ -222,19 +216,29 @@ export function specHeadRow(
     `</div>${pdf ? `${pdf}</div>` : ""}` +
     under +
     `</td>` +
-    `</tr>` +
-    // Line 2, its own row since the title took line 1 whole. A ROW and
-    // not a grid on the one above: the table already sizes these
-    // columns, and it drops them one at a time as the box narrows
-    // (list.css's four breakpoints) — mirroring those percentages in a
-    // grid would be the same six widths written twice. What a phone
-    // shows falls out of the same markup: there the last three columns
-    // are zero, so the figures land beside the badge by themselves,
-    // which is what narrow.css used to lay out by hand.
-    //
-    // `data-folder` again, so a helper can find this line on its own;
-    // the anchor id, `data-run` and the `spechead` class stay on the
-    // title's row, which is the row every other reader looks for.
+    `</tr>`
+  );
+}
+
+// Line 2, its own row since the title took line 1 whole. A ROW and
+// not a grid on the one above: the table already sizes these
+// columns, and it drops them one at a time as the box narrows
+// (list.css's four breakpoints) — mirroring those percentages in a
+// grid would be the same six widths written twice. What a phone
+// shows falls out of the same markup: there the last three columns
+// are zero, so the figures land beside the badge by themselves,
+// which is what narrow.css used to lay out by hand.
+// 
+// `data-folder` again, so a helper can find this line on its own;
+// the anchor id, `data-run` and the `spechead` class stay on the
+// title's row, which is the row every other reader looks for.
+/** The head row's second line: when it was created, its state, and its figures. */
+function specStateRow(
+  g: SpecGroup, opts: SpecsPageOptions,
+  o: { lang: Language; locked: boolean; openAction: string; stateBadge: string; actions: string },
+): string {
+  const { lang, locked, openAction, stateBadge, actions } = o;
+  return (
     `<tr class="specstate" data-folder="${esc(g.specFolder)}">` +
     // At the left, in the columns the title no longer needs, when the spec
     // was created, which is what the Created sort orders by. The Running tab
@@ -299,6 +303,33 @@ export function firstActionLabel(g: SpecGroup, opts: SpecsPageOptions): string {
   return firstSpecActionLabel(view, runAvailable, opts.lang ?? "en");
 }
 
+// A pull request open for this row's branch is a fact about the work,
+// not a second state the spec is IN: it is true for the whole window
+// from implement opening one to the branch finally landing, so it says
+// nothing about which of the states the spec passes through in between
+// it sits beside. It is said on the notice line instead, ranked among
+// this row's other marks (`errorMarkNotices`/`archivedRowNotices`,
+// row-marks.ts).
+// The earliest phase the spec's own files say has not happened — the
+// same one `chosenSteps`/`actionState` name a box or a button for
+// (from the same `nextPhase()` call below, so the badge and the button cannot name
+// different phases).
+// Worded for a reader here through `stepLabel`, so a phase added to
+// `STEP_LABELS` later reaches this sentence too.
+// NOT on a locked row. `nextPhase` deletes `archive` from
+// the done-set before it looks for what is missing — right for a spec
+// still on the active list, and wrong for one whose folder has already
+// moved: it resolves to "archive" for every archived spec there is,
+// and `restingChip` would draw "ready" beside a spec that is finished.
+// What the State column says for a locked row, drawn directly rather
+// than through `stateCell`/`restingChip`: those two answer "what is
+// happening, and what can happen next", and for this row the answer to
+// both is that it is over — the bare word, always.
+// A branch left open or not landed is an ERROR, not a second state,
+// and is said on the notice line instead (`archivedRowNotices`).
+// A closed row's badge word is CLOSED_STATE
+// ("closed"), never ARCHIVED_STATE — same literal-word precedent this
+// badge already followed for "archived", now told apart by `g.state`.
 /** Jobs shows the active job or the progress of a settled spec. */
 export function headStateBadge(g: SpecGroup, lang: Language, onSpecs = false): string {
   if (g.lead?.queuePosition?.id) return specStateChip(g.lead, lang, {}, !onSpecs);

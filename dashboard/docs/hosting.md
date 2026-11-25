@@ -193,7 +193,7 @@ them until it fires. The queue keeps starting phases meanwhile. Point the job an
 reloads code the merge never touched — the served page then sits on old code with every row reporting
 success. `GET /api/version` answers the commit SHA the running process actually booted with, read once at start and
 never refreshed, and `startedAt`, when that process booted — it needs no credential, so a restart check can reach it. The path is written once in the Makefile (`MINI_REPO`) and once in
-`src/git/dashboard-checkout.ts` (`dashboardCheckoutRoot`), and
+`src/git/dashboard-checkout/index.ts` (`dashboardCheckoutRoot`), and
 `test/git/checkout/install-serve-paths.test.ts` reads both and fails if they disagree.
 
 `install-serve` creates that checkout itself, with plain `git clone`

@@ -154,12 +154,7 @@ describe("POST /api/self-run", () => {
     const specs = join(dir, "specs-repo");
     // The queue holds a row from the last round, while the harness's original
     // specs path still names the row.
-    const queued = await fetch(`${base}/api/queue`, {
-      method: "POST",
-      headers: { ...auth.headers, "content-type": "application/json" },
-      body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"] }),
-    });
-    expect(queued.status).toBe(200);
+    expect((await queueAnalyze(base)).status).toBe(200);
 
     mkdirSync(specs, { recursive: true });
     writeFileSync(join(code, ".aide", "config"), `AIDE_SPECS_PATH=${specs}\n`);
@@ -170,11 +165,7 @@ describe("POST /api/self-run", () => {
     expect(pressed.status).toBe(200);
     expect(await pressed.json()).toEqual({ ok: true, stage: "resetting" });
 
-    let state: { stage: string; startedAt?: string; error?: string; specs: unknown[] } = { stage: "resetting", specs: [] };
-    for (let i = 0; i < 100 && state.stage !== "done" && state.stage !== "failed"; i++) {
-      await new Promise((r) => setTimeout(r, 100));
-      state = (await (await fetch(`${base}/api/self-run`, auth)).json()) as typeof state;
-    }
+    const state = await roundSettled(base);
     expect(state).toEqual({ stage: "done", startedAt: expect.any(String), specs: [] });
 
     // Both working trees are what the first commit held, and main IS
@@ -503,3 +494,21 @@ describe("cancelLiveJobs and followUntilDrained, with made-up groups", () => {
     expect(scans()).toBe(1);
   });
 });
+
+function queueAnalyze(base: string): Promise<Response> {
+  return fetch(`${base}/api/queue`, {
+    method: "POST",
+    headers: { ...auth.headers, "content-type": "application/json" },
+    body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"] }),
+  });
+}
+
+/** The round's status, polled until it is done or failed. */
+async function roundSettled(base: string) {
+  let state: { stage: string; startedAt?: string; error?: string; specs: unknown[] } = { stage: "resetting", specs: [] };
+  for (let i = 0; i < 100 && state.stage !== "done" && state.stage !== "failed"; i++) {
+    await new Promise((r) => setTimeout(r, 100));
+    state = (await (await fetch(`${base}/api/self-run`, auth)).json()) as typeof state;
+  }
+  return state;
+}

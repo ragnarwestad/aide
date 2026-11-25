@@ -142,15 +142,8 @@ push_with_retry() {
   # An SSH key GitHub does not take fails this question too, so git's own
   # words, not the failed answer, say why (lib/git-error.sh).
   if ! probe="$(git -C "$wt" ls-remote origin 2>&1 >/dev/null)"; then
-    # Origin itself did not answer — retry the push, not a rebase.
-    local wait_s
-    for wait_s in "${PUSH_RETRY_WAITS[@]}"; do
-      sleep "$wait_s"
-      try_push && return 0
-    done
-    push_retry_said="${err:-$probe}"
-    push_retry_error="cannot push $branch in $root, and origin did not answer: $(git_error_detail "$push_retry_said")"
-    return 1
+    push_while_origin_silent "$root" "$probe"
+    return
   fi
 
   # When the first push never reached origin, the now-reachable remote gets
@@ -163,6 +156,26 @@ push_with_retry() {
     return 1
   fi
 
+  push_after_rejection "$root" "$wt"
+}
+
+# Origin itself did not answer — retry the push, not a rebase. Reads
+# try_push, $err and $branch from push_with_retry, which calls it.
+push_while_origin_silent() {
+  local root="$1" probe="$2" wait_s
+  for wait_s in "${PUSH_RETRY_WAITS[@]}"; do
+    sleep "$wait_s"
+    try_push && return 0
+  done
+  push_retry_said="${err:-$probe}"
+  push_retry_error="cannot push $branch in $root, and origin did not answer: $(git_error_detail "$push_retry_said")"
+  return 1
+}
+
+# Origin answered and rejected the push. Reads try_push, $err and $branch
+# from push_with_retry, which calls it.
+push_after_rejection() {
+  local root="$1" wt="$2"
   # Origin answered and holds no copy of this branch, so nothing moved
   # under us: origin refused the push itself (no write access, a hook, a
   # protected name). Its own words say why; a rebase would only fail and
@@ -266,7 +279,7 @@ unmark_finished_work() {
 }
 
 commit_and_push_roots() {
-  local i=0 root wt changed head_now amend_source=() excludes=() line commit_said commit_subject add_said
+  local i=0 root wt amend_source=()
   # The stop mark follows the step's outcome as it stands now, not as it
   # stood when cleanup.sh first worked it out: a review, a verification or
   # a fix turn that ends the step later sets only its terminal reason. A
@@ -281,165 +294,190 @@ commit_and_push_roots() {
     # no worktree for it, and `git -C ""` acts on the current directory:
     # the checkout the runner was started from, whatever that holds.
     if [ -z "$wt" ]; then i=$(( i + 1 )); continue; fi
-    excludes=()
-    while IFS= read -r line; do
-      [ -n "$line" ] && excludes+=("$line")
-    done <<EXCLUDES_EOF
-$(link_excludes_for "$root")
-EXCLUDES_EOF
-    changed="$(git -C "$wt" status --porcelain -- . ${excludes[@]+"${excludes[@]}"} 2>/dev/null | wc -l | tr -d ' ')"
-    if [ "$changed" -gt 0 ]; then
-      changed_files_per_root[i]=$(( ${changed_files_per_root[i]:-0} + changed ))
-      if [ "$root" = "${specs_repo:-}" ]; then
-        if [ "$root" != "$project_root" ]; then
-          stage "committing spec files in $root"
-        else
-          case "$command_name" in
-            create|analyze|reopen|close) stage "committing spec files in $root" ;;
-            *) stage "committing project and spec files in $root" ;;
-          esac
-        fi
-      else
-        stage "committing project files in $root"
-      fi
-      add_said="$(git -C "$wt" add -A -- . ${excludes[@]+"${excludes[@]}"} 2>&1)" || true
-      commit_said=""
-      head_now="$(git -C "$wt" rev-parse HEAD 2>/dev/null || echo "")"
-      # Compared against ${head_after_per_root[$i]} — the tip as THIS
-      # root stood when THIS call began — never ${head_before[$i]}, the
-      # run's own absolute start. On a first call the two are
-      # identical (the run-wide accumulator seeds head_after_per_root
-      # from head_before before either call). On a second call they are
-      # not: head_before[$i] is now stale, still pointing at the tip
-      # BEFORE the first call's own commit, so comparing against it would
-      # read that first call's own ordinary commit as "the model must
-      # have self-committed under a written message" and route the
-      # second call's small write into a needless amend-plus-ls-remote
-      # check — network traffic (and a real behavior difference) a
-      # second pass has no reason to cause. Comparing against the
-      # PREVIOUS call's own leftover tip means $head_now (still that same
-      # tip — `add -A` never moves HEAD) equals it here on every call
-      # after the first, so this whole branch is only ever reached when
-      # something committed BETWEEN entering this function and this
-      # point — which for the very first call can only be the model's
-      # own self-commit, exactly as before.
-      if [ -n "$head_now" ] && [ "$head_now" != "${head_after_per_root[$i]:-}" ] \
-         && ! commit_already_on_origin "$root" "$head_now" \
-         && ! commit_is_public "$wt" "$head_now"; then
-        # The step already committed part of its own work under a written
-        # message — fold the leftover into THAT commit rather
-        # than opening a second one under the generic subject. Only when
-        # that commit is not already public: amending a commit
-        # origin already has is what once stranded a stamp on the
-        # machine that ran it.
-        amend_source[i]="$head_now"
-        if [ -n "$amend_note" ] && [ "$root" = "${specs_repo:-}" ]; then
-          # The step's own message can have a body, so gluing the note
-          # onto the raw %B would land it mid-paragraph: give it a line of
-          # its own and drop the leading space that only made sense
-          # inline. `--no-edit` is what is left when the note has nothing
-          # to say at all — that means neither a stop
-          # reason NOR a model, so it cannot be assumed from an empty
-          # $suffix alone.
-          existing_message="$(git -C "$wt" log -1 --pretty=%B)"
-          commit_said="$(git -C "$wt" commit -q --amend -m "$existing_message"$'\n\n'"${amend_note# }" 2>&1)" || true
-        else
-          commit_said="$(git -C "$wt" commit -q --amend --no-edit 2>&1)" || true
-        fi
-      else
-        if [ "$root" = "${specs_repo:-}" ]; then
-          if commit_subject="$(aide_step_subject "$command_name" "$commit_label" "$model_suffix$suffix" 2>"$work_dir/commit-subject.err")"; then
-            commit_said="$(git -C "$wt" commit -q -m "$commit_subject" 2>&1)" || true
-          else
-            commit_said="$(cat "$work_dir/commit-subject.err")"
-          fi
-        else
-          commit_said="$(git -C "$wt" commit -q -F - 2>&1 <<<"$(code_commit_message)")" || true
-        fi
-      fi
-    fi
-    # Work still uncommitted here is lost with the worktree when the run
-    # ends: the step does not finish, and git's own words say why.
-    if [ "$changed" -gt 0 ] \
-       && [ -n "$(git -C "$wt" status --porcelain -- . ${excludes[@]+"${excludes[@]}"} 2>/dev/null)" ]; then
-      commit_said="${commit_said:-$add_said}"
-      stop_step unpushed "the step's own work could not be committed in $root${commit_said:+ — ${commit_said%%$'\n'*}}" \
-        "fix the checkout on the serving host, then press $step_button again"
-      error_log="${commit_said:-}"
-      commit_error_log="$error_log"
-      stage_error "$error_msg"
-    fi
+    commit_root "$i" "$root" "$wt"
     unmark_finished_work "$i" "$root" "$wt"
     head_after_per_root[i]="$(git -C "$wt" rev-parse HEAD 2>/dev/null || echo "${head_after_per_root[$i]}")"
     i=$(( i + 1 ))
   done
 
   if [ "$push_mode" != "none" ]; then
-    i=0
-    for root in "${roots[@]}"; do
-      wt="${work_roots[$i]:-}"
-      head_was="${head_before[$i]:-}"
-      head_is="${head_after_per_root[$i]}"
-      amended_sha="${amend_source[$i]:-}"
-      idx=$i
-      # A branch with nothing beyond the root's own default branch has
-      # nothing to publish, whether this is its first run or its fifth:
-      # without this check, the widened gate below would try to push
-      # it too, since a brand new branch has no ref on origin yet to
-      # compare against and so never reads as "already confirmed" either.
-      # Asked as containment (`tip_has_nothing_of_its_own`), so the same
-      # sentence holds while another spec's landing moves that default
-      # branch — the confirmation in run-spec/checkout/worktree.sh asks it the
-      # same way, and the two disagreeing is what reported an untouched
-      # root as unpushed work.
-      i=$(( i + 1 ))
-      [ -n "$wt" ] || continue
-      tip_has_nothing_of_its_own "$root" "$head_is" && continue
-      # A root this run did not move ($head_was = $head_is) is
-      # STILL a candidate — but only when this run itself ended
-      # `completed`. Widening this to "any root with unconfirmed content"
-      # unconditionally would publish a branch's pre-existing content on
-      # a run that did nothing of its own and reported it: archive giving
-      # up on an unresolved conflict (`git merge --abort`, HEAD never
-      # moves) must leave the branch exactly where it found it, even
-      # though that branch — built up by earlier steps — already carries
-      # commits origin has never seen. `terminal_reason`, not `ok`: a
-      # root this run DID move is pushed regardless of terminal_reason,
-      # exactly as before (a stopped run still folds its work into its
-      # own commit, and that commit still belongs on origin).
-      if [ "$head_was" = "$head_is" ] && [ "$terminal_reason" != "completed" ]; then
-        continue
-      fi
-      # Gated on whether ORIGIN already has this tip, not on whether
-      # THIS call moved it — a commit a prior run's failed push left
-      # stranded here, with nothing new for this run's own session to
-      # commit, is retried on every later completed run until it lands,
-      # not only the run that made it. Still never a root `changedFiles`
-      # alone would have called dirty (dashboard/AGENTS.md): the checks
-      # above already exclude a root with nothing beyond its own default
-      # branch, and a root this run neither moved nor completed.
-      commit_already_on_origin "$root" "$head_is" && continue
-      if ! git -C "$root" remote get-url origin >/dev/null 2>&1; then
-        note_push_error "no origin remote in $root"
-        note_push_failure "$root" "no origin remote"
-        continue
-      fi
-      if push_with_retry "$root" "$wt" "$amended_sha"; then
-        record_branch_url "$root"
-      else
-        note_push_error "$push_retry_error"
-        note_push_failure "$root" "$push_retry_said"
-      fi
-      if [ -n "$push_retry_new_head" ]; then
-        # A rebase can move local HEAD whether or not the retried
-        # push that follows it succeeds — this array means "this call's
-        # true final local tip," not "the tip it managed to push," so it
-        # is folded in unconditionally rather than only on success.
-        # $repos_json is built once, at the very end, straight from this
-        # array (below), so nothing else needs to be told about the move.
-        head_after_per_root[idx]="$push_retry_new_head"
-      fi
-    done
+    push_roots
+  fi
+}
+
+# commit_root($i, $root, $wt) — commits what is dirty in one root, and
+# stops the step when work is still uncommitted after it. Writes the
+# caller's amend_source[$i] when it amends.
+commit_root() {
+  local i="$1" root="$2" wt="$3" changed line excludes=() commit_said="" add_said=""
+  while IFS= read -r line; do
+    [ -n "$line" ] && excludes+=("$line")
+  done <<EXCLUDES_EOF
+$(link_excludes_for "$root")
+EXCLUDES_EOF
+  changed="$(git -C "$wt" status --porcelain -- . ${excludes[@]+"${excludes[@]}"} 2>/dev/null | wc -l | tr -d ' ')"
+  [ "$changed" -gt 0 ] || return 0
+  changed_files_per_root[i]=$(( ${changed_files_per_root[i]:-0} + changed ))
+  commit_stage "$root"
+  add_said="$(git -C "$wt" add -A -- . ${excludes[@]+"${excludes[@]}"} 2>&1)" || true
+  commit_root_changes "$i" "$root" "$wt"
+  # Work still uncommitted here is lost with the worktree when the run
+  # ends: the step does not finish, and git's own words say why.
+  if [ -n "$(git -C "$wt" status --porcelain -- . ${excludes[@]+"${excludes[@]}"} 2>/dev/null)" ]; then
+    commit_said="${commit_said:-$add_said}"
+    stop_step unpushed "the step's own work could not be committed in $root${commit_said:+ — ${commit_said%%$'\n'*}}" \
+      "fix the checkout on the serving host, then press $step_button again"
+    error_log="${commit_said:-}"
+    commit_error_log="$error_log"
+    stage_error "$error_msg"
+  fi
+}
+
+# The stage line for committing in $1.
+commit_stage() {
+  local root="$1"
+  if [ "$root" != "${specs_repo:-}" ]; then
+    stage "committing project files in $root"
+  elif [ "$root" != "$project_root" ]; then
+    stage "committing spec files in $root"
+  else
+    case "$command_name" in
+      create|analyze|reopen|close) stage "committing spec files in $root" ;;
+      *) stage "committing project and spec files in $root" ;;
+    esac
+  fi
+}
+
+# commit_root_changes($i, $root, $wt) — commits the staged changes. Sets
+# commit_said and amend_source[$i] in commit_root, which calls it.
+commit_root_changes() {
+  local i="$1" root="$2" wt="$3" head_now commit_subject existing_message
+  head_now="$(git -C "$wt" rev-parse HEAD 2>/dev/null || echo "")"
+  # Compared against ${head_after_per_root[$i]} — the tip as THIS
+  # root stood when THIS call began — never ${head_before[$i]}, the
+  # run's own absolute start. On a first call the two are
+  # identical (the run-wide accumulator seeds head_after_per_root
+  # from head_before before either call). On a second call they are
+  # not: head_before[$i] is now stale, still pointing at the tip
+  # BEFORE the first call's own commit, so comparing against it would
+  # read that first call's own ordinary commit as "the model must
+  # have self-committed under a written message" and route the
+  # second call's small write into a needless amend-plus-ls-remote
+  # check — network traffic (and a real behavior difference) a
+  # second pass has no reason to cause. Comparing against the
+  # PREVIOUS call's own leftover tip means $head_now (still that same
+  # tip — `add -A` never moves HEAD) equals it here on every call
+  # after the first, so this whole branch is only ever reached when
+  # something committed BETWEEN entering this function and this
+  # point — which for the very first call can only be the model's
+  # own self-commit, exactly as before.
+  if [ -n "$head_now" ] && [ "$head_now" != "${head_after_per_root[$i]:-}" ] \
+     && ! commit_already_on_origin "$root" "$head_now" \
+     && ! commit_is_public "$wt" "$head_now"; then
+    # The step already committed part of its own work under a written
+    # message — fold the leftover into THAT commit rather
+    # than opening a second one under the generic subject. Only when
+    # that commit is not already public: amending a commit
+    # origin already has is what once stranded a stamp on the
+    # machine that ran it.
+    amend_source[i]="$head_now"
+    if [ -n "$amend_note" ] && [ "$root" = "${specs_repo:-}" ]; then
+      # The step's own message can have a body, so gluing the note
+      # onto the raw %B would land it mid-paragraph: give it a line of
+      # its own and drop the leading space that only made sense
+      # inline. `--no-edit` is what is left when the note has nothing
+      # to say at all — that means neither a stop
+      # reason NOR a model, so it cannot be assumed from an empty
+      # $suffix alone.
+      existing_message="$(git -C "$wt" log -1 --pretty=%B)"
+      commit_said="$(git -C "$wt" commit -q --amend -m "$existing_message"$'\n\n'"${amend_note# }" 2>&1)" || true
+    else
+      commit_said="$(git -C "$wt" commit -q --amend --no-edit 2>&1)" || true
+    fi
+    return 0
+  fi
+  if [ "$root" != "${specs_repo:-}" ]; then
+    commit_said="$(git -C "$wt" commit -q -F - 2>&1 <<<"$(code_commit_message)")" || true
+  elif commit_subject="$(aide_step_subject "$command_name" "$commit_label" "$model_suffix$suffix" 2>"$work_dir/commit-subject.err")"; then
+    commit_said="$(git -C "$wt" commit -q -m "$commit_subject" 2>&1)" || true
+  else
+    commit_said="$(cat "$work_dir/commit-subject.err")"
+  fi
+}
+
+# push_roots — pushes every root whose local tip origin does not have yet.
+# Reads amend_source from commit_and_push_roots, which calls it.
+push_roots() {
+  local i=0 root wt head_was head_is amended_sha
+  for root in "${roots[@]}"; do
+    wt="${work_roots[$i]:-}"
+    head_was="${head_before[$i]:-}"
+    head_is="${head_after_per_root[$i]}"
+    amended_sha="${amend_source[$i]:-}"
+    idx=$i
+    # A branch with nothing beyond the root's own default branch has
+    # nothing to publish, whether this is its first run or its fifth:
+    # without this check, the widened gate below would try to push
+    # it too, since a brand new branch has no ref on origin yet to
+    # compare against and so never reads as "already confirmed" either.
+    # Asked as containment (`tip_has_nothing_of_its_own`), so the same
+    # sentence holds while another spec's landing moves that default
+    # branch — the confirmation in run-spec/checkout/worktree.sh asks it the
+    # same way, and the two disagreeing is what reported an untouched
+    # root as unpushed work.
+    i=$(( i + 1 ))
+    [ -n "$wt" ] || continue
+    tip_has_nothing_of_its_own "$root" "$head_is" && continue
+    # A root this run did not move ($head_was = $head_is) is
+    # STILL a candidate — but only when this run itself ended
+    # `completed`. Widening this to "any root with unconfirmed content"
+    # unconditionally would publish a branch's pre-existing content on
+    # a run that did nothing of its own and reported it: archive giving
+    # up on an unresolved conflict (`git merge --abort`, HEAD never
+    # moves) must leave the branch exactly where it found it, even
+    # though that branch — built up by earlier steps — already carries
+    # commits origin has never seen. `terminal_reason`, not `ok`: a
+    # root this run DID move is pushed regardless of terminal_reason,
+    # exactly as before (a stopped run still folds its work into its
+    # own commit, and that commit still belongs on origin).
+    if [ "$head_was" = "$head_is" ] && [ "$terminal_reason" != "completed" ]; then
+      continue
+    fi
+    # Gated on whether ORIGIN already has this tip, not on whether
+    # THIS call moved it — a commit a prior run's failed push left
+    # stranded here, with nothing new for this run's own session to
+    # commit, is retried on every later completed run until it lands,
+    # not only the run that made it. Still never a root `changedFiles`
+    # alone would have called dirty (dashboard/AGENTS.md): the checks
+    # above already exclude a root with nothing beyond its own default
+    # branch, and a root this run neither moved nor completed.
+    commit_already_on_origin "$root" "$head_is" && continue
+    push_root "$root" "$wt" "$amended_sha"
+  done
+}
+
+# push_root($root, $wt, $amended_sha) — one root's push, its failure noted.
+push_root() {
+  local root="$1" wt="$2" amended_sha="$3"
+  if ! git -C "$root" remote get-url origin >/dev/null 2>&1; then
+    note_push_error "no origin remote in $root"
+    note_push_failure "$root" "no origin remote"
+    return 0
+  fi
+  if push_with_retry "$root" "$wt" "$amended_sha"; then
+    record_branch_url "$root"
+  else
+    note_push_error "$push_retry_error"
+    note_push_failure "$root" "$push_retry_said"
+  fi
+  if [ -n "$push_retry_new_head" ]; then
+      # A rebase can move local HEAD whether or not the retried
+      # push that follows it succeeds — this array means "this call's
+      # true final local tip," not "the tip it managed to push," so it
+      # is folded in unconditionally rather than only on success.
+      # $repos_json is built once, at the very end, straight from this
+      # array (below), so nothing else needs to be told about the move.
+    head_after_per_root[idx]="$push_retry_new_head"
   fi
 }
 

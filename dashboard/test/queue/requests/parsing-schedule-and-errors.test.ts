@@ -122,7 +122,10 @@ test("request refusals never recover a solution from a sentence suffix (AC-2)", 
   const files = [
     "format/request-fixes.ts",
     "serve/routes/queue-admin.ts",
+    "serve/routes/project-admin/index.ts",
+    "serve/routes/settings-save/defaults-route.ts",
     "serve/routes/job-actions.ts",
+    "serve/routes/spec-edit/group-action.ts",
     "serve/routes/schedule-admin-routes.ts",
   ];
   const source = files.map((file) => readFileSync(join(root, file), "utf-8")).join("\n");

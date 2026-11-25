@@ -16,7 +16,7 @@
 // changed without re-checking every regex for overlap.
 import type { GitRunner } from "../../git/process/index.ts";
 import type { BranchStatusChecker } from "../../git/branch-status.ts";
-import type { DashboardCheckout } from "../../git/dashboard-checkout.ts";
+import type { DashboardCheckout } from "../../git/dashboard-checkout/index.ts";
 import type { SpecRef } from "../../project/discover";
 import type {
   Job, QueueStore,
@@ -119,7 +119,7 @@ export interface RoutesContext {
   runner: Runner | null;
   tickRunner: () => Promise<void>;
   /** The port this server actually listens on, read lazily
-   *  the same way `runner-setup.ts`'s `readServerPort` is: `Bun.serve()`
+   *  the same way `runner-setup/context.ts`'s `readServerPort` is: `Bun.serve()`
    *  has not returned yet when this context is first assembled, so a
    *  captured value would be `undefined` for the request that fires
    *  before it does. Names the port-scoped sort/state cookies. */

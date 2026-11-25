@@ -5,7 +5,7 @@
 import { existsSync, mkdirSync, symlinkSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import type { GitRunner } from "../../git/process/index.ts";
-import { dashboardCheckoutRoot, dashboardProjectsRoot, dashboardSettingsFile } from "../../git/dashboard-checkout.ts";
+import { dashboardCheckoutRoot, dashboardProjectsRoot, dashboardSettingsFile } from "../../git/dashboard-checkout/index.ts";
 import { isPreviewFrom } from "../parse-manifest.ts";
 import {
   minimalManifest,
@@ -71,22 +71,8 @@ function cloneDestination(projectsRoot: string, name: string, checkoutBase?: str
   return join(projectsRoot, name);
 }
 
-/** Clone or register a project under `projectsRoot`, give it a manifest
- *  if it has none, and point it at its specs root if one was named.
- *
- *  `run` is injected for the same reason every other git call in this
- *  codebase injects it: a test spawns no subprocess, and a failure is a
- *  value rather than an exception to be guessed at. The clone runs with
- *  `cwd` set to the projects root and the name as the destination
- *  argument — the destination does not exist yet, which is what makes
- *  this the one git call here that cannot run inside its own directory,
- *  and what keeps the destination from resolving outside the root. */
-export async function addProject(
-  run: GitRunner,
-  projectsRoot: string,
-  req: AddProjectRequest,
-  checkoutBase?: string,
-): Promise<ProjectAdminResult> {
+/** The request's name, address and choices, or why it is refused before anything is cloned. */
+function checkAddRequest(req: AddProjectRequest): { name: string; gitUrl: string; landing: string; previewFrom: string } | ProjectAdminResult {
   const gitUrl = req.gitUrl?.trim();
   const name = req.name?.trim() ?? "";
   const nameError = projectNameError(name);
@@ -119,68 +105,63 @@ export async function addProject(
   const previewFrom = (req.previewFrom ?? "").trim() || "none";
   if (!isPreviewFrom(previewFrom)) return fail("previewFrom", previewFromError(previewFrom));
 
-  const steps: ProjectStep[] = [{ step: "name", ok: true }];
+  return { name, gitUrl, landing, previewFrom };
+}
+
+/** The project cloned to its place, and linked from the projects root
+ *  when the clone is the dashboard's own checkout; the error, else. */
+async function cloneProject(
+  run: GitRunner, projectsRoot: string, name: string, gitUrl: string, checkoutBase: string | undefined,
+): Promise<string | undefined> {
   const dir = join(projectsRoot, name);
-  const done = (): ProjectAdminResult => ({ ok: steps.every((s) => s.ok), steps });
-  const stop = (step: ProjectStepName, error: string): ProjectAdminResult => {
-    steps.push({ step, ok: false, error });
-    return done();
-  };
-
-  {
-    // Before the clone, never after: git would refuse a non-empty
-    // destination anyway, but not in words anybody wants to read, and
-    // an empty one it would happily fill.
-    if (existsSync(dir)) {
-      return stop("clone", `"${name}" is already a directory under the projects root`);
-    }
-    const dest = cloneDestination(projectsRoot, name, checkoutBase);
-    // A checkout the dashboard already made (install-serve clones its
-    // own) is linked, not cloned a second time.
-    const alreadyCloned = dest !== dir && existsSync(join(dest, ".git"));
-    if (!alreadyCloned) mkdirSync(dirname(dest), { recursive: true });
-    // `-c credential.helper=` on THIS call only, never on the runner:
-    // the same runner polls, pulls and merges every already-added
-    // project, and one holding an HTTPS token needs its helper for all
-    // of those. Here there is nobody to ask, so git must fail instead.
-    const cloned = alreadyCloned
-      ? { code: 0, stdout: "" }
-      : await run(dirname(dest), ["-c", "credential.helper=", "clone", gitUrl, basename(dest)]);
-    if (cloned.code !== 0) {
-      const said = (cloned.stderr ?? "").trim() || (cloned.stdout ?? "").trim();
-      if (needsAuthentication(said)) {
-        const ssh = sshEquivalent(gitUrl);
-        return stop(
-          "clone",
-          "the repository needs credentials this machine cannot supply without being asked — " +
-            "use its SSH address instead, which a key answers with nobody there" +
-            (ssh ? `: ${ssh}` : ""),
-        );
-      }
-      return stop("clone", `the clone failed (exit ${cloned.code})${said ? `: ${said.slice(-200)}` : ""}`);
-    }
-    if (dest !== dir) {
-      try {
-        symlinkSync(dest, dir);
-      } catch (err) {
-        return stop("clone", `could not link ${dir} to ${dest}: ${err instanceof Error ? err.message : String(err)}`);
-      }
-    }
-    steps.push({ step: "clone", ok: true });
+  // Before the clone, never after: git would refuse a non-empty
+  // destination anyway, but not in words anybody wants to read, and
+  // an empty one it would happily fill.
+  if (existsSync(dir)) {
+    return `"${name}" is already a directory under the projects root`;
   }
+  const dest = cloneDestination(projectsRoot, name, checkoutBase);
+  // A checkout the dashboard already made (install-serve clones its
+  // own) is linked, not cloned a second time.
+  const alreadyCloned = dest !== dir && existsSync(join(dest, ".git"));
+  if (!alreadyCloned) mkdirSync(dirname(dest), { recursive: true });
+  // `-c credential.helper=` on THIS call only, never on the runner:
+  // the same runner polls, pulls and merges every already-added
+  // project, and one holding an HTTPS token needs its helper for all
+  // of those. Here there is nobody to ask, so git must fail instead.
+  const cloned = alreadyCloned
+    ? { code: 0, stdout: "" }
+    : await run(dirname(dest), ["-c", "credential.helper=", "clone", gitUrl, basename(dest)]);
+  if (cloned.code !== 0) {
+    const said = (cloned.stderr ?? "").trim() || (cloned.stdout ?? "").trim();
+    if (needsAuthentication(said)) {
+      const ssh = sshEquivalent(gitUrl);
+      return (
+        "the repository needs credentials this machine cannot supply without being asked — " +
+          "use its SSH address instead, which a key answers with nobody there" +
+          (ssh ? `: ${ssh}` : "")
+      );
+    }
+    return `the clone failed (exit ${cloned.code})${said ? `: ${said.slice(-200)}` : ""}`;
+  }
+  if (dest !== dir) {
+    try {
+      symlinkSync(dest, dir);
+    } catch (err) {
+      return `could not link ${dir} to ${dest}: ${err instanceof Error ? err.message : String(err)}`;
+    }
+  }
+  return undefined;
+}
 
-  // A project keeps nothing of Aide's in its repository. What Add would
-  // have written into the checkout goes to the dashboard's own settings
-  // file instead, and a manifest the checkout already has — tracked or
-  // not — is never written to: an untracked one only seeds the settings
-  // file, so what somebody drafted by hand is not lost.
-  const own = join(dir, ".aide", "project.yaml");
-  const settingsFile = checkoutBase ? dashboardSettingsFile(checkoutBase, name) : null;
-  // Only a yes counts as tracked. A git that cannot say (the directory is
-  // no repository, which the readiness check reports by name) leaves the
-  // settings file as the place to write: nothing here touches the
-  // project's own files either way.
-  const tracked = (await manifestTracked(run, dir)).tracked === true;
+// A project keeps nothing of Aide's in its repository. What Add would
+// have written into the checkout goes to the dashboard's own settings
+// file instead, and a manifest the checkout already has — tracked or
+// not — is never written to: an untracked one only seeds the settings
+// file, so what somebody drafted by hand is not lost.
+function settleManifest(
+  steps: ProjectStep[], tracked: boolean, settingsFile: string | null, own: string, name: string, req: AddProjectRequest,
+): string | undefined {
   try {
     if (tracked) {
       steps.push({
@@ -202,18 +183,13 @@ export async function addProject(
       });
     }
   } catch (err) {
-    return stop("manifest", `could not write ${settingsFile}: ${err instanceof Error ? err.message : String(err)}`);
+    return `could not write ${settingsFile}: ${err instanceof Error ? err.message : String(err)}`;
   }
+  return undefined;
+}
 
-  // Both keys go into the one file, and an unusable links value is
-  // refused BEFORE it is written: a config the runner will refuse to
-  // read is worse than no config, and the reader is standing at the
-  // form that produced it.
-  const links = req.worktreeLinks?.trim();
-  if (links) {
-    const linkError = worktreeLinksError(links);
-    if (linkError) return stop("worktreeLinks", linkError);
-  }
+/** The specs root made where it is missing, and named in `.aide/config`; the error, else. */
+function writeSpecsRoot(steps: ProjectStep[], dir: string, req: AddProjectRequest): string | undefined {
   /** What became of the specs root, when there was something to say
    *  about it: made here, or not makeable. */
   let specsNote: string | undefined;
@@ -244,18 +220,14 @@ export async function addProject(
       writeAideConfig(dir, { AIDE_SPECS_PATH: req.specsPath });
       steps.push({ step: "specsConfig", ok: true, ...(specsNote ? { note: specsNote } : {}) });
     } catch (err) {
-      return stop("specsConfig", `could not write .aide/config: ${err instanceof Error ? err.message : String(err)}`);
+      return `could not write .aide/config: ${err instanceof Error ? err.message : String(err)}`;
     }
   }
-  const settingsEdits = !tracked && settingsFile;
-  if (links && settingsEdits) {
-    try {
-      applySettingsEdits(settingsFile, [{ key: "worktreeLinks", value: links }], [own]);
-      steps.push({ step: "worktreeLinks", ok: true });
-    } catch (err) {
-      return stop("worktreeLinks", `could not write ${settingsFile}: ${err instanceof Error ? err.message : String(err)}`);
-    }
-  }
+  return undefined;
+}
+
+/** A pull-request landing, written to the settings the dashboard keeps; the error, else. */
+function writeLanding(steps: ProjectStep[], landing: string, settingsEdits: string | false | null, own: string): string | undefined {
   // Only `pr` is written: `merge` is what an absent key already means,
   // and the same `wanted` rule the project page's own save follows
   // (`update-settings.ts`). Refused before it is written, for the
@@ -263,17 +235,82 @@ export async function addProject(
   // worse than one never written.
   if (landing !== "merge") {
     if (landing !== "pr") {
-      return stop("codeLanding", `code landing must be merge or pr — not "${landing}"`);
+      return `code landing must be merge or pr — not "${landing}"`;
     }
     if (settingsEdits) {
       try {
-        applySettingsEdits(settingsFile, [{ key: "codeLanding", value: landing }], [own]);
+        applySettingsEdits(settingsEdits, [{ key: "codeLanding", value: landing }], [own]);
         steps.push({ step: "codeLanding", ok: true });
       } catch (err) {
-        return stop("codeLanding", `could not write ${settingsFile}: ${err instanceof Error ? err.message : String(err)}`);
+        return `could not write ${settingsEdits}: ${err instanceof Error ? err.message : String(err)}`;
       }
     }
   }
+  return undefined;
+}
+
+/** Clone or register a project under `projectsRoot`, give it a manifest
+ *  if it has none, and point it at its specs root if one was named.
+ *
+ *  `run` is injected for the same reason every other git call in this
+ *  codebase injects it: a test spawns no subprocess, and a failure is a
+ *  value rather than an exception to be guessed at. The clone runs with
+ *  `cwd` set to the projects root and the name as the destination
+ *  argument — the destination does not exist yet, which is what makes
+ *  this the one git call here that cannot run inside its own directory,
+ *  and what keeps the destination from resolving outside the root. */
+export async function addProject(
+  run: GitRunner,
+  projectsRoot: string,
+  req: AddProjectRequest,
+  checkoutBase?: string,
+): Promise<ProjectAdminResult> {
+  const checked = checkAddRequest(req);
+  if ("ok" in checked) return checked;
+  const { name, gitUrl, landing } = checked;
+  const steps: ProjectStep[] = [{ step: "name", ok: true }];
+  const dir = join(projectsRoot, name);
+  const done = (): ProjectAdminResult => ({ ok: steps.every((s) => s.ok), steps });
+  const stop = (step: ProjectStepName, error: string): ProjectAdminResult => {
+    steps.push({ step, ok: false, error });
+    return done();
+  };
+
+  const cloneError = await cloneProject(run, projectsRoot, name, gitUrl, checkoutBase);
+  if (cloneError) return stop("clone", cloneError);
+  steps.push({ step: "clone", ok: true });
+  const own = join(dir, ".aide", "project.yaml");
+  const settingsFile = checkoutBase ? dashboardSettingsFile(checkoutBase, name) : null;
+  // Only a yes counts as tracked. A git that cannot say (the directory is
+  // no repository, which the readiness check reports by name) leaves the
+  // settings file as the place to write: nothing here touches the
+  // project's own files either way.
+  const tracked = (await manifestTracked(run, dir)).tracked === true;
+  const manifestError = settleManifest(steps, tracked, settingsFile, own, name, req);
+  if (manifestError) return stop("manifest", manifestError);
+
+  // Both keys go into the one file, and an unusable links value is
+  // refused BEFORE it is written: a config the runner will refuse to
+  // read is worse than no config, and the reader is standing at the
+  // form that produced it.
+  const links = req.worktreeLinks?.trim();
+  if (links) {
+    const linkError = worktreeLinksError(links);
+    if (linkError) return stop("worktreeLinks", linkError);
+  }
+  const specsError = writeSpecsRoot(steps, dir, req);
+  if (specsError) return stop("specsConfig", specsError);
+  const settingsEdits = !tracked && settingsFile;
+  if (links && settingsEdits) {
+    try {
+      applySettingsEdits(settingsEdits, [{ key: "worktreeLinks", value: links }], [own]);
+    } catch (err) {
+      return stop("worktreeLinks", `could not write ${settingsEdits}: ${err instanceof Error ? err.message : String(err)}`);
+    }
+    steps.push({ step: "worktreeLinks", ok: true });
+  }
+  const landingError = writeLanding(steps, landing, settingsEdits, own);
+  if (landingError) return stop("codeLanding", landingError);
 
   // Last, and only once every file this add writes is on disk: the
   // `.aide/config` written a moment ago names the specs root the

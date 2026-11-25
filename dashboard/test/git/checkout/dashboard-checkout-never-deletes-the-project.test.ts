@@ -22,7 +22,7 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { dashboardCheckoutRoot, ensureDashboardCheckout } from "../../../src/git/dashboard-checkout.ts";
+import { dashboardCheckoutRoot, ensureDashboardCheckout } from "../../../src/git/dashboard-checkout/index.ts";
 import { createGitRunner, type GitRunner } from "../../../src/git/process/index.ts";
 import { configValue } from "../../../src/project/discover";
 import { checkoutTemps, git, repoWithClone } from "./checkout-fixtures.ts";

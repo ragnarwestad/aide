@@ -280,7 +280,7 @@ and the CODE root of an `archive` merge is not merged.
 - **The CODE root only, and `archive` only.** The specs root keeps auto-merging. A specs root INSIDE the project is the
   same repository and branch, so a single-repo project leaves its one branch open and that IS the pull request.
 - **`errorReason` has no member for it.** A branch left open on purpose is a success. A row whose branch is open on
-  purpose (`prOpen`, from `peekUnlanded` in `src/serve/spec-lookup.ts`) says a pull request is waiting for review,
+  purpose (`prOpen`, from `peekUnlanded` in `src/serve/spec-lookup/index.ts`) says a pull request is waiting for review,
   until it merges and the row offers Delete branch. The row stays on the list and `archive` stays queueable for it.
   `codeLanding` is never a reason to refuse a run.
 Merge applies the same merge lock and test gate to a named branch already on origin. An unresolved conflict or red

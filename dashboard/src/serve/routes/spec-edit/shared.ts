@@ -2,7 +2,7 @@
 import { dirname, join } from "node:path";
 import { STATE_FILE } from "../../../project/spec-names.ts";
 import { writeStatusToBranch, type OpenBranchTarget } from "../../../git/branch-file.ts";
-import { saveSpecFiles } from "../../../git/specs-pull.ts";
+import { saveSpecFiles } from "../../../git/specs-pull/index.ts";
 import { editMessage } from "../../serve-helpers";
 import type { RoutesContext } from "..";
 import { afterTick } from "./checks.ts";

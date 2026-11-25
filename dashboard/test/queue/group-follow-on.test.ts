@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { QueueStore, type Job } from "../../src/queue/queue.ts";
-import { stepDoneHandler } from "../../src/serve/runner-setup.ts";
+import { stepDoneHandler } from "../../src/serve/runner-setup/index.ts";
 
 let root: string;
 let store: QueueStore;

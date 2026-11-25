@@ -1,4 +1,4 @@
-import { dashboardSettingsFile } from "../../../src/git/dashboard-checkout.ts";
+import { dashboardSettingsFile } from "../../../src/git/dashboard-checkout/index.ts";
 import { describe, expect, test } from "bun:test";
 import { existsSync, lstatSync, mkdirSync, readFileSync, readlinkSync } from "node:fs";
 import { join } from "node:path";

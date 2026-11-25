@@ -32,12 +32,7 @@ function pairRefusal(ctx: RoutesContext, provider: string | undefined, model: st
   return refused ? refusal({ error: refused.error, solution: refused.solution }) : null;
 }
 
-export async function handleScheduleAdminRoutes(
-  ctx: RoutesContext,
-  req: Request,
-  url: URL,
-  path: string,
-): Promise<Response | null> {
+async function scheduleRoute(_ctx: RoutesContext, req: Request, url: URL, path: string): Promise<Response | null> {
   // Checked by exact path, and before the create route below: both are
   // one segment under `/api/queue/schedule/`, and only the method
   // differs — an exact match here never falls through to be read as a
@@ -49,6 +44,10 @@ export async function handleScheduleAdminRoutes(
     if (!next) return json({ error: `"${cron}" is not a valid cron expression` }, 400);
     return json({ next: next.toISOString() });
   }
+  return null;
+}
+
+async function scheduleEnabledRoute(ctx: RoutesContext, req: Request, _url: URL, path: string): Promise<Response | null> {
 
   const enabledPost = path.match(/^\/api\/queue\/schedule\/([^/]+)\/([^/]+)\/enabled$/);
   if (enabledPost) {
@@ -67,6 +66,10 @@ export async function handleScheduleAdminRoutes(
     if (!result.ok) return refusal({ error: result.error });
     return json({ ok: true, enabled });
   }
+  return null;
+}
+
+async function scheduleRunRoute(ctx: RoutesContext, req: Request, _url: URL, path: string): Promise<Response | null> {
 
   const runPost = path.match(/^\/api\/queue\/schedule\/([^/]+)\/([^/]+)\/run$/);
   if (runPost) {
@@ -106,6 +109,10 @@ export async function handleScheduleAdminRoutes(
     await ctx.tickRunner();
     return json({ ok: true, job: result.job });
   }
+  return null;
+}
+
+async function scheduleDeleteRoute(ctx: RoutesContext, req: Request, _url: URL, path: string): Promise<Response | null> {
 
   const deletePost = path.match(/^\/api\/queue\/schedule\/([^/]+)\/([^/]+)\/delete$/);
   if (deletePost) {
@@ -121,6 +128,10 @@ export async function handleScheduleAdminRoutes(
     if (!result.ok) return refusal({ error: result.error });
     return json({ ok: true });
   }
+  return null;
+}
+
+async function scheduleRoute2(ctx: RoutesContext, req: Request, _url: URL, path: string): Promise<Response | null> {
 
   const editPost = path.match(/^\/api\/queue\/schedule\/([^/]+)\/([^/]+)$/);
   if (editPost) {
@@ -147,6 +158,10 @@ export async function handleScheduleAdminRoutes(
     const back = scheduleBackPath(body.back, projectScheduleTab(project));
     return json({ ok: true, location: renamedBack(back, project, name, savedName) });
   }
+  return null;
+}
+
+async function scheduleRoute3(ctx: RoutesContext, req: Request, _url: URL, path: string): Promise<Response | null> {
 
   // Project-agnostic, like `/api/queue/create`: no
   // per-resource segment left to key on, so the route validates the
@@ -168,6 +183,22 @@ export async function handleScheduleAdminRoutes(
     if (!result.ok) return refusal({ error: result.error });
     return json({ ok: true, location: scheduleBackPath(body.back, projectScheduleTab(project)) });
   }
-
   return null;
+}
+
+export async function handleScheduleAdminRoutes(
+  ctx: RoutesContext,
+  req: Request,
+  url: URL,
+  path: string,
+): Promise<Response | null> {
+  return (
+    (await scheduleRoute(ctx, req, url, path)) ??
+    (await scheduleEnabledRoute(ctx, req, url, path)) ??
+    (await scheduleRunRoute(ctx, req, url, path)) ??
+    (await scheduleDeleteRoute(ctx, req, url, path)) ??
+    (await scheduleRoute2(ctx, req, url, path)) ??
+    (await scheduleRoute3(ctx, req, url, path)) ??
+    null
+  );
 }

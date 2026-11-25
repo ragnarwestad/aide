@@ -59,6 +59,32 @@ const keyBytes = (key: string): Uint8Array => {
   return Uint8Array.from(raw, (c) => c.charCodeAt(0));
 };
 
+/** Asks for the permission, subscribes, and tells the server. */
+async function turnPushOn(deps: PushDeps): Promise<PushView> {
+  if (!deps.supported) return VIEWS.unsupported!;
+  if (deps.permission() === "denied") return VIEWS.blocked!;
+  let made: SubscriptionLike | undefined;
+  try {
+    if (deps.permission() !== "granted") {
+      const answer = await deps.requestPermission();
+      if (answer === "denied") return VIEWS.blocked!;
+      if (answer !== "granted") return VIEWS.off!;
+    }
+    const manager = (await deps.registration()).pushManager;
+    const old = await manager.getSubscription();
+    if (old) await old.unsubscribe();
+    made = await manager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(deps.publicKey) });
+    const res = await deps.post("/api/push/subscribe", { ...made.toJSON(), lang: deps.lang });
+    if (res.ok) return VIEWS.on!;
+  } catch {
+    // falls through to the cleanup below
+  }
+  // The server did not take it: a browser subscription nobody sends
+  // to would read as On the next time this tab is opened.
+  if (made) await made.unsubscribe().catch(() => {});
+  return VIEWS.failed!;
+}
+
 export function pushControl(deps: PushDeps) {
   const subscription = async () => (await deps.registration()).pushManager.getSubscription();
 
@@ -86,30 +112,7 @@ export function pushControl(deps: PushDeps) {
       }
     },
 
-    async turnOn(): Promise<PushView> {
-      if (!deps.supported) return VIEWS.unsupported!;
-      if (deps.permission() === "denied") return VIEWS.blocked!;
-      let made: SubscriptionLike | undefined;
-      try {
-        if (deps.permission() !== "granted") {
-          const answer = await deps.requestPermission();
-          if (answer === "denied") return VIEWS.blocked!;
-          if (answer !== "granted") return VIEWS.off!;
-        }
-        const manager = (await deps.registration()).pushManager;
-        const old = await manager.getSubscription();
-        if (old) await old.unsubscribe();
-        made = await manager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(deps.publicKey) });
-        const res = await deps.post("/api/push/subscribe", { ...made.toJSON(), lang: deps.lang });
-        if (res.ok) return VIEWS.on!;
-      } catch {
-        // falls through to the cleanup below
-      }
-      // The server did not take it: a browser subscription nobody sends
-      // to would read as On the next time this tab is opened.
-      if (made) await made.unsubscribe().catch(() => {});
-      return VIEWS.failed!;
-    },
+    turnOn: (): Promise<PushView> => turnPushOn(deps),
 
     async turnOff(): Promise<PushView> {
       try {

@@ -91,42 +91,7 @@ export function jobsEntries(v: JobsView, draws: Draws = () => true): { key: stri
     facts: s.key.includes("@") ? { ...s.group, pastRound: true } : s.group,
   }));
   const openFor = jobsStateOpensGroups(v.list.filter?.state);
-  const groups = activeGroups.map((group) => {
-    const members = specRows.filter((row) => group.project === row.group.project && group.members.includes(row.group.specFolder));
-    const failed = members.find((row) => ["failed", "cancelled", "archived-unlanded"].includes(row.group.state));
-    const key = `execution-group:${group.id}`;
-    const place = executionGroupPlace(group, members);
-    const createdAt = place.changedAt > 0 && place.changedAt < Number.MAX_SAFE_INTEGER ? new Date(place.changedAt).toISOString() : group.createdAt;
-    // Each member's current row, by its key: an earlier round of a reopened
-    // member is a row of its own, and is counted there.
-    const current: RowFacts[] = group.members
-      .map((folder) => {
-        const row = specRows.find((candidate) => candidate.key === groupKey(group.project, folder))?.group;
-        return row && group.queuedMembers?.includes(folder) ? { ...row, inQueue: true } : row;
-      })
-      .filter((member): member is SpecGroup => !!member);
-    const facts = {
-      project: group.project, specFolder: group.name,
-      state: executionGroupRowState(executionGroupAsShown(group, members), !!failed),
-      title: group.displayName ?? group.name, createdAt, itemCount: group.members.length,
-      members: current,
-    } as RowFacts;
-    const searchOpenFor = jobsSearchMatch(facts, v.list.filter ?? {}).member ? "search" : undefined;
-    return {
-      key,
-      html: draws(key)
-        ? executionGroupCard({ ...group, createdAt }, specRows, lang, {
-          openFor: openFor ?? searchOpenFor,
-          candidates: eligibleGroupMembers({ project: group.project, targets: v.list.targets, groups: activeGroups, jobs: groupJobs(v) }),
-          locked: lockedGroupMembers({ group, targets: v.list.targets, jobs: groupJobs(v) }),
-          jobs: v.specJobs,
-          list: v.list,
-        })
-        : "",
-      place,
-      facts,
-    };
-  });
+  const groups = activeGroups.map((group) => groupEntry(v, group, { specRows, activeGroups, openFor, draws, lang }));
   const rowKeys = v.rowKeys ?? jobRowKeys(v.shown);
   const jobs = v.shown.map((job) => {
     const key = rowKeys.get(job.id)!;
@@ -141,6 +106,49 @@ export function jobsEntries(v: JobsView, draws: Draws = () => true): { key: stri
     };
   });
   return [...specs, ...groups, ...jobs].sort((a, b) => byTabPlace(a.place, b.place));
+}
+
+/** An execution group's entry: its card, its place and the facts its filter reads. */
+function groupEntry(
+  v: JobsView, group: (ReturnType<typeof activeExecutionGroups>)[number],
+  o: { specRows: SpecRow[]; activeGroups: ReturnType<typeof activeExecutionGroups>; openFor: string | undefined; draws: Draws; lang: Language },
+) {
+  const { specRows, activeGroups, openFor, draws, lang } = o;
+  const members = specRows.filter((row) => group.project === row.group.project && group.members.includes(row.group.specFolder));
+  const failed = members.find((row) => ["failed", "cancelled", "archived-unlanded"].includes(row.group.state));
+  const key = `execution-group:${group.id}`;
+  const place = executionGroupPlace(group, members);
+  const createdAt = place.changedAt > 0 && place.changedAt < Number.MAX_SAFE_INTEGER ? new Date(place.changedAt).toISOString() : group.createdAt;
+  // Each member's current row, by its key: an earlier round of a reopened
+  // member is a row of its own, and is counted there.
+  const current: RowFacts[] = group.members
+    .map((folder) => {
+      const row = specRows.find((candidate) => candidate.key === groupKey(group.project, folder))?.group;
+      return row && group.queuedMembers?.includes(folder) ? { ...row, inQueue: true } : row;
+    })
+    .filter((member): member is SpecGroup => !!member);
+  const facts = {
+    project: group.project, specFolder: group.name,
+    state: executionGroupRowState(executionGroupAsShown(group, members), !!failed),
+    title: group.displayName ?? group.name, createdAt, itemCount: group.members.length,
+    members: current,
+  } as RowFacts;
+  const searchOpenFor = jobsSearchMatch(facts, v.list.filter ?? {}).member ? "search" : undefined;
+  return {
+    key,
+    html: draws(key)
+      ? executionGroupCard({ ...group, createdAt }, specRows, lang, {
+        openFor: openFor ?? searchOpenFor,
+        candidates: eligibleGroupMembers({ project: group.project, targets: v.list.targets, groups: activeGroups, jobs: groupJobs(v) }),
+        locked: lockedGroupMembers({ group, targets: v.list.targets, jobs: groupJobs(v) }),
+        jobs: v.specJobs,
+        list: v.list,
+      })
+      : "",
+    place,
+    facts,
+  };
+
 }
 
 interface SpecRow { key: string; group: SpecGroup; html: string; jobs: QueueRowView[] }

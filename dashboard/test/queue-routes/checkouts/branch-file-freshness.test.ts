@@ -116,7 +116,7 @@ describe("the file is read from the branch a still-open spec is on", () => {
     writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze", "implement"]));
     ran(dir, ["create"]);
     // `listPage`'s own `dated` predicate is satisfied by `targets()`'s
-    // FIRST scan — cached for a flat 5s (`spec-lookup.ts`) regardless of
+    // FIRST scan — cached for a flat 5s (`spec-lookup/`) regardless of
     // how often the schedule ticks — which here ran before this test's
     // own `writeFileSync` above. Every other test in this file gives a
     // branch answer that skips the disk read entirely; this is the one

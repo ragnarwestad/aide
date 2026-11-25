@@ -8,7 +8,18 @@ aide_create_spec_create() {
 # race between two creates.
 [ -n "$title" ] || aide_spec_refuse "missing --title"
 [ -n "$description" ] || aide_spec_refuse "missing --description"
+aide_create_spec_resolve_dependencies
+aide_create_spec_bold_criteria
+if [ "$given_set" = "yes" ]; then
+  aide_create_spec_check_given_criteria
+  aide_create_spec_check_out_of_scope
+fi
+aide_create_spec_claim_folder
+aide_create_spec_write_files
+}
 
+# --depends-on, each entry resolved to the folder it names.
+aide_create_spec_resolve_dependencies() {
 if [ "$depends_on_given" = "yes" ] && [ -n "$depends_on" ]; then
   resolved_dependencies=()
   while IFS= read -r dependency; do
@@ -20,7 +31,10 @@ if [ "$depends_on_given" = "yes" ] && [ -n "$depends_on" ]; then
   done < <(printf '%s\n' "$depends_on" | tr ',' '\n')
   depends_on="$(printf '%s\n' "${resolved_dependencies[@]}" | paste -sd, -)"
 fi
+}
 
+# The criteria lines brought to the one shape the rule defines.
+aide_create_spec_bold_criteria() {
 # The rule's own definition of an acceptance-criteria line
 # (core/rules/spec-structure.md § 1-description) is
 # `^- \*\*AC-\d+:\*\*`. A line whose bold markers are missing or
@@ -46,6 +60,7 @@ while IFS= read -r ac_line; do
 done <<AC_CHECK_EOF
 $description
 AC_CHECK_EOF
+}
 
 # --given-description: the criteria it gives are the person's own. Each
 # must be in --description word for word, and every criterion added must
@@ -55,127 +70,112 @@ AC_CHECK_EOF
 # given, by the shape check's own match, but is not compared: its format
 # had to change. Only a criterion's first line is compared, since the
 # rule writes one sentence per id.
-if [ "$given_set" = "yes" ]; then
-  ac_lines() { printf '%s\n' "$1" | sed -E "$AC_BOLD" | grep -E '^- \*\*AC-[0-9]+:\*\*' | sed -E 's/[[:space:]]+$//'; }
-  ac_id() { local rest="${1#- \*\*AC-}"; printf '%s\n' "$((10#${rest%%:*}))"; }
-  given_ids=" "; given_highest=0; given_id_list=""
-  while IFS= read -r n; do
-    [ -n "$n" ] || continue
-    given_ids="$given_ids$((10#$n)) "
-    given_id_list="$given_id_list$((10#$n))"$'\n'
-    [ "$((10#$n))" -gt "$given_highest" ] && given_highest="$((10#$n))"
-  done <<<"$(printf '%s\n' "$given_description" | tr -d '*' | sed -nE 's/^- AC-([0-9]+)[^:]*:.*/\1/p')"
-  written_lines="$(ac_lines "$description")"
-  written_ids="$(while IFS= read -r l; do [ -n "$l" ] && ac_id "$l"; done <<<"$written_lines" | sort -n)"
-  for twice in $(uniq -d <<<"$written_ids"); do
-    [ "$(grep -cx -- "$twice" <<<"$written_ids")" -gt "$(grep -cx -- "$twice" <<<"$given_id_list")" ] \
-      && aide_spec_refuse "AC-$twice appears twice: every criterion keeps an id of its own"
-  done
-  while IFS= read -r line; do
-    [ -n "$line" ] || continue
-    id="$(ac_id "$line")"
-    grep -qx -- "$id" <<<"$written_ids" || aide_spec_refuse "AC-$id is missing: every criterion the description gave must stay in it"
-    grep -qxF -- "$line" <<<"$written_lines" || aide_spec_refuse "AC-$id must stay word for word as the description gave it: \"$line\""
-  done <<<"$(ac_lines "$given_description")"
-  next=$((given_highest + 1))
-  for id in $written_ids; do
-    case "$given_ids" in *" $id "*) continue ;; esac
-    if [ "$id" -ne "$next" ]; then
-      [ "$given_highest" -eq 0 ] && [ "$next" -eq 1 ] && aide_spec_refuse "AC-$id is not the next id: the first criterion takes AC-1"
-      aide_spec_refuse "AC-$id is not the next id: a criterion added after AC-$((next - 1)) takes AC-$next"
-    fi
-    next=$((next + 1))
-  done
-  # The "## Out of scope" section is the person's own too: kept word for
-  # word, and never written by the model. The criteria added directly
-  # after the last given one may stand inside it, so the written side
-  # leaves them out; both sides go through the same bold rewrite.
-  without_added() { printf '%s\n' "$1" | awk -v ids="$given_ids" '
-    function given(s,  n) { if (s !~ /^- \*\*AC-[0-9]+:\*\*/) return -1; n = s; sub(/^- \*\*AC-/, "", n); sub(/:.*/, "", n); return index(ids, " " (n + 0) " ") > 0 }
-    { l[NR] = $0; if (given($0) == 1) last = NR }
-    END { i = last + 1; if (last) while (i <= NR && given(l[i]) == 0) i++; for (j = 1; j <= NR; j++) if (j <= last || j >= i) print l[j] }'; }
-  if declare -f aide_out_of_scope_section >/dev/null 2>&1; then
-    given_scope="$(aide_out_of_scope_section "$(printf '%s\n' "$given_description" | sed -E "$AC_BOLD")")"
-    written_scope="$(aide_out_of_scope_section "$(without_added "$description")")"
-    if [ -n "$given_scope" ] && [ "$given_scope" != "$written_scope" ]; then
-      aide_spec_refuse "the ## Out of scope section must stay word for word as the description gave it"
-    elif [ -z "$given_scope" ] && [ -n "$written_scope" ]; then
-      aide_spec_refuse "the description gave no ## Out of scope section: only its author writes one"
-    fi
+aide_create_spec_check_given_criteria() {
+ac_lines() { printf '%s\n' "$1" | sed -E "$AC_BOLD" | grep -E '^- \*\*AC-[0-9]+:\*\*' | sed -E 's/[[:space:]]+$//'; }
+ac_id() { local rest="${1#- \*\*AC-}"; printf '%s\n' "$((10#${rest%%:*}))"; }
+given_ids=" "; given_highest=0; given_id_list=""
+while IFS= read -r n; do
+  [ -n "$n" ] || continue
+  given_ids="$given_ids$((10#$n)) "
+  given_id_list="$given_id_list$((10#$n))"$'\n'
+  [ "$((10#$n))" -gt "$given_highest" ] && given_highest="$((10#$n))"
+done <<<"$(printf '%s\n' "$given_description" | tr -d '*' | sed -nE 's/^- AC-([0-9]+)[^:]*:.*/\1/p')"
+written_lines="$(ac_lines "$description")"
+written_ids="$(while IFS= read -r l; do [ -n "$l" ] && ac_id "$l"; done <<<"$written_lines" | sort -n)"
+for twice in $(uniq -d <<<"$written_ids"); do
+  [ "$(grep -cx -- "$twice" <<<"$written_ids")" -gt "$(grep -cx -- "$twice" <<<"$given_id_list")" ] \
+    && aide_spec_refuse "AC-$twice appears twice: every criterion keeps an id of its own"
+done
+while IFS= read -r line; do
+  [ -n "$line" ] || continue
+  id="$(ac_id "$line")"
+  grep -qx -- "$id" <<<"$written_ids" || aide_spec_refuse "AC-$id is missing: every criterion the description gave must stay in it"
+  grep -qxF -- "$line" <<<"$written_lines" || aide_spec_refuse "AC-$id must stay word for word as the description gave it: \"$line\""
+done <<<"$(ac_lines "$given_description")"
+next=$((given_highest + 1))
+for id in $written_ids; do
+  case "$given_ids" in *" $id "*) continue ;; esac
+  if [ "$id" -ne "$next" ]; then
+    [ "$given_highest" -eq 0 ] && [ "$next" -eq 1 ] && aide_spec_refuse "AC-$id is not the next id: the first criterion takes AC-1"
+    aide_spec_refuse "AC-$id is not the next id: a criterion added after AC-$((next - 1)) takes AC-$next"
+  fi
+  next=$((next + 1))
+done
+}
+
+# The "## Out of scope" section is the person's own too: kept word for
+# word, and never written by the model. The criteria added directly
+# after the last given one may stand inside it, so the written side
+# leaves them out; both sides go through the same bold rewrite.
+aide_create_spec_check_out_of_scope() {
+without_added() { printf '%s\n' "$1" | awk -v ids="$given_ids" '
+  function given(s,  n) { if (s !~ /^- \*\*AC-[0-9]+:\*\*/) return -1; n = s; sub(/^- \*\*AC-/, "", n); sub(/:.*/, "", n); return index(ids, " " (n + 0) " ") > 0 }
+  { l[NR] = $0; if (given($0) == 1) last = NR }
+  END { i = last + 1; if (last) while (i <= NR && given(l[i]) == 0) i++; for (j = 1; j <= NR; j++) if (j <= last || j >= i) print l[j] }'; }
+if declare -f aide_out_of_scope_section >/dev/null 2>&1; then
+  given_scope="$(aide_out_of_scope_section "$(printf '%s\n' "$given_description" | sed -E "$AC_BOLD")")"
+  written_scope="$(aide_out_of_scope_section "$(without_added "$description")")"
+  if [ -n "$given_scope" ] && [ "$given_scope" != "$written_scope" ]; then
+    aide_spec_refuse "the ## Out of scope section must stay word for word as the description gave it"
+  elif [ -z "$given_scope" ] && [ -n "$written_scope" ]; then
+    aide_spec_refuse "the description gave no ## Out of scope section: only its author writes one"
   fi
 fi
+}
 
+# The spec's folder: the given name, or the next number claimed under a lock.
+aide_create_spec_claim_folder() {
 if [ -n "$folder_name" ]; then
   [[ "$folder_name" =~ ^[A-Za-z0-9._-]{1,128}$ ]] || aide_spec_refuse "invalid --folder-name: $folder_name"
   folder="$folder_name"
   dest="$specs_root/$folder"
   [ -d "$dest" ] && aide_spec_refuse "spec folder already exists: $dest"
 else
-  slug="$(aide_slug_from_title "$title")"
-  declare -f aide_next_spec_number >/dev/null 2>&1 \
-    || aide_spec_refuse "_aide-spec-lib.sh is missing beside aide-create-spec — reinstall aide"
-  # The lock has to be on the NUMBER, not on the folder: two creates
-  # with different slugs make different directories at the same number,
-  # so `mkdir "$dest"` locks nothing. `mkdir` of one shared name does —
-  # it is atomic, and it fails for whoever is second.
-  #
-  # Held for the few milliseconds it takes to read the highest number
-  # and make the folder, which is what has to be indivisible. Removed on
-  # every exit path below, and broken when it is older than a minute:
-  # a run killed mid-claim must not stop every later one.
-  lock="$specs_root/.aide-create.lock"
-  claimed=""
-  for _ in $(seq 1 100); do
-    if mkdir "$lock" 2>/dev/null; then
-      number="$(aide_next_spec_number "$specs_root")"
-      folder="${number}-${slug}"
-      dest="$specs_root/$folder"
-      if [ -d "$dest" ]; then
-        rmdir "$lock" 2>/dev/null
-        aide_spec_refuse "spec folder already exists: $dest"
-      fi
-      mkdir "$dest" 2>/dev/null || { rmdir "$lock" 2>/dev/null; aide_spec_refuse "could not create $dest"; }
-      rmdir "$lock" 2>/dev/null
-      claimed="yes"
-      break
-    fi
-    # A lock nobody is holding any more: whoever made it is gone.
-    if [ -n "$(find "$lock" -maxdepth 0 -mmin +1 2>/dev/null)" ]; then
-      rmdir "$lock" 2>/dev/null
-    fi
-    sleep 0.1
-  done
-  [ -n "$claimed" ] || aide_spec_refuse "could not claim a spec number under $specs_root — $lock is held"
+  aide_create_spec_claim_number
 fi
+}
 
+# The lock has to be on the NUMBER, not on the folder: two creates
+# with different slugs make different directories at the same number,
+# so `mkdir "$dest"` locks nothing. `mkdir` of one shared name does —
+# it is atomic, and it fails for whoever is second.
+#
+# Held for the few milliseconds it takes to read the highest number
+# and make the folder, which is what has to be indivisible. Removed on
+# every exit path below, and broken when it is older than a minute:
+# a run killed mid-claim must not stop every later one.
+aide_create_spec_claim_number() {
+slug="$(aide_slug_from_title "$title")"
+declare -f aide_next_spec_number >/dev/null 2>&1 \
+  || aide_spec_refuse "_aide-spec-lib.sh is missing beside aide-create-spec — reinstall aide"
+lock="$specs_root/.aide-create.lock"
+claimed=""
+for _ in $(seq 1 100); do
+  if mkdir "$lock" 2>/dev/null; then
+    number="$(aide_next_spec_number "$specs_root")"
+    folder="${number}-${slug}"
+    dest="$specs_root/$folder"
+    if [ -d "$dest" ]; then
+      rmdir "$lock" 2>/dev/null
+      aide_spec_refuse "spec folder already exists: $dest"
+    fi
+    mkdir "$dest" 2>/dev/null || { rmdir "$lock" 2>/dev/null; aide_spec_refuse "could not create $dest"; }
+    rmdir "$lock" 2>/dev/null
+    claimed="yes"
+    break
+  fi
+  # A lock nobody is holding any more: whoever made it is gone.
+  if [ -n "$(find "$lock" -maxdepth 0 -mmin +1 2>/dev/null)" ]; then
+    rmdir "$lock" 2>/dev/null
+  fi
+  sleep 0.1
+done
+[ -n "$claimed" ] || aide_spec_refuse "could not claim a spec number under $specs_root — $lock is held"
+}
 
-today="$(date -u +%Y-%m-%d)"
-
-depends_line=""
-if [ "$depends_on_given" = "yes" ] && [ -n "$depends_on" ]; then
-  # paste -sd cycles through a multi-character delimiter one character
-  # per join, rather than repeating the whole string — so ", " would
-  # come out as a bare "," between every pair. Joined with a single
-  # comma instead, then widened to ", " afterwards.
-  # shellcheck disable=SC2016  # the backticks are markdown, matched as they are
-  formatted="$(printf '%s' "$depends_on" | tr ',' '\n' \
-    | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' | grep -v '^$' \
-    | sed 's/^/`/; s/$/`/' | paste -sd, - | sed 's/,/, /g')"
-  [ -n "$formatted" ] && depends_line=$'\n- **Depends on:** '"$formatted"
-fi
-
-accept_line=""
-[ "$acceptance_not_required" = "yes" ] && accept_line=$'\n- **Acceptance:** not required'
-criteria_line=""
-[ -n "$criteria_checks" ] && criteria_line=$'\n- **Acceptance criteria checks:** '"$criteria_checks"
-approach_line=""
-[ -n "$choose_approach" ] && approach_line=$'\n- **Let me choose the approach:** '"$choose_approach"
-
-# Already made above when this run claimed its own number; `-p` is what
-# makes that case a no-op rather than a second, failing create.
-mkdir -p "$dest" || aide_spec_refuse "could not create $dest"
-
-# The heredoc delimiter below is deliberately unquoted (<<AIDE_EOF, not
+# The spec's first two files, then the placeholders, and the answer.
+#
+# The heredoc delimiters below is deliberately unquoted (<<AIDE_EOF, not
 # <<'AIDE_EOF') so ${title}/${folder}/${today}/${depends_line}/
 # ${description} are substituted. This is safe: bash performs parameter
 # expansion exactly once, over the heredoc's own literal template text —
@@ -187,6 +187,13 @@ mkdir -p "$dest" || aide_spec_refuse "could not create $dest"
 # substitution never does this). Literal backticks that belong to the
 # template itself (not to a substituted value) are escaped as \` so an
 # unquoted heredoc does not read them as command substitution.
+aide_create_spec_write_files() {
+today="$(date -u +%Y-%m-%d)"
+aide_create_spec_tracking_lines
+
+# Already made above when this run claimed its own number; `-p` is what
+# makes that case a no-op rather than a second, failing create.
+mkdir -p "$dest" || aide_spec_refuse "could not create $dest"
 
 cat > "$dest/0-README.md" <<AIDE_EOF
 # Documentation
@@ -227,4 +234,28 @@ aide_write_placeholder_files "$dest" "$title" "$folder"
 
 aide_spec_emit_ok "$(jq -cn --arg f "$folder" --argjson files '["0-README.md","1-description.md","2-analysis.md","3-solution.md","4-status.md"]' \
   '{terminalReason:"created", specFolder:$f, files:$files}')"
+}
+
+# The optional lines of the description's tracking info: dependencies,
+# acceptance, criteria checks and the choice of approach.
+aide_create_spec_tracking_lines() {
+depends_line=""
+if [ "$depends_on_given" = "yes" ] && [ -n "$depends_on" ]; then
+  # paste -sd cycles through a multi-character delimiter one character
+  # per join, rather than repeating the whole string — so ", " would
+  # come out as a bare "," between every pair. Joined with a single
+  # comma instead, then widened to ", " afterwards.
+  # shellcheck disable=SC2016  # the backticks are markdown, matched as they are
+  formatted="$(printf '%s' "$depends_on" | tr ',' '\n' \
+    | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' | grep -v '^$' \
+    | sed 's/^/`/; s/$/`/' | paste -sd, - | sed 's/,/, /g')"
+  [ -n "$formatted" ] && depends_line=$'\n- **Depends on:** '"$formatted"
+fi
+
+accept_line=""
+[ "$acceptance_not_required" = "yes" ] && accept_line=$'\n- **Acceptance:** not required'
+criteria_line=""
+[ -n "$criteria_checks" ] && criteria_line=$'\n- **Acceptance criteria checks:** '"$criteria_checks"
+approach_line=""
+[ -n "$choose_approach" ] && approach_line=$'\n- **Let me choose the approach:** '"$choose_approach"
 }

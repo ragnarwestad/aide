@@ -8,7 +8,7 @@ import { describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { acceptanceNotRequiredForAnalyze, forgetSpecCachesFor, stepDoneHandler } from "../../src/serve/runner-setup.ts";
+import { acceptanceNotRequiredForAnalyze, forgetSpecCachesFor, stepDoneHandler } from "../../src/serve/runner-setup/index.ts";
 import type { Job } from "../../src/queue/queue.ts";
 
 const job = (over: Partial<Job> = {}): Job =>

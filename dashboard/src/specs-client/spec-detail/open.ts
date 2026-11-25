@@ -60,6 +60,48 @@ export function openSpecInPlace(event: MouseEvent): boolean {
   return true;
 }
 
+/** Fetches the spec's detail and places its rows; true when it failed
+ *  and the press is still the newest. */
+async function drawDetail(url: URL, signal: AbortSignal, gen: number): Promise<boolean> {
+  let failed = false;
+  try {
+    const res = await fetch(`${url.pathname}?${url.searchParams}`, {
+      headers: { accept: "text/html" },
+      signal,
+    });
+    const html = res.ok ? await res.text() : "";
+    if (press.pressGen === gen) {
+      if (DETAIL_ROW.test(html) && placeSpecRows(html, false)) {
+        addScripts(html);
+        document.dispatchEvent(new Event(SPEC_DETAIL_DRAWN));
+      } else failed = true;
+    }
+  } catch {
+    // Back aborts the request and bumps the generation: nothing is drawn then.
+    failed = press.pressGen === gen;
+  }
+  return failed;
+}
+
+/** Refreshes the rows for the new address, keeping the open spec where
+ *  it stands unless the reader scrolled meanwhile. */
+async function redrawRowsKeepingPlace(key: string, before: number, gen: number): Promise<void> {
+  let readerScrolled = false;
+  // Scroll events also come from restoring the row; only user input cancels restoration.
+  const moved = (event: Event) => {
+    if (event.type !== "keydown" || ["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " "].includes((event as KeyboardEvent).key)) readerScrolled = true;
+  };
+  const scrollInputs = ["wheel", "touchmove", "pointerdown", "keydown"];
+  for (const type of scrollInputs) document.addEventListener(type, moved, true);
+  try {
+    if (press.pressGen === gen) {
+      await swapRows();
+      const redrawnHead = specHead(key);
+      if (!readerScrolled && redrawnHead) keepInPlace(redrawnHead, before);
+    }
+  } finally { for (const type of scrollInputs) document.removeEventListener(type, moved, true); }
+}
+
 async function open(link: HTMLAnchorElement, head: HTMLElement, body: HTMLElement): Promise<void> {
   const key = head.id.slice("spec-".length);
   const controller = new AbortController();
@@ -90,23 +132,7 @@ async function open(link: HTMLAnchorElement, head: HTMLElement, body: HTMLElemen
   const url = new URL(href, location.href);
   url.searchParams.set("detail", "1");
   const shutPrevious = previousKey ? swapSpec(previousKey) : Promise.resolve();
-  let failed = false;
-  try {
-    const res = await fetch(`${url.pathname}?${url.searchParams}`, {
-      headers: { accept: "text/html" },
-      signal: controller.signal,
-    });
-    const html = res.ok ? await res.text() : "";
-    if (press.pressGen === gen) {
-      if (DETAIL_ROW.test(html) && placeSpecRows(html, false)) {
-        addScripts(html);
-        document.dispatchEvent(new Event(SPEC_DETAIL_DRAWN));
-      } else failed = true;
-    }
-  } catch {
-    // Back aborts the request and bumps the generation: nothing is drawn then.
-    failed = press.pressGen === gen;
-  }
+  const failed = await drawDetail(url, controller.signal, gen);
   try {
     if (failed) await showFailure(body, key);
     await shutPrevious;
@@ -118,21 +144,7 @@ async function open(link: HTMLAnchorElement, head: HTMLElement, body: HTMLElemen
   }
   // Refresh address-dependent links while holding the open detail. A
   // reader who scrolls during this request keeps that new position.
-  let readerScrolled = false;
-  // Scroll events also come from restoring the row; only user input cancels restoration.
-  const moved = (event: Event) => {
-    if (event.type !== "keydown" || ["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " "].includes((event as KeyboardEvent).key)) readerScrolled = true;
-  };
-  const scrollInputs = ["wheel", "touchmove", "pointerdown", "keydown"];
-  for (const type of scrollInputs) document.addEventListener(type, moved, true);
-  try {
-    if (press.pressGen === gen) {
-      await swapRows();
-      const redrawnHead = specHead(key);
-      if (!readerScrolled && redrawnHead) keepInPlace(redrawnHead, before);
-    }
-  } finally { for (const type of scrollInputs) document.removeEventListener(type, moved, true); }
-
+  await redrawRowsKeepingPlace(key, before, gen);
 }
 
 /** The row the spec will be drawn in, copied from the template the page

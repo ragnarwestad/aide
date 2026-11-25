@@ -11,7 +11,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, 
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createGitRunner } from "../../../src/git/process/index.ts";
-import { dashboardCheckoutRoot, dashboardSettingsFile, ensureDashboardCheckout } from "../../../src/git/dashboard-checkout.ts";
+import { dashboardCheckoutRoot, dashboardSettingsFile, ensureDashboardCheckout } from "../../../src/git/dashboard-checkout/index.ts";
 import { resolveCodeLanding, resolvePreviewCmd, resolveWorktreeLinks } from "../../../src/project/discover";
 
 const run = createGitRunner(30_000);

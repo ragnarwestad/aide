@@ -14,77 +14,48 @@ import signal
 import subprocess
 import time
 from ..conftest import git, run
+# The files under lib/ the runner reads relative to its own location,
+# each one without which a copy refuses before it starts:
+# workflow/steps.sh, spec-reference.sh and spec-identity.json name the
+# steps and the spec; workflow-steps.json, effort-levels.json,
+# worktree-link-denylist.json (the denied link names) and
+# runnable-tools.json (the tools --tool and the side tools may name) are
+# read at start; status-progress.sh is sourced whenever a 4-status.md
+# exists, which given the fixture is every run; files-to-change.sh reads
+# the analysis's `### Files to change` for the short-analysis check;
+# translation-files.sh is how the branch update merges; git-error.sh sorts
+# a failed push and a conflict; tracking-info.sh is sourced before any
+# phase; and the spec's state file and its phase moves are required like
+# every part.
+_RUNNER_LIB_FILES = (
+    "workflow/steps.sh", "spec-reference.sh", "spec-identity.json", "workflow-steps.json",
+    "effort-levels.json", "worktree-link-denylist.json", "runnable-tools.json",
+    "status-progress.sh", "files-to-change.sh", "translation-files.sh", "git-error.sh",
+    "tracking-info.sh", "spec-state.sh", "spec-transitions.sh", "failing-tests.sh",
+    "checkout-lock.sh",
+)
+
+
 def _standalone_runner_copy(runner, tmp_path, name="aide-run-spec-under-test"):
     """A working stand-in for `aide-run-spec`, in its own directory: the
     script itself, plus the files it reads relative to its own location
     (`_aide-spec-lib.sh`, `lib/workflow-steps.json`,
     `lib/effort-levels.json`, `lib/worktree-link-denylist.json` and
     `lib/runnable-tools.json` too, without which every command refuses)."""
+    source = pathlib.Path(runner).parent
     copy = tmp_path / name
     copy.write_bytes(pathlib.Path(runner).read_bytes())
     copy.chmod(0o755)
-    (tmp_path / "_aide-spec-lib.sh").write_bytes(
-        (pathlib.Path(runner).parent / "_aide-spec-lib.sh").read_bytes()
-    )
-    (tmp_path / "lib").mkdir(exist_ok=True)
-    shutil.copytree(pathlib.Path(runner).parent / "lib" / "step-endings", tmp_path / "lib" / "step-endings")
-    (tmp_path / "lib" / "workflow").mkdir(exist_ok=True)
-    (tmp_path / "lib" / "workflow" / "steps.sh").write_bytes(
-        (pathlib.Path(runner).parent / "lib" / "workflow" / "steps.sh").read_bytes()
-    )
-    (tmp_path / "lib" / "spec-reference.sh").write_bytes(
-        (pathlib.Path(runner).parent / "lib" / "spec-reference.sh").read_bytes()
-    )
-    (tmp_path / "lib" / "spec-identity.json").write_bytes(
-        (pathlib.Path(runner).parent / "lib" / "spec-identity.json").read_bytes()
-    )
-    (tmp_path / "lib" / "workflow-steps.json").write_bytes(
-        (pathlib.Path(runner).parent / "lib" / "workflow-steps.json").read_bytes()
-    )
-    # effort-levels.json too: read the same way, without which
-    # every command refuses just as it would with workflow-steps.json missing.
-    (tmp_path / "lib" / "effort-levels.json").write_bytes(
-        (pathlib.Path(runner).parent / "lib" / "effort-levels.json").read_bytes()
-    )
-    # worktree-link-denylist.json too: the denied link names, read the
-    # same way and refused for by name when missing.
-    (tmp_path / "lib" / "worktree-link-denylist.json").write_bytes(
-        (pathlib.Path(runner).parent / "lib" / "worktree-link-denylist.json").read_bytes()
-    )
-    # runnable-tools.json too: the tools --tool and the side tools may name.
-    (tmp_path / "lib" / "runnable-tools.json").write_bytes(
-        (pathlib.Path(runner).parent / "lib" / "runnable-tools.json").read_bytes()
-    )
-    # status-progress.sh too: sourced by the runner whenever a
-    # 4-status.md exists — which, given the fixture, is every run.
-    (tmp_path / "lib" / "status-progress.sh").write_bytes(
-        (pathlib.Path(runner).parent / "lib" / "status-progress.sh").read_bytes()
-    )
-    # files-to-change.sh too: the short-analysis check reads the analysis's
-    # `### Files to change` with it, and the script sources it by path.
-    (tmp_path / "lib" / "files-to-change.sh").write_bytes(
-        (pathlib.Path(runner).parent / "lib" / "files-to-change.sh").read_bytes()
-    )
-    # translation-files.sh too: the branch update merges with it, sourced by path.
-    (tmp_path / "lib" / "translation-files.sh").write_bytes(
-        (pathlib.Path(runner).parent / "lib" / "translation-files.sh").read_bytes()
-    )
-    # git-error.sh too: a failed push and a conflict are sorted with it.
-    (tmp_path / "lib" / "git-error.sh").write_bytes(
-        (pathlib.Path(runner).parent / "lib" / "git-error.sh").read_bytes()
-    )
-    # tracking-info.sh too: the script sources it by path before any phase.
-    (tmp_path / "lib" / "tracking-info.sh").write_bytes(
-        (pathlib.Path(runner).parent / "lib" / "tracking-info.sh").read_bytes()
-    )
-    # The spec's state file and its phase moves: required like every part.
-    for name in ("spec-state.sh", "spec-transitions.sh", "failing-tests.sh", "checkout-lock.sh"):
-        (tmp_path / "lib" / name).write_bytes((pathlib.Path(runner).parent / "lib" / name).read_bytes())
+    (tmp_path / "_aide-spec-lib.sh").write_bytes((source / "_aide-spec-lib.sh").read_bytes())
+    (tmp_path / "lib" / "workflow").mkdir(parents=True, exist_ok=True)
+    shutil.copytree(source / "lib" / "step-endings", tmp_path / "lib" / "step-endings")
+    for part in _RUNNER_LIB_FILES:
+        (tmp_path / "lib" / part).write_bytes((source / "lib" / part).read_bytes())
     # And the runner's own phases (`lib/run-spec/`): the script sources
     # them by path, so a copy without them refuses before it starts.
     # Copied as a tree rather than one by one, so a phase that moves
     # between files does not have to be named here as well.
-    shutil.copytree(pathlib.Path(runner).parent / "lib" / "run-spec", tmp_path / "lib" / "run-spec")
+    shutil.copytree(source / "lib" / "run-spec", tmp_path / "lib" / "run-spec")
     return copy
 
 

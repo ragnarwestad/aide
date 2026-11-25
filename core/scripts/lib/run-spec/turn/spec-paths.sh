@@ -40,25 +40,8 @@ specs_root_excludes=()
 # conflict. No project's .aide/config is tracked anymore, but
 # the ordering is still correct, so it stays.
 repoint_specs_path() {
-  local rel new_specs cfg tmp_cfg
   if [ -n "$specs_wt" ]; then
-    rel="${specs_root#"$specs_repo"}"; rel="${rel#/}"
-    new_specs="$specs_wt"
-    [ -n "$rel" ] && new_specs="$specs_wt/$rel"
-    specs_root_wt="$new_specs"
-    cfg="$project_wt/.aide/config"
-    # A worktree checks out TRACKED files only, and .aide/config is
-    # never tracked — so it is copied in fresh from the main
-    # checkout and excluded from the commit, the same for every project.
-    mkdir -p "$project_wt/.aide" 2>/dev/null || true
-    [ -f "$project_root/.aide/config" ] && cp "$project_root/.aide/config" "$cfg" 2>/dev/null
-    git_add_excludes+=(":(exclude,top).aide/config")
-    tmp_cfg="$work_dir/aide-config"
-    : > "$tmp_cfg"
-    [ -f "$cfg" ] && grep -v '^AIDE_SPECS_PATH=' "$cfg" > "$tmp_cfg" 2>/dev/null
-    printf 'AIDE_SPECS_PATH=%s\n' "$new_specs" >> "$tmp_cfg"
-    mkdir -p "$project_wt/.aide" 2>/dev/null || true
-    cat "$tmp_cfg" > "$cfg" 2>/dev/null || true
+    repoint_into_specs_worktree
     return 0
   fi
   # No specs worktree. Either the specs root travels with the project's
@@ -68,44 +51,79 @@ repoint_specs_path() {
   # every repo keeps working through its absolute path, exactly as it
   # always has.
   case "$specs_root/" in
-    "$project_root"/*)
-      rel="${specs_root#"$project_root"/}"
-      [ -n "$rel" ] && specs_root_wt="$project_wt/$rel"
-      if [ -n "$rel" ] && [ ! -e "$project_wt/$rel" ]; then
-        if git -C "$project_root" check-ignore -q -- "$rel/.aide-probe" 2>/dev/null; then
-          mkdir -p "$(dirname "$project_wt/$rel")" 2>/dev/null || true
-          ln -s "$specs_root" "$project_wt/$rel" 2>/dev/null || true
-          git_add_excludes+=(":(exclude,top)$rel")
-        else
-          # Not ignored, only not committed yet — a new project's first
-          # spec. It belongs on the branch like any tracked specs root:
-          # a real directory here, carrying this step's own folder if the
-          # main checkout already has one, and committed with the step.
-          mkdir -p "$project_wt/$rel" 2>/dev/null || true
-          if [ -n "${spec_folder:-}" ] && [ -d "$specs_root/$spec_folder" ] && [ ! -e "$project_wt/$rel/$spec_folder" ]; then
-            cp -R "$specs_root/$spec_folder" "$project_wt/$rel/$spec_folder" 2>/dev/null || true
-          fi
-        fi
-      fi
-      # A .aide/config naming the specs root by its absolute path would
-      # send every skill in this run to the main checkout's copy, which
-      # nothing commits. Pointed at this worktree's own instead, as the
-      # separate-specs-repo branch above does; the file is never committed.
-      if [ -n "$rel" ] && [ -f "$project_root/.aide/config" ] &&
-         grep -q '^AIDE_SPECS_PATH=/' "$project_root/.aide/config" 2>/dev/null; then
-        cfg="$project_wt/.aide/config"
-        mkdir -p "$project_wt/.aide" 2>/dev/null || true
-        grep -v '^AIDE_SPECS_PATH=' "$project_root/.aide/config" > "$cfg" 2>/dev/null || true
-        printf 'AIDE_SPECS_PATH=%s\n' "$specs_root_wt" >> "$cfg"
-        git_add_excludes+=(":(exclude,top).aide/config")
-      fi
-      # Tracked or symlinked-in, the specs root's own changes are the
-      # step's real output, not "the project changed" — whether or not
-      # it needed linking in above.
-      [ -n "$rel" ] && specs_root_excludes+=(":(exclude,top)$rel")
-      ;;
+    "$project_root"/*) repoint_inside_project ;;
   esac
   return 0
+}
+
+# The specs root has a worktree of its own: point the project worktree's
+# .aide/config at it.
+repoint_into_specs_worktree() {
+  local rel new_specs cfg tmp_cfg
+  rel="${specs_root#"$specs_repo"}"; rel="${rel#/}"
+  new_specs="$specs_wt"
+  [ -n "$rel" ] && new_specs="$specs_wt/$rel"
+  specs_root_wt="$new_specs"
+  cfg="$project_wt/.aide/config"
+  # A worktree checks out TRACKED files only, and .aide/config is
+  # never tracked — so it is copied in fresh from the main
+  # checkout and excluded from the commit, the same for every project.
+  mkdir -p "$project_wt/.aide" 2>/dev/null || true
+  [ -f "$project_root/.aide/config" ] && cp "$project_root/.aide/config" "$cfg" 2>/dev/null
+  git_add_excludes+=(":(exclude,top).aide/config")
+  tmp_cfg="$work_dir/aide-config"
+  : > "$tmp_cfg"
+  [ -f "$cfg" ] && grep -v '^AIDE_SPECS_PATH=' "$cfg" > "$tmp_cfg" 2>/dev/null
+  printf 'AIDE_SPECS_PATH=%s\n' "$new_specs" >> "$tmp_cfg"
+  mkdir -p "$project_wt/.aide" 2>/dev/null || true
+  cat "$tmp_cfg" > "$cfg" 2>/dev/null || true
+}
+
+# The specs root sits inside the project's repository.
+repoint_inside_project() {
+  local rel cfg
+  rel="${specs_root#"$project_root"/}"
+  [ -n "$rel" ] && specs_root_wt="$project_wt/$rel"
+  if [ -n "$rel" ] && [ ! -e "$project_wt/$rel" ]; then
+    bring_in_specs_root "$rel"
+  fi
+  # A .aide/config naming the specs root by its absolute path would
+  # send every skill in this run to the main checkout's copy, which
+  # nothing commits. Pointed at this worktree's own instead, as the
+  # separate-specs-repo branch above does; the file is never committed.
+  if [ -n "$rel" ] && [ -f "$project_root/.aide/config" ] &&
+     grep -q '^AIDE_SPECS_PATH=/' "$project_root/.aide/config" 2>/dev/null; then
+    cfg="$project_wt/.aide/config"
+    mkdir -p "$project_wt/.aide" 2>/dev/null || true
+    grep -v '^AIDE_SPECS_PATH=' "$project_root/.aide/config" > "$cfg" 2>/dev/null || true
+    printf 'AIDE_SPECS_PATH=%s\n' "$specs_root_wt" >> "$cfg"
+    git_add_excludes+=(":(exclude,top).aide/config")
+  fi
+  # Tracked or symlinked-in, the specs root's own changes are the
+  # step's real output, not "the project changed" — whether or not
+  # it needed linking in above.
+  [ -n "$rel" ] && specs_root_excludes+=(":(exclude,top)$rel")
+  return 0
+}
+
+# A specs root the worktree lacks at relative path $1: linked in when the
+# project ignores it, made a real directory when it is only not committed.
+bring_in_specs_root() {
+  local rel="$1"
+  if git -C "$project_root" check-ignore -q -- "$rel/.aide-probe" 2>/dev/null; then
+    mkdir -p "$(dirname "$project_wt/$rel")" 2>/dev/null || true
+    ln -s "$specs_root" "$project_wt/$rel" 2>/dev/null || true
+    git_add_excludes+=(":(exclude,top)$rel")
+    return 0
+  fi
+  # Not ignored, only not committed yet — a new project's first
+  # spec. It belongs on the branch like any tracked specs root:
+  # a real directory here, carrying this step's own folder if the
+  # main checkout already has one, and committed with the step.
+  mkdir -p "$project_wt/$rel" 2>/dev/null || true
+  if [ -n "${spec_folder:-}" ] && [ -d "$specs_root/$spec_folder" ] && [ ! -e "$project_wt/$rel/$spec_folder" ]; then
+    cp -R "$specs_root/$spec_folder" "$project_wt/$rel/$spec_folder" 2>/dev/null || true
+  fi
 }
 repoint_specs_path
 

@@ -523,16 +523,19 @@ describe("when a server runs the checks at all", () => {
   // served fixture in the suite spawn four real CLIs; a test that never
   // mentions these tools must not be able to start them.
   test("createServer runs nothing unless it was asked", async () => {
-    const source = await Bun.file(
-      new URL("../../../src/serve/serve.ts", import.meta.url),
-    ).text();
+    const read = (file: string) => Bun.file(new URL(`../../../src/serve/${file}`, import.meta.url)).text();
+    const [serve, lifecycle, services] = await Promise.all([
+      read("serve.ts"),
+      read("create-server/lifecycle.ts"),
+      read("create-server/services.ts"),
+    ]);
     // Asked for by one flag and nothing else: no environment sniffing,
     // which is what failed — `BUN_TEST` was not set the way it was
     // assumed to be.
-    expect(source).toContain("if (opts.checkToolsOnStart)");
+    expect(lifecycle).toContain("if (!opts.checkToolsOnStart) return;");
     // The check before a job starts is behind the same one flag.
-    expect(source).toMatch(/opts\.checkToolsOnStart \? toolRechecker\(/);
-    expect(source).not.toContain("BUN_TEST");
+    expect(services).toMatch(/opts\.checkToolsOnStart \? toolRechecker\(/);
+    for (const source of [serve, lifecycle, services]) expect(source).not.toContain("BUN_TEST");
   });
 
   test("the CLI is the one caller that asks", async () => {

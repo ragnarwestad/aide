@@ -10,7 +10,7 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { projectCheckout } from "../git/branch-status.ts";
-import { dashboardCheckoutRoot, type DashboardCheckout } from "../git/dashboard-checkout.ts";
+import { dashboardCheckoutRoot, type DashboardCheckout } from "../git/dashboard-checkout/index.ts";
 import { resolveCodeLanding, type CodeLanding } from "../project/discover";
 import { isScheduleKey, scheduleNameOf } from "../project/spec-names.ts";
 import type { Job } from "../queue/queue.ts";

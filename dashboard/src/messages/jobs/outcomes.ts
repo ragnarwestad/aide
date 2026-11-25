@@ -243,7 +243,7 @@ export const getRunStopMessage = (step: WorkflowStep, outcome: Partial<StepOutco
   getSentBackMessage(step, outcome);
 
 /** A step that sent its spec back to a full analysis: the board queues the
- *  Analyze round itself (`runner-setup.ts`). The step's own reason is the
+ *  Analyze round itself (`runner-setup/`). The step's own reason is the
  *  result's `errorLog`, behind the (?). */
 export function getSentBackMessage(step: WorkflowStep, outcome: Partial<StepOutcome>): BoardMessage | undefined {
   if (outcome.terminalReason !== "sent-back") return undefined;

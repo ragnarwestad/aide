@@ -16,7 +16,7 @@ import { describe, expect, test } from "bun:test";
 import { copyFileSync, mkdtempSync, rmSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join, relative } from "node:path";
-import { DEFAULT_DASHBOARD_CHECKOUT_ROOT, dashboardCheckoutRoot } from "../../../src/git/dashboard-checkout.ts";
+import { DEFAULT_DASHBOARD_CHECKOUT_ROOT, dashboardCheckoutRoot } from "../../../src/git/dashboard-checkout/index.ts";
 import { parseArgs } from "../../../src/serve/serve-helpers";
 
 const ROOT = join(import.meta.dir, "..", "..", "..");
@@ -69,10 +69,10 @@ describe("install-serve deploys from the machinery's checkout, not a person's", 
 
   // The seventh hand-paired pair (AGENTS.md): the
   // Makefile spells the machinery checkout's path as a bash literal
-  // relative to the serving host's $HOME, and `dashboard-checkout.ts`
+  // relative to the serving host's $HOME, and `dashboard-checkout/`
   // spells the same path in TypeScript. Nothing but this test makes them
   // agree.
-  test("the Makefile's checkout path is the one dashboard-checkout.ts resolves", () => {
+  test("the Makefile's checkout path is the one dashboard-checkout/ resolves", () => {
     const fromCode = relative(homedir(), dashboardCheckoutRoot(DEFAULT_DASHBOARD_CHECKOUT_ROOT, "aide"));
     expect(fromCode).toBe(".aide/dashboard/checkouts/aide/code");
     expect(recipe).toContain(`git -C ${fromCode} pull`);

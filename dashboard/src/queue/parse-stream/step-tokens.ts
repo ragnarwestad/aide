@@ -49,59 +49,127 @@ function codexUsage(usage: unknown): number | undefined {
   return num(u.input_tokens) + num(u.output_tokens);
 }
 
-export function stepTokens(text: string, tool?: SummarizeOptions["tool"]): Map<string, number> {
-  const kind = transcriptFormat(tool, text);
-  const family = kind;
-  const totals = new Map<string, number>();
-  let open: string | undefined;
-  const add = (n: number | undefined, key = open): void => {
-    if (key !== undefined && n !== undefined) totals.set(key, (totals.get(key) ?? 0) + n);
-  };
+/** The tokens of one step's transcript, counted per step mark as the
+ *  events go by. */
+class StepTokenCounter {
+  readonly totals = new Map<string, number>();
+  private open: string | undefined;
+  private call: Call | undefined;
+  private readonly counted = new Map<string, { usage: number; key?: string }>();
+  private session: string | undefined;
+  private turnOpen: string | undefined;
+  // Each Codex thread's usage at its last turn, and the thread the transcript is in now.
+  private readonly threadSoFar = new Map<string, number>();
+  private thread = "";
+
+  constructor(private readonly kind: ReturnType<typeof transcriptFormat>) {}
+
+  private add(n: number | undefined, key = this.open): void {
+    if (key !== undefined && n !== undefined) this.totals.set(key, (this.totals.get(key) ?? 0) + n);
+  }
 
   /** The marks a line holds, by the Log's own reader. */
-  const marksIn = (line: string): { key: string; ends: boolean }[] => {
+  private marksIn(line: string): { key: string; ends: boolean }[] {
     if (!line.includes("Step ")) return [];
-    return summarizeEntries(line, { tool: kind, whole: true, max: Infinity })
+    return summarizeEntries(line, { tool: this.kind, whole: true, max: Infinity })
       .filter((e) => e.mark)
       .flatMap((e) => markOf(e.text) ?? []);
-  };
+  }
 
   /** The call's usage goes to the last step it starts, else to the step open when it began: the call that
    *  opens a step and the call that closes one both count for it, wherever in the call the mark is. Then
    *  each mark sets the open step as on the time line: a started mark opens its step, any other ends it. */
-  const apply = (call: Call): void => {
+  private apply(call: Call): void {
     const started = call.marks.findLast((m) => !m.ends)?.key;
-    const seen = call.id === undefined ? undefined : counted.get(call.id);
+    const seen = call.id === undefined ? undefined : this.counted.get(call.id);
     if (seen && call.usage === undefined) {
       // A later piece of a message already counted: its usage belongs to the last step the whole message starts.
       if (started !== undefined && started !== seen.key) {
-        if (seen.key !== undefined) add(-seen.usage, seen.key);
-        add(seen.usage, started);
+        if (seen.key !== undefined) this.add(-seen.usage, seen.key);
+        this.add(seen.usage, started);
         seen.key = started;
       }
     } else {
-      const key = started ?? open;
-      add(call.usage, key);
+      const key = started ?? this.open;
+      this.add(call.usage, key);
       if (seen) seen.key = key;
     }
-    for (const m of call.marks) open = m.ends ? undefined : m.key;
-  };
-  const note = (call: Call, line: string): void => {
-    call.marks.push(...marksIn(line));
-  };
+    for (const m of call.marks) this.open = m.ends ? undefined : m.key;
+  }
 
-  let call: Call | undefined;
-  const flush = (): void => {
-    if (call) apply(call);
-    call = undefined;
-  };
-  const counted = new Map<string, { usage: number; key?: string }>();
-  let session: string | undefined;
-  let turnOpen: string | undefined;
-  // Each Codex thread's usage at its last turn, and the thread the transcript is in now.
-  const threadSoFar = new Map<string, number>();
-  let thread = "";
+  private note(call: Call, line: string): void {
+    call.marks.push(...this.marksIn(line));
+  }
 
+  /** A line that is a call of its own. */
+  private lone(line: string): void {
+    const lone: Call = { marks: [] };
+    this.note(lone, line);
+    this.apply(lone);
+  }
+
+  flush(): void {
+    if (this.call) this.apply(this.call);
+    this.call = undefined;
+  }
+
+  claude(event: Record<string, unknown>, type: string, line: string): void {
+    // A new invocation (the review's, a fix turn's) is a new session: the step it finds open is not its own.
+    if (type === "system" && event.subtype === "init") {
+      this.flush();
+      this.open = undefined;
+      return;
+    }
+    if (type !== "assistant") return;
+    const message = obj(event.message);
+    const id = typeof message?.id === "string" ? message.id : undefined;
+    if (!this.call || id === undefined || id !== this.call.id) {
+      this.flush();
+      this.call = { id, marks: [] };
+    }
+    const call = this.call;
+    // A message whose events a subagent's came between starts a second call on the same id: its marks
+    // count, its usage was counted with the first.
+    if (call.usage === undefined && !(id !== undefined && this.counted.has(id))) {
+      call.usage = claudeUsage(message);
+      if (id !== undefined && call.usage !== undefined) this.counted.set(id, { usage: call.usage });
+    }
+    this.note(call, line);
+  }
+
+  opencode(event: Record<string, unknown>, type: string, line: string): void {
+    const sid = typeof event.sessionID === "string" ? event.sessionID : undefined;
+    if (sid !== undefined && this.session !== undefined && sid !== this.session) {
+      this.flush();
+      this.open = undefined;
+    }
+    this.session = sid ?? this.session;
+    if (type === "step_start") {
+      this.flush();
+      this.call = { marks: [] };
+    } else if (type === "step_finish") {
+      if (this.call) this.call.usage = opencodeUsage(obj(event.part));
+      this.flush();
+    } else if (this.call) this.note(this.call, line);
+    else this.lone(line);
+  }
+
+  codex(event: Record<string, unknown>, type: string, line: string): void {
+    if (type === "thread.started") this.thread = typeof event.thread_id === "string" ? event.thread_id : "";
+    else if (type === "turn.started") this.turnOpen = this.open;
+    else if (type === "turn.completed") {
+      const soFar = codexUsage(event.usage);
+      const grew = soFar === undefined ? undefined : Math.max(soFar - (this.threadSoFar.get(this.thread) ?? 0), 0);
+      if (soFar !== undefined) this.threadSoFar.set(this.thread, soFar);
+      if (this.turnOpen !== undefined && this.open === this.turnOpen) this.add(grew, this.turnOpen);
+      this.turnOpen = undefined;
+    } else if (type === "item.completed") this.lone(line);
+  }
+}
+
+export function stepTokens(text: string, tool?: SummarizeOptions["tool"]): Map<string, number> {
+  const kind = transcriptFormat(tool, text);
+  const counter = new StepTokenCounter(kind);
   for (const line of text.split("\n")) {
     if (!line.trim()) continue;
     let event: Record<string, unknown> | undefined;
@@ -112,61 +180,10 @@ export function stepTokens(text: string, tool?: SummarizeOptions["tool"]): Map<s
     }
     if (!event) continue;
     const type = typeof event.type === "string" ? event.type : "";
-
-    if (family === "claude") {
-      // A new invocation (the review's, a fix turn's) is a new session: the step it finds open is not its own.
-      if (type === "system" && event.subtype === "init") {
-        flush();
-        open = undefined;
-        continue;
-      }
-      if (type !== "assistant") continue;
-      const message = obj(event.message);
-      const id = typeof message?.id === "string" ? message.id : undefined;
-      if (!call || id === undefined || id !== call.id) {
-        flush();
-        call = { id, marks: [] };
-      }
-      // A message whose events a subagent's came between starts a second call on the same id: its marks
-      // count, its usage was counted with the first.
-      if (call.usage === undefined && !(id !== undefined && counted.has(id))) {
-        call.usage = claudeUsage(message);
-        if (id !== undefined && call.usage !== undefined) counted.set(id, { usage: call.usage });
-      }
-      note(call, line);
-    } else if (family === "opencode") {
-      const sid = typeof event.sessionID === "string" ? event.sessionID : undefined;
-      if (sid !== undefined && session !== undefined && sid !== session) {
-        flush();
-        open = undefined;
-      }
-      session = sid ?? session;
-      if (type === "step_start") {
-        flush();
-        call = { marks: [] };
-      } else if (type === "step_finish") {
-        if (call) call.usage = opencodeUsage(obj(event.part));
-        flush();
-      } else if (call) note(call, line);
-      else {
-        const lone: Call = { marks: [] };
-        note(lone, line);
-        apply(lone);
-      }
-    } else if (type === "thread.started") thread = typeof event.thread_id === "string" ? event.thread_id : "";
-    else if (type === "turn.started") turnOpen = open;
-    else if (type === "turn.completed") {
-      const soFar = codexUsage(event.usage);
-      const grew = soFar === undefined ? undefined : Math.max(soFar - (threadSoFar.get(thread) ?? 0), 0);
-      if (soFar !== undefined) threadSoFar.set(thread, soFar);
-      if (turnOpen !== undefined && open === turnOpen) add(grew, turnOpen);
-      turnOpen = undefined;
-    } else if (type === "item.completed") {
-      const lone: Call = { marks: [] };
-      note(lone, line);
-      apply(lone);
-    }
+    if (kind === "claude") counter.claude(event, type, line);
+    else if (kind === "opencode") counter.opencode(event, type, line);
+    else counter.codex(event, type, line);
   }
-  flush();
-  return totals;
+  counter.flush();
+  return counter.totals;
 }

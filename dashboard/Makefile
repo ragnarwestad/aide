@@ -79,7 +79,7 @@ serve-local:
 # create it first, and once it boots the service's own periodic
 # `ensureDashboardCheckout` takes over keeping it current. Must match
 # `dashboardCheckoutRoot(DEFAULT_DASHBOARD_CHECKOUT_ROOT, "aide")` in
-# dashboard/src/dashboard-checkout.ts — kept in sync by
+# dashboard/src/git/dashboard-checkout/ — kept in sync by
 # test/install-serve-paths.test.ts.
 MINI_REPO ?= .aide/dashboard/checkouts/aide/code
 MINI_SRC ?= $(MINI_REPO)/dashboard

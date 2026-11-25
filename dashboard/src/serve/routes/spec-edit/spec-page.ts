@@ -52,84 +52,115 @@ function specInRow(
   return { detail, scriptSrc };
 }
 
-export async function specPageRoutes(
-  ctx: RoutesContext,
-  req: Request,
-  url: URL,
-  path: string,
-): Promise<Response | null> {
+// The held-for-Checks row's own link reaches `startTestServer()`
+// through this GET — a plain `target="_blank"` link can only ever
+// issue one. The three-part capability check mirrors
+// `spec-views/spec-page.ts`'s own (`testServerCapable`) so the trigger
+// never starts a board against the wrong checkout in a multi-repo
+// project, or for a spec archived after the link was rendered.
+// `startTestServer()` carries its own branch+commit+alive dedup, so a
+// repeat of this same URL — a reload of the Steps
+// tab it redirects to included — is a no-op read, not a second round.
+//
+// A board already up is where the reader wanted to go: straight
+// there, in the tab the link opened. The board's own page is
+// what is wanted, and this is the moment there is one to ask for.
+// ONE attempt per spec, whatever happens next. The waiting page
+// reloads onto this same URL, so anything that starts a board
+// here starts one every few seconds — 1821 of them on
+// 2026-09-07, each dying on a branch the first had already
+// checked out. An entry of ANY kind means the attempt was made:
+// running goes to it, failed says so, starting waits.
+// Set only by the failed page's own "Try
+// again" link — the one thing that tells a deliberate press apart
+// from a passive reload of the same URL, which must never clear
+// and restart a board on its own (this page carries no meta
+// refresh, but a person can still hit reload by hand).
+// A round that died says so and stops. Refreshing for ever in
+// front of a reader who can do nothing about it is worse than
+// naming what happened and leaving the tab to them.
+// Otherwise it has to be started, and that takes minutes — so the
+// tab the reader opened WAITS here rather than being sent back to
+// the spec page to find the address themselves. It reloads onto
+// this same URL, and the branch above carries it to the board the
+// moment there is one.
+// Never at a URL still carrying `retryTestServer=1` — the
+// waiting page's own 5-second self-refresh reloads exactly the
+// URL the browser is on, and a board that fails again later would
+// otherwise be cleared and restarted on every one of those polls,
+// forever, instead of stopping and offering its OWN fresh "Try
+// again" the way a first failure does.
+async function testServerTrigger(ctx: RoutesContext, req: Request, url: URL, project: string, specFolder: string): Promise<Response> {
+  const ref = ctx.specRef(project, specFolder);
+  const capable =
+    !ref?.archived &&
+    ctx.testServers.previewAvailable(project) &&
+    ctx.queue.branchesFor(project, specFolder).some((r) => r.root === ctx.testServers.aideCheckout(project));
+  const already = refreshTestServerStatus(ctx.testServers, project, specFolder);
+  if (already?.status === "running" && already.url) {
+    return Response.redirect(testServerUrlFor(req, already.url), 303);
+  }
+  const retry = url.searchParams.get("retryTestServer") === "1";
+  const retryHref = `${specTabPath(project, specFolder, "steps")}&startTestServer=1&retryTestServer=1`;
+  if (already?.status === "failed" && !retry) {
+    return testServerFailedPage(project, specFolder, already.error, retryHref, already.detail);
+  }
+  if (!capable) {
+    return new Response(null, { status: 303, headers: { location: specTabPath(project, specFolder, "steps") } });
+  }
+  if (!already || (already.status === "failed" && retry)) {
+    const dir = ctx.specDir(project, specFolder);
+    const result = await startTestServer(ctx.testServers, project, specFolder, dir ? { branch: branchForSpec(dir, specFolder) } : {});
+    if (!result.ok) return testServerFailedPage(project, specFolder, result.error, retryHref);
+  }
+  if (retry) {
+    return new Response(null, {
+      status: 303,
+      headers: { location: `${specTabPath(project, specFolder, "steps")}&startTestServer=1` },
+    });
+  }
+  return waitingForTestServerPage(project, specFolder);
+}
+
+/** The list's view the spec's links carry, read off the address. */
+function listViewFrom(url: URL) {
+  return listViewIn({
+    limit: url.searchParams.get("limit"),
+    boundary: url.searchParams.get("boundary"),
+    windowQuery: url.searchParams.get("windowQuery"),
+    state: url.searchParams.get("state"),
+    project: url.searchParams.get("project"),
+    sort: url.searchParams.get("sort"),
+    dir: url.searchParams.get("dir"),
+    q: url.searchParams.get("q"),
+  });
+}
+
+/** `?detail=1`: this spec's rows with the spec drawn in its row, and the
+ *  tab's script after them. */
+async function specDetailRows(
+  ctx: RoutesContext, url: URL,
+  o: { project: string; specFolder: string; key: string; parts: Awaited<ReturnType<typeof specsListParts>>; inRow: (view: SpecView) => ReturnType<typeof specInRow> },
+): Promise<Response> {
+  const { project, specFolder, key, parts, inRow } = o;
+  const [view, rows] = await Promise.all([
+    ctx.specPageView(project, specFolder, url.searchParams.get("tab") ?? undefined),
+    parts.rows(),
+  ]);
+  if (!view) return new Response("not found", { status: 404 });
+  const { detail, scriptSrc } = inRow(view);
+  const html = renderSpecGroupRows(rows, { ...parts.view, openSpec: { ...parts.view.openSpec, key, detail } }, key);
+  return new Response(html + (scriptSrc ? `<script src="${scriptSrc}"></script>` : ""), {
+    headers: listHeaders(parts),
+  });
+}
+
+async function specPageGetRoute(ctx: RoutesContext, req: Request, url: URL, path: string): Promise<Response | null> {
   const specPage = path.match(/^\/specs\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)$/);
   if (specPage) {
     if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
     const [, project, specFolder] = specPage;
-    // The held-for-Checks row's own link reaches `startTestServer()`
-    // through this GET — a plain `target="_blank"` link can only ever
-    // issue one. The three-part capability check mirrors
-    // `spec-views/spec-page.ts`'s own (`testServerCapable`) so the trigger
-    // never starts a board against the wrong checkout in a multi-repo
-    // project, or for a spec archived after the link was rendered.
-    // `startTestServer()` carries its own branch+commit+alive dedup, so a
-    // repeat of this same URL — a reload of the Steps
-    // tab it redirects to included — is a no-op read, not a second round.
-    if (url.searchParams.get("startTestServer") === "1") {
-      const ref = ctx.specRef(project!, specFolder!);
-      const capable =
-        !ref?.archived &&
-        ctx.testServers.previewAvailable(project!) &&
-        ctx.queue.branchesFor(project!, specFolder!).some((r) => r.root === ctx.testServers.aideCheckout(project!));
-      // A board already up is where the reader wanted to go: straight
-      // there, in the tab the link opened. The board's own page is
-      // what is wanted, and this is the moment there is one to ask for.
-      // ONE attempt per spec, whatever happens next. The waiting page
-      // reloads onto this same URL, so anything that starts a board
-      // here starts one every few seconds — 1821 of them on
-      // 2026-09-07, each dying on a branch the first had already
-      // checked out. An entry of ANY kind means the attempt was made:
-      // running goes to it, failed says so, starting waits.
-      const already = refreshTestServerStatus(ctx.testServers, project!, specFolder!);
-      if (already?.status === "running" && already.url) {
-        return Response.redirect(testServerUrlFor(req, already.url), 303);
-      }
-      // Set only by the failed page's own "Try
-      // again" link — the one thing that tells a deliberate press apart
-      // from a passive reload of the same URL, which must never clear
-      // and restart a board on its own (this page carries no meta
-      // refresh, but a person can still hit reload by hand).
-      const retry = url.searchParams.get("retryTestServer") === "1";
-      const retryHref = `${specTabPath(project!, specFolder!, "steps")}&startTestServer=1&retryTestServer=1`;
-      // A round that died says so and stops. Refreshing for ever in
-      // front of a reader who can do nothing about it is worse than
-      // naming what happened and leaving the tab to them.
-      if (already?.status === "failed" && !retry) {
-        return testServerFailedPage(project!, specFolder!, already.error, retryHref, already.detail);
-      }
-      // Otherwise it has to be started, and that takes minutes — so the
-      // tab the reader opened WAITS here rather than being sent back to
-      // the spec page to find the address themselves. It reloads onto
-      // this same URL, and the branch above carries it to the board the
-      // moment there is one.
-      if (!capable) {
-        return new Response(null, { status: 303, headers: { location: specTabPath(project!, specFolder!, "steps") } });
-      }
-      if (!already || (already.status === "failed" && retry)) {
-        const dir = ctx.specDir(project!, specFolder!);
-        const result = await startTestServer(ctx.testServers, project!, specFolder!, dir ? { branch: branchForSpec(dir, specFolder!) } : {});
-        if (!result.ok) return testServerFailedPage(project!, specFolder!, result.error, retryHref);
-      }
-      // Never at a URL still carrying `retryTestServer=1` — the
-      // waiting page's own 5-second self-refresh reloads exactly the
-      // URL the browser is on, and a board that fails again later would
-      // otherwise be cleared and restarted on every one of those polls,
-      // forever, instead of stopping and offering its OWN fresh "Try
-      // again" the way a first failure does.
-      if (retry) {
-        return new Response(null, {
-          status: 303,
-          headers: { location: `${specTabPath(project!, specFolder!, "steps")}&startTestServer=1` },
-        });
-      }
-      return waitingForTestServerPage(project!, specFolder!);
-    }
+    if (url.searchParams.get("startTestServer") === "1") return testServerTrigger(ctx, req, url, project!, specFolder!);
     // The 404 is decided BEFORE anything is sent: once the head has gone the
     // status is fixed, and `specDir` is the only place a spec can be missing.
     if (!ctx.specDir(project!, specFolder!)) return new Response("not found", { status: 404 });
@@ -139,16 +170,7 @@ export async function specPageRoutes(
     // Description panel while loading no editor script for it.
     const tab = resolveSpecTab(url.searchParams.get("tab") ?? undefined);
     // The list's view the spec's links carry, so a click keeps the list around the row.
-    const listView = listViewIn({
-      limit: url.searchParams.get("limit"),
-      boundary: url.searchParams.get("boundary"),
-      windowQuery: url.searchParams.get("windowQuery"),
-      state: url.searchParams.get("state"),
-      project: url.searchParams.get("project"),
-      sort: url.searchParams.get("sort"),
-      dir: url.searchParams.get("dir"),
-      q: url.searchParams.get("q"),
-    });
+    const listView = listViewFrom(url);
     // The address is the Specs list with this spec's row open. The rows the
     // page script redraws carry an empty place for the spec: it already holds
     // the spec, and building its view on every change would read git for each.
@@ -173,18 +195,7 @@ export async function specPageRoutes(
     // tab's script after them, for the page script that opens a shut row in
     // place. A view that cannot be built is a 404 the script reads as "could
     // not be loaded"; a throw is the server's own 500.
-    if (url.searchParams.get("detail") === "1") {
-      const [view, rows] = await Promise.all([
-        ctx.specPageView(project!, specFolder!, url.searchParams.get("tab") ?? undefined),
-        parts.rows(),
-      ]);
-      if (!view) return new Response("not found", { status: 404 });
-      const { detail, scriptSrc } = inRow(view);
-      const html = renderSpecGroupRows(rows, { ...parts.view, openSpec: { ...parts.view.openSpec, key, detail } }, key);
-      return new Response(html + (scriptSrc ? `<script src="${scriptSrc}"></script>` : ""), {
-        headers: listHeaders(parts),
-      });
-    }
+    if (url.searchParams.get("detail") === "1") return specDetailRows(ctx, url, { project: project!, specFolder: specFolder!, key, parts, inRow });
     // The head and a loading element go out at once, the rest when
     // the spec's view is ready.
     return streamedPage({
@@ -202,6 +213,101 @@ export async function specPageRoutes(
       headers: listHeaders(parts),
     });
   }
+  return null;
+}
+
+/** The description a save writes, with its Depends on line kept from the
+ *  copy it overwrites; why it is refused, else. */
+/** The spec file a save names, when it may be written now; why not, else. */
+function savedFile(ctx: RoutesContext, project: string, specFolder: string, body: Record<string, unknown>): string | { reason: string; status: number; quiet?: boolean } {
+  // The file comes in with the request now; a request that
+  // predates this field (only Description's own form ever posted
+  // here) defaults to it, so nothing already posting to `/save`
+  // breaks. Anything outside the four editable files is refused
+  // before the body is read further.
+  const file = typeof body.file === "string" ? body.file : EDITABLE_SPEC_FILE;
+  // `4-status.md` is a record, not a document to write: the tracking
+  // block is the run's own stamp and the phase tables are its log of
+  // what it did. The one thing in it a person decides — the
+  // acceptance checks — is the tick route's, which can both put a
+  // check on and take one back off, so nothing is left
+  // here that a hand edit is the only way to do.
+  if (file === STATUS_SPEC_FILE) {
+    const reason = `${STATUS_SPEC_FILE} is written by the run — tick and untick the acceptance criteria on the Status tab instead`;
+    return { reason, status: 400 };
+  }
+  if (!FILE_TABS[file]) return { reason: `unknown spec file: ${file} — nothing was saved`, status: 400, quiet: true };
+  // The same job-state gate the tick route already applies —
+  // a run works in a worktree branched when it started, so a hand
+  // edit cannot corrupt it, but the write below goes onto that same
+  // branch, and a save racing the run's own commits to it is exactly
+  // what this gate exists to prevent.
+  const activeJob = ctx.queue.list().some(
+    (job) => job.project === project && job.specFolder === specFolder && writing(job),
+  );
+  if (activeJob) {
+    const reason = "another job for this spec is still running — nothing was saved";
+    return { reason, status: 409 };
+  }
+  return file;
+}
+
+async function keptDescription(
+  ctx: RoutesContext, dir: string, branchTarget: Awaited<ReturnType<typeof resolveOpenBranchTarget>>, text: string,
+): Promise<string | { reason: string }> {
+  const description = descriptionPart(text);
+  if (description !== null && description.length > DESCRIPTION_MAX) {
+    const reason = getErrorMessage({
+      what: `the description is ${description.length - DESCRIPTION_MAX} characters over the ${DESCRIPTION_MAX} it may hold — nothing was saved`,
+      resolve: "Shorten it on the Description tab and save again.",
+    }).text;
+    return { reason };
+  }
+  const current = branchTarget
+    ? (await readStatusFromBranch(ctx.gitRun, branchTarget.root, branchTarget.branch, branchTarget.relPath))?.text ?? null
+    : specFileText(dir, EDITABLE_SPEC_FILE);
+  if (current !== null && criteriaChecksIn(text) !== criteriaChecksIn(current)) {
+    const reason =
+      "the acceptance criteria checks level is chosen when a spec is created and cannot be changed — " +
+      "put the Acceptance criteria checks line back as it was, then save again";
+    return { reason };
+  }
+  const kept = withDependsOnLine(text, current === null ? [] : dependsOnIn(current));
+  if (kept === null) {
+    const reason = `nowhere to keep "Depends on" — the description has no Created line — nothing was saved`;
+    return { reason };
+  }
+  return kept;
+}
+
+// Before the body is even read: this one WRITES, commits and
+// pushes, and an archived spec's folder is in `archive/`.
+// An EMPTY textarea is a legitimate save — the terminal-edit path
+// this matches has never stopped anyone deleting the lot. A body
+// with no field at all is not: it is a request that never came
+// from this form, and writing it would empty the file.
+// The "Depends on" picker lives in the banner above the tab row and
+// saves through `spec-edit/tracking.ts`; this route posts no
+// `dependsOn` field. The tab shows the description without the line,
+// so it is put back below from the copy this save overwrites.
+// The derived state file has no second writer here any more: the one
+// file whose save had to keep it in step was `4-status.md`, and that
+// save is refused above.
+// The same branch-aware choice the tick route already makes
+// for `4-status.md` — an open `aide/<folder>` branch is where an
+// active spec's real, already-committed progress lives, and a
+// write straight to `main` would be silently lost the moment
+// `archive` merges the branch. Read fresh (`true`), never the
+// cached answer: a branch opened moments ago by `create` or
+// `analyze` must be seen by the very next Save press.
+// The acceptance criteria checks level is chosen when the spec is
+// created and recorded in the description's Tracking info, so a save
+// that would change, remove or add that line is refused. Compared with
+// the description where this save writes, as the tracking route reads it.
+// The cached answers about the spec read what was just saved.
+// The page loads again on its own tab, where the file now carries its
+// new commit stamp — unless nothing was committed, which it says.
+async function specSaveRoute(ctx: RoutesContext, req: Request, _url: URL, path: string): Promise<Response | null> {
 
   const save = path.match(/^\/api\/queue\/specs\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)\/save$/);
   if (save) {
@@ -210,8 +316,6 @@ export async function specPageRoutes(
     const found = ctx.specDir(project!, specFolder!);
     if (!found) return new Response("not found", { status: 404 });
     const dir = await ctx.machinerySpecDir(project!, found);
-    // Before the body is even read: this one WRITES, commits and
-    // pushes, and an archived spec's folder is in `archive/`.
     if (ctx.specRef(project!, specFolder!)?.archived) {
       logRefusal("save", `${project}/${specFolder}`, ARCHIVED_REFUSAL);
       return json({ error: ARCHIVED_REFUSAL }, 400);
@@ -219,88 +323,20 @@ export async function specPageRoutes(
     const sent = await readObjectBody(req, { cap: MAX_SAVE_BODY });
     if ("refusal" in sent) return sent.refusal;
     const body = sent.body;
-    // The file comes in with the request now; a request that
-    // predates this field (only Description's own form ever posted
-    // here) defaults to it, so nothing already posting to `/save`
-    // breaks. Anything outside the four editable files is refused
-    // before the body is read further.
-    const file = typeof body.file === "string" ? body.file : EDITABLE_SPEC_FILE;
-    // `4-status.md` is a record, not a document to write: the tracking
-    // block is the run's own stamp and the phase tables are its log of
-    // what it did. The one thing in it a person decides — the
-    // acceptance checks — is the tick route's, which can both put a
-    // check on and take one back off, so nothing is left
-    // here that a hand edit is the only way to do.
-    if (file === STATUS_SPEC_FILE) {
-      const reason = `${STATUS_SPEC_FILE} is written by the run — tick and untick the acceptance criteria on the Status tab instead`;
-      logRefusal("save", `${project}/${specFolder}`, reason);
-      return json({ error: reason }, 400);
+    const file = savedFile(ctx, project!, specFolder!, body);
+    if (typeof file !== "string") {
+      if (!file.quiet) logRefusal("save", `${project}/${specFolder}`, file.reason);
+      return json({ error: file.reason }, file.status);
     }
-    if (!FILE_TABS[file]) return json({ error: `unknown spec file: ${file} — nothing was saved` }, 400);
-    // The same job-state gate the tick route already applies —
-    // a run works in a worktree branched when it started, so a hand
-    // edit cannot corrupt it, but the write below goes onto that same
-    // branch, and a save racing the run's own commits to it is exactly
-    // what this gate exists to prevent.
-    const activeJob = ctx.queue.list().some(
-      (job) => job.project === project && job.specFolder === specFolder && writing(job),
-    );
-    if (activeJob) {
-      const reason = "another job for this spec is still running — nothing was saved";
-      logRefusal("save", `${project}/${specFolder}`, reason);
-      return json({ error: reason }, 409);
-    }
-    // An EMPTY textarea is a legitimate save — the terminal-edit path
-    // this matches has never stopped anyone deleting the lot. A body
-    // with no field at all is not: it is a request that never came
-    // from this form, and writing it would empty the file.
     if (typeof body.text !== "string") return json({ error: "no text was submitted — nothing was saved" }, 400);
-    // The "Depends on" picker lives in the banner above the tab row and
-    // saves through `spec-edit/tracking.ts`; this route posts no
-    // `dependsOn` field. The tab shows the description without the line,
-    // so it is put back below from the copy this save overwrites.
     let text = body.text;
     const baseSha = typeof body.baseSha === "string" && body.baseSha ? body.baseSha : null;
-    // The derived state file has no second writer here any more: the one
-    // file whose save had to keep it in step was `4-status.md`, and that
-    // save is refused above.
-    // The same branch-aware choice the tick route already makes
-    // for `4-status.md` — an open `aide/<folder>` branch is where an
-    // active spec's real, already-committed progress lives, and a
-    // write straight to `main` would be silently lost the moment
-    // `archive` merges the branch. Read fresh (`true`), never the
-    // cached answer: a branch opened moments ago by `create` or
-    // `analyze` must be seen by the very next Save press.
     const branchTarget = await resolveOpenBranchTarget(ctx, dir, specFolder!, file, true);
-    // The acceptance criteria checks level is chosen when the spec is
-    // created and recorded in the description's Tracking info, so a save
-    // that would change, remove or add that line is refused. Compared with
-    // the description where this save writes, as the tracking route reads it.
     if (file === EDITABLE_SPEC_FILE) {
-      const description = descriptionPart(text);
-      if (description !== null && description.length > DESCRIPTION_MAX) {
-        const reason = getErrorMessage({
-          what: `the description is ${description.length - DESCRIPTION_MAX} characters over the ${DESCRIPTION_MAX} it may hold — nothing was saved`,
-          resolve: "Shorten it on the Description tab and save again.",
-        }).text;
-        logRefusal("save", `${project}/${specFolder}`, reason);
-        return json({ error: reason }, 400);
-      }
-      const current = branchTarget
-        ? (await readStatusFromBranch(ctx.gitRun, branchTarget.root, branchTarget.branch, branchTarget.relPath))?.text ?? null
-        : specFileText(dir, file);
-      if (current !== null && criteriaChecksIn(text) !== criteriaChecksIn(current)) {
-        const reason =
-          "the acceptance criteria checks level is chosen when a spec is created and cannot be changed — " +
-          "put the Acceptance criteria checks line back as it was, then save again";
-        logRefusal("save", `${project}/${specFolder}`, reason);
-        return json({ error: reason }, 400);
-      }
-      const kept = withDependsOnLine(text, current === null ? [] : dependsOnIn(current));
-      if (kept === null) {
-        const reason = `nowhere to keep "Depends on" — the description has no Created line — nothing was saved`;
-        logRefusal("save", `${project}/${specFolder}`, reason);
-        return json({ error: reason }, 400);
+      const kept = await keptDescription(ctx, dir, branchTarget, text);
+      if (typeof kept !== "string") {
+        logRefusal("save", `${project}/${specFolder}`, kept.reason);
+        return json({ error: kept.reason }, 400);
       }
       text = kept;
     }
@@ -318,6 +354,18 @@ export async function specPageRoutes(
     // new commit stamp — unless nothing was committed, which it says.
     return json({ ok: true, note: result.note, changed: (result as { committed?: boolean }).committed !== false });
   }
-
   return null;
+}
+
+export async function specPageRoutes(
+  ctx: RoutesContext,
+  req: Request,
+  url: URL,
+  path: string,
+): Promise<Response | null> {
+  return (
+    (await specPageGetRoute(ctx, req, url, path)) ??
+    (await specSaveRoute(ctx, req, url, path)) ??
+    null
+  );
 }

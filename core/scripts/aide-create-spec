@@ -62,6 +62,7 @@ require_library() {
 }
 require_library "_aide-spec-lib.sh"
 require_library "lib/config/aide-config.sh"
+require_library "lib/create-spec/placeholder-files.sh"
 require_library "lib/spec-result.sh"
 require_library "lib/spec-reference.sh"
 require_library "lib/tracking-info.sh"

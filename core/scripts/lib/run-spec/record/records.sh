@@ -175,7 +175,7 @@ rebuild_acceptance_after_analysis() {   # $1 = status file, $2 = pre-session ref
 }
 
 completed_steps_for() {   # sets $completed_steps; reads $command_name, $terminal_reason, $WORKFLOW_ARC, $WORKFLOW_ARC_RETIRED
-  local folder="$1" dir="$2" subject step reason seen completed
+  local folder="$1" dir="$2" step seen completed
   local existing_line existing_step archive_counts="yes"
   local analyzed_since="" reset_by_this_run=""
   local boundary_args=()
@@ -193,17 +193,7 @@ completed_steps_for() {   # sets $completed_steps; reads $command_name, $termina
   # the scan below (its boundary cannot be `--not`, which would cut every
   # earlier step the reopen KEPT). `archive` alone counts only from a
   # commit made after the round boundary.
-  kept_round_boundary_in "$3"
-  if [ -n "$kept_round_sha" ]; then
-    archive_counts=""
-    while IFS= read -r subject; do
-      aide_read_step_subject "$subject" "$folder" && [ "$subject_step" = "archive" ] || continue
-      [ -n "$subject_stop" ] || { archive_counts="yes"; break; }
-    done <<ARCHIVE_SCAN
-$(git -C "$dir" log --all --not "$kept_round_sha" --format=%s --fixed-strings \
-    --grep="$(aide_step_subject_start archive "$folder")" 2>/dev/null)
-ARCHIVE_SCAN
-  fi
+  archive_counts_after_kept_round "$folder" "$dir" "$3"
   seen="|"; completed="|"
   case " $WORKFLOW_ARC " in
     *" $command_name "*)
@@ -215,6 +205,46 @@ ARCHIVE_SCAN
       fi
       ;;
   esac
+  scan_step_commits "$folder" "$dir"
+  existing_line="$(steps_line_before_session "$2" "$3" "${4:-}")"
+  for existing_step in $existing_line; do
+    [ "$existing_step" = "archive" ] && [ -z "$archive_counts" ] && continue
+    case "$existing_step" in implement|archive) [ -n "$reset_by_this_run" ] && continue ;; esac
+    case " $WORKFLOW_ARC $WORKFLOW_ARC_RETIRED " in
+      *" $existing_step "*) completed="$completed$existing_step|" ;;
+    esac
+  done
+  for step in $WORKFLOW_ARC $WORKFLOW_ARC_RETIRED; do
+    case "$completed" in
+      *"|$step|"*) completed_steps="${completed_steps:+$completed_steps, }$step" ;;
+    esac
+  done
+  return 0
+}
+
+# archive_counts_after_kept_round($folder, $dir, $status_file) — sets the
+# caller's $archive_counts: empty when a keep-Reopen's round boundary
+# exists and no completed `archive` commit came after it.
+archive_counts_after_kept_round() {
+  local folder="$1" dir="$2" subject
+  kept_round_boundary_in "$3"
+  if [ -n "$kept_round_sha" ]; then
+    archive_counts=""
+    while IFS= read -r subject; do
+      aide_read_step_subject "$subject" "$folder" && [ "$subject_step" = "archive" ] || continue
+      [ -n "$subject_stop" ] || { archive_counts="yes"; break; }
+    done <<ARCHIVE_SCAN
+$(git -C "$dir" log --all --not "$kept_round_sha" --format=%s --fixed-strings \
+    --grep="$(aide_step_subject_start archive "$folder")" 2>/dev/null)
+ARCHIVE_SCAN
+  fi
+}
+
+# scan_step_commits($folder, $dir) — reads the step commits for $folder
+# into the caller's $seen, $completed and $analyzed_since; reads
+# $archive_counts and $boundary_args from it.
+scan_step_commits() {
+  local folder="$1" dir="$2" subject step reason
   # --all, not HEAD: `implement` deliberately lands nothing until
   # `archive` runs, so its commit sits on this spec's own branch for as
   # long as the spec takes. Newest first, which is what makes the first
@@ -239,6 +269,12 @@ ARCHIVE_SCAN
 $(git -C "$dir" log --all --date-order ${boundary_args[@]+"${boundary_args[@]}"} --format=%s --fixed-strings \
     --grep="$AIDE_STEP_SUBJECT_PREFIX" --grep=" for $folder" --all-match 2>/dev/null)
 EOF
+}
+
+# steps_line_before_session($specs_dir, $status_file, $pre_session_ref) —
+# prints the steps line of the status file as it stood before this step's
+# session ran.
+steps_line_before_session() {
   # A step the line already names stays named, whatever the scan found
   # The scan sees a step only through the commit-subject
   # grammar, and a step that committed its own work under a descriptive
@@ -261,7 +297,7 @@ EOF
   # newline in a replacement.
   #
   # Read the line as it stood BEFORE this step's own session
-  # ran ($4, the specs worktree's pre-session ref), not the file's
+  # ran ($3, the specs worktree's pre-session ref), not the file's
   # current content — otherwise a session that writes a LATER step's
   # name into its own assembled text grants itself permanent credit for
   # that step, since this function never subtracts (by design,
@@ -269,24 +305,12 @@ EOF
   # descriptive subject, invisible to the scan above). The fallback to
   # today's post-session read covers the one case with no "before" to
   # read from: a brand-new spec's `4-status.md`, which does not exist at
-  # `$4` yet.
-  if [ -n "${4:-}" ] && \
-     existing_line="$(git -C "$2" show "$4:./$(basename "$3")" 2>/dev/null | workflow_steps_in)"; then
-    :
+  # `$3` yet.
+  local existing_line
+  if [ -n "${3:-}" ] && \
+     existing_line="$(git -C "$1" show "$3:./$(basename "$2")" 2>/dev/null | workflow_steps_in)"; then
+    printf '%s\n' "$existing_line"
   else
-    existing_line="$(workflow_steps_in "$3")"
+    workflow_steps_in "$2"
   fi
-  for existing_step in $existing_line; do
-    [ "$existing_step" = "archive" ] && [ -z "$archive_counts" ] && continue
-    case "$existing_step" in implement|archive) [ -n "$reset_by_this_run" ] && continue ;; esac
-    case " $WORKFLOW_ARC $WORKFLOW_ARC_RETIRED " in
-      *" $existing_step "*) completed="$completed$existing_step|" ;;
-    esac
-  done
-  for step in $WORKFLOW_ARC $WORKFLOW_ARC_RETIRED; do
-    case "$completed" in
-      *"|$step|"*) completed_steps="${completed_steps:+$completed_steps, }$step" ;;
-    esac
-  done
-  return 0
 }

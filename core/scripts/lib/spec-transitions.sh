@@ -289,7 +289,17 @@ rebuild_acceptance_rows() {
   [ -f "$status_file" ] || return 0
   [ -f "$description" ] || description="/dev/null"
   tmp="$(mktemp)"
-  LC_ALL=C awk -v desc="$description" -v status_mark="$mark" '
+  LC_ALL=C awk -v desc="$description" -v status_mark="$mark" "$(acceptance_rows_flush_awk; acceptance_rows_awk)" \
+    "$description" "$status_file" > "$tmp" 2>/dev/null
+  if [ -s "$tmp" ] && ! cmp -s "$tmp" "$status_file"; then
+    cat "$tmp" > "$status_file"
+  fi
+  rm -f "$tmp"
+}
+
+# The awk function that writes the rebuilt table, for rebuild_acceptance_rows.
+acceptance_rows_flush_awk() {
+  cat <<'AWK'
     function trim(s) { gsub(/^[ \t]+|[ \t]+$/, "", s); return s }
     function flush(   i, j, n, cells, task, note, oid, mark, pl, pr) {
       in_table = 0; table_done = 1
@@ -322,6 +332,13 @@ rebuild_acceptance_rows() {
         else print "| " task " | " status_mark " | " note " |"
       }
     }
+AWK
+}
+
+# The awk rules that read the description and find the table, for
+# rebuild_acceptance_rows.
+acceptance_rows_awk() {
+  cat <<'AWK'
     FILENAME == desc {
       if ($0 !~ /^- \*\*AC-[0-9]+/) next
       line = $0; sub(/\r$/, "", line)
@@ -348,11 +365,7 @@ rebuild_acceptance_rows() {
     }
     { print }
     END { if (in_table) flush() }
-  ' "$description" "$status_file" > "$tmp" 2>/dev/null
-  if [ -s "$tmp" ] && ! cmp -s "$tmp" "$status_file"; then
-    cat "$tmp" > "$status_file"
-  fi
-  rm -f "$tmp"
+AWK
 }
 
 # apply_spec_transition($status_file, $event, $value) — the convenience

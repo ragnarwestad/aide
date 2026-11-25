@@ -7,7 +7,7 @@ import { join } from "node:path";
 import { QueueStore, type Job } from "../../src/queue/queue.ts";
 import { PROPOSALS_FILE } from "../../src/queue/spec-proposals.ts";
 import { scheduleRunOutputDir } from "../../src/queue/schedule.ts";
-import { stepDoneHandler } from "../../src/serve/runner-setup.ts";
+import { stepDoneHandler } from "../../src/serve/runner-setup/index.ts";
 
 let root: string;
 let store: QueueStore;

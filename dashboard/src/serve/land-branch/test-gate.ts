@@ -9,16 +9,17 @@ import { runScript, scriptFor } from "./run-script.ts";
 import { checkoutForGate, runWorktreeSetup, type WorktreeSetup } from "./worktree-setup.ts";
 import { NO_GIT_HOOKS } from "../../integrations/no-git-hooks.ts";
 import { alreadySeenGreen, type GatedJob } from "./seen-green.ts";
-import { runLogPath } from "../../queue/runner/run-log-path.ts";
-import { formatRunLogLine } from "../../queue/parse-stream/step-log.ts";
-import { recordedFailures, variedBetween, type FailingTests } from "../../format/failing-tests.ts";
+import { recordedFailures, type FailingTests } from "../../format/failing-tests.ts";
 import { LANDING_RETRIES } from "../../git/branch-merge/index.ts";
 import type { Sentence } from "../../messages/types.ts";
 import type { RepairRequest } from "./repair/index.ts";
 import type { Job } from "../../queue/queue.ts";
 import { redSuites, rerunAfterRepair, suiteEnv, type RedSuites } from "./suite-rerun.ts";
+import { stepLogLine, stepStreamFile } from "./gate/step-log.ts";
+import { redOnMainVerdict, redOnMergeVerdict, type RedFacts } from "./gate/red-verdict.ts";
 
 export { LANDING_GATE_TEMP_PREFIX } from "./worktree-setup.ts";
+export { stepLogLine };
 
 /** Resolve the command(s) the merged change calls for, run them through
  *  aide-record-test-run (which keeps the run's output), and say green
@@ -55,17 +56,6 @@ export function failingLines(stdout: string, stderr: string, budget = 600): stri
   const tail = out.slice(-budget);
   const at = tail.indexOf("\n");
   return at >= 0 && at < tail.length - 1 ? tail.slice(at + 1) : tail;
-}
-
-/** The failing tests a run named, kept as items for message detail. */
-function namedTests(result: Pick<FailingTests, "tests" | "errors">): string[] {
-  const shown = result.tests.slice(0, 8).map((test, index) => result.errors[index] ? `${test} — ${result.errors[index]}` : test);
-  return result.tests.length > 8 ? [...shown, "…"] : shown;
-}
-
-/** The tests a verdict hands on, every one of them: the sentence shows eight. */
-function asFailedTests(named: { test: string; file: string; error: string }[]): GateVerdict["failedTests"] {
-  return named.map(({ test, file, error }) => ({ name: test, file, error }));
 }
 
 /** `retriedAfter`: green only on the second run, and these are the
@@ -178,36 +168,6 @@ export function timeoutVerdict(output: string, minutes: number, button: string):
   return { ok: false, terminalReason: "timeout", error: { key: "landing.testsTimedOut", values: { minutes, test, button } }, detail: failingLines(output, "") };
 }
 
-/** A line in the landed step's own run log, stamped the way `aide-run-spec`
- *  stamps its own, so the step's Log shows the landing under "tests and
- *  commit". `error` marks a red one. Best effort: a log that cannot be
- *  written leaves the landing as it was.
- *
- *  The landing starts before the runner stores the step's result, so the
- *  job it is handed names the step's transcript as its own `streamFile`
- *  and its results end on the step BEFORE. The last result is the step's
- *  own only for a landing resumed at boot, when that pointer is gone. */
-export function stepLogLine(job: GatedJob, text: string, error = false): void {
-  const last = job.results?.at(-1);
-  const streamFile = stepStreamFile(job);
-  if (!streamFile) return;
-  const now = new Date();
-  const startedAt = job.streamFile ? job.stepStartedAt : last?.startedAt;
-  const began = startedAt ? Date.parse(startedAt) : NaN;
-  const seconds = Number.isNaN(began) ? 0 : Math.max(0, Math.round((now.getTime() - began) / 1000));
-  const clock = now.toTimeString().slice(0, 8);
-  try {
-    appendFileSync(runLogPath(streamFile), `${formatRunLogLine(clock, seconds, text, error)}\n`);
-  } catch {
-    // Nothing to do: the gate log keeps the run either way.
-  }
-}
-
-/** The transcript of the step this landing merges (see `stepLogLine`). */
-function stepStreamFile(job: GatedJob): string | undefined {
-  return job.streamFile ?? job.results?.at(-1)?.streamFile;
-}
-
 /** The test run's progress (`aide-record-test-run --progress-file`) into
  *  the step's Log as it comes, every two seconds and once more at the end. */
 function followProgress(job: GatedJob, file: string, label: string): { stop: () => void } {
@@ -245,6 +205,9 @@ function keepStepOutput(job: GatedJob, output: string): void {
   }
 }
 
+type ScriptOut = Awaited<ReturnType<typeof runScript>>;
+type RunOnce = (label: string, runRoot?: string, env?: Record<string, string>) => Promise<ScriptOut>;
+
 async function runSuiteIn(
   root: string,
   liveRoot: string,
@@ -253,60 +216,15 @@ async function runSuiteIn(
   opts: GateOpts,
   setup?: (dir: string) => Promise<WorktreeSetup>,
 ): Promise<GateVerdict> {
-  // Beside the runner first, never PATH alone: see `scriptFor`.
-  const resolver = scriptFor("aide-resolve-test-cmd", { beside: opts.scriptDir, override: process.env.AIDE_RESOLVE_TEST_CMD_BIN });
-  const recorder = scriptFor("aide-record-test-run", { beside: opts.scriptDir, override: process.env.AIDE_RECORD_TEST_RUN_BIN });
-  // What the branch changed beyond the default branch picks the tests, as
-  // in Implement; the nightly full run on main catches what a selection
-  // misses. Without a default branch the whole command runs.
-  // Named as Implement names it (`origin/main`), so a landing on the tree
-  // Implement saw green resolves the same command and is skipped.
-  const base = (await defaultBranchRef(liveRoot))?.replace(/^refs\/(remotes|heads)\//, "");
-  const selection = base ? ["--changed-from", base, "--targeted"] : [];
-  const resolved = await runScript([resolver, "--project-dir", root, ...selection], root, 60_000);
-  let commands: string[] = [];
-  try {
-    const parsed = JSON.parse(resolved.stdout.trim().split("\n").pop() ?? "{}");
-    if (!parsed.ok) {
-      return {
-        ok: false,
-        error: { key: "testGate.cannotResolveCommand", values: { root } },
-        detail: String(parsed.error ?? "unknown"),
-      };
-    }
-    commands = Array.isArray(parsed.commands) ? parsed.commands : [];
-  } catch {
-    return {
-      ok: false,
-      error: { key: "testGate.cannotReadResolverAnswer", values: { root } },
-      detail: resolved.stderr.slice(-400),
-    };
-  }
+  const commands = await resolveCommands(root, liveRoot, opts);
+  if (!Array.isArray(commands)) return commands;
   if (commands.length === 0) {
     // No AIDE_TEST_CMD: nothing to run is not red. The project's page
     // says there is no test command.
     return { ok: true };
   }
   const log = process.env.AIDE_TEST_GATE_LOG ?? join(process.env.HOME || homedir(), "Library", "Logs", "aide-dashboard", "test-gate.log");
-  // The step this landing merges may already have seen these commands
-  // green on this very tree (seen-green.ts) — main has not moved since
-  // its own run. Said in the same log a run would have written to, so a
-  // landing that ran nothing still leaves its answer where people look.
-  const seen = await alreadySeenGreen(root, liveRoot, job, commands, opts);
-  if (seen) {
-    stepLogLine(job, "the landing did not run the project's tests: the step already saw them green on this tree");
-    try {
-      mkdirSync(join(log, ".."), { recursive: true });
-      appendFileSync(
-        log,
-        `--- ${new Date().toISOString()} ${job.project}/${job.specFolder} landing in ${liveRoot} ---\n` +
-          `not run: the step already saw ${commands.join(" && ")} green on this tree (${seen})\n`,
-      );
-    } catch {
-      // A log that cannot be written must not turn a skipped run red.
-    }
-    return { ok: true };
-  }
+  if (await skippedAsSeenGreen(root, liveRoot, job, commands, opts, log)) return { ok: true };
   const mainRef = await defaultBranchRef(liveRoot);
   const mainSha = mainRef ? (await runScript(["git", ...NO_GIT_HOOKS, "rev-parse", mainRef], liveRoot, 30_000)).stdout.trim() : "";
   const testedHead = (await runScript(["git", ...NO_GIT_HOOKS, "rev-parse", "HEAD"], root, 30_000)).stdout.trim();
@@ -315,27 +233,7 @@ async function runSuiteIn(
   const report = join(scratch, "suites.jsonl");
   try {
     mkdirSync(join(scratch, job.specFolder), { recursive: true });
-    const argv = [recorder, "--project-dir", root, "--specs-root", scratch, "--folder", job.specFolder];
-    for (const c of commands) argv.push("--cmd", c);
-    const runOnce = async (label: string, runRoot = root, env: Record<string, string> = suiteEnv(report)) => {
-      const progress = join(scratch, `progress${label.replace(/\W+/g, "-")}`);
-      writeFileSync(progress, "");
-      const follow = followProgress(job, progress, label === " (retry)" ? " on the merge (retry)" : label || " on the merge");
-      const runArgv = [...argv];
-      runArgv[2] = runRoot;
-      const out = await runScript([...runArgv, "--progress-file", progress], runRoot, LANDING_GATE_TIMEOUT_MS, job.id, { ...env, ...(opts.queueMirrorPath ? { AIDE_QUEUE_MIRROR: opts.queueMirrorPath } : {}) }).finally(follow.stop);
-      keepStepOutput(job, `${out.stdout}${out.stderr}`);
-      // The run's own output, kept where the archive step used to keep
-      // it, under the same header a reader already knows.
-      try {
-        mkdirSync(join(log, ".."), { recursive: true });
-        appendFileSync(log, `--- ${new Date().toISOString()} ${job.project}/${job.specFolder} landing in ${liveRoot}${label} ---\n${out.stdout}${out.stderr}\n`);
-      } catch {
-        // A log that cannot be written must not turn a green suite red.
-      }
-      return out;
-    };
-    const button = opts.button;
+    const runOnce = suiteRunner({ root, liveRoot, job, opts, commands, scratch, report, log });
     if (again) stepLogLine(job, `the landing runs again the suites that were red (${again.red.join(", ")}), and those the repair's own changes need`);
     else stepLogLine(job, `the landing runs the project's tests on the merge (${commands.length} command(s))`);
     let gate = await runOnce("", root, suiteEnv(report, again?.red, again?.testedHead));
@@ -347,93 +245,152 @@ async function runSuiteIn(
     // one would hold the landing for as long again. Repair-capable landings
     // diagnose the first failure instead of repeating an unchanged full suite.
     if (gate.code !== 0 && !gate.timedOut && !opts.repair) {
-      const first = failingLines(gate.stdout, gate.stderr);
-      for (let n = 0; n < LANDING_RETRIES.gateReruns && gate.code !== 0 && !gate.timedOut; n++) {
-        stepLogLine(job, "the landing's tests are red — running them once more", true);
-        gate = await runOnce(" (retry)");
-      }
-      if (gate.code === 0) {
-        stepLogLine(job, "the landing's tests are green on the second run");
-        return { ok: true, retriedAfter: first };
-      }
-      stepLogLine(job, "the landing's tests are red again", true);
+      const rerun = await rerunWhileRed(job, gate, runOnce);
+      if (rerun.verdict) return rerun.verdict;
+      gate = rerun.gate;
     }
     const minutes = Math.round(LANDING_GATE_TIMEOUT_MS / 60_000);
     if (gate.timedOut) {
       stepLogLine(job, `the landing's tests did not finish within ${minutes} minutes`, true);
-      return timeoutVerdict(`${gate.stdout}\n${gate.stderr}`, minutes, button);
+      return timeoutVerdict(`${gate.stdout}\n${gate.stderr}`, minutes, opts.button);
     }
-    if (gate.code !== 0) stepLogLine(job, "the landing runs the same tests on main alone, without this spec");
-    if (gate.code !== 0) {
-      if (red?.length) stepLogLine(job, `on main alone, only the suites that were red: ${red.join(", ")}`);
-      const main = await resultOnDefaultBranch(liveRoot, (label, runRoot) => runOnce(label, runRoot, suiteEnv(report, red)), setup);
-      // One sentence on the row: the tests that failed when the output
-      // named them, and what the two runs on the merge say about them —
-      // the same tests twice is the merge's doing; different ones point at
-      // unstable tests or a busy machine, and only then is that said. The
-      // test output rides in `detail`, on hover and on the job's own page.
-      // Where the work IS rides in the sentence itself: the origin check
-      // after the merge loop adds nothing beside a red suite.
-      const lastResult = recordedFailures(gate.stdout);
-      const firstTests = firstResult.tests;
-      const lastTests = lastResult.tests;
-      const detail = failingLines(gate.stdout, gate.stderr);
-      if (main.status === "not-checked") {
-        stepLogLine(job, `the tests on main were not checked: ${main.reason}`, true);
-        return { ok: false, error: { key: "landing.testsMainNotChecked", values: { reason: main.reason, branch, button } }, detail };
-      }
-      if (main.status === "red") {
-        if (!main.failures.tests.length) {
-          stepLogLine(job, "the tests are red on main, but its output named no failing test", true);
-          return { ok: false, error: { key: "landing.testsRedOnMainUnnamed", values: { branch, button } }, detail };
-        }
-        const onMain = new Set(main.failures.tests);
-        const mergeOnly = lastTests.map((test, index) => ({ test, file: lastResult.files[index] ?? "", error: lastResult.errors[index] ?? "" })).filter(({ test }) => !onMain.has(test));
-        if (!mergeOnly.length) {
-          stepLogLine(job, "the same tests are red on main as well", true);
-          return { ok: false, error: { key: "landing.testsRedOnMainToo", values: { branch, button } }, detail };
-        }
-        const noun = mergeOnly.length === 1 ? "test is" : "tests are";
-        stepLogLine(job, `the tests are red on main; ${mergeOnly.length} failing ${noun} unique to the merge`, true);
-        return {
-          ok: false,
-          error: (() => { const tests = namedTests({ tests: mergeOnly.map(({ test }) => test), errors: mergeOnly.map(({ error }) => error) }); return { key: "landing.testsRedOnMergeToo", values: { count: mergeOnly.length, branch, button }, lists: { tests } }; })(),
-          detail,
-          failedTests: asFailedTests(mergeOnly),
-        };
-      }
-      stepLogLine(job, "the tests are green on main alone — the failure is this merge's", true);
-      if (!firstTests.length) return { ok: false, error: { key: "landing.testsRedOnMergeUnnamed", values: { branch, button } }, detail };
-      const firstSet = new Set(firstTests);
-      const repeated = lastTests.map((test, index) => ({ test, file: lastResult.files[index] ?? "", error: lastResult.errors[index] ?? "" })).filter(({ test }) => firstSet.has(test));
-      if (repeated.length) {
-        return {
-          red: red?.length ? { red, testedHead, mainSha } : undefined,
-          ok: false,
-          error: (() => { const tests = namedTests({ tests: repeated.map(({ test }) => test), errors: repeated.map(({ error }) => error) }); return { key: "landing.testsRedOnMerge", values: { count: repeated.length, branch, button }, lists: { tests } }; })(),
-          detail,
-          failedTests: asFailedTests(repeated),
-        };
-      }
-      if (lastTests.length && variedBetween(firstTests, lastTests)) {
-        const combined = new Map<string, string>();
-        firstTests.forEach((test, index) => combined.set(test, firstResult.errors[index] ?? ""));
-        lastTests.forEach((test, index) => combined.set(test, lastResult.errors[index] ?? ""));
-        return {
-          ok: false,
-          error: {
-            key: "landing.testsRedOnMergeVaried",
-            values: { count: combined.size, branch, button },
-            lists: { tests: namedTests({ tests: [...combined.keys()], errors: [...combined.values()] }) },
-          },
-          detail,
-        };
-      }
-      return { ok: false, error: { key: "landing.testsRedOnMergeUnnamed", values: { branch, button } }, detail };
+    if (gate.code === 0) {
+      stepLogLine(job, "the landing's tests are green");
+      return { ok: true };
     }
-    stepLogLine(job, "the landing's tests are green");
-    return { ok: true };
+    stepLogLine(job, "the landing runs the same tests on main alone, without this spec");
+    return await redVerdict({ liveRoot, job, branch, button: opts.button, gate, firstResult, red, testedHead, mainSha },
+      (label, runRoot) => runOnce(label, runRoot, suiteEnv(report, red)), setup);
   } finally {
     rmSync(scratch, { recursive: true, force: true });
   }
+}
+
+/** The commands the merged change calls for, or the verdict that says
+ *  why they could not be worked out. */
+async function resolveCommands(root: string, liveRoot: string, opts: GateOpts): Promise<string[] | GateVerdict> {
+  // Beside the runner first, never PATH alone: see `scriptFor`.
+  const resolver = scriptFor("aide-resolve-test-cmd", { beside: opts.scriptDir, override: process.env.AIDE_RESOLVE_TEST_CMD_BIN });
+  // What the branch changed beyond the default branch picks the tests, as
+  // in Implement; the nightly full run on main catches what a selection
+  // misses. Without a default branch the whole command runs.
+  // Named as Implement names it (`origin/main`), so a landing on the tree
+  // Implement saw green resolves the same command and is skipped.
+  const base = (await defaultBranchRef(liveRoot))?.replace(/^refs\/(remotes|heads)\//, "");
+  const selection = base ? ["--changed-from", base, "--targeted"] : [];
+  const resolved = await runScript([resolver, "--project-dir", root, ...selection], root, 60_000);
+  try {
+    const parsed = JSON.parse(resolved.stdout.trim().split("\n").pop() ?? "{}");
+    if (!parsed.ok) {
+      return {
+        ok: false,
+        error: { key: "testGate.cannotResolveCommand", values: { root } },
+        detail: String(parsed.error ?? "unknown"),
+      };
+    }
+    return Array.isArray(parsed.commands) ? parsed.commands : [];
+  } catch {
+    return {
+      ok: false,
+      error: { key: "testGate.cannotReadResolverAnswer", values: { root } },
+      detail: resolved.stderr.slice(-400),
+    };
+  }
+}
+
+/** The step this landing merges may already have seen these commands
+ *  green on this very tree (seen-green.ts) — main has not moved since
+ *  its own run. Said in the same log a run would have written to, so a
+ *  landing that ran nothing still leaves its answer where people look. */
+async function skippedAsSeenGreen(root: string, liveRoot: string, job: GatedJob, commands: string[], opts: GateOpts, log: string): Promise<boolean> {
+  const seen = await alreadySeenGreen(root, liveRoot, job, commands, opts);
+  if (!seen) return false;
+  stepLogLine(job, "the landing did not run the project's tests: the step already saw them green on this tree");
+  try {
+    mkdirSync(join(log, ".."), { recursive: true });
+    appendFileSync(
+      log,
+      `--- ${new Date().toISOString()} ${job.project}/${job.specFolder} landing in ${liveRoot} ---\n` +
+        `not run: the step already saw ${commands.join(" && ")} green on this tree (${seen})\n`,
+    );
+  } catch {
+    // A log that cannot be written must not turn a skipped run red.
+  }
+  return true;
+}
+
+/** One run of the recorder over the commands, its progress followed into
+ *  the step's Log and its output kept in both logs. */
+function suiteRunner(
+  { root, liveRoot, job, opts, commands, scratch, report, log }:
+    { root: string; liveRoot: string; job: GatedJob; opts: GateOpts; commands: string[]; scratch: string; report: string; log: string },
+): RunOnce {
+  const recorder = scriptFor("aide-record-test-run", { beside: opts.scriptDir, override: process.env.AIDE_RECORD_TEST_RUN_BIN });
+  const argv = [recorder, "--project-dir", root, "--specs-root", scratch, "--folder", job.specFolder];
+  for (const c of commands) argv.push("--cmd", c);
+  return async (label, runRoot = root, env = suiteEnv(report)) => {
+    const progress = join(scratch, `progress${label.replace(/\W+/g, "-")}`);
+    writeFileSync(progress, "");
+    const follow = followProgress(job, progress, label === " (retry)" ? " on the merge (retry)" : label || " on the merge");
+    const runArgv = [...argv];
+    runArgv[2] = runRoot;
+    const out = await runScript([...runArgv, "--progress-file", progress], runRoot, LANDING_GATE_TIMEOUT_MS, job.id, { ...env, ...(opts.queueMirrorPath ? { AIDE_QUEUE_MIRROR: opts.queueMirrorPath } : {}) }).finally(follow.stop);
+    keepStepOutput(job, `${out.stdout}${out.stderr}`);
+    // The run's own output, kept where the archive step used to keep
+    // it, under the same header a reader already knows.
+    try {
+      mkdirSync(join(log, ".."), { recursive: true });
+      appendFileSync(log, `--- ${new Date().toISOString()} ${job.project}/${job.specFolder} landing in ${liveRoot}${label} ---\n${out.stdout}${out.stderr}\n`);
+    } catch {
+      // A log that cannot be written must not turn a green suite red.
+    }
+    return out;
+  };
+}
+
+/** The whole command again while it stays red; the green verdict when a
+ *  rerun passes. */
+async function rerunWhileRed(job: GatedJob, gate: ScriptOut, runOnce: RunOnce): Promise<{ gate: ScriptOut; verdict?: GateVerdict }> {
+  const first = failingLines(gate.stdout, gate.stderr);
+  for (let n = 0; n < LANDING_RETRIES.gateReruns && gate.code !== 0 && !gate.timedOut; n++) {
+    stepLogLine(job, "the landing's tests are red — running them once more", true);
+    gate = await runOnce(" (retry)");
+  }
+  if (gate.code === 0) {
+    stepLogLine(job, "the landing's tests are green on the second run");
+    return { gate, verdict: { ok: true, retriedAfter: first } };
+  }
+  stepLogLine(job, "the landing's tests are red again", true);
+  return { gate };
+}
+
+interface RedRun extends RedFacts {
+  liveRoot: string;
+  gate: ScriptOut;
+}
+
+/** One sentence on the row: the tests that failed when the output named
+ *  them, and what the two runs on the merge say about them — the same
+ *  tests twice is the merge's doing; different ones point at unstable
+ *  tests or a busy machine, and only then is that said. The test output
+ *  rides in `detail`, on hover and on the job's own page. Where the work
+ *  IS rides in the sentence itself: the origin check after the merge
+ *  loop adds nothing beside a red suite. */
+async function redVerdict(
+  run: RedRun,
+  runOnce: (label: string, root: string) => Promise<ScriptOut>,
+  setup?: (dir: string) => Promise<WorktreeSetup>,
+): Promise<GateVerdict> {
+  const { job, branch, button, gate, red } = run;
+  if (red?.length) stepLogLine(job, `on main alone, only the suites that were red: ${red.join(", ")}`);
+  const main = await resultOnDefaultBranch(run.liveRoot, runOnce, setup);
+  const lastResult = recordedFailures(gate.stdout);
+  const detail = failingLines(gate.stdout, gate.stderr);
+  if (main.status === "not-checked") {
+    stepLogLine(job, `the tests on main were not checked: ${main.reason}`, true);
+    return { ok: false, error: { key: "landing.testsMainNotChecked", values: { reason: main.reason, branch, button } }, detail };
+  }
+  if (main.status === "red") return redOnMainVerdict(run, main.failures, lastResult, detail);
+  stepLogLine(job, "the tests are green on main alone — the failure is this merge's", true);
+  return redOnMergeVerdict(run, lastResult, detail);
 }

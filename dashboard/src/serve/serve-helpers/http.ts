@@ -200,84 +200,101 @@ export function languageChoice(
 
 // A body may arrive as JSON (API) or urlencoded (a form the page posts).
 export function bodyToObject(text: string, contentType: string | null): unknown {
-  if ((contentType ?? "").includes("application/x-www-form-urlencoded")) {
-    const params = new URLSearchParams(text);
-    const out: Record<string, unknown> = {};
-    for (const key of new Set(params.keys())) {
-      const all = params.getAll(key);
-      out[key] = all.length > 1 ? all : all[0];
-    }
-    // The form posts one "project/specFolder" value; the API posts the
-    // two fields separately.
-    if (typeof out.target === "string") {
-      const [project, ...folder] = out.target.split("/");
-      out.project = project;
-      out.specFolder = folder.join("/");
-      delete out.target;
-    }
-    if (typeof out.steps === "string") out.steps = [out.steps];
-    if (typeof out.dependsOn === "string") out.dependsOn = [out.dependsOn];
-    // The model is picked on the PHASE line, so a form
-    // posts one field per phase — `model.<step>`. A urlencoded body
-    // cannot carry a nested object, and this is the one seam every form
-    // on the page passes through (`postForm` in specs-client.ts always
-    // urlencodes), so the dotted keys
-    // are folded back into one object here.
-    //
-    // A select left on "default" posts an EMPTY value, which every
-    // browser sends whether or not the reader touched it. Dropped here
-    // rather than passed on: an empty string is not a model name, so
-    // the object this builds carries only what someone actually picked.
-    // `parseJobRequest` skips a blank entry of its own accord too — a
-    // JSON caller reaches it without coming through here — so this is
-    // about the SHAPE at this seam, not the only thing standing between
-    // an untouched field and a refused request.
-    const modelKeys = [...new Set(params.keys())].filter((k) => k.startsWith("model."));
-    if (modelKeys.length) {
-      const picked: Record<string, string> = {};
-      for (const key of modelKeys) {
-        const values = params.getAll(key).filter(Boolean);
-        if (values.length === 1) picked[key.slice("model.".length)] = values[0]!;
-        else if (values.length > 1) (picked as Record<string, unknown>)[key.slice("model.".length)] = values;
-        delete out[key];
-      }
-      if (Object.keys(picked).length) out.model = picked;
-    }
-    // The provider chosen beside each model: `provider.<step>` folds to
-    // `{ provider: { step: key } }` the way `model.<step>` does; the
-    // schedule form's bare `provider` stays a whole-job string.
-    const providerKeys = [...new Set(params.keys())].filter((k) => k.startsWith("provider."));
-    if (providerKeys.length) {
-      const picked: Record<string, string> = {};
-      for (const key of providerKeys) {
-        const value = params.getAll(key).filter(Boolean)[0];
-        if (value) picked[key.slice("provider.".length)] = value;
-        delete out[key];
-      }
-      if (Object.keys(picked).length) out.provider = picked;
-    }
-    // The settings form's per-step timeout column, folded the same way
-    // `model.<step>` is just above — a `timeoutSec.<step>` field per
-    // row rather than the flat, seconds-denominated `timeoutSec` the
-    // job-creation routes post. Run before the flat-numeric loop below,
-    // which only fires while `out.timeoutSec` is still a string.
-    const timeoutKeys = [...new Set(params.keys())].filter((k) => k.startsWith("timeoutSec."));
-    if (timeoutKeys.length) {
-      const picked: Record<string, number> = {};
-      for (const key of timeoutKeys) {
-        const value = params.get(key);
-        if (value) picked[key.slice("timeoutSec.".length)] = Number(value);
-        delete out[key];
-      }
-      if (Object.keys(picked).length) out.timeoutSec = picked;
-    }
-    if (typeof out.timeoutSec === "string") out.timeoutSec = Number(out.timeoutSec);
-    // Settings' Process tab: `Number("")` is 0 and `Number("abc")` NaN,
-    // and the route's 1-8 check refuses both.
-    if (typeof out.concurrency === "string") out.concurrency = Number(out.concurrency);
-    return out;
-  }
+  if ((contentType ?? "").includes("application/x-www-form-urlencoded")) return formToObject(text);
   return JSON.parse(text) as unknown;
+}
+
+/** A urlencoded form body as the object a JSON caller would post. */
+function formToObject(text: string): Record<string, unknown> {
+  const params = new URLSearchParams(text);
+  const out: Record<string, unknown> = {};
+  for (const key of new Set(params.keys())) {
+    const all = params.getAll(key);
+    out[key] = all.length > 1 ? all : all[0];
+  }
+  // The form posts one "project/specFolder" value; the API posts the
+  // two fields separately.
+  if (typeof out.target === "string") {
+    const [project, ...folder] = out.target.split("/");
+    out.project = project;
+    out.specFolder = folder.join("/");
+    delete out.target;
+  }
+  if (typeof out.steps === "string") out.steps = [out.steps];
+  if (typeof out.dependsOn === "string") out.dependsOn = [out.dependsOn];
+  foldModelKeys(params, out);
+  foldProviderKeys(params, out);
+  foldTimeoutKeys(params, out);
+  if (typeof out.timeoutSec === "string") out.timeoutSec = Number(out.timeoutSec);
+  // Settings' Process tab: `Number("")` is 0 and `Number("abc")` NaN,
+  // and the route's 1-8 check refuses both.
+  if (typeof out.concurrency === "string") out.concurrency = Number(out.concurrency);
+  return out;
+}
+
+/** The form's fields whose names start with `prefix`. */
+function keysWithPrefix(params: URLSearchParams, prefix: string): string[] {
+  return [...new Set(params.keys())].filter((k) => k.startsWith(prefix));
+}
+
+// The model is picked on the PHASE line, so a form
+// posts one field per phase — `model.<step>`. A urlencoded body
+// cannot carry a nested object, and this is the one seam every form
+// on the page passes through (`postForm` in specs-client.ts always
+// urlencodes), so the dotted keys
+// are folded back into one object here.
+//
+// A select left on "default" posts an EMPTY value, which every
+// browser sends whether or not the reader touched it. Dropped here
+// rather than passed on: an empty string is not a model name, so
+// the object this builds carries only what someone actually picked.
+// `parseJobRequest` skips a blank entry of its own accord too — a
+// JSON caller reaches it without coming through here — so this is
+// about the SHAPE at this seam, not the only thing standing between
+// an untouched field and a refused request.
+function foldModelKeys(params: URLSearchParams, out: Record<string, unknown>): void {
+  const modelKeys = keysWithPrefix(params, "model.");
+  if (!modelKeys.length) return;
+  const picked: Record<string, string> = {};
+  for (const key of modelKeys) {
+    const values = params.getAll(key).filter(Boolean);
+    if (values.length === 1) picked[key.slice("model.".length)] = values[0]!;
+    else if (values.length > 1) (picked as Record<string, unknown>)[key.slice("model.".length)] = values;
+    delete out[key];
+  }
+  if (Object.keys(picked).length) out.model = picked;
+}
+
+// The provider chosen beside each model: `provider.<step>` folds to
+// `{ provider: { step: key } }` the way `model.<step>` does; the
+// schedule form's bare `provider` stays a whole-job string.
+function foldProviderKeys(params: URLSearchParams, out: Record<string, unknown>): void {
+  const providerKeys = keysWithPrefix(params, "provider.");
+  if (!providerKeys.length) return;
+  const picked: Record<string, string> = {};
+  for (const key of providerKeys) {
+    const value = params.getAll(key).filter(Boolean)[0];
+    if (value) picked[key.slice("provider.".length)] = value;
+    delete out[key];
+  }
+  if (Object.keys(picked).length) out.provider = picked;
+}
+
+// The settings form's per-step timeout column, folded the same way
+// `model.<step>` is — a `timeoutSec.<step>` field per
+// row rather than the flat, seconds-denominated `timeoutSec` the
+// job-creation routes post. Run before the flat-numeric conversion,
+// which only fires while `out.timeoutSec` is still a string.
+function foldTimeoutKeys(params: URLSearchParams, out: Record<string, unknown>): void {
+  const timeoutKeys = keysWithPrefix(params, "timeoutSec.");
+  if (!timeoutKeys.length) return;
+  const picked: Record<string, number> = {};
+  for (const key of timeoutKeys) {
+    const value = params.get(key);
+    if (value) picked[key.slice("timeoutSec.".length)] = Number(value);
+    delete out[key];
+  }
+  if (Object.keys(picked).length) out.timeoutSec = picked;
 }
 
 /** The one reader for a route that expects an object in its body, by

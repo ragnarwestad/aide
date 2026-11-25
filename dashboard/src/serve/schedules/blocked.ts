@@ -3,7 +3,7 @@
 // this one decides what a tick is allowed to run.
 
 import { proseSteps } from "../../project/discover/spec-files.ts";
-import { discoverProjects, manifestInside, type SpecRef } from "../../project/discover";
+import { discoverProjects, manifestInside, type DiscoveredProject, type SpecRef } from "../../project/discover";
 import { readSpecState } from "../../project/parse-spec-state.ts";
 import { specPendingChoice } from "../../project/approach-choice.ts";
 import type { BoardMessage } from "../../messages/types.ts";
@@ -43,6 +43,68 @@ export const UNCONFIRMED_HOLD_MS = 10 * 60_000;
 /** When each job's dependency first could not be confirmed, by job id. */
 const unconfirmedSince = new Map<string, number>();
 
+/** Whether the job is still within the time a dependency that cannot be
+ *  confirmed holds it, counting from the first time it could not be. */
+function stillUnconfirmed(ctx: ScheduleContext, jobId: string): boolean {
+  const now = (ctx.now ?? Date.now)();
+  const since = unconfirmedSince.get(jobId) ?? now;
+  unconfirmedSince.set(jobId, since);
+  return now - since < UNCONFIRMED_HOLD_MS;
+}
+
+/** Whether no waiting job can name a dependency, by the cached scan alone. */
+function namesNothing(ctx: ScheduleContext, waiting: Job[], named: Map<string, string[]>): boolean {
+  // An open branch may have dropped a dependency the checkout still names,
+  // and the runner's own gate reads the checkout.
+  const branchAnswers = (j: Job) =>
+    ctx.readBranchFileSteps().peekFileSteps(ctx.readScan()?.dirs.get(specKey(j)) ?? "", j.specFolder).steps?.dependsOn !== undefined;
+  // A spec the cached scan does not hold yet — one `create` landed a
+  // moment ago — has not said it names nothing: it is read off disk below.
+  return !waiting.some((j) => !named.has(specKey(j)) || (named.get(specKey(j)) ?? []).length > 0 || branchAnswers(j));
+}
+
+const specKey = (j: { project: string; specFolder: string }) => `${j.project}/${j.specFolder}`;
+
+/** Holds the job on the first dependency origin does not have archived, or
+ *  cannot be asked about for less than `UNCONFIRMED_HOLD_MS`. */
+async function holdOnDependency(
+  ctx: ScheduleContext, job: Job, project: DiscoveredProject, spec: SpecRef, ids: Set<string>, blocked: DependencyHolds,
+): Promise<void> {
+  for (const id of ids) {
+    const dep = resolveDependencyFolder(project, id);
+    // An unknown identifier, or the spec itself: both are refusals
+    // the script makes on its own, and neither is something waiting
+    // could ever fix. Parking on one would hide a typo forever.
+    if (!dep || dep.folder === spec.folder) continue;
+    if (doneEarlierInGroup(ctx, spec, dep)) continue;
+    // `dep.archived` is a LOCAL filesystem scan and can be stale in
+    // either direction — origin decides, every
+    // time, even for a dependency already known archived locally, the
+    // same reason a local checkout is no longer trusted for
+    // "has this step's commit landed."
+    //
+    // Asked against the SPECS root alone, the last entry `specRoots`
+    // gives (the project root when it IS the specs root too):
+    // whether a spec is archived is a fact about one folder's
+    // location in one repository, never about the project root the
+    // way a code branch can differ per repo.
+    const roots = ctx.specRoots(job.project);
+    const specsRoot = roots[roots.length - 1];
+    if (!specsRoot) continue;
+    const archived = await ctx.branchStatus.archivedOnOrigin(specsRoot, dep.folder);
+    if (archived === null) {
+      if (!stillUnconfirmed(ctx, job.id)) continue;
+      blocked.set(job.id, dep.folder);
+      return;
+    }
+    unconfirmedSince.delete(job.id);
+    if (!archived) {
+      blocked.set(job.id, dep.folder);
+      return;
+    }
+  }
+}
+
 export async function blockedDependencies(ctx: ScheduleContext): Promise<DependencyHolds> {
   const blocked: DependencyHolds = new Map<string, string>();
   if (!ctx.projectRoot) return blocked;
@@ -60,15 +122,8 @@ export async function blockedDependencies(ctx: ScheduleContext): Promise<Depende
   // that names nothing costs neither a walk of the specs root nor a
   // git call, the same way a spec without the field asks origin
   // nothing in the script.
-  const key = (j: { project: string; specFolder: string }) => `${j.project}/${j.specFolder}`;
-  const named = new Map(ctx.targets().map((t) => [key(t), t.dependsOn ?? []]));
-  // An open branch may have dropped a dependency the checkout still names,
-  // and the runner's own gate reads the checkout.
-  const branchAnswers = (j: Job) =>
-    ctx.readBranchFileSteps().peekFileSteps(ctx.readScan()?.dirs.get(key(j)) ?? "", j.specFolder).steps?.dependsOn !== undefined;
-  // A spec the cached scan does not hold yet — one `create` landed a
-  // moment ago — has not said it names nothing: it is read off disk below.
-  if (!waiting.some((j) => !named.has(key(j)) || (named.get(key(j)) ?? []).length > 0 || branchAnswers(j))) return blocked;
+  const named = new Map(ctx.targets().map((t) => [specKey(t), t.dependsOn ?? []]));
+  if (namesNothing(ctx, waiting, named)) return blocked;
 
   // Not `targets()`: that drops archived specs, and an archived
   // dependency is precisely the case that must resolve — to
@@ -82,52 +137,10 @@ export async function blockedDependencies(ctx: ScheduleContext): Promise<Depende
       // numbered its spec reaches the checkout this scan reads. Not found
       // is not "names nothing": the job waits a tick, for as long as an
       // origin that cannot be asked holds one, and then starts as before.
-      if (job.steps[job.stepIndex - 1] === "create") {
-        const now = (ctx.now ?? Date.now)();
-        const since = unconfirmedSince.get(job.id) ?? now;
-        unconfirmedSince.set(job.id, since);
-        if (now - since < UNCONFIRMED_HOLD_MS) checked.delete(job.id);
-      }
+      if (job.steps[job.stepIndex - 1] === "create" && stillUnconfirmed(ctx, job.id)) checked.delete(job.id);
       continue;
     }
-    for (const id of new Set([...(named.get(key(job)) ?? []), ...spec.dependsOn])) {
-      const dep = resolveDependencyFolder(project, id);
-      // An unknown identifier, or the spec itself: both are refusals
-      // the script makes on its own, and neither is something waiting
-      // could ever fix. Parking on one would hide a typo forever.
-      if (!dep || dep.folder === spec.folder) continue;
-      if (doneEarlierInGroup(ctx, spec, dep)) continue;
-      // `dep.archived` is a LOCAL filesystem scan and can be stale in
-      // either direction — origin decides, every
-      // time, even for a dependency already known archived locally, the
-      // same reason a local checkout is no longer trusted for
-      // "has this step's commit landed."
-      //
-      // Asked against the SPECS root alone, the last entry `specRoots`
-      // gives (the project root when it IS the specs root too):
-      // whether a spec is archived is a fact about one folder's
-      // location in one repository, never about the project root the
-      // way a code branch can differ per repo.
-      const roots = ctx.specRoots(job.project);
-      const specsRoot = roots[roots.length - 1];
-      if (!specsRoot) continue;
-      const archived = await ctx.branchStatus.archivedOnOrigin(specsRoot, dep.folder);
-      if (archived === null) {
-        const now = (ctx.now ?? Date.now)();
-        const since = unconfirmedSince.get(job.id) ?? now;
-        unconfirmedSince.set(job.id, since);
-        if (now - since < UNCONFIRMED_HOLD_MS) {
-          blocked.set(job.id, dep.folder);
-          break;
-        }
-        continue;
-      }
-      unconfirmedSince.delete(job.id);
-      if (!archived) {
-        blocked.set(job.id, dep.folder);
-        break;
-      }
-    }
+    await holdOnDependency(ctx, job, project, spec, new Set([...(named.get(specKey(job)) ?? []), ...spec.dependsOn]), blocked);
   }
   return blocked;
 }

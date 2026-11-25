@@ -41,6 +41,46 @@ export function tabWord(lang: Language, key: string): string {
 /** The word a tab key shows, in English. */
 export const tabLabel = (key: string): string => tabWord("en", key);
 
+/** How a tab bar draws its tabs. */
+export interface TabBarOptions<T extends string> {
+  /** The word a tab shows, for a caller whose words are in the
+   *  catalogue; `tabLabel()` otherwise. */
+  label?: (key: T) => string;
+  /** Decorative markup drawn before a tab's word. */
+  icon?: (key: T) => string | undefined;
+  /** An explanation shown on hover. */
+  title?: (key: T) => string | undefined;
+  /** The reader's language, for the words `tabLabel()` gives. */
+  lang?: Language;
+  /** Each key written as `data-<key>` on the `<nav>`: a hook, like
+   *  `aitabs`. */
+  data?: Record<string, string>;
+  /** The header's own row: `tabbar` without `subtabs`. */
+  site?: boolean;
+  showZero?: boolean;
+}
+
+/** One tab in a bar: a link, or text when it leads nowhere. */
+function oneTab<T extends string>(
+  t: T, to: string | undefined, isCurrent: boolean,
+  counts: Partial<Record<T, number | string>>, o: TabBarOptions<T>,
+): string {
+  const label = o.label ? o.label(t) : tabWord(o.lang ?? "en", t);
+  const n = counts[t] === 0 && o.showZero ? 0 : counts[t] || undefined;
+  const here = isCurrent ? ` aria-current="page"` : "";
+  const text = `${esc(label)}${n === undefined ? "" : ` (${esc(String(n))})`}`;
+  const icon = o.icon?.(t);
+  const body = o.site && n !== undefined
+    ? `${icon ?? ""}<span>${esc(label)}</span><span data-tab-count> (${esc(String(n))})</span>`
+    : icon ? `${icon}<span>${text}</span>` : text;
+  const hint = o.title?.(t) ?? (icon ? label : undefined);
+  const title = hint === undefined ? "" : ` title="${esc(hint)}"`;
+  // data-goto: a real page load — nav-busy.ts marks it waiting.
+  return to === undefined
+    ? `<span class="tab"${title}${here}>${body}</span>`
+    : `<a class="tab" data-nav data-goto href="${esc(to)}"${title}${here}>${body}</a>`;
+}
+
 /** Every tab strip on the board: a page's own tabs, a strip nested under
  *  one (a step's Log/Changed files/Errors) and the header's Specs/Projects/Schedule row. It used to build
  *  its hrefs from `job.id`, which is the one assumption a spec-scoped page
@@ -65,23 +105,7 @@ export function tabBar<T extends string>(
    *  Update, right-aligned by the shared ".row" class.
    *  Absent for every caller but the spec page. */
   trailing = "",
-  o: {
-    /** The word a tab shows, for a caller whose words are in the
-     *  catalogue; `tabLabel()` otherwise. */
-    label?: (key: T) => string;
-    /** Decorative markup drawn before a tab's word. */
-    icon?: (key: T) => string | undefined;
-    /** An explanation shown on hover. */
-    title?: (key: T) => string | undefined;
-    /** The reader's language, for the words `tabLabel()` gives. */
-    lang?: Language;
-    /** Each key written as `data-<key>` on the `<nav>`: a hook, like
-     *  `aitabs`. */
-    data?: Record<string, string>;
-    /** The header's own row: `tabbar` without `subtabs`. */
-    site?: boolean;
-    showZero?: boolean;
-  } = {},
+  o: TabBarOptions<T> = {},
 ): string {
   // A real tab bar, the same one the site's own two tabs are: the row
   // sits ON a hairline and the open tab is marked by an underline in
@@ -104,23 +128,7 @@ export function tabBar<T extends string>(
   return (
     (o.site ? `<nav class="tabbar"${data}>` : `<nav class="tabbar subtabs"${data}>`) +
     tabs
-      .map((t) => {
-        const label = o.label ? o.label(t) : tabWord(o.lang ?? "en", t);
-        const n = counts[t] === 0 && o.showZero ? 0 : counts[t] || undefined;
-        const to = href(t);
-        const here = t === current ? ` aria-current="page"` : "";
-        const text = `${esc(label)}${n === undefined ? "" : ` (${esc(String(n))})`}`;
-        const icon = o.icon?.(t);
-        const body = o.site && n !== undefined
-          ? `${icon ?? ""}<span>${esc(label)}</span><span data-tab-count> (${esc(String(n))})</span>`
-          : icon ? `${icon}<span>${text}</span>` : text;
-        const hint = o.title?.(t) ?? (icon ? label : undefined);
-        const title = hint === undefined ? "" : ` title="${esc(hint)}"`;
-        // data-goto: a real page load — nav-busy.ts marks it waiting.
-        return to === undefined
-          ? `<span class="tab"${title}${here}>${body}</span>`
-          : `<a class="tab" data-nav data-goto href="${esc(to)}"${title}${here}>${body}</a>`;
-      })
+      .map((t) => oneTab(t, href(t), t === current, counts, o))
       .join("") +
     (trailing ? `<span class="row">${trailing}</span>` : "") +
     `</nav>`

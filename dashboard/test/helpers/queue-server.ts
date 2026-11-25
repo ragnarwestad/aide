@@ -77,6 +77,105 @@ export interface QueueHarness {
   cleanup(): void;
 }
 
+/** The fixture's files under `dir`: the live spec and every other spec,
+ *  project and archived spec a start names, and the queue as the last
+ *  process left it. */
+function writeQueueFixture(dir: string, root: string, opts: StartOptions, status: string): void {
+  const {
+    alsoProjects = [],
+    alsoSpecs = [],
+    alsoDescriptions = {},
+    emptySpecs = false,
+    archivedSpecs = {},
+    description = "# Queue - Description\n",
+    liveState,
+    queueMirror,
+    executionGroups,
+    analysis,
+  } = opts;
+  project(root, "aide", "81-queue-and-runner", description, status);
+  const state = liveState ?? (status === IMPLEMENTED ? IMPLEMENTED_STATE : undefined);
+  if (state !== undefined) writeFileSync(join(root, "aide", "specs", "81-queue-and-runner", "4-status.json"), state);
+  if (analysis !== undefined) writeFileSync(join(root, "aide", "specs", "81-queue-and-runner", "2-analysis.md"), analysis);
+  for (const folder of alsoSpecs) {
+    mkdirSync(join(root, "aide", "specs", folder), { recursive: true });
+    writeFileSync(join(root, "aide", "specs", folder, "1-description.md"), alsoDescriptions[folder] ?? `# ${folder}\n`);
+    writeFileSync(join(root, "aide", "specs", folder, "4-status.md"), status);
+  }
+  for (const name of alsoProjects) {
+    project(root, name, "01-first", "# First - Description\n", status);
+  }
+  for (const [folder, spec] of Object.entries(archivedSpecs)) {
+    const archived = join(root, spec.project ?? "aide", "specs", "archive", folder);
+    mkdirSync(archived, { recursive: true });
+    writeFileSync(join(archived, "1-description.md"), spec.description ?? `# ${folder} - Description\n`);
+    writeFileSync(join(archived, "4-status.md"), spec.status ?? status);
+    if (spec.state !== undefined) writeFileSync(join(archived, "4-status.json"), spec.state);
+    if (spec.analysis !== undefined) writeFileSync(join(archived, "2-analysis.md"), spec.analysis);
+    if (spec.solution !== undefined) writeFileSync(join(archived, "3-solution.md"), spec.solution);
+  }
+  if (emptySpecs) rmSync(join(root, "aide", "specs", "81-queue-and-runner"), { recursive: true });
+  // The queue as the last process left it: a board read back after a restart.
+  if (queueMirror !== undefined) writeFileSync(join(dir, "queue.json"), queueMirror);
+  if (executionGroups !== undefined) writeFileSync(join(dir, "execution-groups.json"), JSON.stringify(executionGroups));
+}
+
+/** The server options every harness start shares, with every path inside
+ *  the fixture's own directory. */
+function harnessServerOptions(dir: string, root: string): Parameters<typeof createServer>[0] {
+  return {
+    port: 0,
+    mirrorPath: join(dir, "runs.json"),
+    queueMirrorPath: join(dir, "queue.json"),
+    executionGroupsPath: join(dir, "execution-groups.json"),
+    projectRoot: root,
+    // The same tree, named as the MACHINERY's root too:
+    // left unset, `machineryProjectDir` falls back to a bare
+    // relative project name, and anything read out of a project's
+    // own directory — its manifest, most of all — is then read
+    // relative to whatever directory the test runner happens to be
+    // standing in. Production always has both.
+    queueProjectRoot: root,
+    queueProjects: ["aide"],
+    // Inside this fixture's own directory, never the
+    // default under $HOME. A suite that let the server fall back to
+    // it would clone into the operator's real checkouts, and the
+    // next suite would find them there.
+    dashboardCheckoutRoot: join(dir, "owned"),
+    // The render reads whatever the schedule last found,
+    // so a fixture that writes its git commits AFTER the server
+    // starts — which most of them do — needs the schedule to come
+    // round again inside a test's patience. In production this is
+    // the checkers' own 30 s window; here it is a few ticks. It is
+    // both the schedule AND the window: two numbers is how a fast
+    // schedule starves, and `serve.ts` keeps them equal.
+    specCachePollMs: 40,
+    // The queue's own round — has a step ended, what starts next — every
+    // 2 s in production; here a test walking a job through its steps
+    // does not wait two seconds a step.
+    queuePollMs: 50,
+    // Without this, a real `AIDE_INSTALL_CMD` succeeding in
+    // a test would reach the real `createLaunchdRestart()` — harmless
+    // on a machine with no `com.aide-dashboard.serve` job registered,
+    // but a genuine hazard on one that does (the serving host itself,
+    // or a developer machine running `make serve-local`).
+    restart: { registered: async () => false, fire: () => {} },
+    landingGate: async () => ({ ok: true }),
+    // The default probe BINDS 8801-8806 to find out whether they are
+    // free, so a test server left running on this machine — or a
+    // developer's own `make serve-local` board — decided the board
+    // tests, and with them every landing whose merge runs this suite
+    // (2026-09-09). Answered here instead: the pool is always free,
+    // and a test that cares about a taken port says so through
+    // `extra` below.
+    testServersPortProbe: () => true,
+    // The default would spawn a real `gh`, and a project that reviews
+    // its code asks it on every sweep. No answer here, as for a host
+    // where `gh` is missing; a test about the answer passes its own.
+    ghRun: async () => ({ code: 1, stdout: "" }),
+  };
+}
+
 /** `defaultStatus` is the spec's 4-status.md when a start names none. A
  *  suite that queues implement or archive through the run route starts
  *  from `IMPLEMENTED`: the route refuses a start out of order. A spec
@@ -89,102 +188,13 @@ export function queueHarness(prefix: string, defaultStatus?: string): QueueHarne
   const dirs: string[] = [];
 
   return {
-    start({
-      extra = {},
-      alsoProjects = [],
-      alsoSpecs = [],
-      alsoDescriptions = {},
-      emptySpecs = false,
-      archivedSpecs = {},
-      description = "# Queue - Description\n",
-      status = defaultStatus ?? statusSaying(["create"]),
-      liveState,
-      queueMirror,
-      executionGroups,
-      analysis,
-      before,
-    } = {}) {
+    start(opts = {}) {
       const dir = mkdtempSync(join(tmpdir(), prefix));
       dirs.push(dir);
       const root = join(dir, "root");
-      project(root, "aide", "81-queue-and-runner", description, status);
-      const state = liveState ?? (status === IMPLEMENTED ? IMPLEMENTED_STATE : undefined);
-      if (state !== undefined) writeFileSync(join(root, "aide", "specs", "81-queue-and-runner", "4-status.json"), state);
-      if (analysis !== undefined) writeFileSync(join(root, "aide", "specs", "81-queue-and-runner", "2-analysis.md"), analysis);
-      for (const folder of alsoSpecs) {
-        mkdirSync(join(root, "aide", "specs", folder), { recursive: true });
-        writeFileSync(join(root, "aide", "specs", folder, "1-description.md"), alsoDescriptions[folder] ?? `# ${folder}\n`);
-        writeFileSync(join(root, "aide", "specs", folder, "4-status.md"), status);
-      }
-      for (const name of alsoProjects) {
-        project(root, name, "01-first", "# First - Description\n", status);
-      }
-      for (const [folder, spec] of Object.entries(archivedSpecs)) {
-        const archived = join(root, spec.project ?? "aide", "specs", "archive", folder);
-        mkdirSync(archived, { recursive: true });
-        writeFileSync(join(archived, "1-description.md"), spec.description ?? `# ${folder} - Description\n`);
-        writeFileSync(join(archived, "4-status.md"), spec.status ?? status);
-        if (spec.state !== undefined) writeFileSync(join(archived, "4-status.json"), spec.state);
-        if (spec.analysis !== undefined) writeFileSync(join(archived, "2-analysis.md"), spec.analysis);
-        if (spec.solution !== undefined) writeFileSync(join(archived, "3-solution.md"), spec.solution);
-      }
-      if (emptySpecs) rmSync(join(root, "aide", "specs", "81-queue-and-runner"), { recursive: true });
-      // The queue as the last process left it: a board read back after a restart.
-      if (queueMirror !== undefined) writeFileSync(join(dir, "queue.json"), queueMirror);
-      if (executionGroups !== undefined) writeFileSync(join(dir, "execution-groups.json"), JSON.stringify(executionGroups));
-      before?.(dir);
-      const server = createServer({
-        port: 0,
-        mirrorPath: join(dir, "runs.json"),
-        queueMirrorPath: join(dir, "queue.json"),
-        executionGroupsPath: join(dir, "execution-groups.json"),
-        projectRoot: root,
-        // The same tree, named as the MACHINERY's root too:
-        // left unset, `machineryProjectDir` falls back to a bare
-        // relative project name, and anything read out of a project's
-        // own directory — its manifest, most of all — is then read
-        // relative to whatever directory the test runner happens to be
-        // standing in. Production always has both.
-        queueProjectRoot: root,
-        queueProjects: ["aide"],
-        // Inside this fixture's own directory, never the
-        // default under $HOME. A suite that let the server fall back to
-        // it would clone into the operator's real checkouts, and the
-        // next suite would find them there.
-        dashboardCheckoutRoot: join(dir, "owned"),
-        // The render reads whatever the schedule last found,
-        // so a fixture that writes its git commits AFTER the server
-        // starts — which most of them do — needs the schedule to come
-        // round again inside a test's patience. In production this is
-        // the checkers' own 30 s window; here it is a few ticks. It is
-        // both the schedule AND the window: two numbers is how a fast
-        // schedule starves, and `serve.ts` keeps them equal.
-        specCachePollMs: 40,
-        // The queue's own round — has a step ended, what starts next — every
-        // 2 s in production; here a test walking a job through its steps
-        // does not wait two seconds a step.
-        queuePollMs: 50,
-        // Without this, a real `AIDE_INSTALL_CMD` succeeding in
-        // a test would reach the real `createLaunchdRestart()` — harmless
-        // on a machine with no `com.aide-dashboard.serve` job registered,
-        // but a genuine hazard on one that does (the serving host itself,
-        // or a developer machine running `make serve-local`).
-        restart: { registered: async () => false, fire: () => {} },
-        landingGate: async () => ({ ok: true }),
-        // The default probe BINDS 8801-8806 to find out whether they are
-        // free, so a test server left running on this machine — or a
-        // developer's own `make serve-local` board — decided the board
-        // tests, and with them every landing whose merge runs this suite
-        // (2026-09-09). Answered here instead: the pool is always free,
-        // and a test that cares about a taken port says so through
-        // `extra` below.
-        testServersPortProbe: () => true,
-        // The default would spawn a real `gh`, and a project that reviews
-        // its code asks it on every sweep. No answer here, as for a host
-        // where `gh` is missing; a test about the answer passes its own.
-        ghRun: async () => ({ code: 1, stdout: "" }),
-        ...extra,
-      });
+      writeQueueFixture(dir, root, opts, opts.status ?? defaultStatus ?? statusSaying(["create"]));
+      opts.before?.(dir);
+      const server = createServer({ ...harnessServerOptions(dir, root), ...(opts.extra ?? {}) });
       servers.push(server);
       return { base: `http://127.0.0.1:${server.port}`, dir, server };
     },

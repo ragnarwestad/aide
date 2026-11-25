@@ -16,91 +16,99 @@ import { PAGE_DRAWN, PAGE_FETCHING, SPINNER } from "../../../page-contract.ts";
 //
 // Like nav-busy.ts, this file can neither import nor export anything.
 
-(() => {
-  const DELAY_MS = 150;
-  let timer: ReturnType<typeof setTimeout> | null = null;
-  let dialog: HTMLDialogElement | null = null;
-  // A press's cover stays until the press is answered: Escape does not lift it.
-  let held = false;
+const DELAY_MS = 150;
+// A press's cover stays until the press is answered: Escape does not lift it.
+const overlay: { timer: ReturnType<typeof setTimeout> | null; dialog: HTMLDialogElement | null; held: boolean } = {
+  timer: null,
+  dialog: null,
+  held: false,
+};
 
-  function openOverlay(note = ""): void {
-    if (!dialog) {
-      document.body.insertAdjacentHTML(
-        "beforeend",
-        `<dialog class="pageoverlay">${SPINNER}` +
-          '<p class="overlaynote" hidden></p></dialog>',
-      );
-      dialog = document.body.lastElementChild as HTMLDialogElement;
-      dialog.addEventListener?.("cancel", (event: Event) => {
-        if (held) event.preventDefault();
-      });
-      // A browser closes a modal whose cancel was prevented on a second Escape: show it again.
-      dialog.addEventListener?.("close", () => {
-        if (held) dialog?.showModal();
-      });
-    }
-    // Optional-chained: the fake document the test runs this against
-    // stubs the dialog, not a query engine. A navigation passes no note
-    // and the paragraph stays hidden, exactly as before.
-    const line = dialog.querySelector?.(".overlaynote") as HTMLElement | null;
-    if (line) {
-      line.textContent = note;
-      line.hidden = !note;
-    }
-    if (!dialog.open) dialog.showModal();
+/** The cover's dialog, made once and kept: a held cover answers Escape by
+ *  staying up. */
+function overlayDialog(): HTMLDialogElement {
+  if (overlay.dialog) return overlay.dialog;
+  document.body.insertAdjacentHTML(
+    "beforeend",
+    `<dialog class="pageoverlay">${SPINNER}` +
+      '<p class="overlaynote" hidden></p></dialog>',
+  );
+  const dialog = document.body.lastElementChild as HTMLDialogElement;
+  overlay.dialog = dialog;
+  dialog.addEventListener?.("cancel", (event: Event) => {
+    if (overlay.held) event.preventDefault();
+  });
+  // A browser closes a modal whose cancel was prevented on a second Escape: show it again.
+  dialog.addEventListener?.("close", () => {
+    if (overlay.held) overlay.dialog?.showModal();
+  });
+  return dialog;
+}
+
+function openOverlay(note = ""): void {
+  const dialog = overlayDialog();
+  // Optional-chained: the fake document the test runs this against
+  // stubs the dialog, not a query engine. A navigation passes no note
+  // and the paragraph stays hidden, exactly as before.
+  const line = dialog.querySelector?.(".overlaynote") as HTMLElement | null;
+  if (line) {
+    line.textContent = note;
+    line.hidden = !note;
   }
+  if (!dialog.open) dialog.showModal();
+}
 
-  document.addEventListener("click", (event: Event) => {
-    const e = event as MouseEvent;
-    if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
-    if (timer !== null || (dialog?.open)) return;
-    const link = (e.target as Element | null)?.closest?.("a[href]") as HTMLAnchorElement | null;
-    if (!link || link.target === "_blank" || link.hasAttribute("download")) return;
-    const href = link.getAttribute("href") || "";
-    if (!href || href.startsWith("#") || href.startsWith("mailto:") || href.startsWith("tel:")) return;
-    timer = setTimeout(() => {
-      timer = null;
-      openOverlay(document.body?.dataset?.overlayNote || "");
-    }, DELAY_MS);
-  });
+/** The cover, after the delay a fast answer never sees. */
+function overlayAfterDelay(): void {
+  overlay.timer = setTimeout(() => {
+    overlay.timer = null;
+    openOverlay(document.body?.dataset?.overlayNote || "");
+  }, DELAY_MS);
+}
 
+function stopOverlayTimer(): void {
+  if (overlay.timer !== null) clearTimeout(overlay.timer);
+  overlay.timer = null;
+}
+
+/** The cover lifted, and a press's hold on it let go. */
+function liftOverlay(): void {
+  overlay.held = false;
+  stopOverlayTimer();
+  if (overlay.dialog?.open) overlay.dialog.close();
+}
+
+function overlayOnClick(event: Event): void {
+  const e = event as MouseEvent;
+  if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+  if (overlay.timer !== null || (overlay.dialog?.open)) return;
+  const link = (e.target as Element | null)?.closest?.("a[href]") as HTMLAnchorElement | null;
+  if (!link || link.target === "_blank" || link.hasAttribute("download")) return;
+  const href = link.getAttribute("href") || "";
+  if (!href || href.startsWith("#") || href.startsWith("mailto:") || href.startsWith("tel:")) return;
+  overlayAfterDelay();
+}
+
+(() => {
+  document.addEventListener("click", overlayOnClick);
   document.addEventListener(PAGE_FETCHING, () => {
-    if (timer !== null || dialog?.open) return;
-    timer = setTimeout(() => {
-      timer = null;
-      openOverlay(document.body?.dataset?.overlayNote || "");
-    }, DELAY_MS);
+    if (overlay.timer !== null || overlay.dialog?.open) return;
+    overlayAfterDelay();
   });
-  document.addEventListener(PAGE_DRAWN, () => {
-    held = false;
-    if (timer !== null) clearTimeout(timer);
-    timer = null;
-    if (dialog?.open) dialog.close();
-  });
+  document.addEventListener(PAGE_DRAWN, liftOverlay);
 
   // A press that queues a job (Deploy, Close, Reopen, Remove project) covers
   // the page at once with its own word, and lifts it again on a refusal.
   document.addEventListener("aide-cover", (event: Event) => {
-    if (timer !== null) clearTimeout(timer);
-    timer = null;
+    stopOverlayTimer();
     const note = (event as CustomEvent<{ note?: string } | undefined>).detail?.note;
-    held = true;
+    overlay.held = true;
     openOverlay(note || document.body?.dataset?.overlayNote || "");
   });
-  document.addEventListener("aide-cover-done", () => {
-    held = false;
-    if (timer !== null) clearTimeout(timer);
-    timer = null;
-    if (dialog?.open) dialog.close();
-  });
+  document.addEventListener("aide-cover-done", liftOverlay);
 
   window.addEventListener("pageshow", (event: Event) => {
     if (!(event as PageTransitionEvent).persisted) return;
-    held = false;
-    if (timer !== null) {
-      clearTimeout(timer);
-      timer = null;
-    }
-    if (dialog?.open) dialog.close();
+    liftOverlay();
   });
 })();

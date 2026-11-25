@@ -86,6 +86,23 @@ export async function checkoutForGate(
   // "No such file or directory". `.aide/config` is gitignored in this
   // repo for the same reason and is read the same way.
   const owner = await mainCheckoutOf(root);
+  await carrySettings(root, owner, dir);
+  linkIgnored(root, owner, dir);
+  const remove = async () => {
+    await runScript(["git", ...NO_GIT_HOOKS, "worktree", "remove", "--force", dir], root, 60_000);
+    rmSync(dir, { recursive: true, force: true });
+  };
+  try {
+    return { dir, remove, ...(setup && { setup: await setup(dir) }) };
+  } catch (err) {
+    await remove();
+    throw err;
+  }
+}
+
+/** `.aide/config` and an untracked `.aide/project.yaml`, copied from the
+ *  checkout or its main checkout into the gate worktree. */
+async function carrySettings(root: string, owner: string, dir: string): Promise<void> {
   const config = [join(root, ".aide", "config"), join(owner, ".aide", "config")].find((p) => existsSync(p));
   if (config) {
     mkdirSync(join(dir, ".aide"), { recursive: true });
@@ -107,6 +124,11 @@ export async function checkoutForGate(
       copyFileSync(manifestSource, join(dir, ".aide", "project.yaml"));
     }
   }
+}
+
+/** The project's `worktreeLinks`, linked from the checkout or its main
+ *  checkout into the gate worktree. */
+function linkIgnored(root: string, owner: string, dir: string): void {
   for (const entry of resolveWorktreeLinks(dir).links.split(/[\s,]+/).filter(Boolean)) {
     const source = [join(root, entry), join(owner, entry)].find((p) => existsSync(p));
     const target = join(dir, entry);
@@ -118,16 +140,6 @@ export async function checkoutForGate(
       // A link that cannot be made leaves the command to say what is
       // missing, exactly as a run's worktree would.
     }
-  }
-  const remove = async () => {
-    await runScript(["git", ...NO_GIT_HOOKS, "worktree", "remove", "--force", dir], root, 60_000);
-    rmSync(dir, { recursive: true, force: true });
-  };
-  try {
-    return { dir, remove, ...(setup && { setup: await setup(dir) }) };
-  } catch (err) {
-    await remove();
-    throw err;
   }
 }
 

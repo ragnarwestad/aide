@@ -13,7 +13,7 @@ import { join } from "node:path";
 import { assignSpecNumberAfterMerge } from "../../../src/serve/land-branch/finalize-create.ts";
 import { scriptFor, translationMergeArgs } from "../../../src/serve/land-branch/run-script.ts";
 
-const SERVE = readFileSync(new URL("../../../src/serve/serve.ts", import.meta.url), "utf8");
+const SERVICES = readFileSync(new URL("../../../src/serve/create-server/services.ts", import.meta.url), "utf8");
 
 describe("scriptFor", () => {
   test("the copy beside the runner wins over the installed one; the override wins over both", () => {
@@ -82,12 +82,16 @@ describe("the landed create's number", () => {
 
 describe("the server wires the runner's own directory into both", () => {
   test("the numbering and the test gate get dirname(queueRunnerBin)", () => {
-    const numbering = /finalizeCreateSpec:[\s\S]*?assignSpecNumberAfterMerge\([\s\S]*?scriptDir: opts\.queueRunnerBin \? dirname\(opts\.queueRunnerBin\)/;
-    const gate = /landingGate:[\s\S]*?createLandingGate\(queue, opts\.queueRunnerBin \? dirname\(opts\.queueRunnerBin\)/;
-    const translations = /translationMergeArgs: \(root, work\) => translationMergeArgs\(root, work, \{ scriptDir: opts\.queueRunnerBin \? dirname\(opts\.queueRunnerBin\)/;
-    expect(SERVE).toMatch(numbering);
-    expect(SERVE).toMatch(gate);
-    expect(SERVE).toMatch(translations);
+    const scriptDir = /function runnerScriptDir\(opts: ServerOptions\)[^{]*\{\s*return opts\.queueRunnerBin \? dirname\(opts\.queueRunnerBin\)/;
+    const wired = /const scriptDir = runnerScriptDir\(opts\);/;
+    const numbering = /finalizeCreateSpec:[\s\S]*?assignSpecNumberAfterMerge\([\s\S]*?\{ scriptDir \}/;
+    const gate = /landingGate:[\s\S]*?createLandingGate\(queue, scriptDir/;
+    const translations = /translationMergeArgs: \(root, work\) => translationMergeArgs\(root, work, \{ scriptDir \}/;
+    expect(SERVICES).toMatch(scriptDir);
+    expect(SERVICES).toMatch(wired);
+    expect(SERVICES).toMatch(numbering);
+    expect(SERVICES).toMatch(gate);
+    expect(SERVICES).toMatch(translations);
   });
 });
 

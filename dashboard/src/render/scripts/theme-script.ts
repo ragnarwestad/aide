@@ -17,54 +17,54 @@ import { PAGE_DRAWN } from "../../page-contract.ts";
 // BEFORE the body is parsed, or the reader sees the wrong one first.
 // The half that needs elements waits for DOMContentLoaded.
 
-(() => {
-  const KEY = "theme";
-  const root = document.documentElement;
+const KEY = "theme";
+const root = document.documentElement;
 
-  /** The remembered choice, or "auto" for anything else — missing,
-   *  "auto" itself, or a value nobody here wrote. Storage can throw
-   *  outright (private browsing, a file:// origin some browsers refuse
-   *  storage to), and a page that cannot remember is still a page that
-   *  has to render. */
-  function stored(): string {
-    try {
-      const value = localStorage.getItem(KEY);
-      return value === "dark" || value === "light" ? value : "auto";
-    } catch {
-      return "auto";
+/** The remembered choice, or "auto" for anything else — missing,
+ *  "auto" itself, or a value nobody here wrote. Storage can throw
+ *  outright (private browsing, a file:// origin some browsers refuse
+ *  storage to), and a page that cannot remember is still a page that
+ *  has to render. */
+function stored(): string {
+  try {
+    const value = localStorage.getItem(KEY);
+    return value === "dark" || value === "light" ? value : "auto";
+  } catch {
+    return "auto";
+  }
+}
+
+/** Auto sets NOTHING: with no attribute the page falls through to
+ *  `prefers-color-scheme` exactly as it did before this file existed. */
+function apply(choice: string): void {
+  if (choice === "dark" || choice === "light") root.dataset.theme = choice;
+  else delete root.dataset.theme;
+}
+
+function mark(buttons: NodeListOf<Element>, choice: string): void {
+  buttons.forEach((button) => {
+    if (button.tagName === "INPUT" && button.getAttribute("type") === "radio")
+      (button as HTMLInputElement).checked = button.getAttribute("value") === choice;
+    if (button.getAttribute("data-theme-choice") === choice) {
+      button.setAttribute("aria-current", "true");
+    } else {
+      button.removeAttribute("aria-current");
     }
-  }
+  });
+}
 
-  /** Auto sets NOTHING: with no attribute the page falls through to
-   *  `prefers-color-scheme` exactly as it did before this file existed. */
-  function apply(choice: string): void {
-    if (choice === "dark" || choice === "light") root.dataset.theme = choice;
-    else delete root.dataset.theme;
-  }
+/** The header trigger's own icon, one of three spans already in the
+ *  DOM rather than markup swapped in — `hidden` is a plain
+ *  attribute the browser already knows how to act on, so there is
+ *  nothing here to undo if this script never runs. */
+function markIcon(icons: NodeListOf<Element>, choice: string): void {
+  icons.forEach((icon) => {
+    if (icon.getAttribute("data-theme-icon") === choice) icon.removeAttribute("hidden");
+    else icon.setAttribute("hidden", "");
+  });
+}
 
-  function mark(buttons: NodeListOf<Element>, choice: string): void {
-    buttons.forEach((button) => {
-      if (button.tagName === "INPUT" && button.getAttribute("type") === "radio")
-        (button as HTMLInputElement).checked = button.getAttribute("value") === choice;
-      if (button.getAttribute("data-theme-choice") === choice) {
-        button.setAttribute("aria-current", "true");
-      } else {
-        button.removeAttribute("aria-current");
-      }
-    });
-  }
-
-  /** The header trigger's own icon, one of three spans already in the
-   *  DOM rather than markup swapped in — `hidden` is a plain
-   *  attribute the browser already knows how to act on, so there is
-   *  nothing here to undo if this script never runs. */
-  function markIcon(icons: NodeListOf<Element>, choice: string): void {
-    icons.forEach((icon) => {
-      if (icon.getAttribute("data-theme-icon") === choice) icon.removeAttribute("hidden");
-      else icon.setAttribute("hidden", "");
-    });
-  }
-
+(() => {
   apply(stored());
 
   const markPage = (): void => {

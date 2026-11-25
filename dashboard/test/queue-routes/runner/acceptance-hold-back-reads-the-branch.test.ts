@@ -11,7 +11,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { BranchFileStepsChecker, WorkflowHistoryChecker } from "../../../src/git/workflow-history.ts";
 import { archiveWithOpenAcceptance, blockedForMissingAnalyze, type ScheduleContext } from "../../../src/serve/schedules";
-import { targets, type SpecLookupContext } from "../../../src/serve/spec-lookup.ts";
+import { targets, type SpecLookupContext } from "../../../src/serve/spec-lookup/index.ts";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../src/project/parse-status";
 import { withSpecFacts } from "../../../src/project/spec-facts.ts";
 import { fakeGit } from "../../helpers/fake-git.ts";

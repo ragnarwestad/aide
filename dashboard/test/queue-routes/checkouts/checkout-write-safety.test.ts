@@ -95,29 +95,7 @@ describe("the dashboard works in checkouts of its own", () => {
       projectRoot: projectsRoot, queueProjectRoot: projectsRoot, queueProjects: ["aide"], dashboardCheckoutRoot: owned, gitRun: recorded.run,
     });
     try {
-      // Through the form, not around it: the hidden `baseSha` is the
-      // commit the save compares against, and reading it off the page
-      // proves the form and the save agree about WHICH checkout that
-      // commit came out of.
-      const form = await (
-        await fetch(`http://127.0.0.1:${server.port}/specs/aide/81-queue-and-runner?tab=description`, {
-          headers: {},
-        })
-      ).text();
-      const baseSha = /name="baseSha" value="([^"]*)"/.exec(form)?.[1] ?? "";
-      expect(baseSha).not.toBe("");
-      const res = await fetch(
-        `http://127.0.0.1:${server.port}/api/queue/specs/aide/81-queue-and-runner/save`,
-        {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          redirect: "manual",
-          body: JSON.stringify({
-            text: "# Queue - Description\n\n## Description\n\nSaved by the dashboard.\n",
-            baseSha,
-          }),
-        },
-      );
+      const res = await saveThroughTheForm(server.port);
       expect(res.status).toBe(200);
       expect(((await res.json()) as { ok?: boolean }).ok).toBe(true);
       // The dashboard's own copy carries the edit...
@@ -147,3 +125,29 @@ describe("the dashboard works in checkouts of its own", () => {
     }
   });
 });
+
+/** A Save through the description form, not around it: the hidden
+ *  `baseSha` is the commit the save compares against, and reading it off
+ *  the page proves the form and the save agree about WHICH checkout that
+ *  commit came out of. */
+async function saveThroughTheForm(port: number | undefined): Promise<Response> {
+  const form = await (
+    await fetch(`http://127.0.0.1:${port}/specs/aide/81-queue-and-runner?tab=description`, {
+      headers: {},
+    })
+  ).text();
+  const baseSha = /name="baseSha" value="([^"]*)"/.exec(form)?.[1] ?? "";
+  expect(baseSha).not.toBe("");
+  return fetch(
+    `http://127.0.0.1:${port}/api/queue/specs/aide/81-queue-and-runner/save`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      redirect: "manual",
+      body: JSON.stringify({
+        text: "# Queue - Description\n\n## Description\n\nSaved by the dashboard.\n",
+        baseSha,
+      }),
+    },
+  );
+}

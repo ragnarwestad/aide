@@ -16,7 +16,7 @@
 // "pull failed".
 
 import { describe, expect, test } from "bun:test";
-import { pullFastForward } from "../../../src/git/specs-pull.ts";
+import { pullFastForward } from "../../../src/git/specs-pull/index.ts";
 import { fakeGit } from "../../helpers/fake-git.ts";
 import { heldLock, watchLock } from "../../helpers/held-lock.ts";
 

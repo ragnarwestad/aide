@@ -24,9 +24,53 @@ function onRowsClick(event: MouseEvent): void {
   onApproachCancel(event);
   onDependsOnCancel(event);
 }
+/** A select on the rows, remembered for the next redraw, and a model sent
+ *  to the server as well. */
+function rememberSelect(select: HTMLSelectElement): void {
+  chosen.set(selectKey(select), select.value);
+  if (select.name?.startsWith("model.")) {
+    // Recorded on the server the instant it is made, not
+    // only in `chosen` — which is a fresh, empty map on every page
+    // load and cannot survive leaving the page.
+    void postPendingModel(select, select.name.slice("model.".length), select.value);
+  }
+}
+
+/** A box on the rows, remembered as it now stands; a criterion's boxes
+ *  are one answer, so checking one clears the others beside it. */
+function rememberCheckbox(step: HTMLInputElement): void {
+  chosenSteps.set(checkboxKey(step), step.checked);
+  if (step.name === "steps") rememberGroupPhases(step);
+  if (step.name === "tick" || step.name === "unverified" || step.name === "failed") {
+    for (const other of ["tick", "unverified", "failed"].filter((n) => n !== step.name)) {
+      const sibling = step.closest?.("li")?.querySelector?.(`input[name="${other}"]`) as HTMLInputElement | null;
+      if (!sibling || sibling === step) continue;
+      if (step.checked) sibling.checked = false;
+      chosenSteps.set(checkboxKey(sibling), sibling.checked);
+    }
+  }
+  const rows = document.getElementById("jobrows");
+  const formId = step.getAttribute("form");
+  if (step.name === "steps" && rows && formId) relabelRunButton(rows, formId);
+}
+
 // And the row's selects and boxes, for the same reason: the rows are
 // replaced wholesale on every redraw, so a listener bound to a control
 // itself would last until the next one.
+// A phase's AI picker fills that phase's model in and is done.
+// It is intercepted BEFORE the branch for every other select, and not only for
+// tidiness: it has no `name`, so `selectKey` would file every AI
+// select on the row under the same key — the form id and an empty
+// string — and the last one touched would decide the lot. Nothing
+// about it is remembered for the next redraw either; `applyAiPick`
+// records what it wrote under the select it wrote it into, and the
+// picker itself is set back from that select on the way out.
+// The model select on a phase the running job has not
+// reached goes the same way as a tail box — there is no Run button
+// on a busy row to submit it with — so the pick goes to the running
+// job's own route now. The AI select beside it is set from this one
+// first, so the line does not sit showing a tool the model it posted
+// does not belong to.
 const onRowsChange = ((event: Event) => {
   if (changeExecutionGroupEditor(event)) return;
   const target = event.target as Element | null;
@@ -56,20 +100,7 @@ const onRowsChange = ((event: Event) => {
   // and it is what lets the test wait for the request the tick makes.
   const tail = target?.closest?.("input[data-post-to]") as HTMLInputElement | null;
   if (tail) return postTailStep(tail);
-  // A phase's AI picker fills that phase's model in and is done.
-  // It is intercepted BEFORE the branch below, and not only for
-  // tidiness: it has no `name`, so `selectKey` would file every AI
-  // select on the row under the same key — the form id and an empty
-  // string — and the last one touched would decide the lot. Nothing
-  // about it is remembered for the next redraw either; `applyAiPick`
-  // records what it wrote under the select it wrote it into, and the
-  // picker itself is set back from that select on the way out.
-  // The model select on a phase the running job has not
-  // reached. Same reasoning as the box above — there is no Run button
-  // on a busy row to submit it with — so the pick goes to the running
-  // job's own route now. The AI select beside it is set from this one
-  // first, so the line does not sit showing a tool the model it posted
-  // does not belong to.
+  // A live model select posts now, and a phase's AI picker fills its model in (above).
   const liveModel = target?.closest?.("select[data-post-to]") as HTMLSelectElement | null;
   if (liveModel) return postTailModel(liveModel, liveModel.value);
   const ai = target?.closest?.("select[data-ai]") as HTMLSelectElement | null;
@@ -78,15 +109,7 @@ const onRowsChange = ((event: Event) => {
   // away by every redraw, and a model picked for the next run is a
   // promise the page has to keep.
   const select = target?.closest?.("select") as HTMLSelectElement | null;
-  if (select) {
-    chosen.set(selectKey(select), select.value);
-    if (select.name?.startsWith("model.")) {
-      // Recorded on the server the instant it is made, not
-      // only in `chosen` — which is a fresh, empty map on every page
-      // load and cannot survive leaving the page.
-      void postPendingModel(select, select.name.slice("model.".length), select.value);
-    }
-  }
+  if (select) rememberSelect(select);
   // And the phase boxes, for the same reason and in a map of their own:
   // what is remembered about a box is whether it is ticked, which is
   // not a value a select can be restored from.
@@ -99,21 +122,7 @@ const onRowsChange = ((event: Event) => {
   const step = target?.closest?.(
     'input[name="steps"], input[name="tick"], input[name="unverified"], input[name="failed"]',
   ) as HTMLInputElement | null;
-  if (step) {
-    chosenSteps.set(checkboxKey(step), step.checked);
-    if (step.name === "steps") rememberGroupPhases(step);
-    if (step.name === "tick" || step.name === "unverified" || step.name === "failed") {
-      for (const other of ["tick", "unverified", "failed"].filter((n) => n !== step.name)) {
-        const sibling = step.closest?.("li")?.querySelector?.(`input[name="${other}"]`) as HTMLInputElement | null;
-        if (!sibling || sibling === step) continue;
-        if (step.checked) sibling.checked = false;
-        chosenSteps.set(checkboxKey(sibling), sibling.checked);
-      }
-    }
-    const rows = document.getElementById("jobrows");
-    const formId = step.getAttribute("form");
-    if (step.name === "steps" && rows && formId) relabelRunButton(rows, formId);
-  }
+  if (step) rememberCheckbox(step);
 }) as EventListener;
 
 // A New group or Edit group dialog closed, by Cancel, by

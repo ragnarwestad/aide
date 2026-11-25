@@ -1,0 +1,315 @@
+#!/usr/bin/env bash
+# run-spec/turn/model-turn/read.sh — sourced by aide-run-spec before
+# run-spec/turn/model-turn/index.sh.
+#
+# Reading what came back from one model turn, for claude, codex and
+# opencode alike, into the step's own globals. Called from run_model_turn,
+# whose locals $turn_at, $turn_from and $result_json it writes.
+
+# --- reading what came back --------------------------------------------------
+model_turn_reset_reads() {
+  session_out=""; subtype=""; cost="0"; cost_measured="false"; terminal_reason=""; error_msg=""; error_solution=""; error_log=""
+  # Where this turn's own bytes begin in the transcript. Every turn of a step
+  # appends to the one transcript — the review's and verification's side turns
+  # included — so the last closing event or limit event in the file may be an
+  # earlier turn's. The reads of how this turn ended start here.
+  turn_from=$(( ${turn_at:-0} + 1 ))
+  # The turn's own final text — the one piece of "what came back" nothing
+  # reads today. Reset here, unconditionally like the globals above, for
+  # `set -u` safety: a caller reading it on a path where no branch below
+  # sets it would abort the whole run.
+  turn_message=""
+  # The tokens the step actually metered, as a JSON object — or empty,
+  # which is what makes the field ABSENT rather than zero.
+  tokens_json=""
+  # The model id the run's own log names (`system`/`init`), or empty, which
+  # makes the result's `modelId` ABSENT rather than a guess.
+  model_id_out=""
+  # The provider's own account of a usage limit that stopped this turn, in
+  # the one shape `run-spec/turn/provider-limit.sh` writes for every tool — or
+  # empty, which leaves `providerLimit` out of the result.
+  provider_limit_out=""
+  # The provider's own words when it had no room for the model, which ends
+  # the turn: empty unless the stream's last error says so. Unlike a usage
+  # limit there is no reset to wait for.
+  at_capacity_out=""
+  # The provider's own error on a turn that ended `cli-error`, sorted
+  # (run-spec/turn/provider-error.sh) — or empty, which leaves
+  # `providerError` out of the result.
+  provider_error_out=""
+  time_limit_json=""
+  # Claude's own name for the error a turn ended on (`authentication_failed`,
+  # `server_error`), which its closing result does not carry.
+  claude_error_name=""
+  # Did the tool report an outcome of its own at all? For claude this is
+  # the same question as "was a cost measured", which is why the branch
+  # below used to ask that one — but a Codex step never measures a cost
+  # and still finishes, so the two questions had to come apart.
+  have_result="false"
+  # OpenCode reports its outcome in step and error events, without a result object.
+  result_json='{}'
+  # Is there a dollar figure to report? Claude sets one on every path,
+  # including the over-charge a killed run is billed. Codex publishes no
+  # dollar figure anywhere in its output and there is nothing to
+  # approximate one from, so the field is left out of the result entirely
+  # rather than defaulted to a number somebody would read as real.
+  cost_known="true"
+  [ "$tool" = "codex" ] && cost_known="false"
+}
+
+# The stream holds one event per line, so the result must be SELECTED by
+# `type == "result"`, never taken positionally: the CLI emits shutdown
+# and rate-limit events after it, and "the last line" would silently
+# report the wrong cost, session and terminal reason for every run.
+# `-R` + `fromjson?` reads line by line and skips anything that does not
+# parse, so a half-written final line from a killed run costs nothing
+# rather than discarding a result event that arrived intact.
+model_turn_read() {
+  case "$tool" in
+    codex) model_turn_read_codex ;;
+    opencode) model_turn_read_opencode ;;
+    *) model_turn_read_claude ;;
+  esac
+}
+
+model_turn_read_codex() {
+  # Codex's own closing event. Selected by type for exactly the reason
+  # claude's is: `codex exec --json` keeps emitting after the turn ends,
+  # and "the last line" would report the wrong thing every run. A failed
+  # turn is a result too — it says the step ran and did not finish,
+  # which is a different answer from "the CLI never said anything".
+  result_json="$(tail -c +"$turn_from" "$transcript" 2>/dev/null \
+    | jq -Rc 'fromjson? | select(type == "object" and (.type == "turn.completed" or .type == "turn.failed"))' \
+      2>/dev/null | tail -n 1)"
+  # The thread Codex named for itself, read back the way claude's
+  # session id is. It arrives FIRST, in `thread.started`, not in the
+  # closing event — so it is picked out of its own event.
+  session_out="$(jq -Rr 'fromjson? | select(type == "object" and .type == "thread.started") | .thread_id // empty' \
+    "$transcript" 2>/dev/null | tail -n 1)"
+  # The turn's own final text: the last `item.completed` event whose item
+  # is an agent_message, named in `type` by Codex today and `item_type` before.
+  # Selected as a whole EVENT first (compact, so `tail -n 1` counts events
+  # rather than lines) and only THEN read for `.item.text`: that text can
+  # carry its own embedded newlines, which `-r`'s raw output would split
+  # across several lines and `tail -n 1` would then truncate to the last
+  # one alone.
+  turn_message_json="$(jq -Rc 'fromjson? | select(type == "object" and .type == "item.completed" and (.item.item_type // .item.type) == "agent_message")' \
+    "$transcript" 2>/dev/null | tail -n 1)"
+  turn_message=""
+  [ -n "$turn_message_json" ] && turn_message="$(jq -r '.item.text // empty' <<<"$turn_message_json" 2>/dev/null)"
+  if [ -n "$result_json" ]; then
+    have_result="true"
+    case "$(jq -r '.type' <<<"$result_json")" in
+      turn.completed) subtype="success" ;;
+      *) subtype="turn_failed"
+         error_msg="$(jq -r '(.error.message // .error // "the turn failed") | tostring' <<<"$result_json")" ;;
+    esac
+    # Codex's usage block, mapped into the shape the claude path already
+    # defined, whose four parts do not overlap. Codex's do: its
+    # `input_tokens` already holds the cached and cache-written input, and
+    # its `output_tokens` the reasoning, so Codex's own `total_tokens` is
+    # input plus output (read off a session log, codex-cli 0.167.0). The
+    # cached parts come out of input, and reasoning is not added again.
+    tokens_json="$(jq -c '
+      if (.usage | type) == "object" then
+        (.usage.cached_input_tokens // 0) as $read
+        | (.usage.cache_write_input_tokens // 0) as $write
+        | {input:         ([(.usage.input_tokens // 0) - $read - $write, 0] | max),
+           output:        (.usage.output_tokens // 0),
+           cacheRead:     $read,
+           cacheCreation: $write}
+        | . + {total: (.input + .output + .cacheRead + .cacheCreation)}
+      else empty end
+    ' <<<"$result_json" 2>/dev/null)"
+  fi
+  model_turn_read_codex_failure
+}
+
+model_turn_read_codex_failure() {
+  # A turn that did not complete may have been stopped by the account's
+  # own limit, which `codex exec --json` never names. Codex's session
+  # file does.
+  [ "$subtype" != "success" ] || return 0
+  provider_limit_out="$(codex_provider_limit "$session_out")"
+  # The last `error` or `turn.failed` event is how the turn ended; an
+  # earlier at-capacity error that a different one followed is not.
+  # Selected as a whole event first, then read, like the message above.
+  codex_error_json="$(tail -c +"$turn_from" "$transcript" 2>/dev/null \
+    | jq -Rc 'fromjson? | select(type == "object" and (.type == "error" or .type == "turn.failed"))' \
+      2>/dev/null | tail -n 1)"
+  codex_error=""
+  [ -n "$codex_error_json" ] && codex_error="$(jq -r '(.message // .error.message // .error // empty) | tostring' \
+    <<<"$codex_error_json" 2>/dev/null)"
+  printf '%s' "$codex_error" | grep -qi 'at capacity' && at_capacity_out="$codex_error"
+  # A spent account can refuse the turn before any count shows a full
+  # window; then Codex's own error is the only place the limit is named.
+  if [ -z "$provider_limit_out" ] && printf '%s' "$codex_error" | grep -qi 'usage limit'; then
+    provider_limit_out="$(codex_message_limit "$codex_error")"
+  fi
+}
+
+model_turn_read_opencode() {
+  # opencode closes no turn with a single result event. It emits one
+  # `step_finish` per step, each carrying that step's own tokens and
+  # cost, so the run's totals are the SUM over all of them — taking the
+  # last one alone would report the final step's numbers as the whole
+  # run's. A turn that failed says so in an `error` event instead, and
+  # that event wins: it is the only place a message to show the reader
+  # exists. Verified 2026-09-16 against opencode 1.18.31, whose error
+  # event carries `.error.name` with the human sentence under
+  # `.error.data.message`; opencode 2.2.6 carries `.error.type` with the
+  # sentence under `.error.message`.
+  error_json="$(tail -c +"$turn_from" "$transcript" 2>/dev/null \
+    | jq -Rc 'fromjson? | select(type == "object" and .type == "error")' 2>/dev/null | tail -n 1)"
+  # Every event carries the session opencode named for itself, so the
+  # first one that parses answers it — including for a run that failed
+  # before any step finished.
+  session_out="$(tail -c +"$turn_from" "$transcript" 2>/dev/null \
+    | jq -Rr 'fromjson? | select(type == "object") | .sessionID // empty' 2>/dev/null | head -n 1)"
+  # The turn's own final text: the last `text` part — a shape nothing
+  # else in this branch reads today. Selected as a whole event first,
+  # same reason as codex's own read above: the text can carry embedded
+  # newlines that raw (`-r`) output would split across lines before
+  # `tail -n 1` ever saw them.
+  turn_message_json="$(tail -c +"$turn_from" "$transcript" 2>/dev/null \
+    | jq -Rc 'fromjson? | select(type == "object" and .part.type == "text")' 2>/dev/null | tail -n 1)"
+  turn_message=""
+  [ -n "$turn_message_json" ] && turn_message="$(jq -r '.part.text // empty' <<<"$turn_message_json" 2>/dev/null)"
+  # This turn's own bytes only: the transcript holds every turn of the step.
+  steps_json="$(tail -c +"$turn_from" "$transcript" 2>/dev/null | jq -Rsc '
+    [splits("\n") | select(length > 0) | fromjson?
+     | select(type == "object" and .type == "step_finish") | .part]
+    | {cost:          (map(.cost // 0)                  | add // 0),
+       input:         (map(.tokens.input // 0)          | add // 0),
+       output:        (map((.tokens.output // 0) + (.tokens.reasoning // 0)) | add // 0),
+       cacheRead:     (map(.tokens.cache.read // 0)     | add // 0),
+       cacheCreation: (map(.tokens.cache.write // 0)    | add // 0),
+       steps:         length}
+  ' 2>/dev/null)"
+  model_turn_read_opencode_result
+}
+
+# Whether opencode said how the turn went, and what it cost.
+model_turn_read_opencode_result() {
+  if [ -n "$error_json" ]; then
+    have_result="true"
+    subtype="turn_failed"
+    error_msg="$(jq -r '(.error.data.message // .error.message // .error.name // .error.type // "the turn failed")
+      | tostring' <<<"$error_json")"
+  elif [ "$(jq -r '.steps // 0' <<<"${steps_json:-{\}}" 2>/dev/null)" != "0" ]; then
+    have_result="true"
+    subtype="success"
+  fi
+  if [ "$have_result" = "true" ] && [ -n "$steps_json" ]; then
+    # Reasoning tokens are added to output for the reason codex's are:
+    # they are billed as output, so dropping them understates the run.
+    # Every turn of a step is written to the step's one transcript, and
+    # opencode reports each call on its own: the step's tokens are every
+    # call's, while this turn's cost is the calls after where it began,
+    # since the callers add a step's turns' costs up.
+    cost="$(tail -c +"$turn_from" "$transcript" 2>/dev/null | jq -Rsr '
+      [splits("\n") | select(length > 0) | fromjson?
+       | select(type == "object" and .type == "step_finish") | .part.cost // 0] | add // 0')"
+    cost_measured="true"
+    tokens_json="$(jq -c '{input, output, cacheRead, cacheCreation}
+      | . + {total: (.input + .output + .cacheRead + .cacheCreation)}' <<<"$steps_json")"
+  fi
+}
+
+model_turn_read_claude() {
+  result_json="$(tail -c +"$turn_from" "$transcript" 2>/dev/null \
+    | jq -Rc 'fromjson? | select(type == "object" and .type == "result")' 2>/dev/null | tail -n 1)"
+  # The model the CLI says it started on: the `init` event, not `modelUsage`,
+  # which lists helper models too. The last `init` that names one wins, like
+  # the last `result` (a resumed turn writes its own). A stand-in names no
+  # real model, so `fake-claude` reads nothing.
+  if [ "$tool" = "claude" ]; then
+    model_id_out="$(jq -Rr 'fromjson?
+      | select(type == "object" and .type == "system" and .subtype == "init")
+      | .model | select(type == "string" and length > 0)' \
+      "$transcript" 2>/dev/null | tail -n 1)"
+  fi
+  # `status: rejected` alone is NOT a stop: it says the subscription
+  # window is spent, and the very same event says whether purchased
+  # credit is carrying the request anyway. Measured 2026-08-25, when
+  # every run for two days was reported stopped while finishing its
+  # work — the seven-day window was spent, `overageStatus: allowed`
+  # and `isUsingOverage: true` covered every call, and the branch that
+  # wins below is ahead of the one that reads the successful result.
+  # A real stop has the credit refused beside it
+  # (`overageStatus: rejected`, `overageDisabledReason: out_of_credits`,
+  # `isUsingOverage: false`), so the credit in use is what tells the two
+  # apart. Absent means false: an older CLI emitted neither field. A model
+  # the account has no credit for (`credits_required`) is no window to wait
+  # out: it fails below as a refused request, holding nothing else.
+  provider_limit_json="$(tail -c +"$turn_from" "$transcript" 2>/dev/null | jq -Rc 'fromjson? | select(
+    type == "object" and .type == "rate_limit_event" and
+    .rate_limit_info.status == "rejected" and
+    (.rate_limit_info.isUsingOverage // false) == false and
+    .rate_limit_info.errorCode != "credits_required"
+  )' 2>/dev/null | tail -n 1)"
+  if [ -n "$provider_limit_json" ]; then
+    provider_limit_out="$(claude_provider_limit "$provider_limit_json")"
+    # The event IS the stop; a shape that could not be read still is one.
+    [ -n "$provider_limit_out" ] || provider_limit_out='{"tool":"claude","window":"provider"}'
+  fi
+  model_turn_read_claude_result
+}
+
+model_turn_read_claude_result() {
+  if [ -n "$result_json" ]; then
+    have_result="true"
+    # The error a failed turn ended on is named on the assistant event that
+    # carries its words, not on the result.
+    claude_error_name="$(tail -c +"$turn_from" "$transcript" 2>/dev/null | jq -Rr 'fromjson?
+      | select(type == "object" and .type == "assistant") | .error | select(type == "string")' \
+      2>/dev/null | tail -n 1)"
+    session_out="$(jq -r '.session_id // empty' <<<"$result_json")"
+    subtype="$(jq -r '.subtype // empty' <<<"$result_json")"
+    cost="$(jq -r '.total_cost_usd // 0' <<<"$result_json")"
+    cost_measured="true"
+    # The turn's own final text: the same result event already parsed for
+    # session_id/cost above — free, no new scan of $transcript.
+    turn_message="$(jq -r '.result // empty' <<<"$result_json")"
+    # The provider had no room for the model: the closing result is an error
+    # with status 529, or one that says overloaded or at capacity. Claude Code
+    # retries a 529 by itself, so only how the step ended counts, never the
+    # `api_retry` events. A refusal is the model's own stop.
+    at_capacity_out="$(jq -r 'select(.is_error == true and .stop_reason != "refusal"
+        and (.api_error_status == 529 or ((.result // "") | tostring | test("overloaded|at capacity"; "i"))))
+      | (.result // "overloaded") | tostring' <<<"$result_json" 2>/dev/null)"
+    tokens_json="$(claude_tokens_json "$result_json")"
+  fi
+}
+
+# What the plan actually meters. On a subscription the dollar figure is
+# notional and this is the number that counts, so it is recorded beside
+# the cost rather than instead of it.
+#
+# `modelUsage` FIRST and summed across its models: it is the session's
+# own total, keyed by model, and a run that switched model mid-session
+# has a block each. The flat `usage` is the fallback because it holds
+# the LAST TURN alone — right shape, wrong span — and is worth reading
+# only when the per-model block is not there at all. Neither present
+# emits nothing: a token count can be measured or absent, never
+# assumed, so there is no equivalent of the over-charge rule in
+# model-turn/outcome.sh.
+claude_tokens_json() {  # <result-json>
+  jq -c '
+  (.modelUsage // {} | if type == "object" then [.[]] else [] end) as $models
+  | (if ($models | length) > 0 then
+       {input:         ($models | map(.inputTokens // 0)              | add),
+        output:        ($models | map(.outputTokens // 0)             | add),
+        cacheRead:     ($models | map(.cacheReadInputTokens // 0)     | add),
+        cacheCreation: ($models | map(.cacheCreationInputTokens // 0) | add)}
+     elif (.usage | type) == "object" then
+       {input:         (.usage.input_tokens // 0),
+        output:        (.usage.output_tokens // 0),
+        cacheRead:     (.usage.cache_read_input_tokens // 0),
+        cacheCreation: (.usage.cache_creation_input_tokens // 0)}
+     else empty end)
+  # Cached or not, every one of these was processed — which is what
+  # the plan bills against.
+  | . + {total: (.input + .output + .cacheRead + .cacheCreation)}
+  ' <<<"$1" 2>/dev/null
+}

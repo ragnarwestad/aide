@@ -14,7 +14,7 @@ import { describe, expect, test } from "bun:test";
 import {
   dashboardSpecDir,
   type DashboardCheckout,
-} from "../../../src/git/dashboard-checkout.ts";
+} from "../../../src/git/dashboard-checkout/index.ts";
 import { CheckoutEnsurer } from "../../../src/git/checkout-ensurer.ts";
 
 describe("dashboardSpecDir", () => {

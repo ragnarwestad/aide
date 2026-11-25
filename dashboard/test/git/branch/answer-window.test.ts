@@ -30,7 +30,7 @@ describe("the windows a cached answer about a spec stands for", () => {
       .filter((file) => /\b[A-Z_]+_TTL_MS\s*=/.test(readFileSync(join(src, file), "utf-8")))
       .sort();
     expect(defined).toEqual(["git/branch-status.ts"]);
-    expect(readFileSync(join(src, "serve/spec-lookup.ts"), "utf-8")).toContain("SCAN_TTL_MS");
+    expect(readFileSync(join(src, "serve/spec-lookup/index.ts"), "utf-8")).toContain("SCAN_TTL_MS");
     expect([DEFAULT_TTL_MS, SCAN_TTL_MS, ARCHIVED_RESOLVED_TTL_MS].every((ms) => ms > 0)).toBe(true);
   });
 

@@ -76,19 +76,16 @@ function isRoundWorktree(wt: WorktreeLine): boolean {
   );
 }
 
-/** Every test server still listening on the pool's ports, put back in
- *  the registry. Returns what it found, for the caller's own log line.
- *
- *  A port answers with the process holding it and the directory that
- *  process was given; the project's own worktree list says which branch
- *  is checked out there, and the branch says which spec. A port held by
- *  something that is not a test server matches no worktree and is left
- *  alone. */
-export async function recoverTestServers(ctx: TestServersContext, projects: string[]): Promise<TestServer[]> {
-  const known = new Map<string, { project: string } & WorktreeLine>();
-  // What each project's serving checkout has checked out: the branch a
-  // detached round worktree was cut from, and so the branch the main
-  // board serves.
+type KnownWorktree = { project: string } & WorktreeLine;
+
+/** Every round worktree of the projects, by resolved path, and the branch
+ *  each project's serving checkout has checked out: the branch a detached
+ *  round worktree was cut from, and so the branch the main board serves. */
+async function roundWorktrees(
+  ctx: TestServersContext,
+  projects: string[],
+): Promise<{ known: Map<string, KnownWorktree>; checkedOut: Map<string, string> }> {
+  const known = new Map<string, KnownWorktree>();
   const checkedOut = new Map<string, string>();
   for (const project of projects) {
     // A project the round cannot run on has never had a test server, so
@@ -108,6 +105,34 @@ export async function recoverTestServers(ctx: TestServersContext, projects: stri
       known.set(resolved(wt.path), { project, ...wt });
     }
   }
+  return { known, checkedOut };
+}
+
+/** The registry key and branch of the board a round worktree serves. A
+ *  spec's board is keyed by its folder; the Deploy tab's own board (a
+ *  detached worktree) by MAIN_TEST_SERVER_KEY, serving the branch the
+ *  serving checkout has out — the one it was detached from. Undefined for
+ *  a worktree that serves neither. */
+function servedBoard(wt: KnownWorktree, checkedOut: Map<string, string>): { specFolder: string; branch: string } | undefined {
+  const branchFolder = specFolderOfBranch(wt.branch);
+  if (branchFolder !== undefined) {
+    const specFolder = branchFolder.startsWith("group-") ? branchFolder.slice("group-".length) : branchFolder;
+    return specFolder ? { specFolder, branch: wt.branch } : undefined;
+  }
+  if (wt.branch === "") return { specFolder: MAIN_TEST_SERVER_KEY, branch: checkedOut.get(wt.project) ?? "main" };
+  return undefined;
+}
+
+/** Every test server still listening on the pool's ports, put back in
+ *  the registry. Returns what it found, for the caller's own log line.
+ *
+ *  A port answers with the process holding it and the directory that
+ *  process was given; the project's own worktree list says which branch
+ *  is checked out there, and the branch says which spec. A port held by
+ *  something that is not a test server matches no worktree and is left
+ *  alone. */
+export async function recoverTestServers(ctx: TestServersContext, projects: string[]): Promise<TestServer[]> {
+  const { known, checkedOut } = await roundWorktrees(ctx, projects);
   if (known.size === 0) return [];
 
   const held = new Set(ctx.store.all().map((e) => e.port));
@@ -118,24 +143,10 @@ export async function recoverTestServers(ctx: TestServersContext, projects: stri
     if (!live) continue;
     const wt = known.get(resolved(join(live.workDir, "checkout")));
     if (!wt) continue;
-    // A spec's board is keyed by its folder; the Deploy tab's own board
-    // (a detached worktree) by MAIN_TEST_SERVER_KEY, serving the branch the
-    // serving checkout has out — the one it was detached from.
-    let specFolder: string;
-    let branch: string;
-    const branchFolder = specFolderOfBranch(wt.branch);
-    if (branchFolder !== undefined) {
-      specFolder = branchFolder.startsWith("group-") ? branchFolder.slice("group-".length) : branchFolder;
-      branch = wt.branch;
-    } else if (wt.branch === "") {
-      specFolder = MAIN_TEST_SERVER_KEY;
-      branch = checkedOut.get(wt.project) ?? "main";
-    } else {
-      continue;
-    }
-    if (!specFolder) continue;
+    const board = servedBoard(wt, checkedOut);
+    if (!board) continue;
     const entry: TestServer = {
-      branch,
+      branch: board.branch,
       commit: wt.commit,
       port,
       // The round's wrapper is long gone: what is left is the board
@@ -151,7 +162,7 @@ export async function recoverTestServers(ctx: TestServersContext, projects: stri
       url: `http://127.0.0.1:${port}/`,
       startedAt: ctx.now(),
     };
-    ctx.store.set(wt.project, specFolder, entry);
+    ctx.store.set(wt.project, board.specFolder, entry);
     found.push(entry);
   }
   return found;

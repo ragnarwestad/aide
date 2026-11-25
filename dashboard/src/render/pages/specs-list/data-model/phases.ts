@@ -19,6 +19,41 @@ function stepsTouched(r: QueueRowView): string[] {
   return [...new Set([...finished, currentStep(r)])];
 }
 
+/** A step that has a result: the newest try decides its state, and its
+ *  figures are the sum over every try. */
+function finishedStepAttempt(r: QueueRowView, step: string, tries: NonNullable<QueueRowView["results"]>, res: NonNullable<QueueRowView["results"]>[number]): QueueRowView {
+  const usd = tries.reduce((sum, x) => sum + x.costUsd - sidesSpent(x).usd, 0);
+  const tokens = tries.some((x) => x.tokens !== undefined)
+    ? tries.reduce((sum, x) => sum + (x.tokens ?? 0) - sidesSpent(x).tokens, 0)
+    : undefined;
+  // A step whose own process finished but whose LANDING did not (a
+  // merge conflict, red tests): the job carries the failure, and it
+  // is this one step's — the one whose branch was being merged
+  // (2026-09-11). Read as done, the line said "done" over a job that
+  // said "failed", and the pip beside it took the wrong colour.
+  const landingFell = res.ok && currentStep(r) === step && r.state === "failed";
+  return {
+    ...r,
+    state: landingFell ? r.state : res.ok ? "done" : r.state === "done" ? "failed" : r.state,
+    // The step's figures are the total over its session and its review and
+    // verification; this line is the session's own.
+    spentUsd: Math.max(0, usd),
+    spentTokens: tokens === undefined ? undefined : Math.max(0, tokens),
+    // THIS step's model, not the row's: the row speaks for the running
+    // or last step, and spread whole it named the last step's model on
+    // every line of a multi-step job (2026-09-15).
+    model: r.stepModels?.[step] ?? r.model,
+    // This step's own result's id, not the row's (which speaks for the running or last step).
+    modelId: res.modelId,
+    error: res.ok && !landingFell ? undefined : r.error,
+    // The job's `landing` flag belongs to the ONE step whose branch is
+    // being merged, never to the steps behind it. Spread whole, it
+    // made `inFlight` true for every finished step, and a three-step
+    // job waiting for its merge drew three running pips at once.
+    landing: landingStep(r) === step ? r.landing : undefined,
+  };
+}
+
 /** The job as ONE of its steps saw it. Same shape as the job, so every
  *  cell that renders a job renders a step without knowing the
  *  difference — but with that step's own outcome and its own cost, not
@@ -35,38 +70,7 @@ function attemptFor(r: QueueRowView, step: string): QueueRowView | null {
   // figures are the sum of all of them.
   const tries = (r.results ?? []).filter((x) => x.step === step);
   const res = tries.at(-1);
-  if (res) {
-    const usd = tries.reduce((sum, x) => sum + x.costUsd - sidesSpent(x).usd, 0);
-    const tokens = tries.some((x) => x.tokens !== undefined)
-      ? tries.reduce((sum, x) => sum + (x.tokens ?? 0) - sidesSpent(x).tokens, 0)
-      : undefined;
-    // A step whose own process finished but whose LANDING did not (a
-    // merge conflict, red tests): the job carries the failure, and it
-    // is this one step's — the one whose branch was being merged
-    // (2026-09-11). Read as done, the line said "done" over a job that
-    // said "failed", and the pip beside it took the wrong colour.
-    const landingFell = res.ok && currentStep(r) === step && r.state === "failed";
-    return {
-      ...r,
-      state: landingFell ? r.state : res.ok ? "done" : r.state === "done" ? "failed" : r.state,
-      // The step's figures are the total over its session and its review and
-      // verification; this line is the session's own.
-      spentUsd: Math.max(0, usd),
-      spentTokens: tokens === undefined ? undefined : Math.max(0, tokens),
-      // THIS step's model, not the row's: the row speaks for the running
-      // or last step, and spread whole it named the last step's model on
-      // every line of a multi-step job (2026-09-15).
-      model: r.stepModels?.[step] ?? r.model,
-      // This step's own result's id, not the row's (which speaks for the running or last step).
-      modelId: res.modelId,
-      error: res.ok && !landingFell ? undefined : r.error,
-      // The job's `landing` flag belongs to the ONE step whose branch is
-      // being merged, never to the steps behind it. Spread whole, it
-      // made `inFlight` true for every finished step, and a three-step
-      // job waiting for its merge drew three running pips at once.
-      landing: landingStep(r) === step ? r.landing : undefined,
-    };
-  }
+  if (res) return finishedStepAttempt(r, step, tries, res);
   if (currentStep(r) !== step) return null;
   // Not yet run, while an EARLIER step of the same job is landing: a
   // chained job has already moved its `stepIndex` on to this step when

@@ -8,7 +8,7 @@
 import type { ProjectResolver } from "../../queue/queue.ts";
 import type { ServerState } from "../state.ts";
 import type { SpecTarget } from "../../render";
-import { DEFAULT_DASHBOARD_CHECKOUT_ROOT } from "../../git/dashboard-checkout.ts";
+import { DEFAULT_DASHBOARD_CHECKOUT_ROOT } from "../../git/dashboard-checkout/index.ts";
 import { isHidden } from "../../project/project-admin/hidden.ts";
 
 export function createProjectResolver(

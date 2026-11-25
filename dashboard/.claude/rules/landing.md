@@ -1,7 +1,7 @@
 ---
 paths:
   - "src/serve/land-branch/**"
-  - "src/serve/runner-setup.ts"
+  - "src/serve/runner-setup/**"
   - "src/serve/setup/merge.ts"
   - "src/serve/spec-views/**"
   - "src/git/branch-merge/**"
@@ -30,7 +30,7 @@ reads what a merge left.
   button, no `gateAfter`, no `awaiting-approval` state.
 - **`implement` merges nothing, so no reader may ask the default branch
   whether it ran.** It falls through the merge dispatch by design
-  (`runner-setup.ts`), and its `4-status.md` stays on its branch until
+  (`runner-setup/`), and its `4-status.md` stays on its branch until
   archive merges it — so `SpecTarget.done`, which prefers the state file
   on the default branch, names `create, analyze` and no more while a spec
   waits on a tick. `historyDone` is the git-proved list, unmerged

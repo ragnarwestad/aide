@@ -66,6 +66,69 @@ export interface NewSpecPageOptions {
   currentUrl?: string;
 }
 
+/** How the Depends-on picker is drawn. */
+export interface DependsOnFieldOptions {
+  wide?: boolean; locked?: string[]; project?: string; actions?: string;
+  /** The id of the form the boxes post with, for a picker drawn on a
+   *  row of a list rather than inside the form itself. */
+  form?: string;
+  /** Every box shown as it stands and not to be changed. Drawn
+   *  `plain`, so a ticked box stays visible instead of taking the
+   *  padlock look, which hides it. */
+  disabled?: boolean;
+  /** New-spec page only: draw the picked box and the pick
+   *  list as two same-styled fields side by side, each with its own
+   *  label, no outer title and no "none" placeholder. */
+  sideBySide?: { dependsOnLabel: string; selectLabel: string };
+  /** The reader's language, for the field's own words. */
+  lang?: Language;
+}
+
+/** One spec in the Depends-on picker, as a box. */
+function dependsChip(project: string, folder: string, checked: boolean, o: DependsOnFieldOptions, title?: string): string {
+  return (
+    `<span data-project="${esc(project)}">` +
+    phaseChip({
+      dataAttr: "data-depends",
+      value: folder,
+      label: folder,
+      name: "dependsOn",
+      checked,
+      form: o.form,
+      disabled: o.disabled,
+      plain: o.disabled,
+      ...(title === undefined ? {} : { title }),
+    }) +
+    `</span>`
+  );
+}
+
+// The New-spec page's own shape — picked box and pick list
+// side by side, both framed the same way, no outer title
+// (the left column's own label is it) and no "none" placeholder
+// One shared `.field` still wraps both: depends-lift.ts walks
+// up to the nearest `.field` from a ticked box and queries DOWN for
+// `.phases.picked` / `.phases:not(.picked)` — both have to still be
+// found from one shared ancestor, never two.
+function dependsSideBySide(
+  labels: { dependsOnLabel: string; selectLabel: string }, wide: boolean | undefined,
+  help: string, pickedChips: string, restChips: string,
+): string {
+  return (
+    `<span class="field${wide ? " wide" : ""} depends-pair">` +
+      `<span class="depends-col">` +
+        `<span class="fieldhead"><span class="lbl">${esc(labels.dependsOnLabel)}</span>` +
+        `<span class="fieldend">${help}</span></span>` +
+        phases(pickedChips, "picked") +
+      `</span>` +
+      `<span class="depends-col">` +
+        `<span class="lbl">${esc(labels.selectLabel)}</span>` +
+        phases(restChips) +
+      `</span>` +
+    `</span>`
+  );
+}
+
 // What a spec builds on. One chip per active spec, newest
 // first — the number is the order a reader thinks in, and it is the
 // reverse of `discoverProjects`'s ascending sort.
@@ -101,22 +164,7 @@ export function dependsOnField(
   // itself, after the "(?)". The spec page's tracking form has this
   // field as its only real control, and its buttons belong beside the
   // label rather than under a list tall enough to push them off screen.
-  o: {
-    wide?: boolean; locked?: string[]; project?: string; actions?: string;
-    /** The id of the form the boxes post with, for a picker drawn on a
-     *  row of a list rather than inside the form itself. */
-    form?: string;
-    /** Every box shown as it stands and not to be changed. Drawn
-     *  `plain`, so a ticked box stays visible instead of taking the
-     *  padlock look, which hides it. */
-    disabled?: boolean;
-    /** New-spec page only: draw the picked box and the pick
-     *  list as two same-styled fields side by side, each with its own
-     *  label, no outer title and no "none" placeholder. */
-    sideBySide?: { dependsOnLabel: string; selectLabel: string };
-    /** The reader's language, for the field's own words. */
-    lang?: Language;
-  } = {},
+  o: DependsOnFieldOptions = {},
 ): string {
   const lang = o.lang ?? "en";
   const specs = [...targets].sort(
@@ -127,19 +175,7 @@ export function dependsOnField(
   // Nothing to offer and nothing picked: New spec draws no field, while the
   // Running tab's row still says "Depends on: none".
   if (specs.length === 0 && !(o.locked ?? []).length && o.sideBySide) return "";
-  const chip = (t: SpecTarget) =>
-    `<span data-project="${esc(t.project)}">` +
-    phaseChip({
-      dataAttr: "data-depends",
-      value: t.specFolder,
-      label: t.specFolder,
-      name: "dependsOn",
-      checked: checked.has(t.specFolder),
-      form: o.form,
-      disabled: o.disabled,
-      plain: o.disabled,
-    }) +
-    `</span>`;
+  const chip = (t: SpecTarget) => dependsChip(t.project, t.specFolder, checked.has(t.specFolder), o);
   // What is already ticked sits above the scrolling list
   // never capped itself — one partition of the same set, not
   // two controls: every chip still posts `dependsOn` from the
@@ -149,45 +185,12 @@ export function dependsOnField(
   // dependency you already have is one you can drop, and a box that
   // will not untick would say otherwise.
   const lockedChip = (folder: string) =>
-    `<span data-project="${esc(o.project ?? "")}">` +
-    phaseChip({
-      dataAttr: "data-depends",
-      value: folder,
-      label: folder,
-      name: "dependsOn",
-      checked: true,
-      form: o.form,
-      disabled: o.disabled,
-      plain: o.disabled,
-      title: t(lang, "newSpec.archivedTitle"),
-    }) +
-    `</span>`;
+    dependsChip(o.project ?? "", folder, true, o, t(lang, "newSpec.archivedTitle"));
   const picked = specs.filter((t) => checked.has(t.specFolder));
   const rest = specs.filter((t) => !checked.has(t.specFolder));
   const lockedBlock = (o.locked ?? []).map(lockedChip).join("");
   const help = helpPopover(t(lang, "newSpec.dependsHelpTitle"), esc(t(lang, "newSpec.dependsHelp")));
-  // The New-spec page's own shape — picked box and pick list
-  // side by side, both framed the same way, no outer title
-  // (the left column's own label is it) and no "none" placeholder
-  // One shared `.field` still wraps both: depends-lift.ts walks
-  // up to the nearest `.field` from a ticked box and queries DOWN for
-  // `.phases.picked` / `.phases:not(.picked)` — both have to still be
-  // found from one shared ancestor, never two.
-  if (o.sideBySide) {
-    return (
-      `<span class="field${o.wide ? " wide" : ""} depends-pair">` +
-        `<span class="depends-col">` +
-          `<span class="fieldhead"><span class="lbl">${esc(o.sideBySide.dependsOnLabel)}</span>` +
-          `<span class="fieldend">${help}</span></span>` +
-          phases(lockedBlock + picked.map(chip).join(""), "picked") +
-        `</span>` +
-        `<span class="depends-col">` +
-          `<span class="lbl">${esc(o.sideBySide.selectLabel)}</span>` +
-          phases(rest.map(chip).join("")) +
-        `</span>` +
-      `</span>`
-    );
-  }
+  if (o.sideBySide) return dependsSideBySide(o.sideBySide, o.wide, help, lockedBlock + picked.map(chip).join(""), rest.map(chip).join(""));
   // "Depends on:" with the picked chips on its own line, or "none" while
   // there are none, and its "(?)" after them; Save and Cancel at the far
   // end of that line, and the pick list under it. Both boxes are ALWAYS
@@ -206,24 +209,10 @@ export function dependsOnField(
   );
 }
 
-/** The form's id, used by the Create button and the shared options fields. */
-const FORM_ID = "new-spec-form";
-
-// It posts a project NAME, a title and a description. What the spec ends
-// up being CALLED is decided by `/aide-create` alone: nothing here, and
-// nothing in `aide-run-spec`, computes a spec number or a folder slug.
-function newSpecForm(opts: NewSpecPageOptions, projects: string[]): string {
-  const lang = opts.lang ?? "en";
+/** The form's first row: which project, and the title. */
+function projectAndTitleRow(opts: NewSpecPageOptions, projects: string[], lang: Language): string {
   const chosen = projects.find((p) => p === opts.prefill?.project);
-  // What can be changed on this page is the card's to say (`project/spec-card.ts`).
-  const { view } = cardStep(undefined, {
-    type: "opened",
-    facts: { place: "new-spec", jobInFlight: false, analyzeRun: false },
-    saved: NEW_SPEC_VALUES,
-  });
-  // Each `.frow` is a full-width row inside the same wrapping flex the
-  // Add form shares, so the shared `.pageform` look is untouched.
-  const fields =
+  return (
     `<span class="frow">` +
     field(
       t(lang, "newSpec.project"),
@@ -244,7 +233,28 @@ function newSpecForm(opts: NewSpecPageOptions, projects: string[]): string {
         `placeholder="${esc(t(lang, "newSpec.titlePlaceholder"))}">`,
       { wide: true },
     ) +
-    `</span>` +
+    `</span>`
+  );
+}
+
+/** The form's id, used by the Create button and the shared options fields. */
+const FORM_ID = "new-spec-form";
+
+// It posts a project NAME, a title and a description. What the spec ends
+// up being CALLED is decided by `/aide-create` alone: nothing here, and
+// nothing in `aide-run-spec`, computes a spec number or a folder slug.
+function newSpecForm(opts: NewSpecPageOptions, projects: string[]): string {
+  const lang = opts.lang ?? "en";
+  // What can be changed on this page is the card's to say (`project/spec-card.ts`).
+  const { view } = cardStep(undefined, {
+    type: "opened",
+    facts: { place: "new-spec", jobInFlight: false, analyzeRun: false },
+    saved: NEW_SPEC_VALUES,
+  });
+  // Each `.frow` is a full-width row inside the same wrapping flex the
+  // Add form shares, so the shared `.pageform` look is untouched.
+  const fields =
+    projectAndTitleRow(opts, projects, lang) +
     newSpecOptions(opts, FORM_ID, view) +
     `<span class="frow">` +
     field(

@@ -17,20 +17,15 @@ export interface FakeRow {
   insertAdjacentHTML(where: string, html: string): void;
 }
 
-/** The rows of `#jobrows` as OBJECTS, beside the string they came from.
- *  A row the redraw left alone is the same object afterwards, which is
- *  what a test asserts with `toBe` — the property that decides whether a
- *  reader's press survives a redraw, and the one thing a string could
- *  never carry.
- *
- *  `onMutate` is what a browser does for free: the selects in a replaced
- *  row are new elements drawn from the server's answer, so the fake's
- *  own selects go back to what the server would have rendered. */
-export function fakeTbody(onMutate: () => void) {
-  let prefix = "";
-  let suffix = "";
-  let list: FakeRow[] = [];
+interface TbodyState {
+  list: FakeRow[];
+  onMutate: () => void;
+  body: { insertAdjacentHTML(where: string, html: string): void } | null;
+}
 
+/** Markup into rows, one per `</tr>`; each row moves itself within
+ *  `state.list`. */
+function rowCutter(state: TbodyState): (html: string) => FakeRow[] {
   const attr = (html: string, name: string): string =>
     new RegExp(`\\b${name}="([^"]*)"`).exec(html)?.[1] ?? "";
 
@@ -47,22 +42,22 @@ export function fakeTbody(onMutate: () => void) {
         return new RegExp(`\\s${name}(?:=|\\s|>)`).test(row.html.slice(0, row.html.indexOf(">") + 1));
       },
       get nextElementSibling(): FakeRow | null {
-        const at = list.indexOf(row);
-        return at === -1 ? null : (list[at + 1] ?? null);
+        const at = state.list.indexOf(row);
+        return at === -1 ? null : (state.list[at + 1] ?? null);
       },
       get parentNode() {
-        return body;
+        return state.body!;
       },
       remove(): void {
-        const at = list.indexOf(row);
-        if (at !== -1) list.splice(at, 1);
-        onMutate();
+        const at = state.list.indexOf(row);
+        if (at !== -1) state.list.splice(at, 1);
+        state.onMutate();
       },
       insertAdjacentHTML(where: string, fragment: string): void {
-        const at = list.indexOf(row);
+        const at = state.list.indexOf(row);
         if (at === -1) return;
-        list.splice(where === "beforebegin" ? at : at + 1, 0, ...cut(fragment));
-        onMutate();
+        state.list.splice(where === "beforebegin" ? at : at + 1, 0, ...cut(fragment));
+        state.onMutate();
       },
     };
     return row;
@@ -81,19 +76,40 @@ export function fakeTbody(onMutate: () => void) {
     return out;
   };
 
+  return cut;
+}
+
+/** The rows of `#jobrows` as OBJECTS, beside the string they came from.
+ *  A row the redraw left alone is the same object afterwards, which is
+ *  what a test asserts with `toBe` — the property that decides whether a
+ *  reader's press survives a redraw, and the one thing a string could
+ *  never carry.
+ *
+ *  `onMutate` is what a browser does for free: the selects in a replaced
+ *  row are new elements drawn from the server's answer, so the fake's
+ *  own selects go back to what the server would have rendered. */
+export function fakeTbody(onMutate: () => void) {
+  let prefix = "";
+  let suffix = "";
+
+  const state: TbodyState = { list: [], onMutate, body: null };
+  const cut = rowCutter(state);
+
   const body = {
     insertAdjacentHTML(where: string, fragment: string): void {
       const made = cut(fragment);
-      if (where === "beforeend") list.push(...made);
-      else list.unshift(...made);
+      if (where === "beforeend") state.list.push(...made);
+      else state.list.unshift(...made);
       onMutate();
     },
   };
 
+  state.body = body;
+
   return {
     /** The string `innerHTML` hands back — the one it was given, unless
      *  something has since moved a row. */
-    html: (): string => prefix + list.map((r) => r.html).join("") + suffix,
+    html: (): string => prefix + state.list.map((r) => r.html).join("") + suffix,
     parse(html: string): void {
       const open = html.indexOf("<tbody>");
       const close = html.lastIndexOf("</tbody>");
@@ -102,20 +118,20 @@ export function fakeTbody(onMutate: () => void) {
         // Kept whole, so they see the string they always saw.
         prefix = html;
         suffix = "";
-        list = [];
+        state.list = [];
         return;
       }
       const start = open + "<tbody>".length;
       prefix = html.slice(0, start);
       const content = html.slice(start, close);
-      list = cut(content);
+      state.list = cut(content);
       // Whatever the split could not account for travels with the
       // suffix, so nothing is lost on the way back out.
-      suffix = content.slice(list.map((r) => r.html).join("").length) + html.slice(close);
+      suffix = content.slice(state.list.map((r) => r.html).join("").length) + html.slice(close);
     },
     /** The FIRST row wearing this id, the way `getElementById` answers. */
-    byId: (id: string): FakeRow | null => list.find((r) => r.id === id) ?? null,
-    ids: (): string[] => list.map((r) => r.id),
+    byId: (id: string): FakeRow | null => state.list.find((r) => r.id === id) ?? null,
+    ids: (): string[] => state.list.map((r) => r.id),
   };
 }
 

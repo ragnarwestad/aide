@@ -1,4 +1,4 @@
-import { dashboardSettingsFile } from "../../../src/git/dashboard-checkout.ts";
+import { dashboardSettingsFile } from "../../../src/git/dashboard-checkout/index.ts";
 import { tmpdir } from "node:os";
 // Writing .aide/config: what a save accepts, what it refuses, and what
 // it leaves alone.

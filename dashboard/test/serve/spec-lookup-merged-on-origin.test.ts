@@ -12,7 +12,7 @@ import { BranchStatusChecker } from "../../src/git/branch-status.ts";
 import { type GitRunner } from "../../src/git/process/index.ts";
 import type { CodeLanding } from "../../src/project/discover";
 import type { PullRequestAnswer } from "../../src/integrations/pull-requests.ts";
-import { mergedPullRequest, peekMergedOnOrigin, type SpecLookupContext } from "../../src/serve/spec-lookup.ts";
+import { mergedPullRequest, peekMergedOnOrigin, type SpecLookupContext } from "../../src/serve/spec-lookup/index.ts";
 
 const FOLDER = "37-the-arithmetic";
 const BRANCH = `aide/${FOLDER}`;

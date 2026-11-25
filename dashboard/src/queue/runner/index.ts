@@ -112,6 +112,23 @@ export class Runner {
     return this.o.store.list().filter((j) => j.state === "running");
   }
 
+  // No job waits on a landing any more. A landing used to merge in the
+  // SHARED main checkout — `git switch`, then the project's whole
+  // suite on the result — and that is the directory a starting run
+  // reads before it cuts its own worktree, so every job for the
+  // project had to be held for the five and a half minutes it took
+  // (held per repo, not for the whole board; it could
+  // not narrow it further, because every job for a project touches
+  // both of its repos).
+  //
+  // The landing merges in a worktree of its own now
+  // (`mergeBranchIntoDefault`). The shared checkout is asked
+  // questions, and fast-forwarded once at the end in well under a
+  // second — nothing a run's own start can be caught by. So the hold
+  // that existed for it is gone, and the board runs its six at once.
+  // Ended on the spot with the refusal it would get, taking no slot,
+  // rather than held behind another archive with two reasons on one
+  // row. Never started later by a tick: a person presses Archive.
   /** Fill every free slot, oldest queued job first. Answers that need git,
    * provider state or spec files are computed by serve immediately before
    * this call; the runner asks every hold through one ordered list. */
@@ -128,23 +145,6 @@ export class Runner {
     const heldNow = new Set<string>();
     const hold = (job: Job, reason: BoardMessage): void => holdJob(this.o.store, heldNow, job, reason);
 
-    // No job waits on a landing any more. A landing used to merge in the
-    // SHARED main checkout — `git switch`, then the project's whole
-    // suite on the result — and that is the directory a starting run
-    // reads before it cuts its own worktree, so every job for the
-    // project had to be held for the five and a half minutes it took
-    // (held per repo, not for the whole board; it could
-    // not narrow it further, because every job for a project touches
-    // both of its repos).
-    //
-    // The landing merges in a worktree of its own now
-    // (`mergeBranchIntoDefault`). The shared checkout is asked
-    // questions, and fast-forwarded once at the end in well under a
-    // second — nothing a run's own start can be caught by. So the hold
-    // that existed for it is gone, and the board runs its six at once.
-    // Ended on the spot with the refusal it would get, taking no slot,
-    // rather than held behind another archive with two reasons on one
-    // row. Never started later by a tick: a person presses Archive.
     for (const job of this.o.store.list()) {
       if (job.state === "queued" && !job.landing && answers.acceptanceOpen?.has(job.id)) {
         endUntickedArchive(this.o.store, job, this.o.now());
@@ -158,34 +158,42 @@ export class Runner {
     let mergeStarted = false;
     for (const job of this.o.store.list().sort((a, b) => priority.indexOf(waitingKey(a)) - priority.indexOf(waitingKey(b)))) {
       if (job.state !== "queued") continue;
-      const step = job.steps[job.stepIndex];
-      if (step === "deploy" && mergeStarted) continue;
-      const held = holdFor(job, {
-        jobs: () => this.o.store.list(),
-        maxConcurrent: this.maxConcurrent,
-        now: this.o.now(),
-        answers,
-      });
-      if (held) {
-        this.o.store.waiting.reasons.set(waitingKey(job), held.reason ? formatSentence("en", held.reason) ?? "" : held.name.replaceAll("-", " "));
-        if (held.reason) hold(job, held.reason);
-        this.waits.held(job, held, this.o.now());
-        continue;
-      }
-      if (!this.o.store.waiting.canAdmit(jobEntry(job))) {
-        const reason: BoardMessage = { key: job.steps[job.stepIndex] === "deploy" ? "runner.landingPause" : "runner.deployPriority" };
-        this.o.store.waiting.reasons.set(waitingKey(job), formatSentence("en", reason) ?? "");
-        hold(job, reason);
-        continue;
-      }
-      this.o.store.waiting.reasons.delete(waitingKey(job));
-      if (this.startOne(job)) {
-        this.waits.started(job, this.o.now());
-        if (step === "land" || step === "archive") mergeStarted = true;
-      }
+      if (job.steps[job.stepIndex] === "deploy" && mergeStarted) continue;
+      if (this.admit(job, answers, hold)) mergeStarted = true;
     }
     this.waits.keepOnly(new Set(this.o.store.list().filter((job) => job.state === "queued").map((job) => job.id)));
     clearStaleHolds(this.o.store, heldNow);
+  }
+
+  /** A queued job held for its reason, or started when a slot and the
+   *  queue admit it; true when it started a merge or an archive. */
+  private admit(job: Job, answers: HoldAnswers, hold: (job: Job, reason: BoardMessage) => void): boolean {
+    const step = job.steps[job.stepIndex];
+    const held = holdFor(job, {
+      jobs: () => this.o.store.list(),
+      maxConcurrent: this.maxConcurrent,
+      now: this.o.now(),
+      answers,
+    });
+    if (held) {
+      this.o.store.waiting.reasons.set(waitingKey(job), held.reason ? formatSentence("en", held.reason) ?? "" : held.name.replaceAll("-", " "));
+      if (held.reason) hold(job, held.reason);
+      this.waits.held(job, held, this.o.now());
+      return false;
+    }
+    if (!this.o.store.waiting.canAdmit(jobEntry(job))) {
+      const reason: BoardMessage = { key: job.steps[job.stepIndex] === "deploy" ? "runner.landingPause" : "runner.deployPriority" };
+      this.o.store.waiting.reasons.set(waitingKey(job), formatSentence("en", reason) ?? "");
+      hold(job, reason);
+      return false;
+    }
+    this.o.store.waiting.reasons.delete(waitingKey(job));
+    if (this.startOne(job)) {
+      this.waits.started(job, this.o.now());
+      return step === "land" || step === "archive";
+    }
+
+    return false;
   }
 
   /** Start one job's next step. Returns whether a slot was taken. */
@@ -364,60 +372,68 @@ export class Runner {
 
     // The clock or the criteria checks ending a run fail it; a usage
     // limit leaves it waiting for the reset.
-    if (isRunStop(outcome.terminalReason)) {
-      const stoppedAt = this.o.now();
-      const stopMessage = getRunStopMessage(step, outcome, resolveStepModel(job, step, defaults.model));
-      const worded = stopMessage && attemptsLeft(retryAttempts) === 0 && outcome.terminalReason === "timeout"
-        ? { key: "runner.afterTwoTimeouts" as const, inner: stopMessage }
-        : stopMessage;
-      const event = outcome.terminalReason === "provider-limit" ? "limit-reached" : "run-stopped";
-      const result = endStep(this.o.store, job.id, event, {
-        ...base,
-        stopReason: outcome.terminalReason,
-        ...usageLimitWait(outcome, stoppedAt),
-        finishedAt: stoppedAt,
-        error: worded ?? getRunnerMessage(outcome),
-        errorDetail: worded ? stepDetail(outcome) : undefined,
-      });
-      this.announce(result.ok ? result.job : job, "stopped", step, outcome.terminalReason);
-      return;
-    }
-    if (!outcome.ok) {
-      const baseMessage = getNoProgressMessage(step, outcome) ?? getCliErrorMessage(step, outcome) ?? gitFailureMessage(outcome);
-      const finalMessage = attemptsLeft(retryAttempts) === 0 && aiWorkRetryDecision(
-        { terminalReason: outcome.terminalReason ?? "", scopeViolation: outcome.scopeViolation }, retryAttempts - 1,
-      ) && baseMessage && !Array.isArray(baseMessage) && typeof baseMessage !== "string"
-        ? { key: "runner.afterTwoAttempts" as const, inner: baseMessage }
-        : baseMessage;
-      const failure = getStepFailureMessage(
-        finalMessage,
-        outcome,
-        job.model[step] ?? job.modelChoice,
-      );
-      // The step's name goes in front, as a landing's does ("{step} merge
-      // failed"), so the sentence says which step failed wherever it is
-      // read. A deploy is worded by the board's own process, step and all.
-      const error = failure.error !== undefined && requireWorkflowStep(step).runBy !== "board"
-        ? { key: "runner.stepFailed" as const, values: { step, button: stepButton(step) }, inner: failure.error as Sentence | Sentence[] }
-        : failure.error;
-      const result = endStep(this.o.store, job.id, "step-failed", {
-        ...base,
-        finishedAt: this.o.now(),
-        error,
-        errorDetail: failure.errorDetail,
-        // A conflict found HERE — at step start, by the runner — has to
-        // reach the job the same way a landing's conflict does, so the
-        // failure is stored as what it IS rather than as an unexplained
-        // refusal. Undefined for every other one, which is what clears a
-        // reason left by an earlier attempt.
-        errorReason: outcome.errorReason,
-      });
-      // The notifier gets a sentence: the runner's own where it sent one, else the board's, in English.
-      const reason = outcome.error ?? formatSentence("en", failure.error as Sentence | Sentence[] | undefined);
-      this.announce(result.ok ? result.job : job, "failed", step, reason ?? outcome.terminalReason);
-      return;
-    }
+    if (isRunStop(outcome.terminalReason)) return this.completeStopped(job, step, outcome, { base, defaults, retryAttempts });
+    if (!outcome.ok) return this.completeFailed(job, step, outcome, base, retryAttempts);
 
+    this.completeSucceeded(job, step, base, !!landingWork);
+  }
+
+  private completeStopped(job: Job, step: string, outcome: Partial<StepOutcome>, ctx: { base: Record<string, unknown>; defaults: ReturnType<typeof forProject>; retryAttempts: number }): void {
+    const { base, defaults, retryAttempts } = ctx;
+    const stoppedAt = this.o.now();
+    const stopMessage = getRunStopMessage(step, outcome, resolveStepModel(job, step, defaults.model));
+    const worded = stopMessage && attemptsLeft(retryAttempts) === 0 && outcome.terminalReason === "timeout"
+      ? { key: "runner.afterTwoTimeouts" as const, inner: stopMessage }
+      : stopMessage;
+    const event = outcome.terminalReason === "provider-limit" ? "limit-reached" : "run-stopped";
+    const result = endStep(this.o.store, job.id, event, {
+      ...base,
+      stopReason: outcome.terminalReason,
+      ...usageLimitWait(outcome, stoppedAt),
+      finishedAt: stoppedAt,
+      error: worded ?? getRunnerMessage(outcome),
+      errorDetail: worded ? stepDetail(outcome) : undefined,
+    });
+    this.announce(result.ok ? result.job : job, "stopped", step, outcome.terminalReason);
+  }
+
+  private completeFailed(job: Job, step: string, outcome: Partial<StepOutcome>, base: Record<string, unknown>, retryAttempts: number): void {
+    const baseMessage = getNoProgressMessage(step, outcome) ?? getCliErrorMessage(step, outcome) ?? gitFailureMessage(outcome);
+    const finalMessage = attemptsLeft(retryAttempts) === 0 && aiWorkRetryDecision(
+      { terminalReason: outcome.terminalReason ?? "", scopeViolation: outcome.scopeViolation }, retryAttempts - 1,
+    ) && baseMessage && !Array.isArray(baseMessage) && typeof baseMessage !== "string"
+      ? { key: "runner.afterTwoAttempts" as const, inner: baseMessage }
+      : baseMessage;
+    const failure = getStepFailureMessage(
+      finalMessage,
+      outcome,
+      job.model[step] ?? job.modelChoice,
+    );
+    // The step's name goes in front, as a landing's does ("{step} merge
+    // failed"), so the sentence says which step failed wherever it is
+    // read. A deploy is worded by the board's own process, step and all.
+    const error = failure.error !== undefined && requireWorkflowStep(step).runBy !== "board"
+      ? { key: "runner.stepFailed" as const, values: { step, button: stepButton(step) }, inner: failure.error as Sentence | Sentence[] }
+      : failure.error;
+    const result = endStep(this.o.store, job.id, "step-failed", {
+      ...base,
+      finishedAt: this.o.now(),
+      error,
+      errorDetail: failure.errorDetail,
+      // A conflict found HERE — at step start, by the runner — has to
+      // reach the job the same way a landing's conflict does, so the
+      // failure is stored as what it IS rather than as an unexplained
+      // refusal. Undefined for every other one, which is what clears a
+      // reason left by an earlier attempt.
+      errorReason: outcome.errorReason,
+    });
+    // The notifier gets a sentence: the runner's own where it sent one, else the board's, in English.
+    const reason = outcome.error ?? formatSentence("en", failure.error as Sentence | Sentence[] | undefined);
+    this.announce(result.ok ? result.job : job, "failed", step, reason ?? outcome.terminalReason);
+  }
+
+  /** A step that succeeded: the job ends after its last step, or the next is queued. */
+  private completeSucceeded(job: Job, step: string, base: Record<string, unknown>, landingWork: boolean): void {
     const nextIndex = job.stepIndex + 1;
     if (nextIndex >= job.steps.length || (isGroupMemberRun(job) && job.steps.slice(nextIndex).every((next) => next === "archive"))) {
       const result = endStep(this.o.store, job.id, "step-succeeded-last", {

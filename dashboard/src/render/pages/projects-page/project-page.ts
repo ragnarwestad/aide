@@ -75,6 +75,104 @@ function otherProjectDeploy(
   return drift ? checked(name, inner) : inner;
 }
 
+type Serving = NonNullable<ProjectPageOptions["serving"]>;
+
+/** The line saying which commit the served process runs. */
+function servingLine(serving: Serving | undefined, lang: Language): string {
+  return serving
+    ? rowMessage(
+        serving.current ? "info" : "waiting",
+        serving.current
+          ? t(lang, "project.servingCurrent", { sha: serving.sha.slice(0, 7) })
+          : t(lang, "project.servingStale", { sha: serving.sha.slice(0, 7), head: serving.checkoutHead.slice(0, 7) }),
+      )
+    : "";
+}
+
+/** The kept failure, naming its step, and carrying `deploy-error`. */
+function deployErrorLine(failure: ProjectPageOptions["deployFailure"], lang: Language): string {
+  return failure
+    ? rowMessage(
+        "failed",
+        formatMessage(lang, { key: "deploy.stepFailed", values: { step: t(lang, STEP_LABEL[failure.step]!) }, inner: failure.sentence }),
+        {
+          hook: "refusal deploy-error",
+          tag: "p",
+          ...(failure.detail ? { actions: helpPopover("what it printed", esc(failure.detail)) } : {}),
+        },
+      )
+    : "";
+}
+
+// What to say about the served commit
+// when origin itself is still unknown — never a bare hash, and never
+// phrased twice (the `stale` sentence keeps its own bare-hash
+// wording exactly as it is).
+function servedCommitPhrase(s: Serving, lang: Language): string | undefined {
+  return s.newestSubject === undefined
+    ? undefined // git could not answer — fail open, no invented claim
+    : s.current
+      ? t(lang, "project.servedNewest", { subject: s.newestSubject })
+      : t(lang, s.behindCount === 1 ? "project.servedBehindOne" : "project.servedBehindMany", {
+          n: s.behindCount ?? "some", subject: s.newestSubject,
+        });
+}
+
+/** The one sentence the Deploy section says: not yet asked, behind,
+ *  installed but not restarted, or up to date. */
+function deploySentence(
+  opts: ProjectPageOptions, now: number, lang: Language,
+  o: { notYetChecked: boolean; behind: number | null; stale: boolean },
+): { text: string; html?: string } {
+  const { notYetChecked, behind, stale } = o;
+  const serving = opts.serving;
+  const drift = opts.drift!;
+  if (notYetChecked) {
+    const phrase = serving && servedCommitPhrase(serving, lang);
+    return { text: phrase ? t(lang, "project.notCheckedWith", { phrase }) : t(lang, "project.notChecked") };
+  }
+  if (behind! > 0) {
+    return {
+      text: t(lang, `project.behind${behind === 1 ? "One" : "Many"}${serving ? "Restart" : ""}` as TranslationKey, {
+        prefix: driftPrefix(behind!, drift.checkedAt!, now, lang),
+      }),
+    };
+  }
+  if (stale && opts.restartWaiting?.length) {
+    return jobsSentence(lang, "project.deployRestartWaiting", { sha: serving!.sha.slice(0, 7) }, opts.restartWaiting!);
+  }
+  if (stale) return { text: t(lang, "project.stale", { sha: serving!.sha.slice(0, 7), head: serving!.checkoutHead.slice(0, 7) }) };
+  return {
+    text: serving
+      ? t(lang, "project.servingMatches", { sha: serving.sha.slice(0, 7) })
+      : t(lang, "project.matchesOrigin"),
+  };
+}
+
+/** The board's own Deploy asks first, and OK queues the job. A second press
+ *  is refused while one is under way, and the hover line says so. */
+function deployAsk(name: string, opts: ProjectPageOptions, lang: Language, o: { notYetChecked: boolean; disabled: boolean; stale: boolean }): string {
+  const { notYetChecked, disabled, stale } = o;
+  const title = notYetChecked
+    ? t(lang, "project.originUnchecked")
+    : disabled
+      ? t(lang, "project.matchesOrigin")
+      // The button stays live (a press still retries
+      // the install), but hovering it says a press will not restart the
+      // service sooner.
+      : stale && opts.restartWaiting?.length
+        ? t(lang, "project.pressAgain")
+        : undefined;
+  const dialogId = "deployask";
+  const underWay = opts.deployUnderWay
+    ? t(lang, "project.deployUnderWay", { state: t(lang, `state.${opts.deployUnderWay}`) })
+    : undefined;
+  return (
+    askButton({ label: t(lang, "project.deployButton"), dialogId, variant: "primary", disabled: disabled || !!opts.deployUnderWay, title: underWay ?? title, data: { "deploy-project": name, "deploy-ready": String(!disabled), "deploy-idle-title": title ?? "" } }) +
+    deployAskDialog(lang, name, dialogId)
+  );
+}
+
 /** The board's own Deploy: plainly whether this checkout is behind
  *  origin, and — only when it is, and only when a deploy step is
  *  configured — a button that asks, and queues the deploy job.
@@ -100,112 +198,34 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
   const lang = opts.lang ?? "en";
   const heading = t(lang, "project.deployHeading");
   const serving = opts.serving;
-  const servingLine = serving
-    ? rowMessage(
-        serving.current ? "info" : "waiting",
-        serving.current
-          ? t(lang, "project.servingCurrent", { sha: serving.sha.slice(0, 7) })
-          : t(lang, "project.servingStale", { sha: serving.sha.slice(0, 7), head: serving.checkoutHead.slice(0, 7) }),
-      )
-    : "";
+  const served = servingLine(serving, lang);
   const drift = opts.drift;
-  if (!opts.boardItself) return otherProjectDeploy(name, drift, now, heading, servingLine, lang);
+  if (!opts.boardItself) return otherProjectDeploy(name, drift, now, heading, served, lang);
   if (!drift) {
-    return panel(heading, rowMessage("info", t(lang, "project.noInstallCmd")) + servingLine);
+    return panel(heading, rowMessage("info", t(lang, "project.noInstallCmd")) + served);
   }
   // Shown wherever `drift` is defined, never in the ungated branch above.
-  // The kept failure names its step, and carries `deploy-error`.
-  const failure = opts.deployFailure;
-  const errorLine = failure
-    ? rowMessage(
-        "failed",
-        formatMessage(lang, { key: "deploy.stepFailed", values: { step: t(lang, STEP_LABEL[failure.step]!) }, inner: failure.sentence }),
-        {
-          hook: "refusal deploy-error",
-          tag: "p",
-          ...(failure.detail ? { actions: helpPopover("what it printed", esc(failure.detail)) } : {}),
-        },
-      )
-    : "";
+  const errorLine = deployErrorLine(opts.deployFailure, lang);
   const notYetChecked = drift.checkedAt === null;
   const behind = drift.behind;
   // Only "asked, unanswerable" still bails out with no claim and no
   // button — "never asked" now falls into the shared chain
   // below.
-  if (!notYetChecked && behind === null) return checked(name, panel(heading, errorLine + servingLine)); // asked, unanswerable — no claim, never a guess
+  if (!notYetChecked && behind === null) return checked(name, panel(heading, errorLine + served)); // asked, unanswerable — no claim, never a guess
 
   // From here the checkout's own drift is either known, or not yet
   // asked at all, so its answer and the Serving line's answer (when
   // there is one) fold into one sentence instead of stacking as two
   const stale = !!serving && !serving.current;
   const disabled = notYetChecked || (behind === 0 && !stale);
-
-  // What to say about the served commit
-  // when origin itself is still unknown — never a bare hash, and never
-  // phrased twice (the `stale` sentence below keeps its own bare-hash
-  // wording exactly as it is).
-  const servedCommitPhrase = (s: NonNullable<typeof serving>): string | undefined =>
-    s.newestSubject === undefined
-      ? undefined // git could not answer — fail open, no invented claim
-      : s.current
-        ? t(lang, "project.servedNewest", { subject: s.newestSubject })
-        : t(lang, s.behindCount === 1 ? "project.servedBehindOne" : "project.servedBehindMany", {
-            n: s.behindCount ?? "some", subject: s.newestSubject,
-          });
-
-  let sentenceHtml: string | undefined;
-  const sentence = notYetChecked
-    ? (() => {
-        const phrase = serving && servedCommitPhrase(serving);
-        return phrase
-          ? t(lang, "project.notCheckedWith", { phrase })
-          : t(lang, "project.notChecked");
-      })()
-    : behind! > 0
-      ? t(lang, `project.behind${behind === 1 ? "One" : "Many"}${serving ? "Restart" : ""}` as TranslationKey, {
-          prefix: driftPrefix(behind!, drift.checkedAt!, now, lang),
-        })
-      : stale
-        ? opts.restartWaiting?.length
-          ? (() => {
-              const s = jobsSentence(
-                lang, "project.deployRestartWaiting",
-                { sha: serving!.sha.slice(0, 7) }, opts.restartWaiting!,
-              );
-              sentenceHtml = s.html;
-              return s.text;
-            })()
-          : t(lang, "project.stale", { sha: serving!.sha.slice(0, 7), head: serving!.checkoutHead.slice(0, 7) })
-        : serving
-          ? t(lang, "project.servingMatches", { sha: serving.sha.slice(0, 7) })
-          : t(lang, "project.matchesOrigin");
-
-  const title = notYetChecked
-    ? t(lang, "project.originUnchecked")
-    : disabled
-      ? t(lang, "project.matchesOrigin")
-      // The button stays live (a press still retries
-      // the install), but hovering it says a press will not restart the
-      // service sooner.
-      : stale && opts.restartWaiting?.length
-        ? t(lang, "project.pressAgain")
-        : undefined;
-
-  // The board's own Deploy asks first, and OK queues the job. A second press
-  // is refused while one is under way, and the hover line says so.
-  const dialogId = "deployask";
-  const underWay = opts.deployUnderWay
-    ? t(lang, "project.deployUnderWay", { state: t(lang, `state.${opts.deployUnderWay}`) })
-    : undefined;
-  const ask =
-    askButton({ label: t(lang, "project.deployButton"), dialogId, variant: "primary", disabled: disabled || !!opts.deployUnderWay, title: underWay ?? title, data: { "deploy-project": name, "deploy-ready": String(!disabled), "deploy-idle-title": title ?? "" } }) +
-    deployAskDialog(lang, name, dialogId);
+  const sentence = deploySentence(opts, now, lang, { notYetChecked, behind, stale });
   return checked(
     name,
     panel(
       heading,
-      errorLine + rowMessage(notYetChecked || behind! > 0 || stale ? "waiting" : "info", sentence, { html: sentenceHtml }) +
-      (opts.pending ? commitFacts(opts.pending, t(lang, "jobs.deployNoCommits")) : "") + ask,
+      errorLine + rowMessage(notYetChecked || behind! > 0 || stale ? "waiting" : "info", sentence.text, { html: sentence.html }) +
+      (opts.pending ? commitFacts(opts.pending, t(lang, "jobs.deployNoCommits")) : "") +
+      deployAsk(name, opts, lang, { notYetChecked, disabled, stale }),
     ),
   );
 }

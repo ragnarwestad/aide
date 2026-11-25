@@ -16,7 +16,7 @@ import {
   dashboardCheckoutRoot,
   dashboardSpecsRepo,
   ensureDashboardCheckout,
-} from "../../../src/git/dashboard-checkout.ts";
+} from "../../../src/git/dashboard-checkout/index.ts";
 import { createGitRunner } from "../../../src/git/process/index.ts";
 import { configValue } from "../../../src/project/discover";
 import { heldLock, watchLock } from "../../helpers/held-lock.ts";

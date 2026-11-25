@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { stepDoneHandler, type RunnerSetupContext } from "../../../src/serve/runner-setup.ts";
+import { stepDoneHandler, type RunnerSetupContext } from "../../../src/serve/runner-setup/index.ts";
 import type { Job } from "../../../src/queue/queue.ts";
 
 test("required dependencies are handled only after the stopped analysis has landed", async () => {

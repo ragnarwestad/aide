@@ -10,6 +10,58 @@ import type { ProviderTool } from "../../queue/providers/index.ts";
 
 const LAST = 3;
 
+function chosenTool(form: HTMLFormElement): ProviderTool | undefined {
+  return (form.querySelector('input[name="tool"]:checked') as HTMLInputElement | null)?.value as ProviderTool | undefined;
+}
+
+const addButton = (form: HTMLFormElement, hook: string) => form.querySelector(`[data-${hook}]`) as HTMLButtonElement | null;
+
+/** The login command, written out from the chosen tool's fields as they stand. */
+function writeLoginCommand(form: HTMLFormElement, command: HTMLElement | null): void {
+  const chosen = chosenTool(form);
+  const part = chosen ? form.querySelector(`.addtool[data-tool="${chosen}"]`) as HTMLElement | null : null;
+  if (!command || !chosen || !part) return;
+  const value = (field: string) =>
+    (part.querySelector(`input[name="${field}"]`) as HTMLInputElement | null)?.value.trim() || undefined;
+  command.textContent = providerLoginCommand({
+    tool: chosen, binary: value("binary"), configDir: value("configDir"), codexHome: value("codexHome"), shadowHome: value("shadowHome"),
+  });
+}
+
+/** Step `step` shown and the others hidden; on the last, the chosen tool's
+ *  fields alone turned on. */
+function showAddStep(form: HTMLFormElement, save: HTMLButtonElement | null, command: HTMLElement | null, step: number): void {
+  for (const el of form.querySelectorAll(".addstep")) (el as HTMLElement).hidden = (el as HTMLElement).dataset.step !== String(step);
+  for (const el of form.querySelectorAll(".addsteps li")) {
+    if ((el as HTMLElement).dataset.step === String(step)) el.setAttribute("aria-current", "step");
+    else el.removeAttribute("aria-current");
+  }
+  const back = addButton(form, "add-back");
+  const ahead = addButton(form, "add-next");
+  if (back) back.hidden = step === 1;
+  if (ahead) ahead.hidden = step === LAST;
+  if (save) save.hidden = step !== LAST;
+  if (step !== LAST) return;
+  const chosen = chosenTool(form);
+  for (const el of form.querySelectorAll(".addtool")) {
+    const own = (el as HTMLElement).dataset.tool === chosen;
+    (el as HTMLElement).hidden = !own;
+    const fields = el.querySelector("fieldset") as HTMLFieldSetElement | null;
+    if (fields) fields.disabled = !own;
+  }
+  writeLoginCommand(form, command);
+}
+
+/** The current step's own fields, each asked in turn; the first that is
+ *  not filled in right says so and keeps the step where it is. */
+function stepIsFilled(form: HTMLFormElement, step: number): boolean {
+  const here = form.querySelector(`.addstep[data-step="${step}"]`);
+  for (const el of here?.querySelectorAll("input") ?? []) {
+    if (!(el as HTMLInputElement).reportValidity()) return false;
+  }
+  return true;
+}
+
 export function bindProviderAdd(dialog: HTMLDialogElement): void {
   // The posting form, the dialog's first; its affirmative is `<form id>-save`
   // (`formDialog()`), and Cancel is the dialog's own close.
@@ -20,65 +72,18 @@ export function bindProviderAdd(dialog: HTMLDialogElement): void {
   const id = form.querySelector('input[name="providerId"]') as HTMLInputElement | null;
   const command = form.querySelector("[data-login-command]") as HTMLElement | null;
   const refused = form.querySelector(".refused") as HTMLElement | null;
-  const button = (hook: string) => form.querySelector(`[data-${hook}]`) as HTMLButtonElement | null;
   let step = 1;
   let idTyped = false;
-
-  const tool = (): ProviderTool | undefined =>
-    ((form.querySelector('input[name="tool"]:checked') as HTMLInputElement | null)?.value as ProviderTool | undefined);
-  const toolPart = (which: string) => form.querySelector(`.addtool[data-tool="${which}"]`) as HTMLElement | null;
-
-  function writeCommand(): void {
-    const chosen = tool();
-    const part = chosen ? toolPart(chosen) : null;
-    if (!command || !chosen || !part) return;
-    const value = (field: string) =>
-      (part.querySelector(`input[name="${field}"]`) as HTMLInputElement | null)?.value.trim() || undefined;
-    command.textContent = providerLoginCommand({
-      tool: chosen, binary: value("binary"), configDir: value("configDir"), codexHome: value("codexHome"), shadowHome: value("shadowHome"),
-    });
-  }
-
-  function show(next: number): void {
+  const show = (next: number): void => {
     step = next;
-    for (const el of form!.querySelectorAll(".addstep")) (el as HTMLElement).hidden = (el as HTMLElement).dataset.step !== String(step);
-    for (const el of form!.querySelectorAll(".addsteps li")) {
-      if ((el as HTMLElement).dataset.step === String(step)) el.setAttribute("aria-current", "step");
-      else el.removeAttribute("aria-current");
-    }
-    const back = button("add-back");
-    const ahead = button("add-next");
-    if (back) back.hidden = step === 1;
-    if (ahead) ahead.hidden = step === LAST;
-    if (save) save.hidden = step !== LAST;
-    if (step === LAST) {
-      const chosen = tool();
-      for (const el of form!.querySelectorAll(".addtool")) {
-        const own = (el as HTMLElement).dataset.tool === chosen;
-        (el as HTMLElement).hidden = !own;
-        const fields = el.querySelector("fieldset") as HTMLFieldSetElement | null;
-        if (fields) fields.disabled = !own;
-      }
-      writeCommand();
-    }
-  }
+    showAddStep(form, save, command, step);
+  };
+  const forward = (): void => {
+    if (step < LAST && stepIsFilled(form, step)) show(step + 1);
+  };
 
-  /** The current step's own fields, each asked in turn; the first that is
-   *  not filled in right says so and keeps the step where it is. */
-  function stepIsFilled(): boolean {
-    const here = form!.querySelector(`.addstep[data-step="${step}"]`);
-    for (const el of here?.querySelectorAll("input") ?? []) {
-      if (!(el as HTMLInputElement).reportValidity()) return false;
-    }
-    return true;
-  }
-
-  function forward(): void {
-    if (step < LAST && stepIsFilled()) show(step + 1);
-  }
-
-  button("add-next")?.addEventListener("click", forward);
-  button("add-back")?.addEventListener("click", () => show(Math.max(1, step - 1)));
+  addButton(form, "add-next")?.addEventListener("click", forward);
+  addButton(form, "add-back")?.addEventListener("click", () => show(Math.max(1, step - 1)));
   // Enter in a field before the last step moves on rather than adding. Taken
   // in the capture phase, ahead of the listener that posts the form.
   form.addEventListener(
@@ -97,7 +102,7 @@ export function bindProviderAdd(dialog: HTMLDialogElement): void {
     idTyped = id.value !== "";
   });
   form.addEventListener("input", (event) => {
-    if ((event.target as Element | null)?.closest?.(".addtool")) writeCommand();
+    if ((event.target as Element | null)?.closest?.(".addtool")) writeLoginCommand(form, command);
   });
   form.addEventListener("change", (event) => {
     if ((event.target as HTMLInputElement | null)?.name === "tool") forward();

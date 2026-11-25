@@ -5,22 +5,8 @@ import { esc } from "../html.ts";
 import { ICON_CHECK, ICON_LOCK } from "./icons.ts";
 import { t, type Language } from "../../../i18n";
 
-/** A phase, as a control. Four states: the plain box, the ticked box,
- *  a finished phase (checkmark, text dimmed), and one that will not
- *  take a click (lock, and the reason in `title` — the only place the
- *  reason fits on a row). There is no fifth for the phase running right
- *  now, drawn with a spinner in the checkbox's place. A box is a
- *  CONTROL, so a spinner on it would read as "this box is
- *  working" rather than "this phase is running" — and it would only be
- *  visible on an open row, while the fact it reported belongs on the
- *  closed one. The running phase is said by its Progress marker now.
- *
- *  The checkbox is a REAL one, kept visible rather than replaced by a
- *  drawn square: the row is a plain form, and it has to work with
- *  script off and from a keyboard. One box is outside that promise and
- *  says so: a `postTo` box belongs to no form at all and
- *  needs the page's script to do anything. */
-export function phaseChip(o: {
+/** What a phase chip is drawn from. */
+export interface PhaseChipOptions {
   /** The technical name — the form value and the `data-` attribute. */
   value: string;
   /** What the reader sees. */
@@ -65,7 +51,24 @@ export function phaseChip(o: {
   postTo?: string;
   /** The reader's language, for the words the chip writes itself. */
   lang?: Language;
-}): string {
+}
+
+/** A phase, as a control. Four states: the plain box, the ticked box,
+ *  a finished phase (checkmark, text dimmed), and one that will not
+ *  take a click (lock, and the reason in `title` — the only place the
+ *  reason fits on a row). There is no fifth for the phase running right
+ *  now, drawn with a spinner in the checkbox's place. A box is a
+ *  CONTROL, so a spinner on it would read as "this box is
+ *  working" rather than "this phase is running" — and it would only be
+ *  visible on an open row, while the fact it reported belongs on the
+ *  closed one. The running phase is said by its Progress marker now.
+ *
+ *  The checkbox is a REAL one, kept visible rather than replaced by a
+ *  drawn square: the row is a plain form, and it has to work with
+ *  script off and from a keyboard. One box is outside that promise and
+ *  says so: a `postTo` box belongs to no form at all and
+ *  needs the page's script to do anything. */
+export function phaseChip(o: PhaseChipOptions): string {
   const locked = !!o.disabled && !o.plain;
   const state = locked ? "off" : o.done ? "done" : o.checked ? "checked" : "default";
   // `done` is a FACT about the phase, not one of the four looks: a step

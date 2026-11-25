@@ -299,48 +299,60 @@ const SPEC_HEADINGS: typeof HEADINGS = [
   { key: "actions", label: "list.colActions", attrs: ' data-col="actions"' },
 ];
 
+/** What a sortable head is drawn from. */
+export interface SortHeadOptions {
+  now: { sort?: string; dir: "asc" | "desc" };
+  href: (key: string) => string;
+  specLabel: TranslationKey;
+  /** The Specs list: job status is reached through its Jobs links. */
+  specsList?: boolean;
+  /** Headings only, no sort links: a list kept in an order of its own. */
+  plain?: boolean;
+}
+
+// `labelHtml` for the one column whose heading is a consumption label
+// and not a noun: "Cost" is the wrong word above a column of token
+// counts, so it carries the same two spans its cells do.
+// `attrs` is the fold hook: the two columns a phone drops
+// are named on the cell rather than counted by position, because the
+// column ORDER has already changed once (see below) and an
+// `nth-child` rule would have broken silently when it did.
+function sortHeading(
+  href: (key: string) => string,
+  now: { sort?: string; dir: "asc" | "desc" },
+  h: { key: string; label: string; cls: string; labelHtml?: string; attrs: string },
+): string {
+  const { key, label, cls, labelHtml, attrs } = h;
+  const { sort, dir } = now;
+  const on = key === sort;
+  // Every sortable column carries the chevron — faint until hovered,
+  // so the reader can see the column CAN be sorted; full on the sorted
+  // one, and ascending turns it by a class rather than swapping a
+  // glyph, same as the fold control. Which way an unsorted column
+  // will go on the first click is what its chevron points.
+  const mark = ICON_CHEVRON;
+  const linkCls = on
+    ? (dir === "asc" ? "sortlink on asc" : "sortlink on")
+    : (SORT_DEFAULT_DIR[key] === "asc" ? "sortlink asc" : "sortlink");
+  const aria = on ? ` aria-sort="${dir === "asc" ? "ascending" : "descending"}"` : "";
+  return (
+    `<th class="${cls}"${attrs}${aria}>` +
+    `<a class="${linkCls}" data-nav href="${href(key)}">` +
+    `${labelHtml ?? esc(label)}${mark}</a></th>`
+  );
+}
+
 /** The list's table head with a sort link on every heading. `now.sort` is the
  *  column the rows are ordered by, undefined for a page that is in its own
  *  order and marks none; `href` is the already escaped link a heading leads
  *  to; `specLabel` heads the second column. */
 export function sortHead(
-  o: {
-    now: { sort?: string; dir: "asc" | "desc" };
-    href: (key: string) => string;
-    specLabel: TranslationKey;
-    /** The Specs list: job status is reached through its Jobs links. */
-    specsList?: boolean;
-    /** Headings only, no sort links: a list kept in an order of its own. */
-    plain?: boolean;
-  },
+  o: SortHeadOptions,
   lang: Language = "en",
 ): string {
   const { sort, dir } = o.now;
-  // `labelHtml` for the one column whose heading is a consumption label
-  // and not a noun: "Cost" is the wrong word above a column of token
-  // counts, so it carries the same two spans its cells do.
-  // `attrs` is the fold hook: the two columns a phone drops
-  // are named on the cell rather than counted by position, because the
-  // column ORDER has already changed once (see below) and an
-  // `nth-child` rule would have broken silently when it did.
-  const th = (key: string, label: string, cls = "", labelHtml?: string, attrs = "") => {
-    const on = key === sort;
-    // Every sortable column carries the chevron — faint until hovered,
-    // so the reader can see the column CAN be sorted; full on the sorted
-    // one, and ascending turns it by a class rather than swapping a
-    // glyph, same as the fold control. Which way an unsorted column
-    // will go on the first click is what its chevron points.
-    const mark = ICON_CHEVRON;
-    const linkCls = on
-      ? (dir === "asc" ? "sortlink on asc" : "sortlink on")
-      : (SORT_DEFAULT_DIR[key] === "asc" ? "sortlink asc" : "sortlink");
-    const aria = on ? ` aria-sort="${dir === "asc" ? "ascending" : "descending"}"` : "";
-    return (
-      `<th class="${cls}"${attrs}${aria}>` +
-      `<a class="${linkCls}" data-nav href="${o.href(key)}">` +
-      `${labelHtml ?? esc(label)}${mark}</a></th>`
-    );
-  };
+  const th = (key: string, label: string, cls = "", labelHtml?: string, attrs = "") =>
+    sortHeading(o.href, { sort, dir }, { key, label, cls, labelHtml, attrs });
   return (
     // "Progress", not "Step": the column stopped holding a step name the
     // moment the list became one line per spec. It holds the whole

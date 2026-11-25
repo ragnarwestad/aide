@@ -164,7 +164,8 @@ def build_aide_commit(repo, version, rules_line, takes_worktree_base=True):
     scripts = repo / "core" / "scripts"
     write(scripts / "aide-run-spec", runner)
     write(scripts / "aide-write-spec", f"#!/usr/bin/env bash\n# write-spec {version}\n", 0o755)
-    for name in ("aide-reset-spec", "_aide-spec-lib.sh", *(f"lib/{n}" for n in SPEC_STATE_LIB)):
+    for name in ("aide-reset-spec", "_aide-spec-lib.sh", "lib/create-spec/placeholder-files.sh",
+                 *(f"lib/{n}" for n in SPEC_STATE_LIB)):
         write(scripts / name, (WORKSPACE / "core" / "scripts" / name).read_text(), 0o755)
     for skill in SKILLS:
         write(repo / "core" / "skills" / skill / "SKILL.md", f"skill {skill} {version}\n")

@@ -11,27 +11,18 @@
 // thin wrapper in serve.ts does the two assignments. Every other
 // function here is a plain read.
 
-import { readAcCoverage, withAcCoverage } from "../project/ac-coverage.ts";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { resolve, sep, join } from "node:path";
-import { SCAN_TTL_MS, type BranchStatusChecker } from "../git/branch-status.ts";
-import type { GitRunner } from "../git/process/index.ts";
-import type { BranchFileStepsChecker, FileStepsAnswer } from "../git/workflow-history.ts";
-import { specProgressOf } from "./schedules/spec-progress.ts";
-import { specBranch, STATUS_FILE } from "../project/spec-names.ts";
-import { branchForSpec, type GroupFirsts } from "../project/discover/group.ts";
-import { dashboardSpecDir, type DashboardCheckout } from "../git/dashboard-checkout.ts";
-import {
-  discoverProjects, manifestInside, type CodeLanding, type SpecRef,
-} from "../project/discover";
-import {
-  acceptanceRowsOf, ACCEPTANCE_CRITERIA_UNTICKED_NOTE, archiveHeldBackReason, parseStatus, reopenedRound,
-} from "../project/parse-status";
-import { currentPhase, readSpecState } from "../project/parse-spec-state.ts";
-import { specPendingChoice } from "../project/approach-choice.ts";
-import type { PullRequestAnswer } from "../integrations/pull-requests.ts";
-import type { SpecTarget } from "../project/spec-facts.ts";
-import { resolveDependencyFolder } from "./serve-helpers";
+import { SCAN_TTL_MS, type BranchStatusChecker } from "../../git/branch-status.ts";
+import type { GitRunner } from "../../git/process/index.ts";
+import type { BranchFileStepsChecker } from "../../git/workflow-history.ts";
+import { specBranch } from "../../project/spec-names.ts";
+import { branchForSpec, type GroupFirsts } from "../../project/discover/group.ts";
+import { dashboardSpecDir, type DashboardCheckout } from "../../git/dashboard-checkout/index.ts";
+import type { CodeLanding, SpecRef } from "../../project/discover";
+import type { PullRequestAnswer } from "../../integrations/pull-requests.ts";
+import type { SpecTarget } from "../../project/spec-facts.ts";
+import { scanSpecs } from "./scan.ts";
 
 /** What `targets()` caches for five seconds and every other lookup in
  *  this file reads a slice of. */
@@ -84,169 +75,9 @@ export function targets(ctx: SpecLookupContext): SpecTarget[] {
   const now = Date.now();
   const cached = ctx.readScan();
   if (cached && now - cached.at < SCAN_TTL_MS) return cached.targets;
-  const found: SpecTarget[] = [];
-  const gone: string[] = [];
-  // And WHAT each of them is, from the same walk. `targets`
-  // is live-only by design, so the page of an ARCHIVED spec looked its
-  // title up in a list that could not hold it and rendered no
-  // description line at all — silently, because the H1 comes from the
-  // folder name. One lookup answers the title and whether the spec is
-  // archived, for every spec there is.
-  const refs = new Map<string, SpecRef>();
-  const dirs = new Map<string, string>();
-  const specsRoots = new Map<string, string>();
-  if (ctx.projectRoot) {
-    for (const p of discoverProjects(ctx.projectRoot, ctx.ownedSpecsRoot, manifestInside(ctx.machineryProjectDir))) {
-      if (!ctx.allowed.has(p.name)) continue;
-      specsRoots.set(p.name, p.specsRoot);
-      for (const s of p.specs) {
-        dirs.set(`${p.name}/${s.folder}`, s.dir);
-        refs.set(`${p.name}/${s.folder}`, s);
-        // Remembered by key: a create job keeps its group visible
-        // while its spec has not landed, and "archived" is the one
-        // proof that it HAS — without it the ghost row outlives the
-        // spec (seen in practice).
-        if (s.archived) {
-          gone.push(`${p.name}/${s.folder}`);
-          continue;
-        }
-        // What a reader needs to CHOOSE a spec: what it is called and
-        // how far it has got. The state-bearing
-        // fields (phase, fileSteps, reopenedAfter, the acceptance-
-        // criteria half of heldBack) come from the state file, through
-        // the one reader — never from a fresh parse of the prose. The
-        // prose itself is still read once, for the ONE thing that
-        // stays prose-only: the `## Archive held back` section, which
-        // is display text `4-status.json`'s schema does not carry.
-        let statusText = "";
-        try {
-          statusText = readFileSync(join(s.dir, STATUS_FILE), "utf-8");
-        } catch {
-          statusText = "";
-        }
-        const state = readSpecState(s.dir);
-        // The dependency-gated reason first (still checked, though
-        // largely retired), then the far more common one
-        // today: archive's own acceptance-criteria gate
-        // refusing until a person ticks those rows — a healthy wait,
-        // not a failure, and one a bare "ready" row otherwise gives no
-        // reason for. `ACCEPTANCE_CRITERIA_UNTICKED_NOTE` is the one
-        // string `restingChip()` (job-state/resting.ts) checks for to
-        // keep this case's badge "ready" rather than the dependency
-        // case's "waiting" — the two share this field because both are
-        // archive declining to proceed, but only one of them is
-        // ordinary, expected progress.
-        // Whether a row is open, Not verified or Failed, by the one rule every
-        // reader follows: the branch copy's state file once it has been read
-        // and no write has marked it due — a tick on a spec whose
-        // `aide/<folder>` is open lands there — and main's otherwise.
-        const branchPeek = ctx.readBranchFileSteps?.()?.peekFileSteps(s.dir, s.folder) ?? { steps: null, checkedAt: null };
-        const branchAnswer = branchPeek.steps;
-        const fileSteps: FileStepsAnswer = {
-          proseSteps: parseStatus(statusText).workflowSteps,
-          stateSteps: state?.completedPhases,
-          ...(state ? { stateAcceptance: state.acceptanceCriteria } : {}),
-          readAt: now,
-        };
-        const progress = specProgressOf(fileSteps, branchPeek, null);
-        const acceptanceOpen = progress.acceptanceOpen;
-        const notVerified = progress.notVerified || undefined;
-        const failed = progress.failed || undefined;
-        const heldBack = statusText
-          ? (archiveHeldBackReason(statusText) ?? (acceptanceOpen ? ACCEPTANCE_CRITERIA_UNTICKED_NOTE : null))
-          : null;
-        found.push({
-          project: p.name,
-          specFolder: s.folder,
-          acceptanceOpen,
-          reopenedRound: reopenedRound(statusText),
-          // Off the same copy as `acceptanceOpen`: a mark moved on the open
-          // branch is not on main until archive lands.
-          notVerified,
-          failed,
-          // The rows the list unfolds, off the same copy as `acceptanceOpen`:
-          // its prose lines, which the tick route finds a row again by, and
-          // which it writes in one commit with the state file. Carried while
-          // a row is open, and while one waits for a check or failed: the
-          // list unfolds them under that count too.
-          readAcceptance: () => acceptanceOpen || notVerified || failed
-            ? withAcCoverage(
-                (progress.from === "branch" ? branchAnswer?.acceptance : undefined) ?? acceptanceRowsOf(statusText),
-                branchAnswer?.acCoverage ?? readAcCoverage(s.dir),
-                ctx.machineryProjectDir(p.name),
-              )
-            : undefined,
-          // The approaches waiting for the person who asked to choose,
-          // off the branch's plan first, as the rows above.
-          readApproachChoice: () => specPendingChoice(s.dir, branchAnswer?.approaches) ?? undefined,
-          // Where the freshness check runs git. Never rendered — the
-          // page has no use for an absolute path, and `targets` is
-          // server-side only.
-          dir: s.dir,
-          title: s.title ?? undefined,
-          description: s.description ?? undefined,
-          // What its own 1-description.md says it builds on,
-          // shown on its row in the same words the run's dependency
-          // refusal uses.
-          // The branch's line first, as the rows above: a save of it is
-          // written onto the open branch, not the checkout. Each entry
-          // by the folder it resolves to, as the Running tab's picker
-          // ticks by folder; one nothing matches stays as written.
-          dependsOn: (branchAnswer?.dependsOn ?? s.dependsOn).map((id) => resolveDependencyFolder(p, id)?.folder ?? id),
-          group: branchAnswer?.group ?? s.group,
-          // The four settings it was created with, for its open row on the
-          // Running tab: the branch's first, as Depends on above, since a
-          // save is written there.
-          createChoices: branchAnswer?.createChoices ?? s.createChoices,
-          phase: (state ? currentPhase(state) : null) ?? undefined,
-          // The FILES, and nothing else. It used to be
-          // unioned with the queue's own record of what it ran, so
-          // either one being true was enough — which is how an
-          // archive job that finished without moving anything counted
-          // as an archived spec, and how a phase could read "done" on
-          // a row whose files said otherwise. What a job reported is
-          // still shown, as a qualifier — in the row's own panel since
-          // not on the phase's line.
-          //
-          // One line of that file, and no inference from any other
-          // each step writes its own name into
-          // `4-status.md` once it has succeeded. The three heuristics
-          // this replaces — the size of 2-analysis.md, a heading in
-          // 3-solution.md, and 4-status.md's own progress percentage,
-          // which used to be read on this line — each answered a
-          // question next to the one being asked, and the first of
-          // them marked a spec analysed before any analyze had run.
-          //
-          // The line is no longer the ANSWER, only a
-          // claim: a model has to reach its last instruction to write
-          // it and a copied folder brings a sibling's version along.
-          // `withFreshness` fills `done` in from the runner's own
-          // commits, and this is what it compares them against.
-          // The prose's own steps line, AND the state file's own claim
-          // when this spec has one — kept apart rather than collapsed
-          // into one array, so `resolveWorkflowState` can
-          // stop comparing the state file against git once one exists:
-          // a git-history comparison of a state-file spec compares two
-          // records that can legitimately disagree for reasons that
-          // mean nothing.
-          fileSteps,
-          // Where this spec's history starts, when it has been
-          // reopened. Off the same state file as `fileSteps`
-          // and `heldBack`'s acceptance half.
-          reopenedAfter: state?.reopened?.boundaryCommit,
-          archiveHeldBack: heldBack ? { reason: heldBack } : undefined,
-          // A spec whose files exist but has no
-          // state file yet — not touched by a writer script since this
-          // feature shipped, or an archived spec the backfill has not
-          // reached. Never for a brand-new spec with no 4-status.md at
-          // all, which is ordinary "not started yet", not a gap.
-          stateMissing: statusText ? state === null : undefined,
-        });
-      }
-    }
-  }
-  ctx.writeScan({ at: now, targets: found, archived: gone, dirs, refs, specsRoots });
-  return found;
+  const scan = scanSpecs(ctx, now);
+  ctx.writeScan(scan);
+  return scan.targets;
 }
 
 /** The two repositories a spec's work can be open in — landing checks

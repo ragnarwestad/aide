@@ -89,32 +89,46 @@ def parse_frontmatter(content: str) -> dict:
     return fields
 
 
+def _folded_separator(body, i):
+    """What follows line i of a folded (`>`) block: a space between two
+    plain lines, nothing after a blank line that follows a plain one, and
+    a newline otherwise."""
+    line = body[i]
+    following = body[i + 1] if i + 1 < len(body) else None
+    if following is None:
+        return "\n"
+    if line and following and not line.startswith(" ") and not following.startswith(" "):
+        return " "
+    if not line and following and not following.startswith(" "):
+        preceding = next((part for part in reversed(body[:i]) if part), "")
+        if preceding and not preceding.startswith(" "):
+            return ""
+    return "\n"
+
+
+def decode_block_scalar(value, lines):
+    """A literal (`|`) or folded (`>`) block scalar, with its chomping
+    indicator; None for a block with no indentation."""
+    body = lines[1:]
+    indents = [len(line) - len(line.lstrip()) for line in body if line.strip()]
+    if not indents:
+        return ""
+    indent = min(indents)
+    if indent == 0:
+        return None
+    body = [line[indent:] if line.strip() else "" for line in body]
+    text = ""
+    for i, line in enumerate(body):
+        text += line
+        text += _folded_separator(body, i) if value[0] == ">" else "\n"
+    return text.rstrip("\n") if value.endswith("-") else text if value.endswith("+") else text.rstrip("\n") + "\n"
+
+
 def decode_scalar(raw):
     lines = raw.splitlines()
     value = lines[0].strip() if lines else ""
     if re.fullmatch(r"[>|][-+]?", value):
-        body = lines[1:]
-        indents = [len(line) - len(line.lstrip()) for line in body if line.strip()]
-        if not indents:
-            return ""
-        indent = min(indents)
-        if indent == 0:
-            return None
-        body = [line[indent:] if line.strip() else "" for line in body]
-        text = ""
-        for i, line in enumerate(body):
-            text += line
-            following = body[i + 1] if i + 1 < len(body) else None
-            separator = "\n"
-            if value[0] == ">" and following is not None:
-                if line and following and not line.startswith(" ") and not following.startswith(" "):
-                    separator = " "
-                elif not line and following and not following.startswith(" "):
-                    preceding = next((part for part in reversed(body[:i]) if part), "")
-                    if preceding and not preceding.startswith(" "):
-                        separator = ""
-            text += separator
-        return text.rstrip("\n") if value.endswith("-") else text if value.endswith("+") else text.rstrip("\n") + "\n"
+        return decode_block_scalar(value, lines)
     if value.startswith(('"', "'")) and any(line.strip() for line in lines[1:]):
         return None
     if value.startswith('"'):
@@ -357,9 +371,10 @@ class TestInstallRetiresTheRulesThatBecameSkills:
                 f"~/.claude/skills/{name}/SKILL.md was not installed"
 
 
-def resource_candidates(content):
-    # Example sections and explicitly labelled examples demonstrate syntax;
-    # ordinary code fences still carry executable resource instructions.
+def _without_examples(content):
+    """The lines of a skill that are not examples. Example sections and
+    explicitly labelled examples demonstrate syntax; ordinary code fences
+    still carry executable resource instructions."""
     kept = []
     example_level = None
     example_block = False
@@ -368,20 +383,13 @@ def resource_candidates(content):
     for line in content.splitlines():
         heading = re.match(r"^(#{1,6})\s+(.+)", line) if fence is None else None
         if heading:
-            level = len(heading[1])
-            if example_level is not None and level <= example_level:
-                example_level = None
-            if re.search(r"\bexamples?\b", heading[2], re.I):
-                example_level = level
+            example_level = _example_level_after(heading, example_level)
         marker = re.match(r"^\s*(`{3,}|~{3,})", line)
         if marker:
-            if fence is None:
-                fence = marker[1]
-            elif marker[1][0] == fence[0] and len(marker[1]) >= len(fence):
-                fence = None
-                if example_block:
-                    example_block = False
-                    continue
+            fence, closed = _fence_after(marker[1], fence)
+            if closed and example_block:
+                example_block = False
+                continue
         if re.match(r"^\s*(?:\*\*)?(?:[A-Za-z]+ )?Examples?:", line, re.I):
             example_block = True
             example_content = bool(line.split(":", 1)[1].strip(" *"))
@@ -396,6 +404,30 @@ def resource_candidates(content):
         if re.match(r"^\s*- Reference images in markdown:", line):
             continue
         kept.append(line)
+    return kept
+
+
+def _example_level_after(heading, example_level):
+    """The heading level an example section opened at, after this heading."""
+    level = len(heading[1])
+    if example_level is not None and level <= example_level:
+        example_level = None
+    if re.search(r"\bexamples?\b", heading[2], re.I):
+        example_level = level
+    return example_level
+
+
+def _fence_after(marker, fence):
+    """The open fence after this fence marker, and whether it closed one."""
+    if fence is None:
+        return marker, False
+    if marker[0] == fence[0] and len(marker) >= len(fence):
+        return None, True
+    return fence, False
+
+
+def resource_candidates(content):
+    kept = _without_examples(content)
     text = "\n".join(kept)
     definitions = {}
     for match in re.finditer(r"(?m)^\s*\[([^]]+)\]:\s*(<[^>]+>|\S+).*$", text):

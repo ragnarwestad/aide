@@ -47,7 +47,8 @@ export interface LandSetupInputs extends Pick<LandContext,
   restartDeferTimeoutMs?: number;
 }
 
-export function setupLand(state: ServerState, inputs: LandSetupInputs) {
+/** A job's row, with the two questions it asks of git kept from being asked too often. */
+function createJobRow(inputs: LandSetupInputs) {
   const targets = new Map<string, Promise<string | null>>();
   function mergeTarget(project: string): Promise<string | null> {
     const existing = targets.get(project);
@@ -76,15 +77,17 @@ export function setupLand(state: ServerState, inputs: LandSetupInputs) {
     mergeTarget,
     branchGone,
   };
-  function jobRow(job: Job) {
+  return function jobRow(job: Job) {
     return jobRowImpl(jobRowCtx, job);
-  }
+  };
+}
 
-  // Built once, from the same locals landBranch and its helpers in
-  // land-branch.ts used to close over directly — `invalidateScan` is
-  // the same getter/invalidator shape the queue and SSE contexts use,
-  // closing over the same `state.scan`.
-  const landCtx: LandContext = {
+// Built once, from the same locals landBranch and its helpers in
+// land-branch.ts used to close over directly — `invalidateScan` is
+// the same getter/invalidator shape the queue and SSE contexts use,
+// closing over the same `state.scan`.
+function landContext(state: ServerState, inputs: LandSetupInputs): LandContext {
+  return {
     beforeLanding: (job) => waitForDeploy(inputs.queue, job.id),
     machineryProjectDir: inputs.machineryProjectDir,
     codeLanding: inputs.codeLanding,
@@ -113,6 +116,10 @@ export function setupLand(state: ServerState, inputs: LandSetupInputs) {
     translationMergeArgs: inputs.translationMergeArgs,
     testServers: inputs.testServers,
   };
+}
+
+/** The landing functions the runner and the routes call, each bound to the one context. */
+function landFunctions(landCtx: LandContext) {
   function landNewSpec(job: Job, outcome: Partial<StepOutcome>) {
     return landNewSpecImpl(landCtx, job, outcome);
   }
@@ -131,9 +138,23 @@ export function setupLand(state: ServerState, inputs: LandSetupInputs) {
   function landScheduleRun(job: Job, outcome: Partial<StepOutcome>) {
     return landScheduleRunImpl(landCtx, job, outcome);
   }
-  /** What the deploy routes and the deploy job ask of the landing code:
-   *  the install, the restart check and the restart itself. */
-  const deploy: DeployHooks = {
+  function withFreshness(list: SpecTarget[]) {
+    return withFreshnessImpl(landCtx, list);
+  }
+  /** The row's Delete branch: a merged branch its landing left on origin. */
+  function deleteLeftBehindBranch(project: string, folder: string) {
+    return deleteLeftBehindBranchImpl(landCtx, project, folder);
+  }
+  return {
+    landNewSpec, landStepBranch, landStoppedStepBranch, landArchivedSpec, landClosedSpec, landScheduleRun,
+    withFreshness, deleteLeftBehindBranch,
+  };
+}
+
+/** What the deploy routes and the deploy job ask of the landing code:
+ *  the install, the restart check and the restart itself. */
+function deployHooks(state: ServerState, inputs: LandSetupInputs, landCtx: LandContext): DeployHooks {
+  return {
     installCheckout: (root) => installCheckout(root, inputs.queueInstallTimeoutMs),
     restartRegistered: () => inputs.restart.registered(),
     isBoard: (root) => isDashboardRoot(landCtx, root),
@@ -153,9 +174,12 @@ export function setupLand(state: ServerState, inputs: LandSetupInputs) {
         beforeFire, prepare, cancelled, landings,
       }),
   };
-  /** The board's own deploy as a job: the runner starts it through
-   *  `start`, and the next process finishes it at boot. */
-  const deployJob = createDeployJob({
+}
+
+/** The board's own deploy as a job: the runner starts it through
+ *  `start`, and the next process finishes it at boot. */
+function deployJobFor(state: ServerState, inputs: LandSetupInputs, deploy: DeployHooks) {
+  return createDeployJob({
     queue: inputs.queue,
     projectRoot: inputs.machineryProjectDir,
     isBoard: deploy.isBoard,
@@ -171,17 +195,20 @@ export function setupLand(state: ServerState, inputs: LandSetupInputs) {
     setFault: (fault) => setDeployFault(state, fault),
     dashboardRoot: inputs.dashboardRoot,
   });
+}
+
+export function setupLand(state: ServerState, inputs: LandSetupInputs) {
+  const jobRow = createJobRow(inputs);
+  const landCtx = landContext(state, inputs);
+  const lands = landFunctions(landCtx);
+  const deploy = deployHooks(state, inputs, landCtx);
+  const deployJob = deployJobFor(state, inputs, deploy);
   const landJob = createLandJob(landCtx);
-  function withFreshness(list: SpecTarget[]) {
-    return withFreshnessImpl(landCtx, list);
-  }
-  /** The row's Delete branch: a merged branch its landing left on origin. */
-  function deleteLeftBehindBranch(project: string, folder: string) {
-    return deleteLeftBehindBranchImpl(landCtx, project, folder);
-  }
 
   return {
-    jobRow, landNewSpec, landStepBranch, landStoppedStepBranch, landArchivedSpec, landClosedSpec, landScheduleRun,
-    deploy, deployJob, landJob, withFreshness, deleteLeftBehindBranch,
+    jobRow, landNewSpec: lands.landNewSpec, landStepBranch: lands.landStepBranch,
+    landStoppedStepBranch: lands.landStoppedStepBranch, landArchivedSpec: lands.landArchivedSpec,
+    landClosedSpec: lands.landClosedSpec, landScheduleRun: lands.landScheduleRun,
+    deploy, deployJob, landJob, withFreshness: lands.withFreshness, deleteLeftBehindBranch: lands.deleteLeftBehindBranch,
   };
 }

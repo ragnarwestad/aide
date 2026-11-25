@@ -18,7 +18,7 @@ import { projectIconSource, projectIconSrc } from "./project-icon.ts";
 import { pinnedProjects, projectPinned } from "./project-pin.ts";
 import { hiddenProjects } from "./project-hide.ts";
 import { deployUnderWay } from "../../../queue/queue.ts";
-import { DEFAULT_DASHBOARD_CHECKOUT_ROOT, dashboardSettingsFile } from "../../../git/dashboard-checkout.ts";
+import { DEFAULT_DASHBOARD_CHECKOUT_ROOT, dashboardSettingsFile } from "../../../git/dashboard-checkout/index.ts";
 import { assessProjectReadiness, manifestTracked, settingsHome } from "../../../project/project-admin";
 import { ADD_PROJECT_ROUTE, PROJECTS_ROUTE, SETTINGS_ROUTE, TEST_SERVERS_ROUTE, renderAddProjectPage, renderProjectPage, renderProjectsPage, renderSettingsPage, renderTestServersPage, resolveBackHref, resolveSettingsTab, specPagePath, type ProviderStatus, type TestServerRow } from "../../../render";
 import { MAIN_TEST_SERVER_KEY, refreshTestServerStatus } from "../../test-servers/lifecycle.ts";
@@ -34,12 +34,7 @@ async function readProviderStatuses(ctx: RoutesContext): Promise<Record<string, 
   return Object.fromEntries(await Promise.all(providers.map(async ([key, provider]) => [key, await read(key, provider)] as const)));
 }
 
-export async function projectPages(
-  ctx: RoutesContext,
-  req: Request,
-  url: URL,
-  path: string,
-): Promise<Response | null> {
+async function projectPageRoute(ctx: RoutesContext, req: Request, url: URL, path: string): Promise<Response | null> {
   if (path === SETTINGS_ROUTE) {
     if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
     const langResult = languageChoice(url, req);
@@ -75,6 +70,10 @@ export async function projectPages(
     if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
     return new Response(html, { headers });
   }
+  return null;
+}
+
+async function projectPageRoute2(ctx: RoutesContext, req: Request, url: URL, path: string): Promise<Response | null> {
 
   if (path === TEST_SERVERS_ROUTE) {
     if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
@@ -115,6 +114,10 @@ export async function projectPages(
     if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
     return new Response(html, { headers });
   }
+  return null;
+}
+
+async function projectPageRoute3(ctx: RoutesContext, req: Request, url: URL, path: string): Promise<Response | null> {
 
   if (path === ADD_PROJECT_ROUTE) {
     if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
@@ -133,93 +136,179 @@ export async function projectPages(
     if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
     return new Response(html, { headers });
   }
+  return null;
+}
+
+function mainTestServerWait(ctx: RoutesContext, req: Request, name: string): Response {
+  const already = refreshTestServerStatus(ctx.testServers, name, MAIN_TEST_SERVER_KEY);
+  if (already?.status === "running" && already.url) {
+    return Response.redirect(testServerUrlFor(req, already.url), 303);
+  }
+  if (already?.status === "failed") {
+    return testServerFailedPage(name, MAIN_TEST_SERVER_KEY, already.error, undefined, already.detail);
+  }
+  if (!already) {
+    // A bookmarked or shared URL, with nobody's POST behind it —
+    // nothing to wait for.
+    return new Response(null, {
+      status: 303,
+      headers: { location: `/projects/${encodeURIComponent(name)}?tab=deploy` },
+    });
+  }
+  return waitingForTestServerPage(name, MAIN_TEST_SERVER_KEY);
+}
+
+/** Which commit this process serves, beside the checkout's own; only for
+ *  the one project the server runs from. */
+async function servingState(ctx: RoutesContext, driftRoot: string, drift: { checkedAt: number | null } | undefined) {
+  const { sha: servingSha, repoRoot: servingRepoRoot } = ctx.readServing();
+  if (!(servingSha && servingRepoRoot && resolve(driftRoot) === resolve(servingRepoRoot))) return undefined;
+  return (async () => {
+    const head = await ctx.gitRun(driftRoot, ["rev-parse", "HEAD"]);
+    if (head.code !== 0) return undefined;
+    const checkoutHead = head.stdout.trim();
+    const current = servingSha === checkoutHead;
+    // Only fetched while origin itself has not
+    // been checked yet — the one sentence that needs to say what
+    // the served commit actually is, never a bare hash.
+    if (drift?.checkedAt !== null) return { sha: servingSha, checkoutHead, current };
+    const subj = await ctx.gitRun(driftRoot, ["log", "-1", "--format=%s", checkoutHead]);
+    const newestSubject = subj.code === 0 ? subj.stdout.trim() : undefined;
+    if (current) return { sha: servingSha, checkoutHead, current, newestSubject };
+    const count = await ctx.gitRun(driftRoot, ["rev-list", "--count", `${servingSha}..${checkoutHead}`]);
+    // Same guard `branch-status.ts`'s own `commitsBehindOrigin`
+    // uses for the identical command: a zero exit with
+    // non-numeric stdout must not render as "NaN commits behind".
+    const parsed = count.code === 0 ? Number.parseInt(count.stdout.trim(), 10) : NaN;
+    const behindCount = Number.isFinite(parsed) ? parsed : undefined;
+    return { sha: servingSha, checkoutHead, current, newestSubject, behindCount };
+  })().catch(() => undefined);
+}
+
+/** The project page's icon and Deploy tab. */
+async function projectDeployOptions(
+  ctx: RoutesContext, name: string,
+  o: { drift: ReturnType<RoutesContext["branchStatus"]["peekDrift"]> | undefined; serving: Awaited<ReturnType<typeof servingState>>; boardItself: boolean },
+) {
+  const { drift, serving, boardItself } = o;
+  return {
+    icon: await projectIconSrc(ctx, name),
+    iconSource: projectIconSource(ctx, name),
+    drift,
+    deployFailure: ctx.readDeployFailure(name),
+    serving,
+    restartWaiting: ctx.readPendingRestart()?.jobs,
+    boardItself,
+    deployUnderWay: deployUnderWay(ctx.queue.list(), name),
+    // The same capability check the spec-page's own
+    // test-server link already gates on.
+    testServerAvailable: ctx.testServers.previewAvailable(name),
+  };
+}
+
+/** The project page's picker, settings, schedule and models. */
+async function projectSettingsOptions(
+  ctx: RoutesContext, url: URL, name: string,
+  o: { dir: string; manifestDir: string; views: ReturnType<typeof buildProjectViews>; hidden: Set<string>; pending: unknown },
+) {
+  const { dir, manifestDir, views, hidden } = o;
+  const pending = o.pending as Awaited<ReturnType<typeof pendingCommits>> | undefined;
+  return {
+    // The picker's list: the projects the Projects list shows, the
+    // hidden ones left out.
+    projects: await Promise.all(
+      views.filter((p) => ctx.allowed.has(p.name) && !hidden.has(p.name))
+        .map(async (p) => ({ name: p.name, icon: await projectIconSrc(ctx, p.name) })),
+    ),
+    script: await specsClientScript(),
+    // Specs root and Worktree links are no longer read a second
+    // time here: `projectSettings(dir, readiness)`
+    // above already resolved both, and the table draws its Value
+    // cells straight off those same rows — one read per row's
+    // data, not two that could drift.
+    codeLanding: resolveCodeLanding(manifestDir),
+    previewFrom: resolvePreviewFrom(manifestDir) ?? "none",
+    settingsHome: settingsHome(
+      // Fail open like the readiness above: a git that is not there
+      // leaves the page standing, and counts as "cannot say".
+      (await manifestTracked(ctx.gitRun, ctx.machineryProjectDir(name)).catch(() => ({ tracked: null }))).tracked,
+      existsSync(dashboardSettingsFile(ctx.opts.dashboardCheckoutRoot ?? DEFAULT_DASHBOARD_CHECKOUT_ROOT, name)),
+    ),
+    // The one resolver, never a second copy of the question: two
+    // would eventually disagree, and the one that decides where a
+    // merge lands is not the one to get it wrong
+    // (`git/branch-status.ts`).
+    // `.catch`, like `readiness` above: a git that throws must leave
+    // the page standing. A name nobody could fetch is no name, and
+    // the choice falls back to the general word.
+    defaultBranch: (await ctx.branchStatus.defaultBranch(dir).catch(() => null)) ?? undefined,
+    pending,
+    schedule: ctx.scheduleStore.list(name),
+    scheduleSort: {
+      sort: url.searchParams.get("sort") ?? undefined,
+      dir: (url.searchParams.get("dir") as "asc" | "desc" | null) ?? undefined,
+    },
+    scheduleModelNames: Object.keys(ctx.queue.defaults.modelChoices ?? {}),
+    worktreeLinkCandidates: gitignoreCandidates(dir),
+    pinnedProjects: pinnedProjects(ctx),
+    pinned: projectPinned(ctx, name),
+    hidden: hidden.has(name),
+    models: {
+      defaults: ctx.queue.defaults,
+      modelChoices: modelChoiceOptions(ctx.queue, modelsInUse(ctx)),
+      providerChoices: providerPickerOptions(ctx.queue).providerChoices,
+    },
+  };
+}
+
+// The tab the Deploy button's POST opened WAITS here, the same
+// way `spec-page.ts`'s own `?startTestServer=1` does — but this GET never
+// starts or restarts a board itself (the POST route already did, or
+// nobody ever pressed the button at all).
+// Read fresh, uncached, exactly as `/projects` does: nothing polls
+// this page, so a scan per request is cheap enough to redo every
+// time — and no invalidation to get wrong.
+// Fail open, the way the drift check on `/projects` does. Every
+// check inside `assessProjectReadiness` already treats a git that
+// answers nothing as its own kind of failure rather than throwing,
+// so this catches the case where git is not there to be run at
+// all: the reader came for the project's page, and the half of it
+// that needs no git is still worth serving.
+// Read-only, like `/projects`' own drift map: `peekDrift` is a
+// cache lookup, never a git call — the page's own "never merges,
+// pulls, fetches or checks anything out" contract
+// (project-detail-readiness-and-deploy.test.ts) must hold here too.
+// The board's own Deploy needs an install command; every other project
+// is only counted against origin, whatever it has configured.
+// Only meaningful for the one project this very process runs from —
+// every other project's checkout HEAD has nothing to do with this
+// server's own boot-time SHA, so the comparison stays undefined there.
+// What a Deploy pressed now would take in: from what this process
+// serves to origin as the drift check last fetched it. Read only.
+// The manifest a run reads is the dashboard's own checkout's.
+// A clone that is still being made, or has none yet, answers
+// with the project's own directory, as everything did before.
+async function projectPageGetRoute(ctx: RoutesContext, req: Request, url: URL, path: string): Promise<Response | null> {
 
   const projectPage = path.match(/^\/projects\/([^/]+)$/);
   if (projectPage) {
     if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
     const name = decodeURIComponent(projectPage[1]!);
     if (!ctx.opts.projectRoot) return new Response("no such project\n", { status: 404 });
-    // The tab the Deploy button's POST opened WAITS here, the same
-    // way `spec-page.ts`'s own `?startTestServer=1` does — but this GET never
-    // starts or restarts a board itself (the POST route already did, or
-    // nobody ever pressed the button at all).
-    if (url.searchParams.get("startTestServer") === "1") {
-      const already = refreshTestServerStatus(ctx.testServers, name, MAIN_TEST_SERVER_KEY);
-      if (already?.status === "running" && already.url) {
-        return Response.redirect(testServerUrlFor(req, already.url), 303);
-      }
-      if (already?.status === "failed") {
-        return testServerFailedPage(name, MAIN_TEST_SERVER_KEY, already.error, undefined, already.detail);
-      }
-      if (!already) {
-        // A bookmarked or shared URL, with nobody's POST behind it —
-        // nothing to wait for.
-        return new Response(null, {
-          status: 303,
-          headers: { location: `/projects/${encodeURIComponent(name)}?tab=deploy` },
-        });
-      }
-      return waitingForTestServerPage(name, MAIN_TEST_SERVER_KEY);
-    }
-    // Read fresh, uncached, exactly as `/projects` does: nothing polls
-    // this page, so a scan per request is cheap enough to redo every
-    // time — and no invalidation to get wrong.
+    if (url.searchParams.get("startTestServer") === "1") return mainTestServerWait(ctx, req, name);
     const views = buildProjectViews(ctx.opts.projectRoot, ctx.ownedSpecsRoot, manifestInside(ctx.machineryProjectDir));
     const view = views.find((p) => p.name === name);
     if (!view) return new Response("no such project\n", { status: 404 });
     const dir = ctx.displayProjectDir(name);
-    // Fail open, the way the drift check on `/projects` does. Every
-    // check inside `assessProjectReadiness` already treats a git that
-    // answers nothing as its own kind of failure rather than throwing,
-    // so this catches the case where git is not there to be run at
-    // all: the reader came for the project's page, and the half of it
-    // that needs no git is still worth serving.
     const readiness = await assessProjectReadiness(ctx.gitRun, dir, ctx.machineryProjectDir(name)).catch(() => null);
-    // Read-only, like `/projects`' own drift map: `peekDrift` is a
-    // cache lookup, never a git call — the page's own "never merges,
-    // pulls, fetches or checks anything out" contract
-    // (project-detail-readiness-and-deploy.test.ts) must hold here too.
     const driftRoot = ctx.machineryProjectDir(name);
     const boardItself = ctx.deploy.isBoard(driftRoot);
-    // The board's own Deploy needs an install command; every other project
-    // is only counted against origin, whatever it has configured.
     const drift = !boardItself || resolveInstallCmd(driftRoot).value
       ? ctx.branchStatus.peekDrift(driftRoot)
       : undefined;
-    // Only meaningful for the one project this very process runs from —
-    // every other project's checkout HEAD has nothing to do with this
-    // server's own boot-time SHA, so the comparison stays undefined there.
-    const { sha: servingSha, repoRoot: servingRepoRoot } = ctx.readServing();
-    const serving =
-      servingSha && servingRepoRoot && resolve(driftRoot) === resolve(servingRepoRoot)
-        ? await (async () => {
-            const head = await ctx.gitRun(driftRoot, ["rev-parse", "HEAD"]);
-            if (head.code !== 0) return undefined;
-            const checkoutHead = head.stdout.trim();
-            const current = servingSha === checkoutHead;
-            // Only fetched while origin itself has not
-            // been checked yet — the one sentence that needs to say what
-            // the served commit actually is, never a bare hash.
-            if (drift?.checkedAt !== null) return { sha: servingSha, checkoutHead, current };
-            const subj = await ctx.gitRun(driftRoot, ["log", "-1", "--format=%s", checkoutHead]);
-            const newestSubject = subj.code === 0 ? subj.stdout.trim() : undefined;
-            if (current) return { sha: servingSha, checkoutHead, current, newestSubject };
-            const count = await ctx.gitRun(driftRoot, ["rev-list", "--count", `${servingSha}..${checkoutHead}`]);
-            // Same guard `branch-status.ts`'s own `commitsBehindOrigin`
-            // uses for the identical command: a zero exit with
-            // non-numeric stdout must not render as "NaN commits behind".
-            const parsed = count.code === 0 ? Number.parseInt(count.stdout.trim(), 10) : NaN;
-            const behindCount = Number.isFinite(parsed) ? parsed : undefined;
-            return { sha: servingSha, checkoutHead, current, newestSubject, behindCount };
-          })().catch(() => undefined)
-        : undefined;
-    // What a Deploy pressed now would take in: from what this process
-    // serves to origin as the drift check last fetched it. Read only.
+    const serving = await servingState(ctx, driftRoot, drift);
     const base = serving ? await ctx.branchStatus.defaultBranch(driftRoot).catch(() => null) : null;
     const pending = serving && base ? await pendingCommits(driftRoot, serving.sha, base, ctx.gitRun).catch(() => undefined) : undefined;
-    // The manifest a run reads is the dashboard's own checkout's.
-    // A clone that is still being made, or has none yet, answers
-    // with the project's own directory, as everything did before.
     const machinery = ctx.machineryProjectDir(name);
     const manifestDir = existsSync(join(machinery, ".aide", "project.yaml")) ? machinery : dir;
     const langResult = languageChoice(url, req);
@@ -231,61 +320,8 @@ export async function projectPages(
       new Date().toISOString(),
       ctx.nav(),
       {
-        // The picker's list: the projects the Projects list shows, the
-        // hidden ones left out.
-        projects: await Promise.all(
-          views.filter((p) => ctx.allowed.has(p.name) && !hidden.has(p.name))
-            .map(async (p) => ({ name: p.name, icon: await projectIconSrc(ctx, p.name) })),
-        ),
-        script: await specsClientScript(),
-        // Specs root and Worktree links are no longer read a second
-        // time here: `projectSettings(dir, readiness)`
-        // above already resolved both, and the table draws its Value
-        // cells straight off those same rows — one read per row's
-        // data, not two that could drift.
-        codeLanding: resolveCodeLanding(manifestDir),
-        previewFrom: resolvePreviewFrom(manifestDir) ?? "none",
-        settingsHome: settingsHome(
-          // Fail open like the readiness above: a git that is not there
-          // leaves the page standing, and counts as "cannot say".
-          (await manifestTracked(ctx.gitRun, ctx.machineryProjectDir(name)).catch(() => ({ tracked: null }))).tracked,
-          existsSync(dashboardSettingsFile(ctx.opts.dashboardCheckoutRoot ?? DEFAULT_DASHBOARD_CHECKOUT_ROOT, name)),
-        ),
-        // The one resolver, never a second copy of the question: two
-        // would eventually disagree, and the one that decides where a
-        // merge lands is not the one to get it wrong
-        // (`git/branch-status.ts`).
-        // `.catch`, like `readiness` above: a git that throws must leave
-        // the page standing. A name nobody could fetch is no name, and
-        // the choice falls back to the general word.
-        defaultBranch: (await ctx.branchStatus.defaultBranch(dir).catch(() => null)) ?? undefined,
-        pending,
-        schedule: ctx.scheduleStore.list(name),
-        scheduleSort: {
-          sort: url.searchParams.get("sort") ?? undefined,
-          dir: (url.searchParams.get("dir") as "asc" | "desc" | null) ?? undefined,
-        },
-        scheduleModelNames: Object.keys(ctx.queue.defaults.modelChoices ?? {}),
-        worktreeLinkCandidates: gitignoreCandidates(dir),
-        pinnedProjects: pinnedProjects(ctx),
-        pinned: projectPinned(ctx, name),
-        hidden: hidden.has(name),
-        models: {
-          defaults: ctx.queue.defaults,
-          modelChoices: modelChoiceOptions(ctx.queue, modelsInUse(ctx)),
-          providerChoices: providerPickerOptions(ctx.queue).providerChoices,
-        },
-        icon: await projectIconSrc(ctx, name),
-        iconSource: projectIconSource(ctx, name),
-        drift,
-        deployFailure: ctx.readDeployFailure(name),
-        serving,
-        restartWaiting: ctx.readPendingRestart()?.jobs,
-        boardItself,
-        deployUnderWay: deployUnderWay(ctx.queue.list(), name),
-        // The same capability check the spec-page's own
-        // test-server link already gates on.
-        testServerAvailable: ctx.testServers.previewAvailable(name),
+        ...(await projectSettingsOptions(ctx, url, name, { dir, manifestDir, views, hidden, pending })),
+        ...(await projectDeployOptions(ctx, name, { drift, serving, boardItself })),
         tab: url.searchParams.get("tab") ?? undefined,
         lang: langResult.lang,
         currentUrl: langResult.currentUrl,
@@ -295,14 +331,56 @@ export async function projectPages(
     if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
     return new Response(html, { headers });
   }
+  return null;
+}
+
+/** Whether a run could start in each project; a host that cannot answer
+ *  leaves the row as the generated page has always drawn it. */
+async function readinessOf(ctx: RoutesContext, names: string[]): Promise<Record<string, boolean>> {
+  const readinessByProject: Record<string, boolean> = {};
+  await Promise.all(
+    names.map(async (name) => {
+      try {
+        const { canRun } = await assessProjectReadiness(
+          ctx.gitRun,
+          ctx.displayProjectDir(name),
+          ctx.machineryProjectDir(name),
+        );
+        readinessByProject[name] = canRun;
+      } catch {
+        // The listing is what the reader came for: a host with no
+        // `git` on PATH must still get the page, and a row with
+        // nothing to say about readiness is exactly the row the
+        // generated page has always drawn.
+        readinessByProject[name] = true;
+      }
+    }),
+  );
+  return readinessByProject;
+}
+
+// No `--root`, no project set: an empty listing would read as "no
+// projects on this machine" rather than "this server was never told
+// where they are" — so render the ordinary (empty) listing with a
+// notice explaining why, instead of bouncing to a page that would
+// just redirect back here.
+// Read fresh, uncached: unlike `/` nothing polls this page, so a
+// scan per request is cheap enough to redo every time — and no
+// invalidation to get wrong. Only the projects on the allowlist, as
+// on the specs list: a directory under the projects root that is not
+// on it is not one of the board's projects.
+// Whether a run could start in each project, asked on
+// every visit. The Add flow answered this exactly once, in the
+// query string of the redirect it landed on — so an operator who
+// did not act on it there had no way to rediscover what was
+// missing except by starting a run and having it refused. Now the
+// row says it, and carries the Settings link that acts on it.
+// Concurrent, like the drift check above, and read-only.
+// Only a project the allowlist knows has anything to be removed from.
+async function projectsListRoute(ctx: RoutesContext, req: Request, url: URL, path: string): Promise<Response | null> {
 
   if (path === PROJECTS_ROUTE) {
     if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
-    // No `--root`, no project set: an empty listing would read as "no
-    // projects on this machine" rather than "this server was never told
-    // where they are" — so render the ordinary (empty) listing with a
-    // notice explaining why, instead of bouncing to a page that would
-    // just redirect back here.
     if (!ctx.opts.projectRoot) {
       const langResult = languageChoice(url, req);
       const html = renderProjectsPage([], new Date().toISOString(), ctx.nav(), {
@@ -314,39 +392,9 @@ export async function projectPages(
       if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
       return new Response(html, { headers });
     }
-    // Read fresh, uncached: unlike `/` nothing polls this page, so a
-    // scan per request is cheap enough to redo every time — and no
-    // invalidation to get wrong. Only the projects on the allowlist, as
-    // on the specs list: a directory under the projects root that is not
-    // on it is not one of the board's projects.
     const projects = buildProjectViews(ctx.opts.projectRoot, ctx.ownedSpecsRoot, manifestInside(ctx.machineryProjectDir))
       .filter((p) => ctx.allowed.has(p.name));
-    // Whether a run could start in each project, asked on
-    // every visit. The Add flow answered this exactly once, in the
-    // query string of the redirect it landed on — so an operator who
-    // did not act on it there had no way to rediscover what was
-    // missing except by starting a run and having it refused. Now the
-    // row says it, and carries the Settings link that acts on it.
-    // Concurrent, like the drift check above, and read-only.
-    const readinessByProject: Record<string, boolean> = {};
-    await Promise.all(
-      projects.map(async (p) => {
-        try {
-          const { canRun } = await assessProjectReadiness(
-            ctx.gitRun,
-            ctx.displayProjectDir(p.name),
-            ctx.machineryProjectDir(p.name),
-          );
-          readinessByProject[p.name] = canRun;
-        } catch {
-          // The listing is what the reader came for: a host with no
-          // `git` on PATH must still get the page, and a row with
-          // nothing to say about readiness is exactly the row the
-          // generated page has always drawn.
-          readinessByProject[p.name] = true;
-        }
-      }),
-    );
+    const readinessByProject = await readinessOf(ctx, projects.map((p) => p.name));
     const iconByProject = Object.fromEntries(
       await Promise.all(projects.map(async (p) => [p.name, await projectIconSrc(ctx, p.name)] as const)),
     );
@@ -360,7 +408,6 @@ export async function projectPages(
         iconByProject,
         pinnedProjects: pinnedProjects(ctx),
         hiddenProjects: hiddenProjects(ctx),
-        // Only a project the allowlist knows has anything to be removed from.
         removable: (name) => ctx.allowed.has(name),
         script: await specsClientScript(),
         lang: langResult.lang,
@@ -371,6 +418,21 @@ export async function projectPages(
     if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
     return new Response(html, { headers });
   }
-
   return null;
+}
+
+export async function projectPages(
+  ctx: RoutesContext,
+  req: Request,
+  url: URL,
+  path: string,
+): Promise<Response | null> {
+  return (
+    (await projectPageRoute(ctx, req, url, path)) ??
+    (await projectPageRoute2(ctx, req, url, path)) ??
+    (await projectPageRoute3(ctx, req, url, path)) ??
+    (await projectPageGetRoute(ctx, req, url, path)) ??
+    (await projectsListRoute(ctx, req, url, path)) ??
+    null
+  );
 }

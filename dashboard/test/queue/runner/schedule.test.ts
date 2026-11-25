@@ -98,7 +98,7 @@ describe("isDue", () => {
 });
 
 // The path half: the write side
-// (`runner-setup.ts`) and the read side (`page-routes.ts`) both import
+// (`runner-setup/`) and the read side (`page-routes.ts`) both import
 // this function rather than each computing the join themselves — a
 // pure join with no side effects, so a test needs nothing on disk.
 describe("scheduleOutputDir", () => {

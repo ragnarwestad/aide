@@ -173,6 +173,70 @@ export function resolveStepEffort(job: Job, step: string): string | undefined {
   return job.effort?.[step];
 }
 
+/** What `runnerArgv` is told beside the job and the step: the paths
+ *  resolved by the caller, and the config's live tables. */
+export interface RunnerArgvOptions {
+  runnerBin: string;
+  /** The checkout the step runs in, resolved by the caller. It is
+   *  the clone the DASHBOARD owns, and this function
+   *  knows no path convention that could send it anywhere else. */
+  projectDir: string;
+  /** Where this project's spec folders live, in the checkout above —
+   *  the dashboard's own answer (`machinerySpecsRoot`), handed over so
+   *  the run makes a folder in the place the LANDING looks for it.
+   *  Left out, `aide-run-spec` works it out from `.aide/config`, which
+   *  is a file the dashboard writes itself: the two derivations
+   *  disagreed on 2026-09-21 and a created spec fell between them.
+   *  Undefined for a project whose specs the dashboard cannot resolve,
+   *  where the script's own answer is still the best one available. */
+  specsRoot?: string;
+  /** A grouped spec's validated shared branch. Absent keeps the runner's
+   *  ordinary per-spec branch. */
+  branch?: string;
+  worktreeBase?: string;
+  scriptsDir?: string;
+  push: string;
+  /** The file a `schedule` step's prompt is read from, relative to the
+   *  project root. Meaningless, and omitted, for every
+   *  other step — `aide-run-spec` only ever reads `--prompt-file` for
+   *  `--command schedule`. */
+  promptFile?: string;
+  /** Whether a `schedule` step asks for the logged-in Chrome (its
+   *  entry's own `chrome`). Only ever true for that step. */
+  chrome?: boolean;
+  /** Whether a `schedule` step runs Claude without its sandbox (its
+   *  entry's own `sandbox: false`). Only ever true for that step. */
+  noSandbox?: boolean;
+  /** The config's own table. What a job stores per step is
+   *  a NAME the request picked; what the CLI is handed — which tool,
+   *  which model string — is looked up here, where the grants
+   *  already live. */
+  modelChoices?: Record<string, ModelChoice>;
+  /** The config's three per-step tables, live. What answers
+   *  for a step the job's own tables never named — a phase ticked onto
+   *  a running job's tail after the job was created. */
+  timeoutSec?: Record<string, number>;
+  permissionMode?: Record<string, string>;
+  model?: Record<string, string>;
+  /** The current spec's Review and Verify choices. */
+  sidePicks?: Record<string, string>;
+  /** The provider accounts chosen beside Review and Verify. */
+  sideProviders?: Record<string, string>;
+  /** The configured providers and the phase defaults' provider table: the
+   *  folder a step's provider keeps its login in is looked up here. */
+  providers?: Record<string, Provider>;
+  provider?: Record<string, string>;
+  /** The home directory `~/` is read against; the user's own by default. */
+  home?: string;
+  /** Whether `analyze`'s own invocation should be told acceptance
+   *  ticking is not required — resolved by the caller from
+   *  a fresh read of the spec's own record, never from `job` itself.
+   *  Meaningless, and ignored, for every step but `analyze`. */
+  acceptanceNotRequiredForAnalyze?: boolean;
+  /** The analysis session an implement continues, when there is one. */
+  resumeSession?: string;
+}
+
 /** The argv `aide-run-spec` is started with. Extracted so it can be read
  *  in a test: an unattended run's arguments are the whole contract, and
  *  a wrong one is a job that does the wrong thing with nobody watching. */
@@ -180,77 +244,27 @@ export function runnerArgv(
   job: Job,
   step: string,
   resultFile: string,
-  o: {
-    runnerBin: string;
-    /** The checkout the step runs in, resolved by the caller. It is
-     *  the clone the DASHBOARD owns, and this function
-     *  knows no path convention that could send it anywhere else. */
-    projectDir: string;
-    /** Where this project's spec folders live, in the checkout above —
-     *  the dashboard's own answer (`machinerySpecsRoot`), handed over so
-     *  the run makes a folder in the place the LANDING looks for it.
-     *  Left out, `aide-run-spec` works it out from `.aide/config`, which
-     *  is a file the dashboard writes itself: the two derivations
-     *  disagreed on 2026-09-21 and a created spec fell between them.
-     *  Undefined for a project whose specs the dashboard cannot resolve,
-     *  where the script's own answer is still the best one available. */
-    specsRoot?: string;
-    /** A grouped spec's validated shared branch. Absent keeps the runner's
-     *  ordinary per-spec branch. */
-    branch?: string;
-    worktreeBase?: string;
-    scriptsDir?: string;
-    push: string;
-    /** The file a `schedule` step's prompt is read from, relative to the
-     *  project root. Meaningless, and omitted, for every
-     *  other step — `aide-run-spec` only ever reads `--prompt-file` for
-     *  `--command schedule`. */
-    promptFile?: string;
-    /** Whether a `schedule` step asks for the logged-in Chrome (its
-     *  entry's own `chrome`). Only ever true for that step. */
-    chrome?: boolean;
-    /** Whether a `schedule` step runs Claude without its sandbox (its
-     *  entry's own `sandbox: false`). Only ever true for that step. */
-    noSandbox?: boolean;
-    /** The config's own table. What a job stores per step is
-     *  a NAME the request picked; what the CLI is handed — which tool,
-     *  which model string — is looked up here, where the grants
-     *  already live. */
-    modelChoices?: Record<string, ModelChoice>;
-    /** The config's three per-step tables, live. What answers
-     *  for a step the job's own tables never named — a phase ticked onto
-     *  a running job's tail after the job was created. */
-    timeoutSec?: Record<string, number>;
-    permissionMode?: Record<string, string>;
-    model?: Record<string, string>;
-    /** The current spec's Review and Verify choices. */
-    sidePicks?: Record<string, string>;
-    /** The provider accounts chosen beside Review and Verify. */
-    sideProviders?: Record<string, string>;
-    /** The configured providers and the phase defaults' provider table: the
-     *  folder a step's provider keeps its login in is looked up here. */
-    providers?: Record<string, Provider>;
-    provider?: Record<string, string>;
-    /** The home directory `~/` is read against; the user's own by default. */
-    home?: string;
-    /** Whether `analyze`'s own invocation should be told acceptance
-     *  ticking is not required — resolved by the caller from
-     *  a fresh read of the spec's own record, never from `job` itself.
-     *  Meaningless, and ignored, for every step but `analyze`. */
-    acceptanceNotRequiredForAnalyze?: boolean;
-    /** The analysis session an implement continues, when there is one. */
-    resumeSession?: string;
-  },
+  o: RunnerArgvOptions,
   sessionId?: string,
   streamFile?: string,
 ): string[] {
-  const choiceName = resolveStepModel(job, step, o.model ?? {});
-  const choice = choiceName ? o.modelChoices?.[choiceName] : undefined;
-  // The entry's own key stays the model unless the entry says otherwise
-  // — which is exactly what every config written before this spec did.
-  const model = choice?.model ?? choiceName;
   const tool = stepTool(job, step, o);
-  const effort = resolveStepEffort(job, step);
+  return [
+    ...whereArgs(job, step, resultFile, o),
+    ...specInputArgs(job, step, o),
+    ...(o.noSandbox && tool === "claude" ? ["--no-sandbox"] : []),
+    ...modelArgs(job, step, tool, o),
+    // Chosen by the runner BEFORE the spawn, so the queue can watch the
+    // session while the step runs instead of learning it from a result
+    // that only exists once the step is over.
+    ...(sessionId ? ["--session-id", sessionId] : []),
+    ...(streamFile ? ["--stream-file", streamFile] : []),
+  ];
+}
+
+/** The runner, the checkout and spec it works on, and how it ends: its
+ *  deadline, permission mode, result file and push. */
+function whereArgs(job: Job, step: string, resultFile: string, o: RunnerArgvOptions): string[] {
   return [
     o.runnerBin,
     "--project-dir", o.projectDir,
@@ -267,6 +281,13 @@ export function runnerArgv(
     "--result-file", resultFile,
     "--push", o.push,
     "--pull",
+  ];
+}
+
+/** What one kind of step is handed of its own: a create's title and
+ *  choices, a close's reason, a reopen's reset, a schedule's prompt. */
+function specInputArgs(job: Job, step: string, o: RunnerArgvOptions): string[] {
+  return [
     // Only a `create` job has these, and it cannot run without them:
     // its `--spec` is a provisional key, not a folder on disk, so the
     // title and the description are the whole of what the step is for.
@@ -278,24 +299,7 @@ export function runnerArgv(
     // because that is the shape the `Depends on:` line itself has on
     // disk — nothing downstream has to rejoin a list.
     ...(job.createDependsOn?.length ? ["--depends-on", job.createDependsOn.join(",")] : []),
-    // The JOB field is for `create`'s own invocation alone — a second
-    // job queued later for the same spec has no checkbox to carry it,
-    // and `analyze` instead reads a fresh file read the caller resolves
-    // into `acceptanceNotRequiredForAnalyze` below.
-    ...(step === "create" && job.acceptanceNotRequired ? ["--acceptance-not-required"] : []),
-    // Only a `create` job has this, and only when the New-spec
-    // form's own "let AI formulate acceptance criteria" box was cleared
-    // — absent produces byte-for-byte the argv every caller before this
-    // flag existed already produces.
-    ...(step === "create" && job.createNoAiFormulate ? ["--no-ai-formulate"] : []),
-    // Only a `create` whose form chose a level: the runner records it in
-    // the new spec's Tracking info, where analyze reads it.
-    ...(step === "create" && job.createCriteriaChecks ? ["--criteria-checks", job.createCriteriaChecks] : []),
-    // Every `create` from the form, ticked or not: the runner records
-    // whether the new spec asks to choose between its approaches.
-    ...(step === "create" && job.createChooseApproach !== undefined
-      ? ["--choose-approach", job.createChooseApproach ? "yes" : "no"]
-      : []),
+    ...(step === "create" ? createChoiceArgs(job) : []),
     ...(step === "analyze" && o.acceptanceNotRequiredForAnalyze ? ["--acceptance-not-required"] : []),
     // Only a `reopen` job that asked for it — absent, the
     // runner keeps the analysis, the plan and the status.
@@ -306,7 +310,42 @@ export function runnerArgv(
     // is the whole of what the step is for.
     ...(o.promptFile ? ["--prompt-file", o.promptFile] : []),
     ...(o.chrome ? ["--chrome"] : []),
-    ...(o.noSandbox && tool === "claude" ? ["--no-sandbox"] : []),
+  ];
+}
+
+/** The choices a `create` job's own form made. */
+function createChoiceArgs(job: Job): string[] {
+  return [
+    // The JOB field is for `create`'s own invocation alone — a second
+    // job queued later for the same spec has no checkbox to carry it,
+    // and `analyze` instead reads a fresh file read the caller resolves
+    // into `acceptanceNotRequiredForAnalyze`.
+    ...(job.acceptanceNotRequired ? ["--acceptance-not-required"] : []),
+    // Only when the New-spec
+    // form's own "let AI formulate acceptance criteria" box was cleared
+    // — absent produces byte-for-byte the argv every caller before this
+    // flag existed already produces.
+    ...(job.createNoAiFormulate ? ["--no-ai-formulate"] : []),
+    // Only a `create` whose form chose a level: the runner records it in
+    // the new spec's Tracking info, where analyze reads it.
+    ...(job.createCriteriaChecks ? ["--criteria-checks", job.createCriteriaChecks] : []),
+    // Every `create` from the form, ticked or not: the runner records
+    // whether the new spec asks to choose between its approaches.
+    ...(job.createChooseApproach !== undefined
+      ? ["--choose-approach", job.createChooseApproach ? "yes" : "no"]
+      : []),
+  ];
+}
+
+/** The model, effort, tool and provider the step runs on, and its side runs'. */
+function modelArgs(job: Job, step: string, tool: string, o: RunnerArgvOptions): string[] {
+  const choiceName = resolveStepModel(job, step, o.model ?? {});
+  const choice = choiceName ? o.modelChoices?.[choiceName] : undefined;
+  // The entry's own key stays the model unless the entry says otherwise
+  // — which is exactly what every config written before this spec did.
+  const model = choice?.model ?? choiceName;
+  const effort = resolveStepEffort(job, step);
+  return [
     ...(model ? ["--model", model] : []),
     // Only when the job actually named one for this step: a job
     // with nothing chosen produces byte-for-byte the argv it produced
@@ -324,11 +363,6 @@ export function runnerArgv(
     // is left out (`reviewModelArgs`).
     ...providerFolderArgs(job, step, tool, o),
     ...reviewModelArgs(step, tool, o),
-    // Chosen by the runner BEFORE the spawn, so the queue can watch the
-    // session while the step runs instead of learning it from a result
-    // that only exists once the step is over.
-    ...(sessionId ? ["--session-id", sessionId] : []),
-    ...(streamFile ? ["--stream-file", streamFile] : []),
   ];
 }
 
@@ -342,7 +376,7 @@ function providerFolderArgs(
   job: Job,
   step: string,
   tool: string,
-  o: Pick<Parameters<typeof runnerArgv>[3], "model" | "modelChoices" | "providers" | "provider" | "home">,
+  o: Pick<RunnerArgvOptions, "model" | "modelChoices" | "providers" | "provider" | "home">,
 ): string[] {
   const key = resolveStepProvider(job, step, { model: o.model ?? {}, modelChoices: o.modelChoices, providers: o.providers, provider: o.provider });
   const provider = key ? o.providers?.[key] : undefined;

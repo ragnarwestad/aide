@@ -34,8 +34,8 @@ interface Setup {
   marks: () => string[];
 }
 
-/** A started deploy job and the dependencies its run is given. */
-function setup(over: Partial<DeployRunDeps> = {}, opts: { mergeFails?: boolean } = {}): Setup {
+/** A deploy job, enqueued and started. */
+function startedDeploy() {
   const job = enqueue({ specFolder: "deploy", steps: ["deploy"] });
   const resultFile = join(dir, `${job.id}.json`);
   const streamFile = join(dir, `${job.id}.deploy.stream.jsonl`);
@@ -47,6 +47,11 @@ function setup(over: Partial<DeployRunDeps> = {}, opts: { mergeFails?: boolean }
     startedAt: new Date().toISOString(),
     stepStartedAt: new Date().toISOString(),
   });
+  return { job, resultFile, streamFile };
+}
+
+/** The checkout's git, which records every command. */
+function deployGit(mergeFails: boolean) {
   const git: string[] = [];
   // The checkout stands at BEFORE until the fetch's merge moves it to HEAD.
   let merged = false;
@@ -56,9 +61,16 @@ function setup(over: Partial<DeployRunDeps> = {}, opts: { mergeFails?: boolean }
     if (line.startsWith("merge")) merged = true;
     if (line === "rev-parse --abbrev-ref HEAD") return { code: 0, stdout: "master\n" };
     if (line === "rev-parse HEAD") return { code: 0, stdout: `${merged ? HEAD : BEFORE}\n` };
-    if (line.startsWith("merge") && opts.mergeFails) return { code: 1, stdout: "", stderr: "not a fast-forward" };
+    if (line.startsWith("merge") && mergeFails) return { code: 1, stdout: "", stderr: "not a fast-forward" };
     return { code: 0, stdout: "" };
   };
+  return { git, gitRun };
+}
+
+/** A started deploy job and the dependencies its run is given. */
+function setup(over: Partial<DeployRunDeps> = {}, opts: { mergeFails?: boolean } = {}): Setup {
+  const { job, resultFile, streamFile } = startedDeploy();
+  const { git, gitRun } = deployGit(opts.mergeFails === true);
   const calls = { install: 0, restart: 0, restartWhenSettled: 0 };
   const faults: (Sentence | null)[] = [];
   const failures: (DeployFailure | null)[] = [];

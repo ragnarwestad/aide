@@ -100,29 +100,48 @@ function sentBackLine(g: SpecGroup, lang: Language, columns: number): string {
   );
 }
 
+/** The view a notice row is drawn in: what the unfolded acceptance
+ *  criteria need to keep. */
+export interface NoticeRowView {
+  filter?: SpecsFilter;
+  branchPreview?: (project: string, specFolder: string) => string | undefined;
+  /** The specs an analyze stopped on shared files recorded as sharing
+   *  them, less those archived since; called only for a row whose analyze
+   *  stands stopped so. */
+  overlappingSpecs?: (project: string, specFolder: string) => OpenOverlap[] | undefined;
+  /** The page the row sits on, for the criteria's fold; the Specs list's own when absent. */
+  listPath?: string;
+  /** The row is open on the Specs list, where it is the spec alone: the
+   *  approach choice, a press that releases a step, is left out. */
+  specOpen?: boolean;
+  onSpecs?: boolean;
+  /** How many columns the row spans: the list's own count. */
+  columns?: number;
+}
+
+/** The notice's parts, each with what goes under or beside it. */
+function noticeParts(g: SpecGroup, notice: NonNullable<ReturnType<typeof getSpecMessage>>, filter: SpecsFilter, lang: Language, view: NoticeRowView): MessagePart[] {
+  // The held-back part is led by the › and carries the unfolded list
+  // directly under its own box.
+  // Delete branch sits in its own note's box, and the approaches under
+  // their waiting line.
+  return (notice.parts ?? [{ text: notice.text }]).map((p) =>
+    "kind" in p && p.kind === "acceptance-hold"
+      ? { ...p, lead: checksFold(g, filter, lang, view.listPath), after: checksPanel(g, filter, lang, view.onSpecs) }
+      : "kind" in p && p.kind === "branch-left-behind"
+        ? { ...p, after: deleteBranchForm(g, lang) }
+        : "kind" in p && p.kind === "approach-choice"
+          ? view.specOpen ? p : { ...p, after: approachPanel(g, lang) }
+          : p.detail ? { ...p, own: true, after: helpPopover("more detail", esc(p.detail)) } : p,
+  );
+}
+
 export function specNoticeRow(
   g: SpecGroup,
   now: number,
   lang: Language,
   testServerAvailable: (project: string, specFolder: string) => boolean,
-  /** The view the row is drawn in: what the unfolded acceptance
-   *  criteria need to keep. */
-  view: {
-    filter?: SpecsFilter;
-    branchPreview?: (project: string, specFolder: string) => string | undefined;
-    /** The specs an analyze stopped on shared files recorded as sharing
-     *  them, less those archived since; called only for a row whose analyze
-     *  stands stopped so. */
-    overlappingSpecs?: (project: string, specFolder: string) => OpenOverlap[] | undefined;
-    /** The page the row sits on, for the criteria's fold; the Specs list's own when absent. */
-    listPath?: string;
-    /** The row is open on the Specs list, where it is the spec alone: the
-     *  approach choice, a press that releases a step, is left out. */
-    specOpen?: boolean;
-    onSpecs?: boolean;
-    /** How many columns the row spans: the list's own count. */
-    columns?: number;
-  } = {},
+  view: NoticeRowView = {},
 ): string {
   const archiveHeldBack = g.phases.find((p) => p.step === "archive")?.heldBack?.reason;
   const locked = isArchivedRow(g);
@@ -159,19 +178,7 @@ export function specNoticeRow(
   const columns = view.columns ?? LIST_COLUMNS;
   const checks = checksRow(g, filter, lang, columns, !holds, view.listPath, view.onSpecs) + sentBackLine(g, lang, columns);
   if (!notice) return checks;
-  // The held-back part is led by the › and carries the unfolded list
-  // directly under its own box.
-  // Delete branch sits in its own note's box, and the approaches under
-  // their waiting line.
-  const parts: MessagePart[] = (notice.parts ?? [{ text: notice.text }]).map((p) =>
-    "kind" in p && p.kind === "acceptance-hold"
-      ? { ...p, lead: checksFold(g, filter, lang, view.listPath), after: checksPanel(g, filter, lang, view.onSpecs) }
-      : "kind" in p && p.kind === "branch-left-behind"
-        ? { ...p, after: deleteBranchForm(g, lang) }
-        : "kind" in p && p.kind === "approach-choice"
-          ? view.specOpen ? p : { ...p, after: approachPanel(g, lang) }
-          : p.detail ? { ...p, own: true, after: helpPopover("more detail", esc(p.detail)) } : p,
-  );
+  const parts = noticeParts(g, notice, filter, lang, view);
   const detail = notice.title ? helpPopover("more detail", esc(notice.title)) : "";
   return (
     `<tr class="specnotice" data-folder="${esc(g.specFolder)}">` +

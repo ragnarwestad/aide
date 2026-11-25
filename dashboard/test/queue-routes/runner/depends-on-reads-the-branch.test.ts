@@ -12,7 +12,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { BranchFileStepsChecker } from "../../../src/git/workflow-history.ts";
 import { blockedDependencies } from "../../../src/serve/schedules/blocked.ts";
-import { targets, type SpecLookupContext } from "../../../src/serve/spec-lookup.ts";
+import { targets, type SpecLookupContext } from "../../../src/serve/spec-lookup/index.ts";
 import { branchCheckerReading } from "./spec-fixtures.ts";
 
 const FOLDER = "81-dependent";

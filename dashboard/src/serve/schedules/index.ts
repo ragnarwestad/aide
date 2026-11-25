@@ -18,7 +18,7 @@ import type {
 import type { WorkflowHistoryChecker, BranchFileStepsChecker } from "../../git/workflow-history.ts";
 import { resolveOpenBranchTarget } from "../../git/branch-file.ts";
 import { askPullRequest, type GhRunner, type PullRequestAnswer } from "../../integrations/pull-requests.ts";
-import type { DashboardCheckout } from "../../git/dashboard-checkout.ts";
+import type { DashboardCheckout } from "../../git/dashboard-checkout/index.ts";
 import type { CheckoutEnsurer } from "../../git/checkout-ensurer.ts";
 import {
   SPEC_FILES, buildProjectViews, manifestInside, type CodeLanding,
@@ -283,6 +283,45 @@ export async function settleSpecCaches(ctx: ScheduleContext): Promise<void> {
   await refreshSpecCaches(ctx);
 }
 
+/** The roots a sweep asks git about, and the archived specs whose
+ *  Created it resolves. */
+function sweepRoots(
+  ctx: ScheduleContext,
+  live: SpecTarget[],
+  scan: ReturnType<ScheduleContext["readScan"]>,
+): { roots: Set<string>; createdAtTargets: { dir: string; folder: string }[] } {
+  const roots = new Set<string>();
+  // A live spec's code checkout too: the specs list offers a test server only for a branch origin holds there.
+  for (const t of live) for (const root of ctx.specRoots(t.project)) roots.add(root);
+  // Every archived dir. There is no write-time stamp
+  // for Created to short-circuit against, so this is the whole archive
+  // on the first sweep that reaches it. `createdAtForArchived`'s
+  // own long-lived cache (a day, once resolved) is what keeps that
+  // bounded on every sweep after.
+  const createdAtTargets: { dir: string; folder: string }[] = [];
+  for (const key of scan?.archived ?? []) {
+    const cut = key.indexOf("/");
+    for (const root of ctx.specRoots(key.slice(0, cut))) roots.add(root);
+    const dir = scan?.dirs.get(key);
+    if (!dir) continue;
+    createdAtTargets.push({ dir, folder: key.slice(cut + 1) });
+  }
+  return { roots, createdAtTargets };
+}
+
+/** Sets the first-sweep mark once every listed spec's history was read.
+ *  "Read" is asked: each read in the sweep catches its own error. A list
+ *  that changed meanwhile leaves the mark to the next sweep. */
+function markFirstSweepRead(ctx: ScheduleContext, live: SpecTarget[]): void {
+  ctx.invalidateScan();
+  const read = new Set(live.map((t) => t.dir));
+  const history = ctx.readWorkflowHistory();
+  if (ctx.targets().every((t) =>
+    !t.dir || (read.has(t.dir) && history.readSucceeded(t.dir, t.specFolder, t.reopenedAfter)))) {
+    ctx.markSpecsScanned!();
+  }
+}
+
 async function sweepSpecCaches(ctx: ScheduleContext): Promise<void> {
   // Until the first sweep has read the specs, the board's own checkouts are
   // asked for first: the list names each spec by the path it is read from,
@@ -295,22 +334,7 @@ async function sweepSpecCaches(ctx: ScheduleContext): Promise<void> {
   const live = ctx.targets();
   const scan = ctx.readScan();
   const archivedKeys = scan?.archived ?? [];
-  const roots = new Set<string>();
-  // A live spec's code checkout too: the specs list offers a test server only for a branch origin holds there.
-  for (const t of live) for (const root of ctx.specRoots(t.project)) roots.add(root);
-  // Every archived dir. There is no write-time stamp
-  // for Created to short-circuit against, so this is the whole archive
-  // on the first sweep that reaches it. `createdAtForArchived`'s
-  // own long-lived cache (a day, once resolved) is what keeps that
-  // bounded on every sweep after.
-  const createdAtTargets: { dir: string; folder: string }[] = [];
-  for (const key of archivedKeys) {
-    const cut = key.indexOf("/");
-    for (const root of ctx.specRoots(key.slice(0, cut))) roots.add(root);
-    const dir = scan?.dirs.get(key);
-    if (!dir) continue;
-    createdAtTargets.push({ dir, folder: key.slice(cut + 1) });
-  }
+  const { roots, createdAtTargets } = sweepRoots(ctx, live, scan);
   // Before the sweep, so a change made DURING it is compared against
   // what a reader's last page load actually saw — the same reason
   // `scheduleNotify` (`sse-watchers.ts`) invalidates before it
@@ -338,17 +362,7 @@ async function sweepSpecCaches(ctx: ScheduleContext): Promise<void> {
     // project whose origin is unreachable costs one complaint, once.
     ...[...ctx.allowed].map((project) => ctx.ensureCheckout(project)),
   ]);
-  if (firstSweep) {
-    // "Read" is asked: each read above catches its own error. A list that
-    // changed meanwhile leaves the mark to the next sweep.
-    ctx.invalidateScan();
-    const read = new Set(live.map((t) => t.dir));
-    const history = ctx.readWorkflowHistory();
-    if (ctx.targets().every((t) =>
-      !t.dir || (read.has(t.dir) && history.readSucceeded(t.dir, t.specFolder, t.reopenedAfter)))) {
-      ctx.markSpecsScanned!();
-    }
-  }
+  if (firstSweep) markFirstSweepRead(ctx, live);
   const gitMoved = await refreshMergedAnswers(ctx, archivedKeys);
   const mergedMoved = (await refreshPullRequestAnswers(ctx, archivedKeys)) || gitMoved;
   // Only a root whose answer MOVED tells anyone, and only

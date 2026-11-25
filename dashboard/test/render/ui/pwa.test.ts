@@ -244,18 +244,15 @@ function fakeWindow(refuseNavigate = false) {
   };
 }
 
-/** The worker script, run against a fake global scope. It is a SCRIPT
- *  — no imports, no exports — so it is run as a function of the
- *  globals it uses, timers and clock included: a test decides whether
- *  the half-second timer or the server comes first, with no waiting. */
-function worker(networkAnswer: (request: { method: string; url: string }) => Promise<Response>, windows: ReturnType<typeof fakeWindow>[] = [], navigator?: object) {
+/** The worker's global scope: what it listens for, the notifications it
+ *  showed and the windows it opened. */
+function workerScope(windows: ReturnType<typeof fakeWindow>[], navigator?: object) {
   const listeners: Record<string, (event: unknown) => void> = {};
   const shown: {
     title: string;
     options: { body?: string; icon?: string; badge?: string; data?: { url?: string } };
   }[] = [];
   const opened: string[] = [];
-  const clock = fakeClock();
   const self = {
     navigator,
     addEventListener: (type: string, fn: (event: unknown) => void) => void (listeners[type] = fn),
@@ -272,6 +269,16 @@ function worker(networkAnswer: (request: { method: string; url: string }) => Pro
         void shown.push({ title, options }),
     },
   };
+  return { listeners, shown, opened, self };
+}
+
+/** The worker script, run against a fake global scope. It is a SCRIPT
+ *  — no imports, no exports — so it is run as a function of the
+ *  globals it uses, timers and clock included: a test decides whether
+ *  the half-second timer or the server comes first, with no waiting. */
+function worker(networkAnswer: (request: { method: string; url: string }) => Promise<Response>, windows: ReturnType<typeof fakeWindow>[] = [], navigator?: object) {
+  const { listeners, shown, opened, self } = workerScope(windows, navigator);
+  const clock = fakeClock();
   // eslint-disable-next-line no-new-func -- the thing under test IS a script
   new Function("self", "fetch", "setTimeout", "clearTimeout", "Date", SERVICE_WORKER)(
     self,

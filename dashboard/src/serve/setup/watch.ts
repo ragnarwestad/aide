@@ -30,6 +30,61 @@ export interface WatchSetup {
   closeSpecWatchers: () => void;
 }
 
+function sseWatchersContext(
+  state: ServerState,
+  encoder: TextEncoder,
+  watchers: WatchSetup["watchers"],
+  phaseWatchers: WatchSetup["phaseWatchers"],
+  specWatchers: WatchSetup["specWatchers"],
+): SseWatchersContext {
+  return {
+    encoder,
+    watchers,
+    phaseWatchers,
+    get specWatchers() {
+      return specWatchers;
+    },
+    readNotifySoon: () => state.notifySoon,
+    writeNotifySoon: (v) => {
+      state.notifySoon = v;
+    },
+    invalidateScan: () => {
+      state.scan = null;
+    },
+  };
+}
+
+// Each allowed project's specs root, and nothing wider: a recursive
+// watch on the projects root would fire on every `.git` internal,
+// `node_modules` entry and build artefact in every checked-out
+// project — the ground moving under the reader constantly, which is
+// a cost to avoid.
+//
+// A change made before the watch opened is dropped (`isEcho`).
+function watchSpecFolders(
+  opts: { projectRoot?: string; specsWatch?: typeof watch },
+  allowed: Set<string>,
+  specWatchers: Map<string, ReturnType<typeof watch>>,
+  scheduleNotify: () => void,
+) {
+  if (!opts.projectRoot) return;
+  for (const p of discoverProjects(opts.projectRoot)) {
+    if (!allowed.has(p.name)) continue;
+    try {
+      const openedAt = Date.now();
+      const root = p.specsRoot;
+      specWatchers.set(p.name, (opts.specsWatch ?? watch)(root, { recursive: true }, (_event, filename) => {
+        if (!isEcho(root, filename, openedAt)) scheduleNotify();
+      }));
+    } catch {
+      // A specs root that is missing or cannot be watched: the same
+      // fail-open the git checks in this file already keep. The
+      // five-second scan still catches up on the next redraw anything
+      // else causes — only the "no reload needed" promise degrades.
+    }
+  }
+}
+
 export function setupWatch(
   opts: { projectRoot?: string; specsWatch?: typeof watch },
   allowed: Set<string>,
@@ -54,21 +109,7 @@ export function setupWatch(
   // page stayed as it was until somebody reloaded it.
   const specWatchers = new Map<string, ReturnType<typeof watch>>();
 
-  const sseWatchersCtx: SseWatchersContext = {
-    encoder,
-    watchers,
-    phaseWatchers,
-    get specWatchers() {
-      return specWatchers;
-    },
-    readNotifySoon: () => state.notifySoon,
-    writeNotifySoon: (v) => {
-      state.notifySoon = v;
-    },
-    invalidateScan: () => {
-      state.scan = null;
-    },
-  };
+  const sseWatchersCtx = sseWatchersContext(state, encoder, watchers, phaseWatchers, specWatchers);
   function writeTo(c: ReadableStreamDefaultController<Uint8Array>, text: string) {
     return writeToImpl(sseWatchersCtx, c, text);
   }
@@ -85,30 +126,7 @@ export function setupWatch(
     return closeSpecWatchersImpl(sseWatchersCtx);
   }
 
-  // Each allowed project's specs root, and nothing wider: a recursive
-  // watch on the projects root would fire on every `.git` internal,
-  // `node_modules` entry and build artefact in every checked-out
-  // project — the ground moving under the reader constantly, which is
-  // a cost to avoid.
-  //
-  // A change made before the watch opened is dropped (`isEcho`).
-  if (opts.projectRoot) {
-    for (const p of discoverProjects(opts.projectRoot)) {
-      if (!allowed.has(p.name)) continue;
-      try {
-        const openedAt = Date.now();
-        const root = p.specsRoot;
-        specWatchers.set(p.name, (opts.specsWatch ?? watch)(root, { recursive: true }, (_event, filename) => {
-          if (!isEcho(root, filename, openedAt)) scheduleNotify();
-        }));
-      } catch {
-        // A specs root that is missing or cannot be watched: the same
-        // fail-open the git checks in this file already keep. The
-        // five-second scan still catches up on the next redraw anything
-        // else causes — only the "no reload needed" promise degrades.
-      }
-    }
-  }
+  watchSpecFolders(opts, allowed, specWatchers, scheduleNotify);
 
   const streamGrowth = (jobs: () => Job[]) => createStreamGrowth(sseWatchersCtx, jobs);
 

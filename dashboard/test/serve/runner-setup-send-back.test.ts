@@ -9,7 +9,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { QueueStore, type Job } from "../../src/queue/queue.ts";
-import { stepDoneHandler } from "../../src/serve/runner-setup.ts";
+import { stepDoneHandler } from "../../src/serve/runner-setup/index.ts";
 import { DEFAULTS, cleanupHarness, dir, makeRunner, okResult, resetHarness } from "../queue/runner/runner-fixtures.ts";
 
 // The harness's own store offers no model choice, so a job cannot name a model on it.

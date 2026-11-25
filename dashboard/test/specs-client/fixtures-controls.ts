@@ -101,12 +101,9 @@ export function withSelection<O extends { value: string; selected: boolean }, T 
   return self as T & { readonly selectedOptions: O[]; value: string };
 }
 
-/** `ran` is the server's own "this phase has history" marker
- *  (`data-ran="1"`, `specs-list.ts`): the select is showing what the
- *  phase really ran on. `formId` is the row's run-form id, so a write
- *  on this select can be told apart from one on another row's. */
-export const modelSelect = (formId: string, step: string, chosen: string, ran = false, live = false) => {
-  const options = MODELS.map(([value, tool]) => ({
+/** One option per model, the chosen one selected. */
+function modelOptions(chosen: string) {
+  return MODELS.map(([value, tool]) => ({
     value,
     dataset: { tool },
     hidden: false,
@@ -115,6 +112,33 @@ export const modelSelect = (formId: string, step: string, chosen: string, ran = 
     disabled: false,
     selected: value === chosen,
   }));
+}
+
+// A change lands on the select itself, and the handler walks up
+// with `closest`. A model select is NOT an AI select and not a
+// phase box, so it answers those selectors with null and its own
+// with itself. `data-post-to` is asked in two shapes: the tail
+// BOX's `input[data-post-to]` (never this) and
+// a live model select's own `select[data-post-to]`.
+function modelSelectClosest(sel: string, self: unknown, live: boolean): unknown {
+  return (
+    // `.aimodel` is the compact picker a NARROW screen draws around
+    // the pair (2026-09-07). These rows are the wide layout, where
+    // the two selects stand on their own, so the walk up finds none.
+    sel.includes("data-ai") || sel.includes('name="steps"') || sel.includes("aimodel")
+      ? null
+      : sel.includes("data-post-to")
+        ? (live && sel.includes("select") ? self : null)
+        : self
+  );
+}
+
+/** `ran` is the server's own "this phase has history" marker
+ *  (`data-ran="1"`, `specs-list.ts`): the select is showing what the
+ *  phase really ran on. `formId` is the row's run-form id, so a write
+ *  on this select can be told apart from one on another row's. */
+export const modelSelect = (formId: string, step: string, chosen: string, ran = false, live = false) => {
+  const options = modelOptions(chosen);
   const self = withSelection(options, {
     name: `model.${step}`,
     options,
@@ -130,21 +154,7 @@ export const modelSelect = (formId: string, step: string, chosen: string, ran = 
     // itself — the same attribute the tail box carries.
     getAttribute: (n: string) =>
       n === "form" ? formId : n === "data-post-to" && live ? "/api/queue/job-1/model" : null,
-    // A change lands on the select itself, and the handler walks up
-    // with `closest`. A model select is NOT an AI select and not a
-    // phase box, so it answers those selectors with null and its own
-    // with itself. `data-post-to` is asked in two shapes: the tail
-    // BOX's `input[data-post-to]` (never this) and
-    // a live model select's own `select[data-post-to]`.
-    closest: (sel: string): unknown =>
-      // `.aimodel` is the compact picker a NARROW screen draws around
-      // the pair (2026-09-07). These rows are the wide layout, where
-      // the two selects stand on their own, so the walk up finds none.
-      sel.includes("data-ai") || sel.includes('name="steps"') || sel.includes("aimodel")
-        ? null
-        : sel.includes("data-post-to")
-          ? (live && sel.includes("select") ? self : null)
-          : self,
+    closest: (sel: string): unknown => modelSelectClosest(sel, self, live),
     /** What the SERVER drew, to go back to when the rows are
      *  replaced. A browser gets brand-new elements out of that swap;
      *  a fake that kept the old ones would prove nothing. */

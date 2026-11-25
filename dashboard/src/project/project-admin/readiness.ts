@@ -185,26 +185,7 @@ async function dashboardCheckoutChecks(
   return checks;
 }
 
-/** Whether `aide-run-spec` would start in `projectDir`, read-only.
- *
- *  `run` is injected for the same reason every other git call in this
- *  file injects it: a test spawns no subprocess, and a failure is a
- *  value rather than an exception to be guessed at.
- *
- *  Nothing here asks about a dirty tree, so it takes no list of the
- *  paths the caller has just written. */
-export async function assessProjectReadiness(
-  run: GitRunner,
-  projectDir: string,
-  machineryDir?: string,
-  /** The manifest to read the manifest-backed rows from, when it is not
-   *  the project's own `.aide/project.yaml`: the dashboard's
-   *  settings file, right after an Add. Without it the dashboard's own
-   *  clone is asked, since that is the file a run reads. */
-  manifestFile?: string,
-): Promise<ProjectReadiness> {
-  const checks: ReadinessCheck[] = [];
-
+async function gitRootCheck(run: GitRunner, projectDir: string): Promise<{ check: ReadinessCheck; projectRoot: string }> {
   // 1. The project is its own repository. A directory INSIDE one
   //    resolves to the outer root, and a run would branch, commit and
   //    push that one — which is not the project anybody added.
@@ -214,15 +195,19 @@ export async function assessProjectReadiness(
   // answers with the real path.
 
   const isRoot = top !== null && real(top) === real(projectDir);
-  checks.push(answer("gitRoot", projectDir, isRoot, !isRoot,
+  const check = answer("gitRoot", projectDir, isRoot, !isRoot,
     top === null
       ? { key: "readiness.gitRoot.notRepo", values: { dir: projectDir } }
       : isRoot
         ? { key: "readiness.gitRoot.ok", values: { dir: projectDir } }
         : { key: "readiness.gitRoot.inside", values: { dir: projectDir, top } },
-  ));
-  const projectRoot = isRoot ? projectDir : top || projectDir;
+  );
+  return { check, projectRoot: isRoot ? projectDir : top || projectDir };
 
+}
+
+async function specsChecks(run: GitRunner, projectDir: string, projectRoot: string): Promise<{ checks: ReadinessCheck[]; roots: { root: string; label: string }[] }> {
+  const checks: ReadinessCheck[] = [];
   // 2. The specs root, configured or fallen back to, has to EXIST: the
   //    runner refuses "no specs root at …" before anything else.
   const configured = configValue(projectDir, "AIDE_SPECS_PATH");
@@ -251,21 +236,10 @@ export async function assessProjectReadiness(
       roots.push({ root: specsTop, label: "specs" });
     }
   }
+  return { checks, roots };
+}
 
-  // 4. A reachable default branch, for every repository the run would
-  //    touch — and that means the checkouts the DASHBOARD
-  //    owns, not the ones a person edits. Whichever checkout a run
-  //    actually uses is the one asked; `machineryDir` is what names it,
-  //    and a caller that names none is asking about `projectDir` itself,
-  //    exactly as every caller did before that spec.
-  if (machineryDir && resolve(machineryDir) !== resolve(projectDir)) {
-    checks.push(...(await dashboardCheckoutChecks(run, roots, machineryDir)));
-  } else {
-    for (const { root, label } of roots) {
-      checks.push(...(await repoChecks(run, root, label)));
-    }
-  }
-
+function linksCheck(projectDir: string, projectRoot: string, machineryDir?: string, manifestFile?: string): ReadinessCheck {
   // 5. And the gitignored paths the project says its own commands need.
   //    A worktree carries tracked files only, so a configured entry with
   //    no source is a test command that will fail for a reason that has
@@ -282,7 +256,7 @@ export async function assessProjectReadiness(
   const missing = links
     ? links.split(/\s+/).filter(Boolean).filter((e) => !existsSync(join(projectRoot, e)))
     : [];
-  checks.push(
+  return (
     !links
       // Not a failure: most projects need none, and the dashboard
       // cannot infer which gitignored paths a test command wants.
@@ -297,8 +271,51 @@ export async function assessProjectReadiness(
             missing.length === 1
               ? { key: "readiness.links.missingOne", values: { entry: missing[0]!, root: projectRoot } }
               : { key: "readiness.links.missingMany", values: { entries: missing, root: projectRoot } })
-          : answer("worktreeLinks", projectDir, true, false, { key: "readiness.links.ok", values: { links: links.split(/\s+/).filter(Boolean) } }),
+          : answer("worktreeLinks", projectDir, true, false, { key: "readiness.links.ok", values: { links: links.split(/\s+/).filter(Boolean) } })
   );
+}
+
+/** Whether `aide-run-spec` would start in `projectDir`, read-only.
+ *
+ *  `run` is injected for the same reason every other git call in this
+ *  file injects it: a test spawns no subprocess, and a failure is a
+ *  value rather than an exception to be guessed at.
+ *
+ *  Nothing here asks about a dirty tree, so it takes no list of the
+ *  paths the caller has just written. */
+export async function assessProjectReadiness(
+  run: GitRunner,
+  projectDir: string,
+  machineryDir?: string,
+  /** The manifest to read the manifest-backed rows from, when it is not
+   *  the project's own `.aide/project.yaml`: the dashboard's
+   *  settings file, right after an Add. Without it the dashboard's own
+   *  clone is asked, since that is the file a run reads. */
+  manifestFile?: string,
+): Promise<ProjectReadiness> {
+  const checks: ReadinessCheck[] = [];
+  const gitRoot = await gitRootCheck(run, projectDir);
+  checks.push(gitRoot.check);
+  const { projectRoot } = gitRoot;
+  const specs = await specsChecks(run, projectDir, projectRoot);
+  checks.push(...specs.checks);
+  const { roots } = specs;
+
+  // 4. A reachable default branch, for every repository the run would
+  //    touch — and that means the checkouts the DASHBOARD
+  //    owns, not the ones a person edits. Whichever checkout a run
+  //    actually uses is the one asked; `machineryDir` is what names it,
+  //    and a caller that names none is asking about `projectDir` itself,
+  //    exactly as every caller did before that spec.
+  if (machineryDir && resolve(machineryDir) !== resolve(projectDir)) {
+    checks.push(...(await dashboardCheckoutChecks(run, roots, machineryDir)));
+  } else {
+    for (const { root, label } of roots) {
+      checks.push(...(await repoChecks(run, root, label)));
+    }
+  }
+
+  checks.push(linksCheck(projectDir, projectRoot, machineryDir, manifestFile));
 
   const canRun = checks.every((c) => !c.blocking);
   return { canRun, checks, note: readinessNote(basename(projectDir), canRun, checks) };

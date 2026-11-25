@@ -5,6 +5,8 @@
 // Every check is the one it was, in the order it was in, and answers
 // `null` for a path that is not its own — which is what lets the
 // three be asked one after another exactly as the chain read before.
+import type { Language } from "../../../i18n";
+import type { Job } from "../../../queue/types.ts";
 import { providerPickerOptions } from "../../providers/options.ts";
 import { scheduleTrackingKey } from "../../../project/spec-names.ts";
 import { DEFAULT_SCHEDULE_OUTPUT_ROOT, readScheduleRunReport } from "../../../queue/schedule.ts";
@@ -21,12 +23,7 @@ import { scheduleLastRun } from "./schedule-last-run.ts";
 import { projectScheduleTab, scheduleNewPageResponse } from "./schedule-edit-page.ts";
 import { forProject } from "../../../queue/providers/project-defaults.ts";
 
-export async function schedulePages(
-  ctx: RoutesContext,
-  req: Request,
-  url: URL,
-  path: string,
-): Promise<Response | null> {
+async function schedulePageRoute(ctx: RoutesContext, req: Request, _url: URL, path: string): Promise<Response | null> {
   if (path.startsWith(SCHEDULE_OUTPUT_ROUTE_PREFIX)) {
     if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
     return serveStatic(
@@ -34,6 +31,10 @@ export async function schedulePages(
       scheduleOutputRelativePath(path),
     );
   }
+  return null;
+}
+
+async function schedulePageRoute2(ctx: RoutesContext, req: Request, url: URL, path: string): Promise<Response | null> {
 
   if (path === SCHEDULE_ROUTE) {
     if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
@@ -68,6 +69,10 @@ export async function schedulePages(
     if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
     return new Response(html, { headers });
   }
+  return null;
+}
+
+async function scheduleNewRoute(ctx: RoutesContext, req: Request, url: URL, path: string): Promise<Response | null> {
 
   // New: the project rides as a query, since a second path segment would
   // read as an entry's name. An entry is changed on its Settings tab.
@@ -83,6 +88,10 @@ export async function schedulePages(
       back: resolveBackHref(req.headers.get("referer"), url.origin, projectScheduleTab(project), url.pathname),
     });
   }
+  return null;
+}
+
+async function schedulePromptRoute(ctx: RoutesContext, req: Request, url: URL, path: string): Promise<Response | null> {
 
   // A job's prompt file. The address names a job, never a file: what is read
   // is always the entry's own `prompt`, which the store keeps inside the
@@ -118,6 +127,37 @@ export async function schedulePages(
     if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
     return new Response(html, { headers });
   }
+  return null;
+}
+
+/** The Report tab: the picked run's report and the specs it proposed, or
+ *  the empty list's sentence for an entry that has never run. */
+async function reportPanelFor(
+  ctx: RoutesContext, lang: Language,
+  o: { outputRoot: string; project: string; key: string; shown: Job | undefined; jobs: Job[] },
+): Promise<string> {
+  const { outputRoot, project, key, shown, jobs } = o;
+  if (!shown) return jobs.length === 0 ? renderReportPanel({ lang }) : "";
+  const report = readScheduleRunReport(outputRoot, project, key, shown.id);
+  const runDir = scheduleRunOutputPath(project, key, shown.id);
+  const run: Parameters<typeof renderReportPanel>[0]["run"] = {
+    view: await ctx.jobRow(shown),
+    startedAt: shown.startedAt ?? shown.createdAt,
+    ...(report !== null
+      ? { document: await buildReportDocument(report, runDir) }
+      : {}),
+  };
+  return renderReportPanel({ lang, run }) +
+    renderProposalsPanel({
+      lang, project, record: readProposalsRecord(outputRoot, project, key, shown.id),
+      specOf: (jobId) => {
+        const made = ctx.queue.get(jobId);
+        return made?.state === "done" ? made.specFolder : undefined;
+      },
+    });
+}
+
+async function scheduleDetailRoute(ctx: RoutesContext, req: Request, url: URL, path: string): Promise<Response | null> {
 
   const scheduleDetailPage = path.match(/^\/schedule\/([^/]+)\/([^/]+)$/);
   if (scheduleDetailPage) {
@@ -139,18 +179,6 @@ export async function schedulePages(
     // list; without one, the Report tab is the list alone.
     const runParam = url.searchParams.get("run");
     const shown = jobs.find((j) => j.id === runParam);
-    let run: Parameters<typeof renderReportPanel>[0]["run"];
-    if (shown) {
-      const report = readScheduleRunReport(outputRoot, project, key, shown.id);
-      const runDir = scheduleRunOutputPath(project, key, shown.id);
-      run = {
-        view: await ctx.jobRow(shown),
-        startedAt: shown.startedAt ?? shown.createdAt,
-        ...(report !== null
-          ? { document: await buildReportDocument(report, runDir) }
-          : {}),
-      };
-    }
     const tab = url.searchParams.get("tab") ?? undefined;
     const html = renderScheduleDetailPage(ctx.nav(), new Date().toISOString(), {
       project,
@@ -170,18 +198,7 @@ export async function schedulePages(
       // Only ever compared with the list's column names.
       runSort: { sort: url.searchParams.get("sort") ?? undefined, dir: url.searchParams.get("dir") ?? undefined },
       // An entry that has never run says so here, where the list would be.
-      reportPanel: shown
-        ? renderReportPanel({ lang: langResult.lang, run }) +
-          renderProposalsPanel({
-            lang: langResult.lang, project, record: readProposalsRecord(outputRoot, project, key, shown.id),
-            specOf: (jobId) => {
-              const made = ctx.queue.get(jobId);
-              return made?.state === "done" ? made.specFolder : undefined;
-            },
-          })
-        : jobs.length === 0
-          ? renderReportPanel({ lang: langResult.lang })
-          : "",
+      reportPanel: await reportPanelFor(ctx, langResult.lang, { outputRoot, project, key, shown, jobs }),
       script: await specsClientScript(),
       backHref: resolveBackHref(req.headers.get("referer"), url.origin, projectScheduleTab(project), url.pathname),
       lang: langResult.lang,
@@ -191,6 +208,21 @@ export async function schedulePages(
     if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
     return new Response(html, { headers });
   }
-
   return null;
+}
+
+export async function schedulePages(
+  ctx: RoutesContext,
+  req: Request,
+  url: URL,
+  path: string,
+): Promise<Response | null> {
+  return (
+    (await schedulePageRoute(ctx, req, url, path)) ??
+    (await schedulePageRoute2(ctx, req, url, path)) ??
+    (await scheduleNewRoute(ctx, req, url, path)) ??
+    (await schedulePromptRoute(ctx, req, url, path)) ??
+    (await scheduleDetailRoute(ctx, req, url, path)) ??
+    null
+  );
 }

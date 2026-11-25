@@ -118,6 +118,105 @@ export function rowControls(form: HTMLFormElement): Control[] {
   return [...new Set([...inScope, ...namesForm(form.id)])] as Control[];
 }
 
+// SOMETHING has to change the moment it is pressed. The work behind
+// these buttons takes seconds, and a button that looks untouched for
+// that long reads as a button that did not register the click.
+//
+// What changes is the LOOK, not the word: a button that swapped "Run"
+// for "starting…" grew to fit and took the whole row with it, at the
+// one moment it should look most in control. So it goes
+// busy — the same variant the server renders for a job already in
+// flight — and the server's own pending word (`data-pending`) moves
+// to the `title`, where it costs no width. The spinner goes inside
+// the button, where it costs no width either.
+//
+// It used to be put where the row's phase boxes were instead, and
+// borrow their width. Those boxes are on the phase LINES now —
+// a different `<tr>` from the button — and the only `.phases`
+// group left in a button's own row is "also touches", which is not
+// the row's spinner to take. One rule now, for every control alike:
+// the button that was pressed carries it.
+function markPressed(controls: Control[], look: { primary: HTMLButtonElement | undefined; row: Element | null; variant: string | undefined; titleBefore: string }): void {
+  const { primary, row, variant, titleBefore } = look;
+  // The lock is the whole row's, and it happens HERE rather than
+  // before the fetch is prepared: a disabled control posts nothing,
+  // so locking the phase boxes ahead of `new FormData(form)` would
+  // queue a job with none of the phases that were ticked. Nothing is
+  // painted between the two, so the row is locked in the same beat
+  // the click lands in either way.
+  for (const el of controls) el.disabled = true;
+  if (!primary) return;
+  if (!row) {
+    // The New-spec form: no row to shove, no boxes to lend. It keeps
+    // the word swap it has always had.
+    primary.textContent = primary.dataset?.pending || "Working…";
+    return;
+  }
+  if (variant) primary.classList.remove(variant);
+  primary.classList.add("busy");
+  primary.title = primary.dataset?.pending || titleBefore;
+  // ONE spinner per press, before the label and inside the button —
+  // which is where a collapsed row's Merge has always put it.
+  primary.insertAdjacentHTML("afterbegin", SPINNER);
+}
+
+/** The form's address and its fields, as a press posts them. */
+function formRequest(form: HTMLFormElement): { url: URL; body: URLSearchParams } {
+  // A control named "action" shadows the form's action property in browsers.
+  const action = form.getAttribute?.("action") ?? (typeof form.action === "string" ? form.action : "");
+  const url = new URL(action, location.href);
+  const body = new URLSearchParams();
+  new FormData(form).forEach((value, key) => {
+    if (typeof value === "string") body.append(key, value);
+  });
+  if (/\/api\/queue\/groups\/[^/]+\/action$/.test(url.pathname) && body.get("action") === "start") {
+    body.set("memberSteps", JSON.stringify(groupPhaseChoices(form)));
+  }
+  return { url, body };
+}
+
+/** The pressed button and the row's controls, put back as they were
+ *  where a swap has not replaced them. */
+function restorePressed(before: (readonly [Control, boolean])[], look: { primary: HTMLButtonElement | undefined; row: Element | null; variant: string | undefined; titleBefore: string }, label: string): void {
+  const { primary, variant, titleBefore } = look;
+  // `isConnected` because a successful swapRows has already replaced
+  // this form with a fresh one from the server. What is put back here
+  // is for the case it did not: the row the reader is looking at must
+  // not be left holding a spinner for something that is over.
+  // `textContent` takes the spinner out with it — it replaces every
+  // child.
+  if (primary?.isConnected) {
+    primary.textContent = label;
+    primary.title = titleBefore;
+    primary.classList.remove("busy");
+    if (variant) primary.classList.add(variant);
+  }
+  // Only what is still standing. A successful swap has replaced the
+  // whole row with the server's own answer, and that markup already
+  // says which of these are live — putting the old elements back
+  // would be answering for a row that is gone.
+  for (const [el, was] of before) if (el.isConnected) el.disabled = was;
+}
+
+/** The pressed button, what it looked like, and the row it is on. */
+function pressLook(form: HTMLFormElement): { primary: HTMLButtonElement | undefined; row: Element | null; variant: string | undefined; titleBefore: string } {
+  // The busy LOOK belongs to the button that was pressed, so it is read
+  // off the submitted form alone and never off the row: Run is first in
+  // the stack, and a button taken from there would wear the spinner for
+  // every press that was not Run's. The run form's own button is the
+  // one outside its tags that names it.
+  const own = Array.from(form.querySelectorAll("button"));
+  const primary =
+    own[0] ?? (namesForm(form.id).find((el) => el.tagName === "BUTTON") as HTMLButtonElement | undefined);
+  const titleBefore = primary?.title ?? "";
+  // A form on a spec's row, or the New-spec form above the table: the
+  // two say they were pressed in different ways, and this is the only
+  // question asked about where the form is.
+  const row = form.closest("tr");
+  const variant = VARIANTS.find((v) => primary?.classList.contains(v));
+  return { primary, row, variant, titleBefore };
+}
+
 /** Post a form as JSON-wanting XHR and hand the answer on. The button
  *  work is the same for every control, and is the whole point: a press
  *  has to change something the instant it happens.
@@ -130,21 +229,9 @@ export async function postForm(
   onRefused: (why: string, spec: string | undefined) => Promise<void> | void,
 ): Promise<void> {
   const controls = rowControls(form);
-  // The busy LOOK belongs to the button that was pressed, so it is read
-  // off the submitted form alone and never off the row: Run is first in
-  // the stack, and a button taken from there would wear the spinner for
-  // every press that was not Run's. The run form's own button is the
-  // one outside its tags that names it.
-  const own = Array.from(form.querySelectorAll("button"));
-  const primary =
-    own[0] ?? (namesForm(form.id).find((el) => el.tagName === "BUTTON") as HTMLButtonElement | undefined);
+  const look = pressLook(form);
+  const { primary } = look;
   const label = primary?.textContent ?? "";
-  const titleBefore = primary?.title ?? "";
-  // A form on a spec's row, or the New-spec form above the table: the
-  // two say they were pressed in different ways, and this is the only
-  // question asked about where the form is.
-  const row = form.closest("tr");
-  const variant = VARIANTS.find((v) => primary?.classList.contains(v));
   /** What each control was BEFORE the press, so it can be put back to
    *  that and not to "live". A row's controls are not uniformly live:
    *  the server draws Cancel and the phase boxes disabled while a job
@@ -155,57 +242,9 @@ export async function postForm(
   clearRefusal();
   press.inFlight += 1;
   press.pressGen += 1;
-  // SOMETHING has to change the moment it is pressed. The work behind
-  // these buttons takes seconds, and a button that looks untouched for
-  // that long reads as a button that did not register the click.
-  //
-  // What changes is the LOOK, not the word: a button that swapped "Run"
-  // for "starting…" grew to fit and took the whole row with it, at the
-  // one moment it should look most in control. So it goes
-  // busy — the same variant the server renders for a job already in
-  // flight — and the server's own pending word (`data-pending`) moves
-  // to the `title`, where it costs no width. The spinner goes inside
-  // the button, where it costs no width either.
-  //
-  // It used to be put where the row's phase boxes were instead, and
-  // borrow their width. Those boxes are on the phase LINES now —
-  // a different `<tr>` from the button — and the only `.phases`
-  // group left in a button's own row is "also touches", which is not
-  // the row's spinner to take. One rule now, for every control alike:
-  // the button that was pressed carries it.
-  const pressed = (): void => {
-    // The lock is the whole row's, and it happens HERE rather than
-    // before the fetch is prepared: a disabled control posts nothing,
-    // so locking the phase boxes ahead of `new FormData(form)` would
-    // queue a job with none of the phases that were ticked. Nothing is
-    // painted between the two, so the row is locked in the same beat
-    // the click lands in either way.
-    for (const el of controls) el.disabled = true;
-    if (!primary) return;
-    if (!row) {
-      // The New-spec form: no row to shove, no boxes to lend. It keeps
-      // the word swap it has always had.
-      primary.textContent = primary.dataset?.pending || "Working…";
-      return;
-    }
-    if (variant) primary.classList.remove(variant);
-    primary.classList.add("busy");
-    primary.title = primary.dataset?.pending || titleBefore;
-    // ONE spinner per press, before the label and inside the button —
-    // which is where a collapsed row's Merge has always put it.
-    primary.insertAdjacentHTML("afterbegin", SPINNER);
-  };
+  const pressed = (): void => markPressed(controls, look);
   try {
-    // A control named "action" shadows the form's action property in browsers.
-    const action = form.getAttribute?.("action") ?? (typeof form.action === "string" ? form.action : "");
-    const url = new URL(action, location.href);
-    const body = new URLSearchParams();
-    new FormData(form).forEach((value, key) => {
-      if (typeof value === "string") body.append(key, value);
-    });
-    if (/\/api\/queue\/groups\/[^/]+\/action$/.test(url.pathname) && body.get("action") === "start") {
-      body.set("memberSteps", JSON.stringify(groupPhaseChoices(form)));
-    }
+    const { url, body } = formRequest(form);
     pressed();
     let res: Response;
     try {
@@ -235,23 +274,7 @@ export async function postForm(
     console.error(error);
   } finally {
     press.inFlight -= 1;
-    // `isConnected` because a successful swapRows has already replaced
-    // this form with a fresh one from the server. What is put back here
-    // is for the case it did not: the row the reader is looking at must
-    // not be left holding a spinner for something that is over.
-    // `textContent` takes the spinner out with it — it replaces every
-    // child.
-    if (primary?.isConnected) {
-      primary.textContent = label;
-      primary.title = titleBefore;
-      primary.classList.remove("busy");
-      if (variant) primary.classList.add(variant);
-    }
-    // Only what is still standing. A successful swap has replaced the
-    // whole row with the server's own answer, and that markup already
-    // says which of these are live — putting the old elements back
-    // would be answering for a row that is gone.
-    for (const [el, was] of before) if (el.isConnected) el.disabled = was;
+    restorePressed(before, look, label);
   }
 }
 

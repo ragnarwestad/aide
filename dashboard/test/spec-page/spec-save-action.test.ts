@@ -237,45 +237,7 @@ describe("the description's bound", () => {
 describe("two specs sharing one checkout", () => {
   test("their git sequences are serialized, never interleaved", async () => {
     const OTHER = "99-a-second-spec";
-    const order: string[] = [];
-    const probes = new Map<string, number>();
-    let current = "";
-    let release = () => {};
-    const held = new Promise<void>((r) => {
-      release = r;
-    });
-    let reached = () => {};
-    const firstIsInside = new Promise<void>((r) => {
-      reached = r;
-    });
-    let holding = false;
-
-    const answers = savable("/host");
-    const gitRun: GitRunner = async (dir, args) => {
-      const line = args.join(" ");
-      if (line === "rev-parse --show-toplevel") {
-        const seen = (probes.get(dir) ?? 0) + 1;
-        probes.set(dir, seen);
-        // Three times per request: once, unlocked, for
-        // the "is this branch open" check (`resolveOpenBranchTarget`,
-        // which the save route now makes exactly as the tick route
-        // already did); once to key the lock; once inside it. The third
-        // is where that request's LOCKED git sequence begins.
-        if (seen === 3) {
-          current = dir.endsWith(OTHER) ? OTHER : SPEC;
-          order.push(`start ${current}`);
-        }
-      }
-      if (line.startsWith("fetch")) {
-        if (!holding) {
-          holding = true;
-          reached();
-          await held;
-        }
-      }
-      if (line.startsWith("push")) order.push(`end ${current}`);
-      return answers(dir, args);
-    };
+    const { order, release, firstIsInside, gitRun } = orderRecordingGit(OTHER);
 
     const { base } = harness.start({
       description: DESCRIPTION,
@@ -331,3 +293,48 @@ describe("the editor client disables Toast UI Editor's telemetry", () => {
     expect(source).toContain("usageStatistics: false");
   });
 });
+
+/** A git runner that records where each request's LOCKED git sequence
+ *  starts and ends, and holds the first request's fetch until released. */
+function orderRecordingGit(OTHER: string) {
+  const order: string[] = [];
+  const probes = new Map<string, number>();
+  let current = "";
+  let release = () => {};
+  const held = new Promise<void>((r) => {
+    release = r;
+  });
+  let reached = () => {};
+  const firstIsInside = new Promise<void>((r) => {
+    reached = r;
+  });
+  let holding = false;
+
+  const answers = savable("/host");
+  const gitRun: GitRunner = async (dir, args) => {
+    const line = args.join(" ");
+    if (line === "rev-parse --show-toplevel") {
+      const seen = (probes.get(dir) ?? 0) + 1;
+      probes.set(dir, seen);
+      // Three times per request: once, unlocked, for
+      // the "is this branch open" check (`resolveOpenBranchTarget`,
+      // which the save route now makes exactly as the tick route
+      // already did); once to key the lock; once inside it. The third
+      // is where that request's LOCKED git sequence begins.
+      if (seen === 3) {
+        current = dir.endsWith(OTHER) ? OTHER : SPEC;
+        order.push(`start ${current}`);
+      }
+    }
+    if (line.startsWith("fetch")) {
+      if (!holding) {
+        holding = true;
+        reached();
+        await held;
+      }
+    }
+    if (line.startsWith("push")) order.push(`end ${current}`);
+    return answers(dir, args);
+  };
+  return { order, release: () => release(), firstIsInside, gitRun };
+}

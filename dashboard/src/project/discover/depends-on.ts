@@ -44,7 +44,7 @@ export function dependsOnIn(text: string): string[] {
 /** The same line, taken OUT of a description's text.
  *
  *  CRLF is normalised on the way, because a textarea posts CRLF
- *  whatever the file had and `asFileText` (`specs-pull.ts`) normalises
+ *  whatever the file had and `asFileText` (`git/specs-pull/`) normalises
  *  it again before the write — a strip working on the raw post would
  *  miss the line the write then keeps. */
 export function stripDependsOnLine(text: string): string {

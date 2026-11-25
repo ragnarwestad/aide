@@ -81,15 +81,17 @@ function parseRunLog(runLog: string): RunLine[] {
   return out;
 }
 
+export interface StepLogOptions {
+  tool?: SummarizeOptions["tool"];
+  final: boolean;
+  /** A Codex session file's text by thread id: the step's own thread's says where its subagents were started. */
+  codexSession?: (thread: string) => string | undefined;
+}
+
 export function stepLog(
   transcript: { text: string; start: number },
   runLog: string | undefined,
-  o: {
-    tool?: SummarizeOptions["tool"];
-    final: boolean;
-    /** A Codex session file's text by thread id: the step's own thread's says where its subagents were started. */
-    codexSession?: (thread: string) => string | undefined;
-  },
+  o: StepLogOptions,
 ): { logs: LogPart[]; errors: string[] } {
   const opts = { tool: o.tool, max: Infinity, whole: true }; // the Log is the whole step, every line of it in full
   const tool = transcriptFormat(o.tool, transcript.text);

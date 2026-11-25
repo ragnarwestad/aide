@@ -61,7 +61,7 @@ export interface RestingState {
 // "nothing waiting on you" said nothing "done" does not. The colour
 // still tells the two apart at a glance.
 export function restingChip(lang: Language, resting: RestingState = {}): string {
-  // Two reasons share this one field (spec-lookup.ts): a dependency
+  // Two reasons share this one field (spec-lookup/): a dependency
   // still open is genuinely waiting on something outside this spec,
   // but unticked Acceptance criteria are this spec's own next step —
   // exactly what "ready" already means everywhere else on this badge,

@@ -5,6 +5,50 @@
 
 type Listener = (e: unknown) => void | Promise<void>;
 
+/** An event on `on[listener]` with `target`: a plain primary-button
+ *  click that may be prevented. */
+function fireOn(
+  on: Record<string, Listener>,
+  listener: string,
+  target: unknown,
+  extra: Partial<{ defaultPrevented: boolean }> = {},
+) {
+  let prevented = extra.defaultPrevented ?? false;
+  const event = {
+    target,
+    // A plain primary-button click. `navigate` reads this and bails
+    // on anything else (middle click, a modifier held), so an event
+    // without it would let every fold test pass for the wrong
+    // reason.
+    button: 0,
+    get defaultPrevented() {
+      return prevented;
+    },
+    preventDefault: () => {
+      prevented = true;
+    },
+  };
+  return on[listener]!(event);
+}
+
+/** The fold's own chevron, on the same delegated listener: the
+ *  control that DOES navigate. Without it the button-click tests
+ *  would pass against a listener that had stopped working. */
+function foldChevron() {
+  const foldAttrs: Record<string, string> = {
+    href: "/?open=aide%2F127-one-ai",
+    "data-fold": "open",
+    "data-key": "aide/127-one-ai",
+  };
+  const foldLink = {
+    getAttribute: (n: string) => foldAttrs[n] ?? null,
+    closest: (sel: string) => (sel.includes("data-nav") ? foldLink : null),
+    innerHTML: "<svg></svg>",
+    isConnected: true,
+  };
+  return { foldLink, foldAttrs };
+}
+
 /** Every navigation/event-firing helper `harness()` returns, built
  *  against that call's own `on` map, button, form and create button. */
 export function buildNavigation(
@@ -13,28 +57,8 @@ export function buildNavigation(
   form: { closest: (s: string) => unknown },
   createButton: unknown,
 ) {
-  const fire = (
-    listener: string,
-    target: unknown,
-    extra: Partial<{ defaultPrevented: boolean }> = {},
-  ) => {
-    let prevented = extra.defaultPrevented ?? false;
-    const event = {
-      target,
-      // A plain primary-button click. `navigate` reads this and bails
-      // on anything else (middle click, a modifier held), so an event
-      // without it would let every fold test pass for the wrong
-      // reason.
-      button: 0,
-      get defaultPrevented() {
-        return prevented;
-      },
-      preventDefault: () => {
-        prevented = true;
-      },
-    };
-    return on[listener]!(event);
-  };
+  const fire = (listener: string, target: unknown, extra: Partial<{ defaultPrevented: boolean }> = {}) =>
+    fireOn(on, listener, target, extra);
 
   const submit = (extra: Partial<{ defaultPrevented: boolean }> = {}) => {
     // The button is what a click lands on; `closest` walks up to the form.
@@ -51,20 +75,7 @@ export function buildNavigation(
     button.closest = form.closest;
     return fire("click", button);
   };
-  /** The fold's own chevron, on the same delegated listener: the
-   *  control that DOES navigate. Without it the button-click tests
-   *  would pass against a listener that had stopped working. */
-  const foldAttrs: Record<string, string> = {
-    href: "/?open=aide%2F127-one-ai",
-    "data-fold": "open",
-    "data-key": "aide/127-one-ai",
-  };
-  const foldLink = {
-    getAttribute: (n: string) => foldAttrs[n] ?? null,
-    closest: (sel: string) => (sel.includes("data-nav") ? foldLink : null),
-    innerHTML: "<svg></svg>",
-    isConnected: true,
-  };
+  const { foldLink, foldAttrs } = foldChevron();
   const clickFold = () => fire("click", foldLink);
   /** A press on any `a[data-nav]` link, by its own href (the
    *  phase's ›, whose address decides what the stream is asked for). */

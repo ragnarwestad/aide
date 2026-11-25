@@ -201,67 +201,8 @@ export function getSpecMessage(
   // sentence — never guessed from the text, which left every OTHER
   // waiting-shaped message still picking "waiting" or "failed" for itself.
   if (lead?.error) {
-    // `<phase> <what happened>: <the longer sentence>` — the shape the
-    // landing's own messages already have ("archive merge failed: …"),
-    // so a held-back job reads "archive held back: …" rather than
-    // leaving the reader to work out which of the four is not moving.
-    // The phase and the state word are ONE phrase, not two colons: the
-    // row beside it already says both, and repeating them apart is the
-    // panel saying the same thing twice. Only the held-back family —
-    // every other sentence here belongs to the row or to a press, not
-    // to one step.
-    // A step a provider's usage limit stopped is said in full — which
-    // AI, which window, when it starts over — from the tool's own
-    // record, in place of the runner's one-line summary of the same.
-    const limited =
-      lead.state === "waiting"
-        ? [...(lead.results ?? [])].reverse().find((r) => r.providerLimit || r.review?.providerLimit || r.verify?.providerLimit)
-        : undefined;
-    // A usage-limit stop the board starts again by itself, and a job held
-    // behind one, say so — with the time — in place of the run's own words.
-    const usageText = getUsageLimitMessage(lead, lang, Date.now())?.text;
-    const text = usageText !== undefined
-      ? lead.errorReason === "held-back" ? `${stepLabel(currentStep(lead), lang)} ${usageText}` : usageText
-      : limited?.providerLimit || limited?.review?.providerLimit || limited?.verify?.providerLimit
-      ? getProviderLimitMessage(
-          limited.review?.providerLimit ?? limited.verify?.providerLimit ?? limited.providerLimit!,
-          (limited.step && lead.stepModels?.[limited.step]) || lead.model,
-          lang,
-          Date.now(),
-          undefined,
-          limited.review?.provider?.name ?? limited.verify?.provider?.name ?? limited.provider?.name ?? lead.provider,
-        ).text
-      : lead.errorReason === "held-back"
-        ? formatSentence(lang, { key: "message.lead", values: { lead: stepLabel(currentStep(lead), lang) }, inner: lead.error })!
-        : formatSentence(lang, lead.error)!;
-    if (!said(text)) {
-      // Three of the six held-back reasons resolve on their own —
-      // nothing for the reader to act on — so they read as info, not
-      // the waiting kind's warning triangle. Read off the message's own
-      // KEY, never the rendered text: `lead.error` is always a
-      // single BoardMessage while a job is held back (`Runner.hold()`).
-      // A held-back key this set does not name falls through to
-      // "waiting" — the safer default.
-      const heldBackInfo = heldBackResolvesOnItsOwn(lead) || usageText !== undefined;
-      // `tests-red` waits for the same reason: the landing ran the
-      // project's own suite on the merged result, it went red, and
-      // nothing was pushed. The step and the merge both did what they
-      // should; the code is not green yet. An analyze stopped on its
-      // Every other stop failed the job, and says so in red.
-      const waiting = lead.errorReason === "held-back" || usageText !== undefined;
-      const variant: MessageVariant = heldBackInfo ? "info" : waiting ? "waiting" : "failed";
-      const structured = messageDetail(lead.error);
-      // An archive's own red run lists its failing lines on the row when
-      // the result names no tests. Otherwise what the message lists and
-      // the log's own lines, if the runner kept any, stay behind the (?).
-      const archiveLines = isArchiveTestsRed(lead.error) ? structured ?? detailBeyond(text, lead.errorDetail) : undefined;
-      if (archiveLines) {
-        parts.push({ variant, text }, { variant, text: archiveLines.split("\n").join(" · ") });
-      } else {
-        const extra = detailBeyond(text, structured, lead.errorDetail);
-        parts.push({ variant, text, title: structured ? undefined : extra, identity: leadIdentity, detail: structured ? extra : undefined });
-      }
-    }
+    const { text, usageText } = leadErrorText(lead, lang);
+    if (!said(text)) parts.push(...leadErrorParts(lead, text, usageText !== undefined, leadIdentity));
   }
   parts.push(...marks);
   if (parts.length) {
@@ -273,6 +214,82 @@ export function getSpecMessage(
     };
   }
   if (lead && inFlight(lead)) return undefined;
+  return restingNotice(archiveHeldBack, disagreement, readyToArchive, lang);
+}
+
+/** The lead job's error, worded: a usage limit with its time, a
+ *  provider's limit, a held-back step's reason, or the error itself. */
+function leadErrorText(lead: QueueRowView, lang: Language): { text: string; usageText?: string } {
+  // `<phase> <what happened>: <the longer sentence>` — the shape the
+  // landing's own messages already have ("archive merge failed: …"),
+  // so a held-back job reads "archive held back: …" rather than
+  // leaving the reader to work out which of the four is not moving.
+  // The phase and the state word are ONE phrase, not two colons: the
+  // row beside it already says both, and repeating them apart is the
+  // panel saying the same thing twice. Only the held-back family —
+  // every other sentence here belongs to the row or to a press, not
+  // to one step.
+  // A step a provider's usage limit stopped is said in full — which
+  // AI, which window, when it starts over — from the tool's own
+  // record, in place of the runner's one-line summary of the same.
+  const limited =
+    lead.state === "waiting"
+      ? [...(lead.results ?? [])].reverse().find((r) => r.providerLimit || r.review?.providerLimit || r.verify?.providerLimit)
+      : undefined;
+  // A usage-limit stop the board starts again by itself, and a job held
+  // behind one, say so — with the time — in place of the run's own words.
+  const usageText = getUsageLimitMessage(lead, lang, Date.now())?.text;
+  const text = usageText !== undefined
+    ? lead.errorReason === "held-back" ? `${stepLabel(currentStep(lead), lang)} ${usageText}` : usageText
+    : limited?.providerLimit || limited?.review?.providerLimit || limited?.verify?.providerLimit
+    ? getProviderLimitMessage(
+        limited.review?.providerLimit ?? limited.verify?.providerLimit ?? limited.providerLimit!,
+        (limited.step && lead.stepModels?.[limited.step]) || lead.model,
+        lang,
+        Date.now(),
+        undefined,
+        limited.review?.provider?.name ?? limited.verify?.provider?.name ?? limited.provider?.name ?? lead.provider,
+      ).text
+    : lead.errorReason === "held-back"
+      ? formatSentence(lang, { key: "message.lead", values: { lead: stepLabel(currentStep(lead), lang) }, inner: lead.error })!
+      : formatSentence(lang, lead.error)!;
+  return { text, usageText };
+}
+
+/** The lead job's error as notice parts, in the colour its reason takes. */
+function leadErrorParts(
+  lead: QueueRowView, text: string, usageLimited: boolean, leadIdentity: string | undefined,
+): (NoticePart & { variant: MessageVariant; title?: string })[] {
+  // Three of the six held-back reasons resolve on their own —
+  // nothing for the reader to act on — so they read as info, not
+  // the waiting kind's warning triangle. Read off the message's own
+  // KEY, never the rendered text: `lead.error` is always a
+  // single BoardMessage while a job is held back (`Runner.hold()`).
+  // A held-back key this set does not name falls through to
+  // "waiting" — the safer default.
+  const heldBackInfo = heldBackResolvesOnItsOwn(lead) || usageLimited;
+  // `tests-red` waits for the same reason: the landing ran the
+  // project's own suite on the merged result, it went red, and
+  // nothing was pushed. The step and the merge both did what they
+  // should; the code is not green yet. An analyze stopped on its
+  // Every other stop failed the job, and says so in red.
+  const waiting = lead.errorReason === "held-back" || usageLimited;
+  const variant: MessageVariant = heldBackInfo ? "info" : waiting ? "waiting" : "failed";
+  const structured = messageDetail(lead.error);
+  // An archive's own red run lists its failing lines on the row when
+  // the result names no tests. Otherwise what the message lists and
+  // the log's own lines, if the runner kept any, stay behind the (?).
+  const archiveLines = isArchiveTestsRed(lead.error) ? structured ?? detailBeyond(text, lead.errorDetail) : undefined;
+  if (archiveLines) return [{ variant, text }, { variant, text: archiveLines.split("\n").join(" · ") }];
+  const extra = detailBeyond(text, structured, lead.errorDetail);
+  return [{ variant, text, title: structured ? undefined : extra, identity: leadIdentity, detail: structured ? extra : undefined }];
+}
+
+/** What a row with nothing else to say says: archive held back, a
+ *  disagreement, or ready to archive. */
+function restingNotice(
+  archiveHeldBack: string | undefined, disagreement: string | undefined, readyToArchive: boolean | undefined, lang: Language,
+): RowNotice | undefined {
   // The same amber the badge takes, and for the same reason: a held-back
   // archive is a common, healthy outcome — notice, not alarm. A
   // disagreement takes the same amber for the same reason.

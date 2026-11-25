@@ -19,7 +19,17 @@ describe("building the archived rows", () => {
     // ...and it stands in front of the per-row file reads, which is what
     // makes it a gate rather than a filter over work already done: the
     // phase lines a locked row opens come off `4-status.md`'s own claim.
-    expect(fn.indexOf("continue;")).toBeLessThan(fn.indexOf("archivedSteps(ref.dir)"));
+    // The reads are in the row builder (`archivedRow`, through
+    // `openedRowFields`), which is only called after the gate.
+    const bodyOf = (name: string) => {
+      const from = specViewsSrc.slice(specViewsSrc.indexOf(`function ${name}(`));
+      return from.slice(0, from.indexOf("\n}\n"));
+    };
+    expect(bodyOf("archivedRow")).toContain("openedRowFields(");
+    expect(bodyOf("openedRowFields")).toContain("archivedSteps(ref.dir)");
+    const gate = fn.search(/if \(!everyOne\b[^\n]*continue;/);
+    expect(gate).toBeGreaterThan(-1);
+    expect(gate).toBeLessThan(fn.indexOf("archivedRow("));
   });
 
   test("and the gate answers for every chip there is", async () => {

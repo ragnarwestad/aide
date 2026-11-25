@@ -26,7 +26,7 @@ export interface SpecRef {
   closed: boolean;
   /** How many Acceptance rows of an archived, not closed spec are marked
    *  Not verified, from its state file; absent when none. A live
-   *  spec's count is read where its branch is asked (spec-lookup.ts). */
+   *  spec's count is read where its branch is asked (spec-lookup/). */
   notVerified?: number;
   /** The same, for rows marked Failed. */
   failed?: number;

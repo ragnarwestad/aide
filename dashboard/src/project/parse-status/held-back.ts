@@ -95,7 +95,7 @@ export const ACCEPTANCE_CRITERIA_UNTICKED_NOTE =
  *  declined, before implement is done.
  *
  *  `historyDone` answers beside `doneSteps` because `implement` LANDS
- *  NOTHING (`runner-setup.ts`: it falls through the landing dispatch by
+ *  NOTHING (`runner-setup/`: it falls through the landing dispatch by
  *  design). `doneSteps` prefers the state file on the default branch,
  *  and implement's own copy of it stays on the branch until archive
  *  merges it — so that list cannot name implement in exactly the state
