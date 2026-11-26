@@ -5,8 +5,6 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync, rmSync, writeFileSync } from "node:fs";
-import { forgetChecks } from "../../../src/serve/tool-check.ts";
-import { lastModels } from "../../../src/serve/tool-models";
 import type { ToolModels } from "../../../src/render";
 import { OPEN_81, setupQueueRoutesHarness } from "../fixtures.ts";
 import { AT, CLAUDE_READING, defaultsOf, modelsProbe, offeredChoices, ownFiles, openModelsTab, stubReads } from "./fixtures.ts";
@@ -17,7 +15,6 @@ const ownDirs: string[] = [];
 
 afterEach(() => {
   harness.cleanup();
-  forgetChecks();
   while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
@@ -37,17 +34,15 @@ const pageText = async (url: string): Promise<string> => (await fetch(url)).text
 
 describe("opening a provider's Models tab reads its tool's models", () => {
   test("the reading is kept under the provider's name, read with the tool's configured values (AC-11)", async () => {
-    forgetChecks();
     const toolProbe = modelsProbe({ claude: CLAUDE_READING });
-    const { base } = start({ queueDefaults: defaultsOf(CHOICES, { default: "Opus" }), toolProbe });
+    const { base, server } = start({ queueDefaults: defaultsOf(CHOICES, { default: "Opus" }), toolProbe });
     const res = await openModelsTab(base, "Claude");
     expect(res.status).toBe(200);
-    expect(lastModels().claude).toEqual({ ...CLAUDE_READING, provider: "Claude" });
+    expect(server.toolReadings().lastModels().claude).toEqual({ ...CLAUDE_READING, provider: "Claude" });
     expect(toolProbe.modelReads).toEqual([{ tool: "claude", configured: ["opus", "fable"], env: {} }]);
   });
 
   test("a Claude choice that never ran shows its version everywhere, also after a restart (AC-11)", async () => {
-    forgetChecks();
     const { modelIdsPath } = ownFiles(CONFIG, ownDirs);
     const toolProbe = modelsProbe({ claude: CLAUDE_READING });
     const first = start({ queueDefaults: defaultsOf(CHOICES, { default: "Opus" }), toolProbe, modelIdsPath });
@@ -62,14 +57,12 @@ describe("opening a provider's Models tab reads its tool's models", () => {
     };
     await shown(first.base);
 
-    forgetChecks();
     const afresh = start({ queueDefaults: defaultsOf(CHOICES, { default: "Opus" }), toolProbe: modelsProbe(), modelIdsPath });
-    expect(lastModels().claude).toBeUndefined();
+    expect(afresh.server.toolReadings().lastModels().claude).toBeUndefined();
     await shown(afresh.base);
   });
 
   test("a choice named opus[1m] shows the name Claude Code gives it, also after a restart", async () => {
-    forgetChecks();
     const { modelIdsPath } = ownFiles(CONFIG, ownDirs);
     const choices = { ...CHOICES, "opus[1m]": {} };
     const reading: ToolModels = {
@@ -82,13 +75,11 @@ describe("opening a provider's Models tab reads its tool's models", () => {
     expect((await offeredChoices(first.base))["opus[1m]"]).toBe("Opus 5.5 (1M context)");
     expect(await pageText(`${first.base}/settings?tab=providers&provider=Claude&aitab=models`)).toContain("Opus 5.5 (1M context)");
 
-    forgetChecks();
     const afresh = start({ queueDefaults: defaultsOf(choices, { default: "Opus" }), toolProbe: modelsProbe(), modelIdsPath });
     expect((await offeredChoices(afresh.base))["opus[1m]"]).toBe("Opus 5.5 (1M context)");
   });
 
   test("the newest of a run and a reading names the version", async () => {
-    forgetChecks();
     const { modelIdsPath } = ownFiles(CONFIG, ownDirs);
     // As a run left it.
     writeFileSync(modelIdsPath, JSON.stringify({ Opus: "claude-opus-5-4" }));
@@ -107,7 +98,6 @@ describe("opening a provider's Models tab reads its tool's models", () => {
   });
 
   test("opening each provider's Models tab leaves the config file and the choices as they were", async () => {
-    forgetChecks();
     const { file, modelIdsPath } = ownFiles(CONFIG, ownDirs);
     const readings = {
       claude: CLAUDE_READING,

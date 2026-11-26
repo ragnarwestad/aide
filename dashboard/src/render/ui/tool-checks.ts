@@ -1,17 +1,20 @@
-// The last answer each AI's Installation tab gave, and what it found wanting -
-// process-lifetime state read by the Settings page and by the header
-// notice directly, on `pending-restart.ts`'s precedent, rather than
-// threaded through `pageShell()`'s call sites. `serve/tool-check.ts` is
-// the one writer.
+// The last answer each AI's Installation tab gave, what it found wanting,
+// and the last reading of each AI's models - one store per dashboard
+// server (`createToolReadings`), so two servers in one process never read
+// or satisfy each other's checks. The server's wiring hands its store to
+// every writer; the header, drawn deep in `shellRest()` with only the
+// language in hand, reads the store of the request it is drawn for
+// (`withToolReadings`, set where the server answers each request).
 //
 // It lives HERE rather than beside the code that obtains a check because
 // `src/render` may not import `src/serve` (the layering guard in
-// `test/guards`), and both readers are in render.
+// `test/guards`), and the header reads it.
 //
 // Deliberately not persisted: a check is a measurement of this machine
 // at one moment, and a restart is exactly the kind of event that can
 // invalidate it.
 
+import { AsyncLocalStorage } from "node:async_hooks";
 import {
   OTHER_ACCOUNT_PROBLEM, OTHER_ACCOUNT_REMOVAL, TOOL_TAB_LABELS, type CheckableTool, type ToolCheck,
 } from "../pages/settings-page/tools.ts";
@@ -21,83 +24,93 @@ import type { BoardMessage } from "../../messages/types.ts";
 import { providerLoginCommand } from "../../queue/providers/login-command.ts";
 import { UNANSWERED_MINUTES, unansweredLongEnough } from "./faults/unanswered.ts";
 
-const LAST: Map<CheckableTool, ToolCheck> = new Map();
-
-/** Since when (ms) each tool's checks have not finished, for as long as
- *  none has: a check the machine was too busy to finish is no answer. */
-const UNANSWERED: Map<CheckableTool, number> = new Map();
-
-/** The last reading of each tool's models, kept apart for the same
- *  reason as the usage: only a provider's Models tab reads them. */
-const MODELS: Map<CheckableTool, ToolModels> = new Map();
-
-/** Which tools a run can use — the ones a model is configured for. Read
- *  live, since the configuration can change while the board runs. Unset,
- *  every tool counts. */
-let configured: (() => CheckableTool[]) | undefined;
-
-export function setConfiguredTools(source: () => CheckableTool[]): void {
-  configured = source;
+export interface ToolReadings {
+  /** Which tools a run can use — the ones a model is configured for. Read
+   *  live, since the configuration can change while the board runs. Unset,
+   *  every tool counts. */
+  setConfiguredTools(source: () => CheckableTool[]): void;
+  /** The model choices as they are now, read live each time the notice is
+   *  drawn: a Remove on the Models tab changes them with no new reading. */
+  setModelChoices(source: () => Record<string, ModelChoice> | undefined): void;
+  /** A finished check replaces the last answer. One that did not finish
+   *  keeps it, and starts the time the header counts before it says so. */
+  recordCheck(check: ToolCheck): void;
+  lastChecks(): Partial<Record<CheckableTool, ToolCheck>>;
+  recordModels(models: ToolModels): void;
+  lastModels(): Partial<Record<CheckableTool, ToolModels>>;
+  /** Which tools this server has found something wrong with, as the header
+   *  notice needs it: one message per thing wrong, each with its own fix. A
+   *  question nobody could ASK is not a fault - the page says so, and a
+   *  banner that fired on it would be on permanently. Nor is a check that
+   *  did not finish, until it has gone unanswered for `UNANSWERED_FOR_MS`. */
+  toolsWithFaults(now?: number): { tool: CheckableTool; faults: BoardMessage[] }[];
+  /** Each AI whose configured models its last Models reading no longer
+   *  offers. A reading that failed, an AI the board cannot ask, and an AI
+   *  with no reading since the board started name nothing. A Claude name
+   *  Claude Code answered for (`opus[1m]`, `opusplan`) is a model it knows. */
+  toolsMissingModels(): { tool: CheckableTool; models: string[] }[];
 }
 
-/** The model choices as they are now, read live each time the notice is
- *  drawn: a Remove on the Models tab changes them with no new reading. */
-let choices: (() => Record<string, ModelChoice> | undefined) | undefined;
-
-export function setModelChoices(source: () => Record<string, ModelChoice> | undefined): void {
-  choices = source;
+/** One server's readings, empty until its checks and tabs record some. */
+export function createToolReadings(): ToolReadings {
+  const last: Map<CheckableTool, ToolCheck> = new Map();
+  /** Since when (ms) each tool's checks have not finished, for as long as
+   *  none has: a check the machine was too busy to finish is no answer. */
+  const unanswered: Map<CheckableTool, number> = new Map();
+  /** The last reading of each tool's models, kept apart for the same
+   *  reason as the usage: only a provider's Models tab reads them. */
+  const models: Map<CheckableTool, ToolModels> = new Map();
+  let configured: (() => CheckableTool[]) | undefined;
+  let choices: (() => Record<string, ModelChoice> | undefined) | undefined;
+  return {
+    setConfiguredTools: (source) => { configured = source; },
+    setModelChoices: (source) => { choices = source; },
+    recordCheck(check) {
+      if (check.unfinished) {
+        if (!unanswered.has(check.tool)) unanswered.set(check.tool, Date.parse(check.at) || Date.now());
+        return;
+      }
+      unanswered.delete(check.tool);
+      last.set(check.tool, check);
+    },
+    lastChecks: () => Object.fromEntries(last) as Partial<Record<CheckableTool, ToolCheck>>,
+    recordModels: (reading) => { models.set(reading.tool, reading); },
+    lastModels: () => Object.fromEntries(models) as Partial<Record<CheckableTool, ToolModels>>,
+    toolsWithFaults: (now = Date.now()) => faultsOf(last, unanswered, configured?.(), now),
+    toolsMissingModels: () => missingModels(models.values(), choices?.()),
+  };
 }
 
-/** A finished check replaces the last answer. One that did not finish
- *  keeps it, and starts the time the header counts before it says so. */
-export function recordCheck(check: ToolCheck): void {
-  if (check.unfinished) {
-    if (!UNANSWERED.has(check.tool)) UNANSWERED.set(check.tool, Date.parse(check.at) || Date.now());
-    return;
-  }
-  UNANSWERED.delete(check.tool);
-  LAST.set(check.tool, check);
+const SCOPE = new AsyncLocalStorage<ToolReadings>();
+
+/** Runs `run` with `readings` as the store the header reads. */
+export function withToolReadings<T>(readings: ToolReadings, run: () => T): T {
+  return SCOPE.run(readings, run);
 }
 
-export function lastChecks(): Partial<Record<CheckableTool, ToolCheck>> {
-  return Object.fromEntries(LAST) as Partial<Record<CheckableTool, ToolCheck>>;
+/** The readings of the server answering the current request; undefined
+ *  outside one, where the header draws no tool notice. */
+export function currentToolReadings(): ToolReadings | undefined {
+  return SCOPE.getStore();
 }
 
-export function recordModels(models: ToolModels): void {
-  MODELS.set(models.tool, models);
-}
-
-export function lastModels(): Partial<Record<CheckableTool, ToolModels>> {
-  return Object.fromEntries(MODELS) as Partial<Record<CheckableTool, ToolModels>>;
-}
-
-/** Test seam: a suite that records a check must not leak it into the
- *  next file's expectations. */
-export function forgetChecks(): void {
-  LAST.clear();
-  UNANSWERED.clear();
-  MODELS.clear();
-  configured = undefined;
-  choices = undefined;
-}
-
-/** Which tools this server has found something wrong with, as the header
- *  notice needs it: one message per thing wrong, each with its own fix. A
- *  question nobody could ASK is not a fault - the page says so, and a
- *  banner that fired on it would be on permanently. Nor is a check that
- *  did not finish, until it has gone unanswered for `UNANSWERED_FOR_MS`. */
-export function toolsWithFaults(now: number = Date.now()): { tool: CheckableTool; faults: BoardMessage[] }[] {
+function faultsOf(
+  last: Map<CheckableTool, ToolCheck>,
+  unanswered: Map<CheckableTool, number>,
+  configured: CheckableTool[] | undefined,
+  now: number,
+): { tool: CheckableTool; faults: BoardMessage[] }[] {
   // A tool no model is configured for is never run, so its login is not
   // what stands between a reader and a working run.
-  const usable = configured ? new Set(configured()) : undefined;
-  const tools = new Set<CheckableTool>([...LAST.keys(), ...UNANSWERED.keys()]);
+  const usable = configured ? new Set(configured) : undefined;
+  const tools = new Set<CheckableTool>([...last.keys(), ...unanswered.keys()]);
   const out: { tool: CheckableTool; faults: BoardMessage[] }[] = [];
   for (const tool of tools) {
     if (usable && !usable.has(tool)) continue;
-    const since = UNANSWERED.get(tool);
+    const since = unanswered.get(tool);
     const faults = since !== undefined && unansweredLongEnough(since, now)
       ? [{ key: "tools.unanswered", values: { tool: TOOL_TAB_LABELS[tool], minutes: UNANSWERED_MINUTES } } as BoardMessage]
-      : checkFaults(LAST.get(tool));
+      : checkFaults(last.get(tool));
     if (faults.length > 0) out.push({ tool, faults });
   }
   return out;
@@ -124,14 +137,12 @@ function checkFaults(check: ToolCheck | undefined): BoardMessage[] {
   });
 }
 
-/** Each AI whose configured models its last Models reading no longer
- *  offers. A reading that failed, an AI the board cannot ask, and an AI
- *  with no reading since the board started name nothing. A Claude name
- *  Claude Code answered for (`opus[1m]`, `opusplan`) is a model it knows. */
-export function toolsMissingModels(): { tool: CheckableTool; models: string[] }[] {
-  const live = choices?.();
+function missingModels(
+  readings: Iterable<ToolModels>,
+  live: Record<string, ModelChoice> | undefined,
+): { tool: CheckableTool; models: string[] }[] {
   const out: { tool: CheckableTool; models: string[] }[] = [];
-  for (const reading of MODELS.values()) {
+  for (const reading of readings) {
     if (reading.error) continue;
     const named = reading.named ?? [];
     const gone = modelLists(reading.tool, live, reading).gone

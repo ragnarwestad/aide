@@ -3,7 +3,8 @@
 // handle it returns, which stops them again.
 
 import { watchScheduleFaults } from "../../render/ui/faults/schedule-faults.ts";
-import { checkAllTools, setConfiguredTools, setModelChoices, type CheckableTool } from "../tool-check.ts";
+import { checkAllTools, type CheckableTool, type ToolReadings } from "../tool-check.ts";
+import { withToolReadings } from "../../render/ui/tool-checks.ts";
 import { compressResponse, checkRequest, createHostAllowlist } from "../serve-helpers";
 import type { ServerOptions } from "../options.ts";
 import { handleCore, type CoreRoutesContext } from "../core-routes.ts";
@@ -50,11 +51,14 @@ export function startHttpServer(opts: ServerOptions, routesCtx: RoutesContext, c
       const url = new URL(req.url);
       const path = url.pathname;
 
-      const response = isQueuePath(path)
-        ? await handleRoutes(routesCtx, req, url, path)
-        : await handleCore(coreCtx, req, url, path);
-
-      return compressResponse(req, response);
+      // Every page drawn while answering reads this server's tool
+      // readings in its header, never another server's in the process.
+      return withToolReadings(routesCtx.toolReadings, async () => {
+        const response = isQueuePath(path)
+          ? await handleRoutes(routesCtx, req, url, path)
+          : await handleCore(coreCtx, req, url, path);
+        return compressResponse(req, response);
+      });
     },
   });
 }
@@ -107,16 +111,16 @@ export function startToolChecks(w: Wiring): void {
   // Only when asked. `cli.ts` is the one caller that asks; a test that
   // starts a server says nothing and gets nothing, which is what stops a
   // suite from spawning four CLIs per fixture.
-  setModelChoices(() => queue.defaults.modelChoices);
+  w.toolReadings.setModelChoices(() => queue.defaults.modelChoices);
+  // The tools any model is configured for — read live, since Settings can
+  // change them. Registered whether or not this server checks at start,
+  // so its header weighs only its own tools.
+  w.toolReadings.setConfiguredTools((): CheckableTool[] => [
+    ...new Set(Object.values(queue.defaults.modelChoices ?? {}).map((choice) => (choice.tool ?? "claude") as CheckableTool)),
+  ]);
   watchScheduleFaults({ projects: () => w.allowed, entries: (project) => w.scheduleStore.list(project), defaults: () => queue.defaults });
   if (!opts.checkToolsOnStart) return;
-  // The tools any model is configured for — read live, since Settings can
-  // change them.
-  const configuredTools = (): CheckableTool[] => [
-    ...new Set(Object.values(queue.defaults.modelChoices ?? {}).map((choice) => (choice.tool ?? "claude") as CheckableTool)),
-  ];
-  setConfiguredTools(configuredTools);
-  void checkAllTools({ providers: () => queue.defaults.providers, scriptDir: runnerScriptDir(opts) }).catch(() => {
+  void checkAllTools(w.toolReadings, { providers: () => queue.defaults.providers, scriptDir: runnerScriptDir(opts) }).catch(() => {
     // Same best effort: a check that could not run leaves the tab
     // reading "not checked yet", which is true.
   });
@@ -147,6 +151,7 @@ export function serverHandle(parts: {
   queue: Wiring["queue"];
   timer: ReturnType<typeof setInterval> | null;
   keepAlive: ReturnType<typeof setInterval>;
+  toolReadings: ToolReadings;
 }) {
   const { state, server, watch, schedules, timer } = parts;
   return {
@@ -165,6 +170,9 @@ export function serverHandle(parts: {
      *  board is already tracked, without spawning a real round to get
      *  there) that nothing else exposes. */
     testServersStore: () => parts.testServerStore,
+    /** This server's tool checks and model readings, for a test to ask
+     *  what it recorded. */
+    toolReadings: () => parts.toolReadings,
     /** The queue itself, for the same reason: a fixture that needs a merge
      *  admitted at its repository, which only a running landing does. */
     queue: () => parts.queue,

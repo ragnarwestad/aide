@@ -89,6 +89,7 @@ function passedOn(inputs: QueueContextInputs): QueueContextInputs {
     pdfToolAvailable: inputs.pdfToolAvailable,
     testServers: inputs.testServers,
     push: inputs.push,
+    toolReadings: inputs.toolReadings,
   };
 }
 

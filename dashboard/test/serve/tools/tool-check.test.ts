@@ -5,15 +5,21 @@
 // turned "I could not ask" into "no" would have a reader reinstalling
 // something that was never broken.
 
-import { describe, expect, test } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
-  checkAllTools, checkTool, forgetChecks, lastChecks, recordCheck, setConfiguredTools, stripAnsi, toolRechecker, toolsWithFaults,
+  checkAllTools, checkTool, createToolReadings, stripAnsi, toolRechecker,
 } from "../../../src/serve/tool-check.ts";
 import { OTHER_ACCOUNT_REMOVAL } from "../../../src/render/pages/settings-page/tools.ts";
 import { UNANSWERED_FOR_MS } from "../../../src/render/ui/faults/unanswered.ts";
+
+// A store of the test's own, as each server has its own.
+let readings = createToolReadings();
+beforeEach(() => {
+  readings = createToolReadings();
+});
 
 type RunResult = { code: number; stdout: string; stderr: string; timedOut: boolean };
 
@@ -169,15 +175,13 @@ describe("whether a provider is logged in", () => {
   });
 
   test("a provider that is not logged in is a fault that names it, and says its own command (AC-7, AC-4)", async () => {
-    forgetChecks();
     const run = fakeRun({ ...preflight, "auth status": { stdout: statusIn(false) } });
     const check = await checkTool("claude", opts(run, { providers: () => ({ "Claude-2": PROVIDERS["Claude-2"] }), home: "/home/x" }));
     expect(check.extra[0]!.answer).toEqual({ key: "login.out", values: { command: "CLAUDE_CONFIG_DIR=~/.claude-2 claude auth login" } });
-    recordCheck(check);
-    expect(toolsWithFaults()).toEqual([{ tool: "claude", faults: [
+    readings.recordCheck(check);
+    expect(readings.toolsWithFaults()).toEqual([{ tool: "claude", faults: [
       { key: "tools.notLoggedIn", values: { who: "Claude-2", command: "CLAUDE_CONFIG_DIR=~/.claude-2 claude auth login" } },
     ] }]);
-    forgetChecks();
   });
 
   test("a tool with no provider is asked about its own login, with no variable, as before (AC-7)", async () => {
@@ -190,12 +194,10 @@ describe("whether a provider is logged in", () => {
   });
 
   test("the check before a waiting job asks every provider of that tool (AC-7)", async () => {
-    forgetChecks();
     const run = fakeRun({ ...preflight, "auth status": { stdout: statusIn(true) } });
-    const recheck = toolRechecker({ ...withProviders(run) });
+    const recheck = toolRechecker(readings, { ...withProviders(run) });
     await recheck(["claude"]);
     expect(run.calls.filter((c) => c.join(" ").includes("auth status"))).toHaveLength(2);
-    forgetChecks();
   });
 
   test("a login end date is kept as an ISO time, from a time string or a number (AC-3)", async () => {
@@ -413,34 +415,36 @@ describe("checkTool for OpenCode", () => {
 
 describe("the check at start", () => {
   test("it checks Claude Code, Codex and OpenCode only, never Copilot (AC-25)", async () => {
-    forgetChecks();
     const run = fakeRun({ "aide-preflight": { stdout: "cli\tfound\n" } });
-    await checkAllTools(opts(run));
+    await checkAllTools(readings, opts(run));
     expect(run.calls.filter((argv) => argv[0] === "aide-preflight").map((argv) => argv[2])).toEqual(["claude", "codex", "opencode"]);
-    expect(Object.keys(lastChecks()).sort()).toEqual(["claude", "codex", "opencode"]);
-    forgetChecks();
+    expect(Object.keys(readings.lastChecks()).sort()).toEqual(["claude", "codex", "opencode"]);
+  });
+
+  test("it records into the store it is given and no other (AC-1)", async () => {
+    const other = createToolReadings();
+    await checkAllTools(readings, opts(fakeRun({ "aide-preflight": { stdout: "cli\tfound\n" } })));
+    expect(Object.keys(readings.lastChecks()).sort()).toEqual(["claude", "codex", "opencode"]);
+    expect(other.lastChecks()).toEqual({});
   });
 });
 
 describe("what the page reads back", () => {
   test("a recorded check is what the next page load shows, per tool", () => {
-    forgetChecks();
-    expect(lastChecks()).toEqual({});
-    recordCheck({ tool: "codex", at: "2026-09-16T08:00:00.000Z", found: true, extra: [] });
-    recordCheck({ tool: "opencode", at: "2026-09-16T08:01:00.000Z", found: true, extra: [] });
-    expect(Object.keys(lastChecks()).sort()).toEqual(["codex", "opencode"]);
+    expect(readings.lastChecks()).toEqual({});
+    readings.recordCheck({ tool: "codex", at: "2026-09-16T08:00:00.000Z", found: true, extra: [] });
+    readings.recordCheck({ tool: "opencode", at: "2026-09-16T08:01:00.000Z", found: true, extra: [] });
+    expect(Object.keys(readings.lastChecks()).sort()).toEqual(["codex", "opencode"]);
     // A second check for the same tool replaces the first rather than
     // piling up: the page shows the latest answer, not a history.
-    recordCheck({ tool: "codex", at: "2026-09-16T09:00:00.000Z", found: false, extra: [] });
-    expect(lastChecks().codex?.found).toBe(false);
-    forgetChecks();
+    readings.recordCheck({ tool: "codex", at: "2026-09-16T09:00:00.000Z", found: false, extra: [] });
+    expect(readings.lastChecks().codex?.found).toBe(false);
   });
 });
 
 describe("what the header notice is told", () => {
   test("a question that came back no is a fault; one nobody could ask is not", () => {
-    forgetChecks();
-    recordCheck({
+    readings.recordCheck({
       tool: "codex",
       at: "2026-09-16T08:00:00.000Z",
       found: true,
@@ -448,52 +452,45 @@ describe("what the header notice is told", () => {
       // A banner on it would be on permanently.
       extra: [{ question: "Is it logged in?", ok: null, detail: "no command" }],
     });
-    expect(toolsWithFaults()).toEqual([]);
+    expect(readings.toolsWithFaults()).toEqual([]);
 
-    recordCheck({
+    readings.recordCheck({
       tool: "opencode",
       at: "2026-09-16T08:00:00.000Z",
       found: true,
       extra: [{ question: "Is it logged in?", ok: false, detail: "none" }],
     });
-    expect(toolsWithFaults()).toEqual([{ tool: "opencode", faults: [
+    expect(readings.toolsWithFaults()).toEqual([{ tool: "opencode", faults: [
       { key: "tools.notLoggedIn", values: { who: "OpenCode", command: "opencode auth login" } },
     ] }]);
-    forgetChecks();
   });
 
   test("a place missing and files behind are no fault in the header (AC-10)", () => {
-    forgetChecks();
-    recordCheck({
+    readings.recordCheck({
       tool: "codex", at: "2026-09-16T08:00:00.000Z", found: true, missing: ["hooks"], behind: true,
       extra: [{ question: "Is it logged in?", ok: true, detail: "" }],
     });
-    expect(toolsWithFaults()).toEqual([]);
-    forgetChecks();
+    expect(readings.toolsWithFaults()).toEqual([]);
   });
 
   test("a check that did not finish keeps the last answer and says nothing until it has gone unanswered long enough", () => {
-    forgetChecks();
     const at = Date.parse("2026-11-26T08:00:00.000Z");
-    recordCheck({ tool: "claude", at: new Date(at - 60_000).toISOString(), found: true, extra: [] });
+    readings.recordCheck({ tool: "claude", at: new Date(at - 60_000).toISOString(), found: true, extra: [] });
     const unfinished = { tool: "claude" as const, found: false, extra: [], error: "The check did not finish in time.", unfinished: true as const };
-    recordCheck({ ...unfinished, at: new Date(at).toISOString() });
-    recordCheck({ ...unfinished, at: new Date(at + 60_000).toISOString() });
-    expect(lastChecks().claude?.found).toBe(true);
-    expect(toolsWithFaults(at + UNANSWERED_FOR_MS - 1)).toEqual([]);
-    expect(toolsWithFaults(at + UNANSWERED_FOR_MS)).toEqual([
+    readings.recordCheck({ ...unfinished, at: new Date(at).toISOString() });
+    readings.recordCheck({ ...unfinished, at: new Date(at + 60_000).toISOString() });
+    expect(readings.lastChecks().claude?.found).toBe(true);
+    expect(readings.toolsWithFaults(at + UNANSWERED_FOR_MS - 1)).toEqual([]);
+    expect(readings.toolsWithFaults(at + UNANSWERED_FOR_MS)).toEqual([
       { tool: "claude", faults: [{ key: "tools.unanswered", values: { tool: "Claude Code", minutes: 15 } }] },
     ]);
-    recordCheck({ tool: "claude", at: new Date(at + UNANSWERED_FOR_MS).toISOString(), found: true, extra: [] });
-    expect(toolsWithFaults(at + UNANSWERED_FOR_MS)).toEqual([]);
-    forgetChecks();
+    readings.recordCheck({ tool: "claude", at: new Date(at + UNANSWERED_FOR_MS).toISOString(), found: true, extra: [] });
+    expect(readings.toolsWithFaults(at + UNANSWERED_FOR_MS)).toEqual([]);
   });
 
   test("a CLI that is not installed is a fault on its own", () => {
-    forgetChecks();
-    recordCheck({ tool: "codex", at: "2026-09-16T08:00:00.000Z", found: false, extra: [] });
-    expect(toolsWithFaults()).toEqual([{ tool: "codex", faults: [{ key: "tools.notInstalled", values: { tool: "Codex" } }] }]);
-    forgetChecks();
+    readings.recordCheck({ tool: "codex", at: "2026-09-16T08:00:00.000Z", found: false, extra: [] });
+    expect(readings.toolsWithFaults()).toEqual([{ tool: "codex", faults: [{ key: "tools.notInstalled", values: { tool: "Codex" } }] }]);
   });
 });
 
@@ -502,7 +499,7 @@ describe("what the header notice is told", () => {
 // is wrong rather than as the question that found it.
 describe("what the header notice says, and about which tools", () => {
   const faulty = (tool: "claude" | "codex" | "opencode", problem?: string) =>
-    recordCheck({
+    readings.recordCheck({
       tool,
       at: "2026-09-17T08:00:00.000Z",
       found: true,
@@ -510,23 +507,18 @@ describe("what the header notice says, and about which tools", () => {
     });
 
   test("only a tool a model is configured for is named", () => {
-    forgetChecks();
-    setConfiguredTools(() => ["claude"]);
+    readings.setConfiguredTools(() => ["claude"]);
     faulty("claude", "the login in use is another account's");
     faulty("opencode");
-    expect(toolsWithFaults().map(({ tool, faults }) => [tool, faults.map((f) => f.key)])).toEqual([["claude", ["tools.otherAccount"]]]);
-    forgetChecks();
+    expect(readings.toolsWithFaults().map(({ tool, faults }) => [tool, faults.map((f) => f.key)])).toEqual([["claude", ["tools.otherAccount"]]]);
   });
 
   test("with no configuration known, every faulty tool is named as before", () => {
-    forgetChecks();
     faulty("opencode");
-    expect(toolsWithFaults().map(({ tool, faults }) => [tool, faults.map((f) => f.key)])).toEqual([["opencode", ["tools.notLoggedIn"]]]);
-    forgetChecks();
+    expect(readings.toolsWithFaults().map(({ tool, faults }) => [tool, faults.map((f) => f.key)])).toEqual([["opencode", ["tools.notLoggedIn"]]]);
   });
 
   test("Claude Code's two logins are said as what is wrong", async () => {
-    forgetChecks();
     const run = fakeRun({
       "aide-preflight": { stdout: "cli\tfound\n" },
       "auth status": {
@@ -536,11 +528,10 @@ describe("what the header notice says, and about which tools", () => {
         }),
       },
     });
-    recordCheck(await checkTool("claude", opts(run)));
-    expect(toolsWithFaults()).toEqual([{ tool: "claude", faults: [
+    readings.recordCheck(await checkTool("claude", opts(run)));
+    expect(readings.toolsWithFaults()).toEqual([{ tool: "claude", faults: [
       { key: "tools.otherAccount", values: { who: "Claude Code", command: OTHER_ACCOUNT_REMOVAL } },
     ] }]);
-    forgetChecks();
   });
 });
 
@@ -551,7 +542,7 @@ describe("what the header notice says, and about which tools", () => {
 describe("the check before a job starts", () => {
   test("the round's scripted stand-in is not sent to installation checks", async () => {
     const asked: string[] = [];
-    const recheck = toolRechecker({ check: async (tool) => {
+    const recheck = toolRechecker(readings, { check: async (tool) => {
       asked.push(tool);
       return { tool, at: new Date().toISOString(), found: true, extra: [] };
     } });
@@ -559,11 +550,10 @@ describe("the check before a job starts", () => {
     expect(asked).toEqual([]);
   });
 
-  test("asks for each tool once, and not again within the minute", async () => {
-    forgetChecks();
+  test("asks for each tool once, and not again within the minute (AC-3)", async () => {
     let clock = Date.parse("2026-09-17T08:00:00.000Z");
     const asked: string[] = [];
-    const recheck = toolRechecker({
+    const recheck = toolRechecker(readings, {
       now: () => new Date(clock),
       check: async (tool) => {
         asked.push(tool);
@@ -579,7 +569,23 @@ describe("the check before a job starts", () => {
     await recheck(["claude"]);
     expect(asked).toEqual(expect.arrayContaining(["claude", "codex"]));
     expect(asked.filter((t) => t === "claude")).toHaveLength(2);
-    forgetChecks();
+  });
+  test("another store's fresh check neither stands in for nor suppresses this store's (AC-2)", async () => {
+    const clock = Date.parse("2026-09-17T08:00:00.000Z");
+    const other = createToolReadings();
+    other.recordCheck({ tool: "claude", at: new Date(clock).toISOString(), found: true, extra: [] });
+    const asked: string[] = [];
+    const recheck = toolRechecker(readings, {
+      now: () => new Date(clock + 1_000),
+      check: async (tool) => {
+        asked.push(tool);
+        return { tool, at: new Date(clock + 1_000).toISOString(), found: false, extra: [] };
+      },
+    });
+    await recheck(["claude"]);
+    expect(asked).toEqual(["claude"]);
+    expect(readings.lastChecks().claude?.found).toBe(false);
+    expect(other.lastChecks().claude?.found).toBe(true);
   });
 });
 

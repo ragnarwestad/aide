@@ -13,14 +13,12 @@ import type { ToolUsage } from "../../../src/render";
 import { readProviderUsage } from "../../../src/serve/providers/status.ts";
 import { keptUsage, readAllUsage, readUsage, usageReader } from "../../../src/serve/providers/usage-kept.ts";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
-import { forgetChecks } from "../../../src/serve/tool-check.ts";
 import { defaultsOf, modelsProbe, ownFiles, post } from "../settings-models/fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness("aide-provider-usage-");
 const ownDirs: string[] = [];
 afterEach(() => {
   harness.cleanup();
-  forgetChecks();
   while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 

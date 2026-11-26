@@ -21,12 +21,12 @@ import { expandDir, providerLoginCommand, providerLoginEnv, type Provider } from
 import { TOOLS, type ProviderTool } from "../queue/providers/tools.ts";
 import { TOOL_READERS } from "./tool-readers/index.ts";
 import { CHECK_TIMEOUT_MS, stripAnsi } from "./tool-readers/run.ts";
-import { forgetChecks, lastChecks, recordCheck, setConfiguredTools, setModelChoices, toolsWithFaults } from "../render/ui/tool-checks.ts";
+import { createToolReadings, type ToolReadings } from "../render/ui/tool-checks.ts";
 
-// The store lives in the render layer, which is where both readers are
+// The store lives in the render layer, which is where the header reads it
 // and which may not import this file. Re-exported so a caller has one
 // import site for "check a tool and remember the answer".
-export { forgetChecks, lastChecks, recordCheck, setConfiguredTools, setModelChoices, toolsWithFaults };
+export { createToolReadings, type ToolReadings };
 import { CHECKABLE_TOOLS } from "../render";
 import { OTHER_ACCOUNT_PROBLEM, OTHER_ACCOUNT_REMOVAL } from "../render/pages/settings-page/tools.ts";
 import type { CheckableTool, ExtraCheck, ToolCheck } from "../render";
@@ -312,10 +312,10 @@ export function withProviderAnswer(last: ToolCheck | undefined, check: ToolCheck
  *  on that. Failures are swallowed on purpose — a check that cannot run
  *  is a check with no answer, not a server that should refuse to
  *  serve. */
-export async function checkAllTools(opts: CheckOptions = {}): Promise<void> {
+export async function checkAllTools(readings: ToolReadings, opts: CheckOptions = {}): Promise<void> {
   for (const tool of CHECKABLE_TOOLS) {
     try {
-      recordCheck(await checkTool(tool, opts));
+      readings.recordCheck(await checkTool(tool, opts));
     } catch {
       // Nothing to record and nothing to say: the tab still reads "not
       // checked yet", which is true.
@@ -333,6 +333,7 @@ export const RECHECK_MS = 60_000;
  *  login changed under a running board is how seven runs were spent on
  *  the wrong account. */
 export function toolRechecker(
+  readings: ToolReadings,
   opts: CheckOptions & { check?: (tool: CheckableTool) => Promise<ToolCheck> } = {},
 ): (tools: CheckableTool[]) => Promise<void> {
   const inFlight = new Set<CheckableTool>();
@@ -341,12 +342,12 @@ export function toolRechecker(
   return async (tools) => {
     await Promise.all([...new Set(tools)].map(async (tool) => {
       if (!CHECKABLE_TOOLS.includes(tool)) return;
-      const last = lastChecks()[tool];
+      const last = readings.lastChecks()[tool];
       if (inFlight.has(tool)) return;
       if (last && now().getTime() - Date.parse(last.at) < RECHECK_MS) return;
       inFlight.add(tool);
       try {
-        recordCheck(await check(tool));
+        readings.recordCheck(await check(tool));
       } catch {
         // No answer is no new answer: the last one stands.
       } finally {

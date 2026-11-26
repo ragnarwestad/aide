@@ -5,14 +5,10 @@
 // that runs no model.
 
 import { runScript, scriptFor } from "../process";
-import { lastModels, recordModels } from "../../render/ui/tool-checks.ts";
 import { TOOLS } from "../../queue/providers/tools.ts";
 import { TOOL_READERS } from "../tool-readers/index.ts";
 import type { CheckableTool, ToolModels } from "../../render";
 
-// The store lives in the render layer beside the checks; re-exported so
-// a caller has one import site for "read the models and remember them".
-export { lastModels, recordModels };
 export { askClaudeModel, CLAUDE_FAMILIES, isClaudeFamily } from "./claude.ts";
 export { parseCodexModels } from "./codex.ts";
 

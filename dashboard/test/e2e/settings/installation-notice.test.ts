@@ -3,7 +3,6 @@ import { afterAll, beforeAll, expect, test } from "bun:test";
 import { chromium, type Browser, type Page } from "playwright";
 import { browserDeadline, withBrowser } from "../../helpers/browser-deadline.ts";
 import { queueHarness } from "../../helpers/queue-server.ts";
-import { forgetChecks } from "../../../src/render/ui/tool-checks.ts";
 
 browserDeadline();
 
@@ -40,7 +39,6 @@ beforeAll(async () => {
 afterAll(async () => {
   await browser.close();
   harness.cleanup();
-  forgetChecks();
 });
 
 async function open(part: string): Promise<void> {

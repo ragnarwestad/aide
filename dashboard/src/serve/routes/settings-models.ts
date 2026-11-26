@@ -19,7 +19,7 @@ import { stepLabel } from "../../format/step-label.ts";
 import {
   choiceModel, choiceOf, MODELS_ADD_ROUTE, MODELS_REMOVE_ROUTE, sameModel, TOOL_TAB_LABELS, type ToolModels,
 } from "../../render";
-import { isClaudeFamily, lastModels } from "../tool-models";
+import { isClaudeFamily } from "../tool-models";
 import { json, readObjectBody } from "../serve-helpers";
 import type { RoutesContext } from "./";
 import { saveQueueSettings } from "./settings-save/index.ts";
@@ -70,7 +70,7 @@ async function addModel(ctx: RoutesContext, asked: Record<string, unknown>): Pro
   );
   if (already) return refuse(`${model} is already a model choice for ${ai}, as ${already[0]} — nothing to add`);
 
-  const reading = lastModels()[tool];
+  const reading = ctx.toolReadings.lastModels()[tool];
   const read = reading && !reading.error
     ? reading.offered.find((m) => sameModel(tool, m.model, model))
     : undefined;

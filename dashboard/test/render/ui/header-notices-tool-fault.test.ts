@@ -6,21 +6,20 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
 import { headerNotices } from "../../../src/render/ui/header-notices.ts";
-import {
-  forgetChecks, recordCheck, recordModels, setConfiguredTools, setModelChoices, toolsMissingModels,
-} from "../../../src/render/ui/tool-checks.ts";
+import { createToolReadings, withToolReadings } from "../../../src/render/ui/tool-checks.ts";
 import type { ModelChoice } from "../../../src/queue/types.ts";
 import type { ToolModels } from "../../../src/render";
 
 const windows: Window[] = [];
 
-// Process-lifetime state: a check left behind here would reach the next
-// file's pages, and one left by an earlier file would reach this one's.
+// A store of each test's own, as each server has its own; the header
+// reads it as the store of the request it is drawn for.
+let readings = createToolReadings();
+const drawn = () => withToolReadings(readings, () => headerNotices("en"));
 beforeEach(() => {
-  forgetChecks();
+  readings = createToolReadings();
 });
 afterEach(async () => {
-  forgetChecks();
   while (windows.length) await windows.pop()!.happyDOM.close();
 });
 
@@ -33,24 +32,24 @@ function faultLines(html: string): Element[] {
 
 describe("the tool-fault line", () => {
   test("a provider that is not logged in gives the command that logs it in, not a page to go and look at", () => {
-    setConfiguredTools(() => ["claude"]);
-    recordCheck({
+    readings.setConfiguredTools(() => ["claude"]);
+    readings.recordCheck({
       tool: "claude", at: "2026-10-03T13:30:00.000Z", found: true,
       extra: [{
         question: "Is it logged in?", ok: false, detail: "", problem: "not logged in", provider: "Claude-2",
         answer: { key: "login.out", values: { command: "CLAUDE_CONFIG_DIR=~/.claude-2 claude auth login" } },
       }],
     });
-    const [line, ...rest] = faultLines(headerNotices("en"));
+    const [line, ...rest] = faultLines(drawn());
     expect(rest).toEqual([]);
     expect(line!.textContent).toContain("CLAUDE_CONFIG_DIR=~/.claude-2 claude auth login");
     expect(line!.querySelectorAll("a")).toHaveLength(0);
   });
 
   test("no tool with a fault draws no line", () => {
-    setConfiguredTools(() => ["claude"]);
-    recordCheck({ tool: "claude", at: "2026-10-03T13:30:00.000Z", found: true, extra: [] });
-    expect(faultLines(headerNotices("en"))).toEqual([]);
+    readings.setConfiguredTools(() => ["claude"]);
+    readings.recordCheck({ tool: "claude", at: "2026-10-03T13:30:00.000Z", found: true, extra: [] });
+    expect(faultLines(drawn())).toEqual([]);
   });
 });
 
@@ -58,7 +57,7 @@ describe("the models no longer offered", () => {
   const AT = "2026-10-03T13:30:00.000Z";
   const reading = (tool: ToolModels["tool"], offered: string[], more: Partial<ToolModels> = {}): ToolModels =>
     ({ tool, at: AT, offered: offered.map((model) => ({ model })), ...more });
-  const choices = (c: Record<string, ModelChoice>) => setModelChoices(() => c);
+  const choices = (c: Record<string, ModelChoice>) => readings.setModelChoices(() => c);
 
   test("a configured model the last reading does not offer is named for its AI alone (AC-4)", () => {
     choices({
@@ -66,23 +65,23 @@ describe("the models no longer offered", () => {
       gone: { tool: "opencode", model: "opencode/gone" },
       Opus: { model: "opus" },
     });
-    recordModels(reading("opencode", ["opencode/here"]));
-    expect(toolsMissingModels()).toEqual([{ tool: "opencode", models: ["gone (opencode/gone)"] }]);
+    readings.recordModels(reading("opencode", ["opencode/here"]));
+    expect(readings.toolsMissingModels()).toEqual([{ tool: "opencode", models: ["gone (opencode/gone)"] }]);
   });
 
   test("a Claude name Claude Code answered for is not missing, a model it neither offers nor names is (AC-4)", () => {
     choices({ "opus[1m]": {}, "claude-opus-4-8": {}, Opus: { model: "opus" } });
-    recordModels(reading("claude", ["opus"], { named: [{ model: "opus[1m]", name: "Opus 5.5 (1M context)" }] }));
-    expect(toolsMissingModels()).toEqual([{ tool: "claude", models: ["claude-opus-4-8"] }]);
+    readings.recordModels(reading("claude", ["opus"], { named: [{ model: "opus[1m]", name: "Opus 5.5 (1M context)" }] }));
+    expect(readings.toolsMissingModels()).toEqual([{ tool: "claude", models: ["claude-opus-4-8"] }]);
   });
 
   test("the notice follows the choices as they are now (AC-4)", () => {
     let live: Record<string, ModelChoice> = { gone: { tool: "opencode", model: "opencode/gone" } };
-    setModelChoices(() => live);
-    recordModels(reading("opencode", []));
-    expect(toolsMissingModels()).toHaveLength(1);
+    readings.setModelChoices(() => live);
+    readings.recordModels(reading("opencode", []));
+    expect(readings.toolsMissingModels()).toHaveLength(1);
     live = {};
-    expect(toolsMissingModels()).toEqual([]);
+    expect(readings.toolsMissingModels()).toEqual([]);
   });
 
   test("no reading and a reading that failed name nothing (AC-6)", () => {
@@ -91,21 +90,21 @@ describe("the models no longer offered", () => {
       x: { tool: "codex", model: "gpt-0" },
       o: { tool: "opencode", model: "opencode/gone" },
     });
-    expect(toolsMissingModels()).toEqual([]);
-    recordModels(reading("claude", [], { error: "claude -p timed out" }));
-    recordModels(reading("codex", [], { error: "app-server did not answer" }));
-    expect(toolsMissingModels()).toEqual([]);
+    expect(readings.toolsMissingModels()).toEqual([]);
+    readings.recordModels(reading("claude", [], { error: "claude -p timed out" }));
+    readings.recordModels(reading("codex", [], { error: "app-server did not answer" }));
+    expect(readings.toolsMissingModels()).toEqual([]);
   });
 
   test("each line links once, to the Providers tab (AC-7)", () => {
-    setConfiguredTools(() => ["opencode"]);
+    readings.setConfiguredTools(() => ["opencode"]);
     choices({ gone: { tool: "opencode", model: "opencode/gone" } });
-    recordModels(reading("opencode", []));
-    recordCheck({
+    readings.recordModels(reading("opencode", []));
+    readings.recordCheck({
       tool: "opencode", at: AT, found: true,
       extra: [{ question: "Is it logged in?", ok: false, detail: "", problem: "not logged in" }],
     });
-    const hrefs = faultLines(headerNotices("en")).map((line) =>
+    const hrefs = faultLines(drawn()).map((line) =>
       Array.from(line.querySelectorAll("a")).map((a) => a.getAttribute("href")));
     expect(hrefs).toEqual([
       [],
@@ -115,7 +114,7 @@ describe("the models no longer offered", () => {
 
   test("no line is drawn when nothing is missing", () => {
     choices({ here: { tool: "opencode", model: "opencode/here" } });
-    recordModels(reading("opencode", ["opencode/here"]));
-    expect(faultLines(headerNotices("en"))).toEqual([]);
+    readings.recordModels(reading("opencode", ["opencode/here"]));
+    expect(faultLines(drawn())).toEqual([]);
   });
 });

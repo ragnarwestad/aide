@@ -30,6 +30,7 @@ import { createProjectResolver } from "./setup/resolve-project.ts";
 import { setupSpecViews } from "./setup/spec-views.ts";
 import { createQueueRunner, resumeCutLandingsAtBoot, type RunnerSetupContext } from "./runner-setup/index.ts";
 import { setBoardInfo } from "../render/ui/board-info.ts";
+import { createToolReadings } from "./tool-check.ts";
 import { navEntries } from "../render";
 import {
   assertHeaderAuthOnLoopback, createQueueWithPush, pdfToolIsAvailable, readServingCommit,
@@ -86,7 +87,7 @@ export function createServer(opts: ServerOptions) {
   // Primed first, so the jobs the store already holds are not news.
   const timer = bootServices(w, { land, runner, runnerSetupCtx, schedules, testServersCtx });
 
-  return serverHandle({ state, server, watch, schedules, testServerStore, queue: w.queue, timer, keepAlive });
+  return serverHandle({ state, server, watch, schedules, testServerStore, queue: w.queue, timer, keepAlive, toolReadings: w.toolReadings });
 }
 
 /** Every service the stages share, built in dependency order. */
@@ -112,7 +113,8 @@ function createWiring(opts: ServerOptions) {
   const resolveProject: ProjectResolver = createProjectResolver(state, allowed, targets, opts.dashboardCheckoutRoot);
   const watch = setupWatch(opts, allowed, state);
   const { push, queue } = createQueueWithPush(opts, { allowed, resolveProject, watch, scheduleStore, targets });
-  const w: Wiring = { opts, state, store, allowed, scheduleStore, resolution, watch, queue, push };
+  const toolReadings = createToolReadings();
+  const w: Wiring = { opts, state, store, allowed, scheduleStore, resolution, watch, queue, push, toolReadings };
   return { w, nav, pdfToolAvailable };
 }
 

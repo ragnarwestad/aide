@@ -5,8 +5,6 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
-import { forgetChecks, lastChecks, recordCheck } from "../../../src/serve/tool-check.ts";
-import { lastModels } from "../../../src/serve/tool-models";
 import type { CheckableTool, ExtraCheck, ToolCheck, ToolModels } from "../../../src/render";
 import type { Provider } from "../../../src/queue/providers/index.ts";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
@@ -17,7 +15,6 @@ const ownDirs: string[] = [];
 
 afterEach(() => {
   harness.cleanup();
-  forgetChecks();
   while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
@@ -26,7 +23,6 @@ const CHOICES = { Opus: { model: "opus" }, Fable: { model: "fable" }, "gpt-5.5":
 /** A board with the three providers, a probe that counts what it is asked, and
  *  the page's own reads stubbed so no CLI starts. */
 function serve(probe: ReturnType<typeof countingProbe> | ReturnType<typeof modelsProbe>, providers?: Record<string, Provider>) {
-  forgetChecks();
   const { file, modelIdsPath } = ownFiles(JSON.stringify({
     model: { default: "Opus" },
     modelChoices: CHOICES,
@@ -36,12 +32,20 @@ function serve(probe: ReturnType<typeof countingProbe> | ReturnType<typeof model
       OpenCode: { name: "OpenCode", tool: "opencode" },
     },
   }, null, 2), ownDirs);
-  const { base } = startServer({
+  const { base, server } = startServer({
     ...stubReads, queueDefaults: { ...defaultsOf(CHOICES, { default: "Opus" }), ...(providers ? { providers } : {}) },
     queueConfigFile: file, modelIdsPath, toolProbe: probe,
   });
+  current = server;
   return { base };
 }
+
+/** The board the test last served: what its tabs recorded is read from it. */
+let current: ReturnType<typeof startServer>["server"] | undefined;
+const readings = () => current!.toolReadings();
+const lastChecks = () => readings().lastChecks();
+const lastModels = () => readings().lastModels();
+const recordCheck = (check: ToolCheck) => readings().recordCheck(check);
 
 /** Counts each kind of read; what it answers is the test's to set. */
 function countingProbe(over: { check?: (tool: CheckableTool, provider?: Provider) => Promise<ToolCheck>; models?: (tool: CheckableTool) => Promise<ToolModels> } = {}) {

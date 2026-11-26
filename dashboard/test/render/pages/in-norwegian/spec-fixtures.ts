@@ -8,7 +8,6 @@ import { navEntries, renderSpecDetail, renderProjectsPage, type JobDetailView, t
 import { SPEC_TABS } from "../../../../src/render/pages/spec-page/tabs.ts";
 import { hostname } from "node:os";
 import { clearCheckoutFaults } from "../../../../src/render/ui/checkout-faults.ts";
-import { forgetChecks } from "../../../../src/render/ui/tool-checks.ts";
 import { setPendingRestartNotice } from "../../../../src/render/ui/pending-restart.ts";
 import type { PageState } from "./fixtures.ts";
 
@@ -82,7 +81,6 @@ export function shellStates(): PageState[] {
   // The banners the header draws from process-wide state, left by another
   // test file in the same process, are not this page's words.
   clearCheckoutFaults();
-  forgetChecks();
   setPendingRestartNotice([]);
   return [{
     page: "Page shell › header and About",

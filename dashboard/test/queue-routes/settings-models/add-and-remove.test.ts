@@ -6,7 +6,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync, rmSync } from "node:fs";
 import { parse } from "jsonc-parser";
-import { forgetChecks } from "../../../src/serve/tool-check.ts";
 import type { ModelChoice } from "../../../src/queue/types.ts";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
 import { AT, CLAUDE_READING, defaultsOf, modelsProbe, offeredChoices, ownFiles, post, openModelsTab, stubReads } from "./fixtures.ts";
@@ -16,7 +15,6 @@ const ownDirs: string[] = [];
 
 afterEach(() => {
   harness.cleanup();
-  forgetChecks();
   while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
@@ -59,7 +57,6 @@ const errorOf = async (res: Response): Promise<string> => ((await res.json()) as
 
 describe("adding a model the AI offers", () => {
   test("is written to the file and the live choices, keeping the rest", async () => {
-    forgetChecks();
     const { base, file } = serve(modelsProbe({ codex: CODEX_READING }));
     await openModelsTab(base, "Codex");
     const res = await post(base, ADD, { tool: "codex", model: "gpt-5.5" });
@@ -72,7 +69,6 @@ describe("adding a model the AI offers", () => {
   });
 
   test("a key another AI's choice holds gets the provider in front", async () => {
-    forgetChecks();
     const choices = { ...CHOICES, "gpt-5.5": { tool: "codex" as const } };
     const configured = CONFIG.replace(
       '"Opus": { "model": "opus" }',
@@ -88,7 +84,6 @@ describe("adding a model the AI offers", () => {
   });
 
   test("a Claude family is added under its capitalised name and shows its version", async () => {
-    forgetChecks();
     const { base, file } = serve(modelsProbe({ claude: CLAUDE_READING }));
     await openModelsTab(base, "Claude");
     const res = await post(base, ADD, { tool: "claude", model: "haiku" });
@@ -98,7 +93,6 @@ describe("adding a model the AI offers", () => {
   });
 
   test("a model the last reading did not offer, or no reading at all, is refused, naming the Models tab (AC-11)", async () => {
-    forgetChecks();
     const { base, file } = serve(modelsProbe({ codex: CODEX_READING }));
     for (const body of [{ tool: "codex", model: "gpt-5.5" }, { tool: "claude", model: "haiku" }]) {
       const res = await post(base, ADD, body);
@@ -111,7 +105,6 @@ describe("adding a model the AI offers", () => {
   });
 
   test("a model already a choice of that AI is refused", async () => {
-    forgetChecks();
     const { base, file } = serve(modelsProbe({ claude: CLAUDE_READING }));
     await openModelsTab(base, "Claude");
     expect((await post(base, ADD, { tool: "claude", model: "OPUS" })).status).toBe(400);
@@ -121,7 +114,6 @@ describe("adding a model the AI offers", () => {
 
 describe("a Claude model typed as its full id", () => {
   test("is refused like any model the last reading did not offer, asking no CLI", async () => {
-    forgetChecks();
     const { base, file, probe } = serve(modelsProbe({ claude: CLAUDE_READING }));
     await openModelsTab(base, "Claude");
     const before = await offeredChoices(base);
@@ -146,7 +138,6 @@ describe("removing a model choice", () => {
   });
 
   test("clears the line about models no longer offered at once, with no new reading", async () => {
-    forgetChecks();
     const choices = { ...CHOICES, "opencode-gone": { tool: "opencode" as const, model: "opencode/gone" } };
     const probe = modelsProbe({ opencode: OPENCODE_READING });
     const { base } = serve(probe, choices);

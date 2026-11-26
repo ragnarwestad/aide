@@ -5,7 +5,7 @@
 import { resolve, dirname } from "node:path";
 import { conflictRepairSession } from "../land-branch/repair/conflict.ts";
 import { createLandingGate } from "../land-branch/repair/index.ts";
-import { toolRechecker } from "../tool-check.ts";
+import { toolRechecker, type ToolReadings } from "../tool-check.ts";
 import { assignSpecNumberAfterMerge } from "../land-branch/finalize-create.ts";
 import { translationMergeArgs } from "../land-branch/run-script.ts";
 import type { AideRunStore } from "../../queue/aide-run-store.ts";
@@ -41,6 +41,8 @@ export interface Wiring {
   watch: WatchSetup;
   queue: QueueStore;
   push: Push;
+  /** This server's own tool checks and model readings. */
+  toolReadings: ToolReadings;
 }
 
 /** The folder Aide's scripts are run from: beside the runner this server
@@ -138,7 +140,7 @@ export function wireSchedules(w: Wiring): Schedules {
     specsRoot: resolution.specsRoot,
     // Behind the same one flag as the check at start-up: a server nobody
     // asked to check anything never spawns a CLI to do it.
-    recheckTools: opts.checkToolsOnStart ? toolRechecker({ providers: () => queue.defaults.providers, scriptDir: runnerScriptDir(opts) }) : undefined,
+    recheckTools: opts.checkToolsOnStart ? toolRechecker(w.toolReadings, { providers: () => queue.defaults.providers, scriptDir: runnerScriptDir(opts) }) : undefined,
   });
   resolution.attachBranchFileSteps(schedules.branchFileSteps);
   return schedules;

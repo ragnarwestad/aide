@@ -61,6 +61,7 @@ import { selfDelayRoute } from "./self-delay.ts";
 import { failedCreateRoutes } from "./failed-create-routes.ts";
 import { handlePushRoutes } from "./push-routes.ts";
 import type { Push } from "../../push";
+import type { ToolReadings } from "../../render/ui/tool-checks.ts";
 import type { SpecProgress } from "../schedules/spec-progress.ts";
 import type { ScheduleStore } from "../../queue/schedule-store.ts";
 import { logAction } from "../action-log/index.ts";
@@ -179,6 +180,9 @@ export interface RoutesContext {
   /** The push notifications: the subscribe and unsubscribe
    *  routes, and the public key the Settings panel hands a device. */
   push: Push;
+  /** This server's tool checks and model readings: what its provider tabs
+   *  record and Add a model reads. */
+  toolReadings: ToolReadings;
 }
 
 export async function handleRoutes(ctx: RoutesContext, req: Request, url: URL, path: string): Promise<Response> {

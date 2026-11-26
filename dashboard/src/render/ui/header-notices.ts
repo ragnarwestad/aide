@@ -15,7 +15,7 @@ import { getDeployFaultNotice } from "./faults/deploy-fault.ts";
 import { getPendingRestartNotice, getPendingRestartStartedAt } from "./pending-restart.ts";
 import { t, type Language } from "../../i18n";
 import { formatSentence } from "../../messages/format.ts";
-import { toolsMissingModels, toolsWithFaults } from "./tool-checks.ts";
+import { currentToolReadings } from "./tool-checks.ts";
 import { TOOL_TAB_LABELS } from "../pages/settings-page/tools.ts";
 import { currentScheduleFaults } from "./faults/schedule-faults.ts";
 import { scheduleSettingsPath } from "../pages/schedule-page/tabs.ts";
@@ -82,7 +82,7 @@ export function restartWaitingNotice(lang: Language): string {
  *  anyone learns of it is a run that failed. One line per tool, each
  *  thing wrong with its own fix. */
 function toolFaultNotices(lang: Language): string {
-  return toolsWithFaults()
+  return (currentToolReadings()?.toolsWithFaults() ?? [])
     .map(({ faults }) => rowMessage("waiting", formatSentence(lang, faults) ?? "", { tag: "p", hook: "tool-fault" }))
     .join("");
 }
@@ -91,7 +91,7 @@ function toolFaultNotices(lang: Language): string {
  *  One line per AI, linking to the Providers tab, where a provider's Models tab has Remove. Worked out
  *  from the choices as they are now, so a Remove clears it at once. */
 function missingModelsNotices(lang: Language): string {
-  return toolsMissingModels()
+  return (currentToolReadings()?.toolsMissingModels() ?? [])
     .map(({ tool, models }) => {
       const values = { tool: TOOL_TAB_LABELS[tool], models: models.join(", ") };
       const where = t(lang, "shell.modelsGoneWhere");

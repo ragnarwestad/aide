@@ -147,5 +147,6 @@ export function buildRoutesCtx(w: Wiring, parts: RoutesParts): RoutesContext {
     pdfToolAvailable: parts.pdfToolAvailable,
     testServers: parts.testServersCtx,
     push: w.push,
+    toolReadings: w.toolReadings,
   });
 }

@@ -9,8 +9,8 @@ import { installationBlock, modelsBlock, stamp, TOOL_TAB_LABELS, type ToolCheck,
 import type { Language } from "../../../i18n";
 import { expandDir, providerLoginEnv, type Provider } from "../../../queue/providers/index.ts";
 import { modelChoiceOptions, modelsInUse } from "../../serve-helpers";
-import { checkTool, lastChecks, recordCheck, withProviderAnswer } from "../../tool-check.ts";
-import { readModels, recordModels } from "../../tool-models";
+import { checkTool, withProviderAnswer } from "../../tool-check.ts";
+import { readModels } from "../../tool-models";
 import { recordClaudeVersions } from "../settings-models.ts";
 import type { RoutesContext } from "../";
 
@@ -39,7 +39,7 @@ export async function readModelsTab(ctx: RoutesContext, provider: Provider, lang
     read = { tool, at: new Date().toISOString(), offered: [], error: failed(err) };
   }
   read = { ...read, provider: provider.name };
-  recordModels(read);
+  ctx.toolReadings.recordModels(read);
   recordClaudeVersions(ctx.queue, read, ctx.opts.modelIdsPath);
   return modelsBlock(
     tool,
@@ -60,6 +60,6 @@ export async function readInstallationTab(ctx: RoutesContext, provider: Provider
     check = { tool, at: new Date().toISOString(), found: false, extra: [], error: `The check could not be run: ${failed(err)}` };
   }
   // Only the open provider was asked: the others' answers stay stored.
-  recordCheck(withProviderAnswer(lastChecks()[tool], check, provider));
+  ctx.toolReadings.recordCheck(withProviderAnswer(ctx.toolReadings.lastChecks()[tool], check, provider));
   return installationBlock(check, lang);
 }
