@@ -38,7 +38,8 @@ header .boardline:has(.deploymark) { flex-wrap: nowrap; }
 header .deploymark { display: inline-flex; flex: none; align-items: center;
   gap: 2px; color: var(--queued); text-decoration: none; white-space: nowrap; }
 header .deploymark svg { width: 16px; height: 16px; }
-header .deploymark.uptodate { color: var(--ok); }
+header .deploymark.uptodate, nav.tabbar [data-deploy-legend="Current"] { color: var(--ok); }
+nav.tabbar [data-deploy-legend]:not([data-deploy-legend="Current"]) { color: var(--queued); }
 /* The two tabs: a real tab bar — the row sits ON the hairline, and the
    current tab is marked by an underline in the accent colour, PaceUp's
    tab bar being the reference (2026-08-19). Centred deliberately:
@@ -53,7 +54,7 @@ body > nav.tabbar { display: flex; justify-content: center; gap: var(--sp-4);
 body > nav.tabbar { position: relative; }
 body > nav.tabbar > .row { position: absolute; top: 0; bottom: 0; right: var(--sp-6); }
 nav.tabbar [data-tab-list] { display: none; }
-nav.tabbar [data-tab-list] .kindicon svg { height: 16px; width: 16px; vertical-align: -3px; }
+nav.tabbar :is([data-tab-list] .kindicon, [data-deploy-legend]) svg { height: 16px; width: 16px; vertical-align: -3px; }
 /* The same bar's copy inside the header, shown only on a phone held
    sideways (narrow.css). */
 header > nav.tabbar { display: none; }

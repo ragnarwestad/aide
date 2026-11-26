@@ -25,6 +25,8 @@ export const nb: Record<TranslationKey, string> = {
   "shell.deployWaitingOne": "{project} har {count} ny commit å deploye",
   "shell.deployHelpCurrent": "Et grønt Deploy-ikon betyr at boardet er oppdatert.",
   "shell.deployHelpPending": "Tallet ved Deploy-ikonet viser hvor mange commits som venter på Deploy.",
+  "shell.deployHelpQueued": "Deploy står i kø og starter automatisk når det er klart.",
+  "shell.deployHelpRunning": "Deploy kjører. Følg jobben på Jobs-fanen.",
   "shell.deployUpToDate": "{project} er à jour med {branch}",
   "shell.themeDark": "Mørk",
   "shell.themeLight": "Lys",

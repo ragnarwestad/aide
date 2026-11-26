@@ -8,6 +8,7 @@
 // recurring cost; a second tab bar would have been the fourth.
 
 import { backLink, helpPopover, tabIcon, type SiteTab } from "./components";
+import { KIND_ICONS } from "./components/icons.ts";
 import { esc } from "./html.ts";
 import { t, type Language, type TranslationKey } from "../../i18n";
 
@@ -147,12 +148,16 @@ export function tabBarHelp(lang: Language, tabs: { word: string; kind?: SiteTab 
       ? `${tabIcon(tab.kind)} ${esc(tab.word)} — ${esc(t(lang, `shell.tabHelp.${tab.kind}`))}`
       : esc(tab.word))
     .join("<br>");
+  const deploy = (["Current", "Pending", "Queued", "Running"] as const).map((status) =>
+    `<span class="kindicon" data-deploy-legend="${status}" aria-hidden="true">${KIND_ICONS.deploy}</span> ` +
+    esc(t(lang, `shell.deployHelp${status}`)),
+  );
   return helpPopover(
     t(lang, "shell.tabHelpTitle"),
     `<span data-tab-list>${lines}<br><br></span>${esc(t(lang, "shell.tabHelpCounts"))}` +
       `<br>• ${esc(t(lang, "shell.tabRunning"))}: ${esc(t(lang, "shell.tabHelpCount.jobs"))}` +
       `<br>• ${esc(t(lang, "shell.tabSpecs"))}: ${esc(t(lang, "shell.tabHelpCount.specs"))}` +
-      `<br><br>${esc(t(lang, "shell.deployHelpCurrent"))}<br>${esc(t(lang, "shell.deployHelpPending"))}`,
+      `<br><br>${deploy.join("<br>")}`,
   );
 }
 

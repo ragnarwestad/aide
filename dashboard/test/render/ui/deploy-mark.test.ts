@@ -68,6 +68,8 @@ test("a queued or running deploy keeps its count but offers no new Deploy questi
     const html = render();
     const mark = markOf(html);
     expect(mark).toContain(" disabled");
+    const helpKey = underWay === "queued" ? "shell.deployHelpQueued" : "shell.deployHelpRunning";
+    expect(mark).toContain(t("en", helpKey));
     expect(mark).toContain("(2)");
     expect(mark).not.toContain("data-ask");
     expect(html).not.toContain(`id="${DEPLOY_MARK_DIALOG}"`);

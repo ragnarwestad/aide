@@ -37,11 +37,13 @@ export function deployMark(lang: Language, waiting: DeployWaiting | undefined = 
     const label = esc(t(lang, "shell.deployUpToDate", { project: waiting.project, branch: waiting.branch }));
     return `<span class="deploymark uptodate"${activity} role="img" title="${label} — ${esc(t(lang, "shell.deployHelpCurrent"))}" aria-label="${label}">${KIND_ICONS.deploy}</span>`;
   }
+  const helpKey = waiting.underWay === "queued" ? "shell.deployHelpQueued"
+    : waiting.underWay === "running" ? "shell.deployHelpRunning" : "shell.deployHelpPending";
   const key = waiting.commits === 1 ? "shell.deployWaitingOne" : "shell.deployWaiting";
   const label = esc(waiting.underWay
     ? t(lang, "project.deployUnderWay", { state: t(lang, `state.${waiting.underWay}`) })
     : t(lang, key, { project: waiting.project, count: waiting.commits }));
-  return `<button class="deploymark iconlink"${activity} type="button"${waiting.underWay ? " disabled" : ` data-ask="${DEPLOY_MARK_DIALOG}"`} title="${label} — ${esc(t(lang, "shell.deployHelpPending"))}" aria-label="${label}">${KIND_ICONS.deploy}<span>(${waiting.commits})</span></button>`;
+  return `<button class="deploymark iconlink"${activity} type="button"${waiting.underWay ? " disabled" : ` data-ask="${DEPLOY_MARK_DIALOG}"`} title="${label} — ${esc(t(lang, helpKey))}" aria-label="${label}">${KIND_ICONS.deploy}<span>(${waiting.commits})</span></button>`;
 }
 
 /** The Deploy tab's question, drawn by the same function for the header. */
