@@ -354,9 +354,7 @@
   .tabbar .tab:has(> .kindicon) { padding-left: var(--sp-3); padding-right: var(--sp-3); }
   .tabbar .tab > .kindicon + span { position: absolute; width: 1px; height: 1px;
     overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-  /* The tab words are hidden, so the "?" lists what each icon is; it
-     moves into the bar's narrower padding, clear of the last tab. */
-  nav.tabbar [data-tab-list] { display: inline; }
+  /* The "?" moves into the bar's narrower padding, clear of the last tab. */
   body > nav.tabbar > .row { right: var(--sp-2); }
 }
 
@@ -390,7 +388,6 @@
      against the window's right edge, and no taller than the window —
      border-box, so the cap counts its padding and border too. */
   header > nav.tabbar > .row { flex: none; }
-  header > nav.tabbar [data-tab-list] { display: inline; }
   header > nav.tabbar details.intro[open] p { position: fixed; top: auto; left: auto; right: var(--sp-2);
     max-height: calc(100vh - 4rem); box-sizing: border-box; overflow-y: auto; }
   header { padding-top: var(--sp-2); padding-bottom: var(--sp-2); border-bottom: 1px solid var(--line); }

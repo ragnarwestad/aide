@@ -56,11 +56,9 @@ nav.tabbar [data-deploy-status="pending"] { color: var(--queued); white-space: n
 body > nav.tabbar { display: flex; justify-content: center; gap: var(--sp-4);
   padding: 0 var(--sp-6); border-bottom: 1px solid var(--line); }
 /* The bar's "?" sits at its right end out of the flex flow, so the tabs
-   stay centred on the page; its list of tabs is shown only where the bar
-   hides the tab words (narrow-rows.css). */
+   stay centred on the page. */
 body > nav.tabbar { position: relative; }
 body > nav.tabbar > .row { position: absolute; top: 0; bottom: 0; right: var(--sp-6); }
-nav.tabbar [data-tab-list] { display: none; }
 nav.tabbar :is([data-tab-list] .kindicon, [data-deploy-legend]) svg { height: 16px; width: 16px; vertical-align: -3px; }
 /* The same bar's copy inside the header, shown only on a phone held
    sideways (narrow.css). */

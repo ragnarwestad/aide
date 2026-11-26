@@ -1,7 +1,7 @@
 // The "?" at the right end of the site tab bar: where it sits, that a press
-// opens and a second press closes it, and that its list of tabs shows only
-// where the tab bar hides the tab words. Which of its parts shows at which
-// width is CSS, so only a browser can tell.
+// opens and a second press closes it, and that its list of tabs shows at
+// every width. Which of its parts shows at which width is CSS, so only a
+// browser can tell.
 import { expect, test } from "bun:test";
 import type { Browser, Page } from "playwright";
 import { browserDeadline, withBrowser } from "../../helpers/browser-deadline.ts";
@@ -83,11 +83,12 @@ test("on a phone held sideways the header's text lists the tabs and is not clipp
   await page.close();
 });
 
-test("on a desktop the text leaves out the list of tabs and keeps what the numbers count (AC-4)", async () => {
+test("on a desktop the text lists the tabs and keeps what the numbers count (AC-4)", async () => {
   const page = await jobsPage(1280, 800);
   const help = page.locator("body > nav.tabbar details.intro");
   await help.locator("summary").click();
-  expect(await help.locator("[data-tab-list]").isVisible()).toBe(false);
+  expect(await help.locator("[data-tab-list]").isVisible()).toBe(true);
+  expect(await help.locator('[data-tab-list] [data-tab="schedule"]').isVisible()).toBe(true);
   expect((await help.locator("p").innerText()).trim()).not.toBe("");
   await page.close();
 });
