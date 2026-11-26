@@ -348,8 +348,9 @@ An installation check that did not finish in time keeps the last answer and says
 have gone unanswered for 15 minutes does the notice say the machine is too busy to answer them.
 
 **The notice about models no longer offered** at the top of every page names the choices of an AI that its last Models
-reading does not offer, and links to the Providers tab, where a provider's Models tab has Remove. Removing a choice
-clears the notice on the next page load. An AI whose Models tab has not been opened since the board started, and one
+reading does not offer, as a problem line and a solution line: press Remove beside each of them on the Models tab of
+the provider that reading was made for, which the line links to. Removing a choice clears the notice on the next page
+load. An AI whose Models tab has not been opened since the board started, and one
 whose last reading failed, get no such notice. The Models reading is kept per tool and names the provider whose folders it was
 read with.
 

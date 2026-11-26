@@ -1,7 +1,8 @@
 // A tool the board checked and found wanting is said at the top of every
 // page, with what is wrong and the one fix for it. An AI whose configured
 // models its last Models reading no longer offers is said too, linking to
-// the Providers tab, worked out from the choices as they are now.
+// the Models tab of the provider whose reading found it, worked out from
+// the choices as they are now.
 
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
@@ -9,6 +10,8 @@ import { headerNotices } from "../../../src/render/ui/header-notices.ts";
 import { createToolReadings, withToolReadings } from "../../../src/render/ui/tool-checks.ts";
 import type { ModelChoice } from "../../../src/queue/types.ts";
 import type { ToolModels } from "../../../src/render";
+import { providerTabPath } from "../../../src/render/pages/settings-page/provider-detail.ts";
+import { t } from "../../../src/i18n";
 
 const windows: Window[] = [];
 
@@ -96,10 +99,10 @@ describe("the models no longer offered", () => {
     expect(readings.toolsMissingModels()).toEqual([]);
   });
 
-  test("each line links once, to the Providers tab (AC-7)", () => {
+  test("each line links once, to the Models tab of the provider whose reading found it (AC-7)", () => {
     readings.setConfiguredTools(() => ["opencode"]);
     choices({ gone: { tool: "opencode", model: "opencode/gone" } });
-    readings.recordModels(reading("opencode", []));
+    readings.recordModels(reading("opencode", [], { provider: "OpenCode Zen", providerKey: "zen" }));
     readings.recordCheck({
       tool: "opencode", at: AT, found: true,
       extra: [{ question: "Is it logged in?", ok: false, detail: "", problem: "not logged in" }],
@@ -108,8 +111,19 @@ describe("the models no longer offered", () => {
       Array.from(line.querySelectorAll("a")).map((a) => a.getAttribute("href")));
     expect(hrefs).toEqual([
       [],
-      ["/settings?tab=providers"],
+      [providerTabPath("zen", "models")],
     ]);
+  });
+
+  test("a line says what is wrong and what to press, each on a line of its own", () => {
+    choices({ gone: { tool: "opencode", model: "opencode/gone" } });
+    readings.recordModels(reading("opencode", [], { provider: "OpenCode Zen", providerKey: "zen" }));
+    const lines = (faultLines(drawn())[0]?.textContent ?? "").split("\n");
+    expect(lines).toHaveLength(2);
+    expect(lines[0]).toStartWith(`${t("en", "message.problem")}: `);
+    expect(lines[1]).toStartWith(`${t("en", "message.solution")}: `);
+    expect(lines[1]).toContain(t("en", "project.remove"));
+    expect(lines[1]).toContain("OpenCode Zen");
   });
 
   test("no line is drawn when nothing is missing", () => {

@@ -17,6 +17,9 @@ import { t, type Language } from "../../i18n";
 import { formatSentence } from "../../messages/format.ts";
 import { currentToolReadings } from "./tool-checks.ts";
 import { TOOL_TAB_LABELS } from "../pages/settings-page/tools.ts";
+import { PROVIDERS_TAB_PATH } from "../pages/settings-page/providers.ts";
+import { providerTabPath } from "../pages/settings-page/provider-detail.ts";
+import { capitalizeFirst } from "../../messages/shared/written.ts";
 import { currentScheduleFaults } from "./faults/schedule-faults.ts";
 import { scheduleSettingsPath } from "../pages/schedule-page/tabs.ts";
 import { storageFaults } from "../../queue/store/storage-faults.ts";
@@ -88,17 +91,21 @@ function toolFaultNotices(lang: Language): string {
 }
 
 /** An AI whose configured models its last Models reading no longer offers.
- *  One line per AI, linking to the Providers tab, where a provider's Models tab has Remove. Worked out
- *  from the choices as they are now, so a Remove clears it at once. */
+ *  One line per AI: what is wrong, and the Remove to press on the Models
+ *  tab of the provider whose reading found it, linked. Worked out from the
+ *  choices as they are now, so a Remove clears it at once. */
 function missingModelsNotices(lang: Language): string {
   return (currentToolReadings()?.toolsMissingModels() ?? [])
-    .map(({ tool, models }) => {
-      const values = { tool: TOOL_TAB_LABELS[tool], models: models.join(", ") };
-      const where = t(lang, "shell.modelsGoneWhere");
+    .map(({ tool, models, provider }) => {
+      const problem = t(lang, "shell.modelsGone", { tool: TOOL_TAB_LABELS[tool], models: models.join(", ") });
+      const tab = t(lang, "settings.part.models");
+      const where = provider ? t(lang, "shell.modelsGoneWhere", { tab, provider: provider.name }) : t(lang, "shell.modelsGoneWhereAny", { tab });
+      const href = provider ? providerTabPath(provider.key, "models") : PROVIDERS_TAB_PATH;
       const MARK = "\u0000";
-      const link = `<a data-goto href="${esc("/settings?tab=providers")}">${esc(where)}</a>`;
-      const html = esc(t(lang, "shell.modelsGone", { ...values, where: MARK })).replace(MARK, link);
-      return rowMessage("waiting", t(lang, "shell.modelsGone", { ...values, where }), { tag: "p", hook: "tool-fault", html });
+      const fix = t(lang, "shell.modelsGoneFix", { button: t(lang, "project.remove"), where: MARK });
+      const lines = `${t(lang, "message.problem")}: ${capitalizeFirst(problem)}\n${t(lang, "message.solution")}: ${capitalizeFirst(fix)}`;
+      const link = `<a data-goto href="${esc(href)}">${esc(where)}</a>`;
+      return rowMessage("waiting", lines.replace(MARK, where), { tag: "p", hook: "tool-fault", html: esc(lines).replace(MARK, link) });
     })
     .join("");
 }

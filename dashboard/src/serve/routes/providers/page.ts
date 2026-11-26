@@ -31,7 +31,7 @@ export async function providerDetailFor(
         usage: readsUsage(provider.tool) ? keptUsage(ctx.opts, key) : await (ctx.opts.usageProbe ?? readProviderUsage)(key, provider),
       };
     case "models":
-      return { ...base, reading: await readModelsTab(ctx, provider, lang) };
+      return { ...base, reading: await readModelsTab(ctx, key, provider, lang) };
     case "installation":
       return { ...base, reading: await readInstallationTab(ctx, provider, lang) };
     case "config":

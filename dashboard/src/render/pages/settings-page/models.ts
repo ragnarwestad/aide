@@ -34,6 +34,8 @@ export interface ToolModels {
   error?: string;
   /** The name of the provider whose folders the reading was made with. */
   provider?: string;
+  /** That provider's key, for the notice's link to its Models tab. */
+  providerKey?: string;
 }
 
 /** What the tab is handed beside the reading: the live choices and the

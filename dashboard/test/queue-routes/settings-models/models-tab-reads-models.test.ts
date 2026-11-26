@@ -38,7 +38,7 @@ describe("opening a provider's Models tab reads its tool's models", () => {
     const { base, server } = start({ queueDefaults: defaultsOf(CHOICES, { default: "Opus" }), toolProbe });
     const res = await openModelsTab(base, "Claude");
     expect(res.status).toBe(200);
-    expect(server.toolReadings().lastModels().claude).toEqual({ ...CLAUDE_READING, provider: "Claude" });
+    expect(server.toolReadings().lastModels().claude).toEqual({ ...CLAUDE_READING, provider: "Claude", providerKey: "Claude" });
     expect(toolProbe.modelReads).toEqual([{ tool: "claude", configured: ["opus", "fable"], env: {} }]);
   });
 

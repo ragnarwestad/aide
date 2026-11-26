@@ -24,6 +24,14 @@ import type { BoardMessage } from "../../messages/types.ts";
 import { providerLoginCommand } from "../../queue/providers/login-command.ts";
 import { UNANSWERED_MINUTES, unansweredLongEnough } from "./faults/unanswered.ts";
 
+/** One AI's configured models its last reading no longer offers, with the
+ *  provider that reading was made for. */
+export interface MissingModels {
+  tool: CheckableTool;
+  models: string[];
+  provider?: { key: string; name: string };
+}
+
 export interface ToolReadings {
   /** Which tools a run can use — the ones a model is configured for. Read
    *  live, since the configuration can change while the board runs. Unset,
@@ -48,7 +56,7 @@ export interface ToolReadings {
    *  offers. A reading that failed, an AI the board cannot ask, and an AI
    *  with no reading since the board started name nothing. A Claude name
    *  Claude Code answered for (`opus[1m]`, `opusplan`) is a model it knows. */
-  toolsMissingModels(): { tool: CheckableTool; models: string[] }[];
+  toolsMissingModels(): MissingModels[];
 }
 
 /** One server's readings, empty until its checks and tabs record some. */
@@ -140,15 +148,17 @@ function checkFaults(check: ToolCheck | undefined): BoardMessage[] {
 function missingModels(
   readings: Iterable<ToolModels>,
   live: Record<string, ModelChoice> | undefined,
-): { tool: CheckableTool; models: string[] }[] {
-  const out: { tool: CheckableTool; models: string[] }[] = [];
+): MissingModels[] {
+  const out: MissingModels[] = [];
   for (const reading of readings) {
     if (reading.error) continue;
     const named = reading.named ?? [];
     const gone = modelLists(reading.tool, live, reading).gone
       .filter((c) => !named.some((m) => sameModel(reading.tool, m.model, c.model)));
     if (gone.length > 0) {
-      out.push({ tool: reading.tool, models: gone.map((c) => (c.name === c.model ? c.name : `${c.name} (${c.model})`)) });
+      const models = gone.map((c) => (c.name === c.model ? c.name : `${c.name} (${c.model})`));
+      const provider = reading.providerKey ? { key: reading.providerKey, name: reading.provider ?? reading.providerKey } : undefined;
+      out.push({ tool: reading.tool, models, ...(provider ? { provider } : {}) });
     }
   }
   return out;

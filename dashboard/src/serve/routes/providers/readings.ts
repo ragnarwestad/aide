@@ -19,7 +19,7 @@ const failed = (err: unknown): string => (err instanceof Error ? err.message : S
 /** The models the provider's tool offers, read with the provider's own
  *  folders and set against the board's choices. A read that throws is
  *  stored and drawn as one that failed. */
-export async function readModelsTab(ctx: RoutesContext, provider: Provider, lang: Language): Promise<string> {
+export async function readModelsTab(ctx: RoutesContext, key: string, provider: Provider, lang: Language): Promise<string> {
   const tool = provider.tool;
   const env = providerLoginEnv(provider, homedir());
   // Every model value of this tool's choices, its key where it names none:
@@ -38,7 +38,7 @@ export async function readModelsTab(ctx: RoutesContext, provider: Provider, lang
   } catch (err) {
     read = { tool, at: new Date().toISOString(), offered: [], error: failed(err) };
   }
-  read = { ...read, provider: provider.name };
+  read = { ...read, provider: provider.name, providerKey: key };
   ctx.toolReadings.recordModels(read);
   recordClaudeVersions(ctx.queue, read, ctx.opts.modelIdsPath);
   return modelsBlock(
