@@ -58,6 +58,11 @@ First write `--- Step 1 of 11: Read the description — started`, and when this 
   `1-description.md` has a `Sent back to a full
   analysis:` line in Tracking info is never given a short analysis:
   implement found it is not small.
+- **Learn whether the spec may complete without changes**, for Steps 5,
+  7, 8 and 9: its Tracking info reads `- **Completion without changes:**
+  allowed`. Only then, and only when Step 2 finds that what the spec asks
+  for already holds, does the analysis record "no change needed" — see
+  Step 5.
 - If `4-status.md` ALSO already carries that same section plus a
   `**Round boundary:**` stamp, this is a held-back spec taking another
   round on its open checks, not a first analysis — see
@@ -202,6 +207,17 @@ A held-back round's `## Round N` carries its own `### Files to change`.
 
 Sections already filled in per Step 4 are left untouched.
 
+**No change needed.** When Step 1 found the spec may complete without
+changes and Step 2 finds that what it asks for already holds, show it
+with a check run in this session — a command, a test, or a read of the
+named file — and write the no-change shape `references/spec-files.md`
+gives: `### Files to change` with no path, and `### No change needed`
+with the check, its result and why. The runner accepts it only with the
+Tracking info line, a check, `Result: passed`, a reason and no files;
+then the job ends after Analyze and Implement never starts. A check
+that did not pass, or a spec without the line, gets an ordinary
+analysis.
+
 In Tracking info, on every run and a held-back round's included, write
 `- **Analysis:** short` or `- **Analysis:** full`: the analysis Step 3
 chose, the latest one this file holds. A short analysis writes only the
@@ -270,6 +286,10 @@ Sections already filled in per Step 4 are left untouched.
 In Tracking info, on every run, write `- **Grade:** LOW` (or `MEDIUM`,
 `HIGH`: Step 3's grade) and `- **Acceptance criteria:** <n>`, the number of
 `- **AC-n:**` lines in `1-description.md`. The runner reads both.
+
+**An analysis that found no change needed** (Step 5) writes its own
+shape, as `references/spec-files.md` gives it, and the rest of this step
+does not apply to it; Step 8 is skipped, since there is no plan to review.
 
 **A short analysis writes the short shape and nothing more** — the
 `## Short analysis` sentence, Scope, and Testing with Where the tests sit,

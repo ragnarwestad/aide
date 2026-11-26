@@ -107,6 +107,12 @@ A held-back job keeps its state; the reason is on the row and clears on a later 
 
 **When a step ends:**
 
+- An analyze whose result carries `noChangeNeeded` ends the job `done` (`step-succeeded-last`), whatever steps
+  follow it: what the spec asks for already holds, so Implement and every later step are never started. The Jobs tab
+  and the spec's row and page read "No change needed. Analysis found nothing to implement."; the check and why it
+  passed are in the analyze step's log ([the runner](the-runner.md#what-counts-as-a-step-having-run)). In an execution
+  group the next member starts as after an Implement; when it was the last member, the group waits for Archive if an
+  earlier member was implemented, and stops otherwise.
 - Every ending, including Cancel, clears `pid`, `pgid`, `sessionId` and `stepStartedAt`. It keeps `resultFile` for
   a merge that must resume after a restart and `streamFile` for the finished step's log; the next start replaces
   both.

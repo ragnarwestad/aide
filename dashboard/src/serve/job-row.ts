@@ -156,6 +156,8 @@ function resultView(r: Job["results"][number]) {
     // Why `gh` opened no pull request: the step's own answer, said in
     // that phase's log.
     prError: r.prError,
+    // An analyze that found nothing to change: the job's own sentence says so.
+    noChangeNeeded: r.noChangeNeeded ? true : undefined,
   };
 }
 

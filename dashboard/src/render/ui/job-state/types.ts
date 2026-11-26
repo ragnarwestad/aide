@@ -155,6 +155,8 @@ export interface StepResultView {
    *  refusal (`not-implemented-yet`, `acceptance-criteria-unticked`)
    *  apart from a run that was actually tried. */
   terminalReason?: string;
+  /** An analyze that found nothing to change, which ended the job. */
+  noChangeNeeded?: boolean;
   costUsd: number;
   /** When this step ENDED. Absent on a result written before
    *  the runner recorded it, and then that step simply has no duration

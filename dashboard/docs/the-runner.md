@@ -37,6 +37,7 @@ checkouts a step works in, what a finished step publishes — and, last, how to 
 | Stopping an analyze on its acceptance criteria      | `run-spec/record/criteria-check.sh`       |
 | Stopping an analyze on files another spec changes   | `run-spec/record/shared-files-check.sh`   |
 | Failing a short analysis that is over a limit       | `run-spec/record/short-analysis-check.sh` |
+| Accepting an analysis that found no change needed   | `run-spec/record/no-change-check.sh`      |
 | Ending an implement that sends its spec back        | `run-spec/record/sent-back-check.sh`      |
 | Reading and writing Tracking info bullets           | `lib/tracking-info.sh`                    |
 | The test gate an implement ends on                  | `run-spec/turn/step-tests.sh`             |
@@ -595,6 +596,16 @@ writes `- **Sent back to a full analysis:** …` into the description (`record_s
 the line, and the board queues Analyze and the steps the stopped job had not run, once per spec
 ([Running specs](running-specs.md)). A spec whose description carries that line is never offered a short analysis.
 `core/tests/fixtures/analysis-line.json` holds the `Analysis:` cases the runner and the board both read.
+
+**The no change needed check.** A spec whose description reads `- **Completion without changes:** allowed` may end
+after Analyze, when the analysis finds that what it asks for already holds. After the turn
+(`run-spec/record/no-change-check.sh`, before the short analysis check) the runner reads the newest round's
+`### No change needed`, and accepts it only with that description line, a non-empty `Check:`, `Result: passed`, a
+non-empty `Why:`, no path under `### Files to change`, and no code on the spec's branch that the default branch lacks (a
+check that passes on an earlier implement's unmerged code says nothing about main). Accepted, it logs `no change needed: <check> passed — <why>`,
+a short analysis is not failed for its empty file list, and the result carries `noChangeNeeded: {check, why}`, on which
+the board ends the job ([job states](job-states.md)). A section it does not accept is logged with what it lacks, and the
+analysis is read as any other.
 
 **The sent-back check.** Every implement prompt names a file in the run's work directory, `sent-back`, where the session
 writes one sentence if the spec's analysis is short and the change is not small after all. After the turn

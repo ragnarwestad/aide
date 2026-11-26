@@ -6,6 +6,7 @@ import { proposeSpecs } from "../../queue/propose-specs.ts";
 import { scheduleRunPath } from "../../render";
 import type { Job, WorkflowStep } from "../../queue/queue.ts";
 import type { StepOutcome } from "../../queue/runner";
+import { noChangeNeeded } from "../../queue/runner/types.ts";
 import { logRefusal } from "../serve-helpers";
 import { enqueueRequest, followOnRequest } from "../../queue/request/index.ts";
 import { moveGroupOn } from "../../queue/execution-groups/move-on.ts";
@@ -35,10 +36,12 @@ export function stepDoneHandler(
     if (step === "analyze" && outcome.terminalReason === "short-analysis-over-limit" && !overLimitBefore(ctx, job)) {
       queueFullAnalysisRound(ctx, job, job.steps.slice(job.stepIndex), landing, "short analysis over a limit");
     }
+    // An Analyze that found no change needed ends its member's job (runner/index.ts).
+    const noChange = step === "analyze" && noChangeNeeded(outcome.noChangeNeeded) !== undefined;
     const completedGroupMember = outcome.ok && outcome.terminalReason === "completed" &&
-      (step === "implement" || (step === "analyze" && step === job.steps?.filter((phase) => phase !== "archive").at(-1)));
+      (step === "implement" || noChange || (step === "analyze" && step === job.steps?.filter((phase) => phase !== "archive").at(-1)));
     if (completedGroupMember) {
-      const continueGroup = () => continueExecutionGroup(ctx, job, step!);
+      const continueGroup = () => continueExecutionGroup(ctx, job, step!, noChange);
       if (landing) return landing.then(continueGroup);
       continueGroup();
     }
@@ -56,12 +59,12 @@ function handleSharedFilesAfter(ctx: RunnerSetupContext, job: Job, outcome: Part
 }
 
 /** Starts the group's next member, unless this job or its group stopped. */
-function continueExecutionGroup(ctx: RunnerSetupContext, job: Job, step: WorkflowStep): void {
+function continueExecutionGroup(ctx: RunnerSetupContext, job: Job, step: WorkflowStep, noChange: boolean): void {
   const settled = ctx.store.get(job.id);
   const group = job.executionGroupId ? ctx.store.executionGroups.get(job.executionGroupId) : undefined;
   if (settled && (settled.error || settled.landingError || ["failed", "waiting", "cancelled"].includes(settled.state))) return;
   if (group?.stoppedByUser || group?.state === "stopped") return;
-  moveGroupOn({ store: ctx.store, job, step, specsRoot: ctx.machinerySpecsRoot?.(job.project),
+  moveGroupOn({ store: ctx.store, job, step, noChange, specsRoot: ctx.machinerySpecsRoot?.(job.project),
     whenSpecsScanned: ctx.whenSpecsScanned ?? ((next) => next()), log: logRefusal });
 }
 

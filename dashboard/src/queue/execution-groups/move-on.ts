@@ -22,6 +22,8 @@ export interface GroupMove {
   store: QueueStore;
   job: Job;
   step: WorkflowStep;
+  /** An Analyze that found no change needed, which ends the member's job. */
+  noChange?: boolean;
   /** The project's specs root, where the members are read; absent, there is no next member. */
   specsRoot: string | undefined;
   /** Runs `next` once the board's first specs sweep has finished, at once after it. */
@@ -32,9 +34,10 @@ export interface GroupMove {
 /** A member's step ended `completed`: record it, then, once the first specs
  *  sweep has finished, queue the next member on its saved plan, falling back
  *  to the finished job's Analyze and Implement, or leave the group waiting for
- *  Archive (after Implement) or stopped. A group already stopped when the step
+ *  Archive (after Implement, or after a member that needed no change once
+ *  another was implemented) or stopped. A group already stopped when the step
  *  ends moves on no further. */
-export function moveGroupOn({ store, job, step, specsRoot, whenSpecsScanned, log }: GroupMove): void {
+export function moveGroupOn({ store, job, step, noChange, specsRoot, whenSpecsScanned, log }: GroupMove): void {
   const group = job.executionGroupId ? store.executionGroups.get(job.executionGroupId) : undefined;
   if (group && step === "implement") {
     store.executionGroups.update(group.id, { completedMembers: [...new Set([...group.completedMembers, job.specFolder])] });
@@ -44,7 +47,8 @@ export function moveGroupOn({ store, job, step, specsRoot, whenSpecsScanned, log
     const currentGroup = job.executionGroupId ? store.executionGroups.get(job.executionGroupId) : undefined;
     if (currentGroup?.stoppedByUser) return;
     if (queueNextMember(store, job, specsRoot, log) || !group) return;
-    if (step === "implement") store.executionGroups.waitForAcceptance(group.id);
+    // A last member that needed no change leaves the members implemented before it to Archive.
+    if (step === "implement" || (noChange && currentGroup?.completedMembers.length)) store.executionGroups.waitForAcceptance(group.id);
     else store.executionGroups.stop(group.id);
   });
 }

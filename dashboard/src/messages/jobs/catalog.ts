@@ -224,6 +224,14 @@ export const JOBS_CATALOG = {
       fr: "vérifiez le service du dashboard sur le serveur",
     },
   },
+  "runner.noChangeNeeded": {
+    en: "No change needed. Analysis found nothing to implement.",
+    nb: "Ingen endring trengs. Analysen fant ingenting å implementere.",
+    es: "No hace falta ningún cambio. El análisis no encontró nada que implementar.",
+    de: "Keine Änderung nötig. Die Analyse hat nichts zum Umsetzen gefunden.",
+    fr: "Aucun changement nécessaire. L'analyse n'a rien trouvé à implémenter.",
+    statement: "the analysis checked that the spec's goal already holds; the check is in its log",
+  },
   "runner.noProgressImplement": {
     en: "it reported success but left no real progress — nothing changed in the project",
     nb: "steget meldte ferdig, men gjorde ingen framgang — ingenting ble endret i prosjektet",

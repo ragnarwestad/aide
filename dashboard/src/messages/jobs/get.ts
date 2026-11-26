@@ -27,6 +27,7 @@ export function getJobMessage(row: MessageRow, lang: Language): Message | undefi
     const text = formatSentence(lang, { key });
     if (text) return { variant: "waiting", text };
   }
+  if (endedWithNoChangeNeeded(row)) return { variant: "info", text: formatSentence(lang, { key: "runner.noChangeNeeded" })! };
   const ended = ENDED[row.state];
   if (ended) {
     // A usage-limit stop is told in its own sentence, which names the
@@ -46,4 +47,9 @@ export function getJobMessage(row: MessageRow, lang: Language): Message | undefi
     if (text) return { variant: shown.queued || heldBackResolvesOnItsOwn(row) ? "info" : "waiting", text };
   }
   return undefined;
+}
+
+/** A done job whose last step was an analyze that found nothing to change. */
+export function endedWithNoChangeNeeded(row: Pick<QueueRowView, "state" | "results">): boolean {
+  return row.state === "done" && row.results?.at(-1)?.noChangeNeeded === true;
 }

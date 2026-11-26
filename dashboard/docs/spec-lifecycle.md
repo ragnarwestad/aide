@@ -70,6 +70,12 @@ it:
   whatever the acceptance criteria checks level.
 - **Depends on**, set in the New spec form rather than written into the text.
 
+One more line is read from the description's Tracking info, written by hand: `- **Completion without changes:**
+allowed`. With it, an analyze that shows with a passing check that what the spec asks for already holds ends the job:
+Implement is never started, and the job reads "No change needed. Analysis found nothing to implement." Without it, an
+analysis with nothing to change goes on to Implement as any other. The spec stays `analyzed`; Close it when it is not
+wanted any more.
+
 The three settings control how the spec is run:
 
 | Option                               | When the form opens | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                                |

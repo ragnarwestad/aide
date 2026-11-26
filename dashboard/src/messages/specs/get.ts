@@ -5,6 +5,7 @@ import { stepButton } from "../../format/step-label.ts";
 import { t, type Language } from "../../i18n/index.ts";
 import { messageDetail, messageIdentity, formatMessage, formatSentence, withoutStepFailed, type Sentence } from "../format.ts";
 import { heldBackResolvesOnItsOwn } from "../jobs/holds.ts";
+import { endedWithNoChangeNeeded } from "../jobs/get.ts";
 import type { Message, MessageVariant } from "../types.ts";
 import type { OpenOverlap } from "../../project/overlapping-specs.ts";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../project/parse-status/index.ts";
@@ -186,6 +187,7 @@ export function getSpecMessage(
     own: true,
     detail: messageDetail(lead.dependencyNotice),
   });
+  if (lead && endedWithNoChangeNeeded(lead)) parts.push({ variant: "info", text: formatSentence(lang, { key: "runner.noChangeNeeded" })!, own: true });
   // A failed landing writes the same sentence twice on the job: as its
   // `error` and, prefixed with the step, as its `landingError`. Said
   // once here — the mark carries it in full.

@@ -6,6 +6,7 @@
 - [1-description: Tracking info and acceptance criteria](#1-description-tracking-info-and-acceptance-criteria)
 - [3-solution: approaches, parts and tests](#3-solution-approaches-parts-and-tests)
 - [A short analysis](#a-short-analysis)
+- [No change needed](#no-change-needed)
 - [4-status: the lines the runner writes](#4-status-the-lines-the-runner-writes)
   - [Workflow steps completed](#workflow-steps-completed)
   - [Total progress](#total-progress)
@@ -47,6 +48,10 @@ Read the section the step at hand needs.
   `Created:`). It is kept on the spec: a spec with the line is never given
   a short analysis again, so it goes back at most once. Absent, or empty,
   is not sent back
+- A `Completion without changes:` line in Tracking info, written by hand.
+  `allowed` lets `/aide-analyze` record that what the spec asks for
+  already holds, and the job then ends after Analyze (see "No change
+  needed" below). Absent, or any other value, is not allowed
 - A held-back spec taking another round on its open checks (see
   4-status's own Acceptance criteria section below) numbers a new id
   after the highest one already written — the same additive rule,
@@ -162,6 +167,43 @@ A short analysis writes these three files and no more:
 - `4-status.md`: the template's four phase tables, one row each, the last
   `Run the full test suite`, and the `## Acceptance criteria` table as on any
   spec. No `## Plan review` section
+
+---
+
+## No change needed
+
+Only for a spec whose description reads `- **Completion without changes:**
+allowed`, and only when a check run in the session shows that what it asks
+for already holds. The runner reads the newest round
+(`core/scripts/lib/run-spec/record/no-change-check.sh`) and accepts it when
+`### Files to change` lists no path and `### No change needed` has a
+non-empty `Check:`, `Result:` reading `passed` and a non-empty `Why:`, and the
+spec's code branch holds nothing the default branch lacks. It
+then writes the check and why to the run log, the result carries
+`noChangeNeeded`, and the board ends the job after Analyze: Implement never
+starts. Anything short of that is read as an ordinary analysis — a short one
+with no files to change is still failed.
+
+```markdown
+### Files to change
+
+- None — the requested condition already holds
+
+### No change needed
+
+- **Check:** `grep -n "Files to change" core/scripts/lib/files-to-change.sh`
+- **Result:** passed
+- **Why:** the section is already read from the newest round (line 10)
+```
+
+The other files take the same shape:
+
+- `3-solution.md`: Tracking info with `- **Grade:** LOW` and the criteria
+  count, and a `## No change needed` section of one sentence saying there is
+  no plan, because the check above shows the goal already holds
+- `4-status.md`: one row in each phase table, the last `Run the full test
+  suite`, and the `## Acceptance criteria` table as on any spec. No `## Plan
+  review` section: there is no plan to review
 
 ---
 

@@ -280,3 +280,24 @@ for (const ending of ["success", "rejected", "recorded-failure", "cancelled", "s
     expect(store.list().filter(j => j.specFolder === "2-next")).toHaveLength(ending === "success" ? 1 : 0);
     if (ending === "success") expect(store.waiting.snapshot().entries.map(e => e.jobId)).toEqual([unrelated.job.id, store.list()[0]!.id]);
   });
+
+const NO_CHANGE = { ok: true, terminalReason: "completed", noChangeNeeded: { check: "grep -n x y", why: "it is there" } };
+
+test("an Analyze that found no change needed queues the next group member (AC-1)", async () => {
+  member("1-first", 1);
+  member("2-next", 2);
+  const handle = handler({ landStepBranch: async () => {} });
+  await handle({ project: "aide", specFolder: "1-first", steps: ["analyze", "implement"] } as Job, "analyze", NO_CHANGE);
+  await Promise.resolve();
+  expect(store.list().map((job) => [job.specFolder, job.steps])).toEqual([["2-next", ["analyze", "implement"]]]);
+});
+
+test("the last member needing no change leaves the group waiting for Archive of the members before it (AC-1)", async () => {
+  member("1-first", 1);
+  member("2-next", 2);
+  const group = store.executionGroups.prepare({ project: "aide", name: "Release", members: ["1-first", "2-next"], branch: "aide/group-1-first" });
+  store.executionGroups.update(group.id, { completedMembers: ["1-first"] });
+  const handle = handler({ landStepBranch: async () => {} });
+  await handle({ project: "aide", specFolder: "2-next", steps: ["analyze", "implement"], executionGroupId: group.id } as Job, "analyze", NO_CHANGE);
+  expect(store.executionGroups.get(group.id)?.state).toBe("waiting-acceptance");
+});

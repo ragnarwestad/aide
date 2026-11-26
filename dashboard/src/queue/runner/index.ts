@@ -38,7 +38,7 @@ import { formatSentence, type BoardMessage, type Sentence } from "../../messages
 import { stepButton } from "../../format/step-label.ts";
 import { requireWorkflowStep } from "../../workflow-steps.ts";
 import { type Job, type WorkflowStep } from "../queue.ts";
-import { modelIdOf, tokenUsage, type RunnerOptions, type StepOutcome } from "./types.ts";
+import { modelIdOf, noChangeNeeded, tokenUsage, type RunnerOptions, type StepOutcome } from "./types.ts";
 import { isRunStop } from "../steps.ts";
 import { resolveStepModel } from "../model-name.ts";
 import { forProject } from "../providers/project-defaults.ts";
@@ -379,7 +379,9 @@ export class Runner {
     if (isRunStop(outcome.terminalReason)) return this.completeStopped(job, step, outcome, { base, defaults, retryAttempts });
     if (!outcome.ok) return this.completeFailed(job, step, outcome, base, retryAttempts);
 
-    this.completeSucceeded(job, step, base, !!landingWork);
+    // An analyze that found nothing to change is the job's last step.
+    const lastStep = step === "analyze" && noChangeNeeded(outcome.noChangeNeeded) !== undefined;
+    this.completeSucceeded(job, step, base, { landingWork: !!landingWork, lastStep });
   }
 
   private completeStopped(job: Job, step: string, outcome: Partial<StepOutcome>, ctx: { base: Record<string, unknown>; defaults: ReturnType<typeof forProject>; retryAttempts: number }): void {
@@ -437,9 +439,10 @@ export class Runner {
   }
 
   /** A step that succeeded: the job ends after its last step, or the next is queued. */
-  private completeSucceeded(job: Job, step: string, base: Record<string, unknown>, landingWork: boolean): void {
+  private completeSucceeded(job: Job, step: string, base: Record<string, unknown>, ends: { landingWork: boolean; lastStep: boolean }): void {
+    const { landingWork, lastStep } = ends;
     const nextIndex = job.stepIndex + 1;
-    if (nextIndex >= job.steps.length || (isGroupMemberRun(job) && job.steps.slice(nextIndex).every((next) => next === "archive"))) {
+    if (lastStep || nextIndex >= job.steps.length || (isGroupMemberRun(job) && job.steps.slice(nextIndex).every((next) => next === "archive"))) {
       const result = endStep(this.o.store, job.id, "step-succeeded-last", {
         ...base,
         retry: landingWork ? job.retry : undefined,

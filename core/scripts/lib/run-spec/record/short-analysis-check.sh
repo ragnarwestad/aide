@@ -22,7 +22,9 @@
 # files only (lib/files-to-change.sh's source_paths): a test and a Markdown
 # file are listed but not counted. A full analysis is only logged.
 # core/tests/fixtures/analysis-line.json is the table of `Analysis:` cases that
-# the dashboard's parsePhaseOutcome reads too.
+# the dashboard's parsePhaseOutcome reads too. An empty list is no crossing
+# when run-spec/record/no-change-check.sh, sourced before this file, accepted
+# the analysis as no change needed.
 #
 # `choose_approach` was read from the spec's own description in
 # run-spec/setup/invocation.sh. Reading the Tracking info bullets and deciding
@@ -52,7 +54,7 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "analyze" ]; then
     elif [ "$sa_grade" != "$SHORT_ANALYSIS_GRADE" ]; then
       sa_cross "it is graded $sa_grade, not $SHORT_ANALYSIS_GRADE"
     fi
-    if [ "$sa_files" -eq 0 ]; then
+    if [ "$sa_files" -eq 0 ] && [ -z "${no_change_json:-}" ]; then
       sa_cross "no files to change were recorded"
     elif [ "$sa_source_count" -gt "$SHORT_ANALYSIS_MAX_FILES" ]; then
       sa_cross "it has $sa_source_count source files to change, over the limit of $SHORT_ANALYSIS_MAX_FILES ($(printf '%s' "$sa_sources" | jq -r 'join(", ")'))"

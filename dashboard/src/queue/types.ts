@@ -98,6 +98,8 @@ export interface StepResult {
    *  commands on the same tree skips its own run. Absent on a red step,
    *  and on one that had no tests to run. */
   testedGreen?: TestedGreen;
+  /** Present only on an analyze that found nothing to change: its check and why it passed. */
+  noChangeNeeded?: { check: string; why: string };
   subtype?: string;
   sessionId?: string;
   /** Where this step's claude transcript was kept, when one was. Recorded

@@ -90,6 +90,8 @@ export interface StepOutcome {
   modelId?: string;
   providerLimit?: unknown;
   testedGreen?: unknown;
+  /** An analyze's check that what the spec asks for already holds; read by `noChangeNeeded()` below. */
+  noChangeNeeded?: unknown;
   /** The faults an analyze stopped on its acceptance criteria named, by
    *  kind; read by `getCriteriaStopMessage`. */
   criteriaFaults?: unknown;
@@ -284,6 +286,15 @@ export function testedGreen(raw: unknown): TestedGreen | undefined {
     return undefined;
   }
   return { tree: r.tree, commands: r.commands as string[] };
+}
+
+/** `outcome.noChangeNeeded`, read as defensively: a check and a reason,
+ *  both non-empty strings, or nothing — the job ends on it. */
+export function noChangeNeeded(raw: unknown): { check: string; why: string } | undefined {
+  if (raw === null || typeof raw !== "object") return undefined;
+  const r = raw as Record<string, unknown>;
+  if (typeof r.check !== "string" || r.check === "" || typeof r.why !== "string" || r.why === "") return undefined;
+  return { check: r.check, why: r.why };
 }
 
 /** `outcome.providerLimit`, read the way `tokenUsage` reads its field:

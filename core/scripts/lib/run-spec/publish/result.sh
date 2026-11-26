@@ -237,6 +237,7 @@ line="$(jq -cn \
   --arg modelId "${model_id_out:-}" \
   --argjson providerLimit "${provider_limit_out:-null}" \
   --argjson testedGreen "${tested_green_json:-null}" \
+  --argjson noChangeNeeded "${no_change_json:-null}" \
   --argjson criteriaFaults "${criteria_faults_json:-null}" \
   --argjson sharedFiles "${shared_files_json:-null}" \
   --argjson testsNotStarted "${tests_not_started_json:-null}" \
@@ -293,6 +294,9 @@ line="$(jq -cn \
    # (run-spec/turn/step-tests.sh): the landing skips its own run of the same
    # commands on the same tree.
    + (if $testedGreen == null then {} else {testedGreen:$testedGreen} end)
+   # And for an analyze that found what the spec asks for already holds
+   # (run-spec/record/no-change-check.sh): the check and why it passed.
+   + (if $noChangeNeeded == null then {} else {noChangeNeeded:$noChangeNeeded} end)
    # And for the faults an analyze stopped on (run-spec/record/criteria-check.sh),
    # sorted by kind: present only on a step that stopped on them.
    + (if $criteriaFaults == null then {} else {criteriaFaults:$criteriaFaults} end)
