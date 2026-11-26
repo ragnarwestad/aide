@@ -69,7 +69,7 @@ describe("the sentences about a used-up usage limit ask for no press", () => {
 describe("a sentence that informs is not a problem", () => {
   const KEYS: MessageKey[] = [
     "push.scheduleDone", "login.in", "readiness.gitRoot.ok", "readiness.checkout.willMake",
-    "runner.dependencyNotArchived", "runner.usageLimitHeld", "wordPhase.stopSentBack",
+    "runner.dependencyNotArchived", "runner.usageLimitHeld", "runner.sentBack", "runner.shortAnalysisOverLimit",
   ];
 
   test.each(KEYS)("%s is shown without a Problem label", (key) => {

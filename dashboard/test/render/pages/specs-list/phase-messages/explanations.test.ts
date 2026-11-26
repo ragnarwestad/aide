@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { t } from "../../../../../src/i18n";
 import { formatSentence } from "../../../../../src/messages/format.ts";
+import { getModelAtCapacityMessage } from "../../../../../src/messages/jobs/outcomes.ts";
 import { stopSentence } from "../../../../../src/render/ui/job-state/word-phase.ts";
 import type { QueueRowView } from "../../../../../src/render";
 import type { Phase } from "../../../../../src/render/pages/specs-list/data-model";
@@ -43,6 +44,18 @@ describe("phaseExplanations", () => {
     expect(said[0]).toBe(t("en", "list.descriptionChangedSince"));
     expect(said[1]!.toLowerCase()).toContain(formatSentence("en", stopSentence("provider-limit"))!.replace(/^Problem: /, "").toLowerCase());
     expect(new Set(said).size).toBe(said.length);
+  });
+
+  test("a phase whose attempt stopped at capacity says the attempt's own sentence, as Jobs does (AC-1)", () => {
+    const error = getModelAtCapacityMessage("analyze", { terminalReason: "model-at-capacity" }, "opus")!;
+    const attempt = ended("analyze", {
+      state: "failed", model: "opus", error, results: [{ step: "analyze", ok: false, costUsd: 0, terminalReason: "model-at-capacity" }],
+    });
+    const said = phaseExplanations(group(), phase("analyze", { attempts: [attempt], history: { stopped: "model-at-capacity" } }), "en");
+    const [problem, solution] = formatSentence("en", error)!.split("\n");
+    expect(said).toHaveLength(1);
+    expect(said[0]).toContain(problem!.replace(/^Problem: /, ""));
+    expect(said[0]).toContain(solution!);
   });
 
   test("a phase with nothing to add has no explanations", () => {

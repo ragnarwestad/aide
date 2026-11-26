@@ -9,6 +9,8 @@ import type { Language } from "../../../i18n";
 import { t } from "../../../i18n";
 import { stepButton } from "../../../format/step-label.ts";
 import { capitalizeFirst } from "../../../messages/shared/written.ts";
+import { withoutStepFailed } from "../../../messages/format.ts";
+import { getNoProgressMessage, getRunStopMessage } from "../../../messages/jobs/outcomes.ts";
 import { isGuardEnding } from "../../../step-endings.ts";
 import { BADGE_VARIANT, inFlight, stateWord } from "./format.ts";
 import type { QueueRowView } from "./types.ts";
@@ -30,12 +32,35 @@ const STOP_SENTENCES: Record<string, MessageKey> = {
   "model-at-capacity": "wordPhase.stopModelAtCapacity",
   "acceptance-criteria": "wordPhase.stopAcceptanceCriteria",
   "shared-files": "wordPhase.stopSharedFiles",
-  "short-analysis-over-limit": "wordPhase.stopShortAnalysisOverLimit",
-  "sent-back": "wordPhase.stopSentBack",
   "sent-back-refused": "wordPhase.stopSentBackRefused",
 };
 
-export const stopSentence = (reason: string, step?: string): Sentence => {
+/** The outcomes Jobs words from the job's own result, and the step each
+ *  belongs to when the phase names none. */
+const JOB_OUTCOMES: Record<string, string> = {
+  "model-at-capacity": "analyze",
+  "acceptance-criteria": "analyze",
+  "short-analysis-over-limit": "analyze",
+  "sent-back": "implement",
+};
+
+/** The sentence Jobs shows for the same stop: the attempt's own stored
+ *  one when its result for this step ended the same way (it alone holds
+ *  the details, such as the criteria's faults), else the one the runner
+ *  builds from what the attempt records. Undefined when neither has what
+ *  the sentence needs: the catalogue's fallback then stands. */
+function jobOutcomeSentence(reason: string, step: string | undefined, attempt: QueueRowView | undefined): Sentence | Sentence[] | undefined {
+  const forStep = step ?? JOB_OUTCOMES[reason]!;
+  const result = attempt?.results?.findLast((r) => r.step === forStep);
+  if (attempt?.error !== undefined && result?.terminalReason === reason) return withoutStepFailed(attempt.error);
+  const outcome = { terminalReason: reason, modelId: result?.modelId };
+  const model = attempt?.stepModels?.[forStep] ?? attempt?.model;
+  return getRunStopMessage(forStep, outcome, model) ?? getNoProgressMessage(forStep, outcome);
+}
+
+export const stopSentence = (reason: string, step?: string, attempt?: QueueRowView): Sentence | Sentence[] => {
+  const shared = reason in JOB_OUTCOMES ? jobOutcomeSentence(reason, step, attempt) : undefined;
+  if (shared !== undefined) return shared;
   const key = STOP_SENTENCES[reason];
   return key ? { key, values: { button: step ? stepButton(step) : t("en", "message.itsButton") } } : reason;
 };
@@ -294,7 +319,7 @@ function stoppedWord(ctx: PhaseContext): PhaseWord | undefined {
       // (the State column says where a spec stands, errors go
       // in the error line).
       badge: { variant: failed ? BADGE_VARIANT.failed : "waiting", label: capitalizeFirst(word) },
-      qualifier: { key: "message.lead", values: { lead: `${word}:` }, inner: stopSentence(history.stopped, history.step) },
+      qualifier: { key: "message.lead", values: { lead: `${word}:` }, inner: stopSentence(history.stopped, history.step, ctx.attempt) },
     };
   }
   return undefined;

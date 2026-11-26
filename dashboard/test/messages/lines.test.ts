@@ -144,3 +144,12 @@ test("a lead does not reclassify an older error stored as plain text", () => {
   const text = formatMessage("en", m("message.lead", { values: { lead: "Analyze" }, inner: "legacy failure" }));
   expect(text).toStartWith("Problem:");
 });
+
+test("a failed step's information keeps its meaning with the step name before it (AC-1)", () => {
+  const stored = m("runner.stepFailed", {
+    values: { step: "analyze", button: "Analyze" }, inner: m("runner.shortAnalysisOverLimit", { values: { button: "Analyze" } }),
+  });
+  const text = formatMessage("en", stored);
+  expect(text).not.toMatch(/^(Problem|Solution):/m);
+  expect(text).toContain(formatMessage("en", stored.inner as BoardMessage).replace(/^./, (c) => c.toLowerCase()));
+});

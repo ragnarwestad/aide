@@ -154,7 +154,9 @@ function messageParts(lang: Language, m: BoardMessage, catalog: Catalog, inherit
   let innerSolution: string | undefined;
   if (m.inner !== undefined) {
     const inner = sentenceParts(lang, m.inner, catalog, values.button === undefined ? {} : { button: values.button });
-    if (m.key === "message.lead" && inner.information) {
+    // A lead or a failed step's name in front of information is still
+    // information: it carries no Problem label (docs/error-sentences.md).
+    if ((m.key === "message.lead" || m.key === "runner.stepFailed") && inner.information) {
       lines = false;
       information = true;
     }
