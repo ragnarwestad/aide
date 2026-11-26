@@ -1,8 +1,7 @@
 // A tool the board checked and found wanting is said at the top of every
-// page, and the line takes the reader to the Providers tab. An AI
-// whose configured models its last Models reading no longer offers is said
-// the same way, worked out from the choices
-// as they are now.
+// page, with what is wrong and the one fix for it. An AI whose configured
+// models its last Models reading no longer offers is said too, linking to
+// the Providers tab, worked out from the choices as they are now.
 
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
@@ -12,7 +11,6 @@ import {
 } from "../../../src/render/ui/tool-checks.ts";
 import type { ModelChoice } from "../../../src/queue/types.ts";
 import type { ToolModels } from "../../../src/render";
-import { t } from "../../../src/i18n";
 
 const windows: Window[] = [];
 
@@ -34,18 +32,19 @@ function faultLines(html: string): Element[] {
 }
 
 describe("the tool-fault line", () => {
-  test("a Claude Code that is not logged in links to the Providers tab", () => {
+  test("a provider that is not logged in gives the command that logs it in, not a page to go and look at", () => {
     setConfiguredTools(() => ["claude"]);
     recordCheck({
       tool: "claude", at: "2026-10-03T13:30:00.000Z", found: true,
-      extra: [{ question: "Is it logged in?", ok: false, detail: "", problem: "not logged in" }],
+      extra: [{
+        question: "Is it logged in?", ok: false, detail: "", problem: "not logged in", provider: "Claude-2",
+        answer: { key: "login.out", values: { command: "CLAUDE_CONFIG_DIR=~/.claude-2 claude auth login" } },
+      }],
     });
     const [line, ...rest] = faultLines(headerNotices("en"));
     expect(rest).toEqual([]);
-    const links = Array.from(line!.querySelectorAll("a"));
-    expect(links.map((a) => [a.getAttribute("href"), a.textContent])).toEqual([
-      ["/settings?tab=providers", t("en", "shell.toolFaultWhere")],
-    ]);
+    expect(line!.textContent).toContain("CLAUDE_CONFIG_DIR=~/.claude-2 claude auth login");
+    expect(line!.querySelectorAll("a")).toHaveLength(0);
   });
 
   test("no tool with a fault draws no line", () => {
@@ -109,7 +108,7 @@ describe("the models no longer offered", () => {
     const hrefs = faultLines(headerNotices("en")).map((line) =>
       Array.from(line.querySelectorAll("a")).map((a) => a.getAttribute("href")));
     expect(hrefs).toEqual([
-      ["/settings?tab=providers"],
+      [],
       ["/settings?tab=providers"],
     ]);
   });

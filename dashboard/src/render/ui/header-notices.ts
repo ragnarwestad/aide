@@ -7,6 +7,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { checkoutFaults, checkoutFaultPresentation } from "./checkout-faults.ts";
+import { UNANSWERED_MINUTES } from "./faults/unanswered.ts";
 import { rowMessage, btn } from "./components";
 import { esc } from "./html.ts";
 import { jobsSentence } from "./components/spec-name.ts";
@@ -76,22 +77,13 @@ export function restartWaitingNotice(lang: Language): string {
   return drawnBy ? notice.replace("<p ", `<p data-started-at="${esc(drawnBy)}" `) : notice;
 }
 
-/** A tool the board checked and found wanting (2026-09-16). Without
- *  this the answer lives on a Settings tab nobody has a reason to open,
- *  and the first anyone learns of it is a run that failed. One line per
- *  tool, since two faulty tools are two different fixes. The line links to
- *  the Providers tab, where each provider's page has the Installation tab that asks again. */
+/** A tool the board checked and found wanting. Without this the answer
+ *  lives on a Settings tab nobody has a reason to open, and the first
+ *  anyone learns of it is a run that failed. One line per tool, each
+ *  thing wrong with its own fix. */
 function toolFaultNotices(lang: Language): string {
   return toolsWithFaults()
-    .map(({ tool, problems }) => {
-      const values = { tool: TOOL_TAB_LABELS[tool], problems: problems.join(", ") };
-      const where = t(lang, "shell.toolFaultWhere");
-      // The link is placed into the sentence after escaping it.
-      const MARK = "\u0000";
-      const link = `<a data-goto href="${esc("/settings?tab=providers")}">${esc(where)}</a>`;
-      const html = esc(t(lang, "shell.toolFault", { ...values, where: MARK })).replace(MARK, link);
-      return rowMessage("waiting", t(lang, "shell.toolFault", { ...values, where }), { tag: "p", hook: "tool-fault", html });
-    })
+    .map(({ faults }) => rowMessage("waiting", formatSentence(lang, faults) ?? "", { tag: "p", hook: "tool-fault" }))
     .join("");
 }
 
@@ -134,7 +126,7 @@ function checkoutFaultNotices(lang: Language): string {
   return checkoutFaults()
     .map(({ project, said, recheck }) => {
       const presentation = checkoutFaultPresentation(recheck);
-      return rowMessage(presentation.variant, t(lang, recheck ? "shell.checkoutNotChecked" : "shell.checkoutFault", { project, said }), {
+      return rowMessage(presentation.variant, t(lang, recheck ? "shell.checkoutNotChecked" : "shell.checkoutFault", { project, said, minutes: String(UNANSWERED_MINUTES) }), {
         tag: "p",
         hook: "checkout-fault",
         actions: presentation.dismissible ? btn({ label: t(lang, "shell.dismiss"), type: "button", small: true, data: { "dismiss-checkout-warning": "" } }) : undefined,

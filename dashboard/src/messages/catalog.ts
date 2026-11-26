@@ -18,6 +18,7 @@ import { ACTIONS_GIT } from "./actions/git.ts";
 import { NOTIFICATIONS_CATALOG } from "./notifications/catalog.ts";
 import { LOGIN_CATALOG } from "./login/catalog.ts";
 import { READINESS_CATALOG } from "./readiness/catalog.ts";
+import { TOOLS_CATALOG } from "./tools/catalog.ts";
 
 export type { MessageEntry } from "./types.ts";
 
@@ -42,6 +43,7 @@ export const MESSAGES = {
   ...NOTIFICATIONS_CATALOG,
   ...LOGIN_CATALOG,
   ...READINESS_CATALOG,
+  ...TOOLS_CATALOG,
 } as const;
 
 export type MessageKey = keyof typeof MESSAGES;

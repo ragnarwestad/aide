@@ -28,6 +28,7 @@ import { forgetChecks, lastChecks, recordCheck, setConfiguredTools, setModelChoi
 // import site for "check a tool and remember the answer".
 export { forgetChecks, lastChecks, recordCheck, setConfiguredTools, setModelChoices, toolsWithFaults };
 import { CHECKABLE_TOOLS } from "../render";
+import { OTHER_ACCOUNT_PROBLEM, OTHER_ACCOUNT_REMOVAL } from "../render/pages/settings-page/tools.ts";
 import type { CheckableTool, ExtraCheck, ToolCheck } from "../render";
 import type { BoardMessage } from "../messages/types.ts";
 
@@ -154,7 +155,7 @@ function mixedLogins(parsed: Record<string, unknown>): string | undefined {
   const name = plan.charAt(0).toUpperCase() + plan.slice(1);
   return (
     `A ${name} plan does not belong to a personal account: the stored login is probably another account's ` +
-    "than the one named here, and runs use that one. On macOS it lives in the keychain: remove it with `security delete-generic-password -s \"Claude Code-credentials\"` and check again."
+    `than the one named here, and runs use that one. On macOS it lives in the keychain: remove it with \`${OTHER_ACCOUNT_REMOVAL}\` and check again.`
   );
 }
 
@@ -195,7 +196,7 @@ async function loginCheck(
           // Only what follows the answer: the tab draws the answer itself.
           detail: mixed ?? "",
           answer: loggedIn(str(parsed.authMethod), claudeAccount(parsed)),
-          ...(mixed ? { problem: "the login in use is another account's" } : {}),
+          ...(mixed ? { problem: OTHER_ACCOUNT_PROBLEM } : {}),
           ...(ends ? { ends } : {}),
           ...(plan ? { plan: plan.charAt(0).toUpperCase() + plan.slice(1) } : {}),
         };
@@ -259,7 +260,7 @@ export async function checkTool(tool: CheckableTool, opts: CheckOptions = {}): P
   const preflight = opts.scriptDir ? scriptFor("aide-preflight", { beside: opts.scriptDir }) : path("aide-preflight");
   const result = await run([preflight, "--facts", tool], process.cwd(), CHECK_TIMEOUT_MS);
   if (result.timedOut) {
-    return { tool, at, found: false, extra: [], error: "The check did not finish in time." };
+    return { tool, at, found: false, extra: [], error: "The check did not finish in time.", unfinished: true };
   }
   const facts = result.code === 0 ? readFacts(result.stdout) : undefined;
   if (!facts) {

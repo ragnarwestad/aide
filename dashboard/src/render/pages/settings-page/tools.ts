@@ -23,6 +23,13 @@ import { usageView, type ToolUsage } from "./usage.ts";
 export const CHECKABLE_TOOLS = PROVIDER_TOOLS;
 export type CheckableTool = ProviderTool;
 
+/** The problem a Claude login names when the stored login is another
+ *  account's than the one Claude Code reports. */
+export const OTHER_ACCOUNT_PROBLEM = "the login in use is another account's";
+
+/** What removes that stored login on macOS, where it lives in the keychain. */
+export const OTHER_ACCOUNT_REMOVAL = 'security delete-generic-password -s "Claude Code-credentials"';
+
 export interface ExtraCheck {
   question: string;
   /** true, false, or null when the answer could not be obtained - which
@@ -64,6 +71,9 @@ export interface ToolCheck {
   /** Set when the script could not be run at all, rather than running
    *  and reporting a problem. The two read differently on the page. */
   error?: string;
+  /** Set when the check did not finish in time: no answer about the tool,
+   *  only that the machine was too busy to give one. */
+  unfinished?: true;
 }
 
 export const TOOL_TAB_LABELS: Record<CheckableTool, string> = Object.fromEntries(

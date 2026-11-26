@@ -15,12 +15,22 @@
 //
 // `recheck` marks a warning left by a check git did not finish: nothing
 // is known yet, and the drift poll asks again rather than leaving it to
-// the five-minute sweep.
+// the five-minute sweep. Such a warning is said only once the checkout has
+// gone unanswered for `UNANSWERED_FOR_MS`, and never over an answer git
+// did give.
 
-const faults = new Map<string, { said: string; recheck: boolean }>();
+import { unansweredLongEnough } from "./faults/unanswered.ts";
 
-export function setCheckoutFault(project: string, said: string, recheck = false): void {
-  faults.set(project, { said, recheck });
+const faults = new Map<string, { said: string; recheck: boolean; since?: number }>();
+
+export function setCheckoutFault(project: string, said: string, recheck = false, now: number = Date.now()): void {
+  if (!recheck) {
+    faults.set(project, { said, recheck });
+    return;
+  }
+  const before = faults.get(project);
+  if (before && !before.recheck) return;
+  faults.set(project, { said, recheck, since: before?.since ?? now });
 }
 
 export function clearCheckoutFault(project: string): void {
@@ -34,9 +44,12 @@ export function clearCheckoutFaults(): void {
   faults.clear();
 }
 
-/** One entry per project, in the order they were first reported. */
-export function checkoutFaults(): { project: string; said: string; recheck: boolean }[] {
-  return [...faults].map(([project, fault]) => ({ project, ...fault }));
+/** One entry per project to say, in the order they were first reported:
+ *  an unfinished check only once it has gone unanswered long enough. */
+export function checkoutFaults(now: number = Date.now()): { project: string; said: string; recheck: boolean }[] {
+  return [...faults]
+    .filter(([, fault]) => !fault.recheck || unansweredLongEnough(fault.since ?? now, now))
+    .map(([project, { said, recheck }]) => ({ project, said, recheck }));
 }
 
 /** The projects whose warning is marked to be checked again soon. */

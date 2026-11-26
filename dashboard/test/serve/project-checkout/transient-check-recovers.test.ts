@@ -1,5 +1,6 @@
-// A checkout check that git did not finish puts a warning at the top of
-// the page, and the next check that succeeds takes it away — with no job
+// A checkout check that git did not finish leaves a warning, said at the
+// top of the page once the checkout has gone unanswered long enough, and
+// the next check that succeeds takes it away — with no job
 // queued and no restart, because under load the very same checkout
 // answers again a moment later.
 
@@ -9,7 +10,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { setupProjectResolution } from "../../../src/serve/setup/project-resolution.ts";
 import { createServerState } from "../../../src/serve/state.ts";
-import { checkoutFaults, clearCheckoutFaults } from "../../../src/render/ui/checkout-faults.ts";
+import { checkoutFaults, checkoutsToRecheck, clearCheckoutFaults } from "../../../src/render/ui/checkout-faults.ts";
+import { UNANSWERED_FOR_MS } from "../../../src/render/ui/faults/unanswered.ts";
 import { dashboardCheckoutRoot, ensureDashboardCheckout } from "../../../src/git/dashboard-checkout/index.ts";
 import { createGitRunner, type GitRunner } from "../../../src/git/process/index.ts";
 import type { ScheduleStore } from "../../../src/queue/schedule-store.ts";
@@ -67,10 +69,14 @@ test("a later check that succeeds clears the warning a timed-out one left (AC-3)
     {} as ScheduleStore,
   );
 
+  const later = () => Date.now() + UNANSWERED_FOR_MS;
+
   await resolution.ensureCheckout("aide", { fresh: true });
-  expect(checkoutFaults()).toEqual([expect.objectContaining({ project: "aide", recheck: true })]);
+  expect(checkoutsToRecheck()).toEqual(["aide"]);
+  expect(checkoutFaults(later())).toEqual([expect.objectContaining({ project: "aide", recheck: true })]);
 
   loaded = false;
   await resolution.ensureCheckout("aide");
-  expect(checkoutFaults()).toEqual([]);
+  expect(checkoutsToRecheck()).toEqual([]);
+  expect(checkoutFaults(later())).toEqual([]);
 });

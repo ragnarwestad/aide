@@ -336,8 +336,16 @@ answers. While the page waits, the click shows the same Loading cover as any oth
 fails or runs out of time says so in the tab. The models are read with the provider's own folders in the environment. Each opening reads again and
 records what it read: the models feed Add, the pickers and the notice about models no longer offered, and the
 installation check feeds the notice about a login. The installation check also runs at start and before a waiting job,
-for Claude Code, Codex and OpenCode, which is what that notice at the top of every page reads; the notice links to the
-Providers tab.
+for Claude Code, Codex and OpenCode, which is what that notice at the top of every page reads. The notice has one
+line per AI, and each thing wrong is said with its own fix:
+
+- **Not installed:** install the AI on the machine the board runs on.
+- **Not logged in:** the provider's own login command, to run on that machine.
+- **A stored login of another account:** the command that removes it, before logging in again.
+- **No answer the board can read:** the check's command, to run on that machine and see what it says.
+
+An installation check that did not finish in time keeps the last answer and says nothing. Only when the AI's checks
+have gone unanswered for 15 minutes does the notice say the machine is too busy to answer them.
 
 **The notice about models no longer offered** at the top of every page names the choices of an AI that its last Models
 reading does not offer, and links to the Providers tab, where a provider's Models tab has Remove. Removing a choice

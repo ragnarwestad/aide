@@ -12,11 +12,20 @@
 // at one moment, and a restart is exactly the kind of event that can
 // invalidate it.
 
-import type { CheckableTool, ToolCheck } from "../pages/settings-page/tools.ts";
+import {
+  OTHER_ACCOUNT_PROBLEM, OTHER_ACCOUNT_REMOVAL, TOOL_TAB_LABELS, type CheckableTool, type ToolCheck,
+} from "../pages/settings-page/tools.ts";
 import { modelLists, sameModel, type ToolModels } from "../pages/settings-page/models.ts";
 import type { ModelChoice } from "../../queue/types.ts";
+import type { BoardMessage } from "../../messages/types.ts";
+import { providerLoginCommand } from "../../queue/providers/login-command.ts";
+import { UNANSWERED_MINUTES, unansweredLongEnough } from "./faults/unanswered.ts";
 
 const LAST: Map<CheckableTool, ToolCheck> = new Map();
+
+/** Since when (ms) each tool's checks have not finished, for as long as
+ *  none has: a check the machine was too busy to finish is no answer. */
+const UNANSWERED: Map<CheckableTool, number> = new Map();
 
 /** The last reading of each tool's models, kept apart for the same
  *  reason as the usage: only a provider's Models tab reads them. */
@@ -39,7 +48,14 @@ export function setModelChoices(source: () => Record<string, ModelChoice> | unde
   choices = source;
 }
 
+/** A finished check replaces the last answer. One that did not finish
+ *  keeps it, and starts the time the header counts before it says so. */
 export function recordCheck(check: ToolCheck): void {
+  if (check.unfinished) {
+    if (!UNANSWERED.has(check.tool)) UNANSWERED.set(check.tool, Date.parse(check.at) || Date.now());
+    return;
+  }
+  UNANSWERED.delete(check.tool);
   LAST.set(check.tool, check);
 }
 
@@ -59,31 +75,53 @@ export function lastModels(): Partial<Record<CheckableTool, ToolModels>> {
  *  next file's expectations. */
 export function forgetChecks(): void {
   LAST.clear();
+  UNANSWERED.clear();
   MODELS.clear();
   configured = undefined;
   choices = undefined;
 }
 
 /** Which tools this server has found something wrong with, as the header
- *  notice needs it: the tool's own name and the questions that came back
- *  "no". A question nobody could ASK is not a fault - the page says so,
- *  and a banner that fired on it would be on permanently. */
-export function toolsWithFaults(): { tool: CheckableTool; problems: string[] }[] {
-  const out: { tool: CheckableTool; problems: string[] }[] = [];
+ *  notice needs it: one message per thing wrong, each with its own fix. A
+ *  question nobody could ASK is not a fault - the page says so, and a
+ *  banner that fired on it would be on permanently. Nor is a check that
+ *  did not finish, until it has gone unanswered for `UNANSWERED_FOR_MS`. */
+export function toolsWithFaults(now: number = Date.now()): { tool: CheckableTool; faults: BoardMessage[] }[] {
   // A tool no model is configured for is never run, so its login is not
   // what stands between a reader and a working run.
   const usable = configured ? new Set(configured()) : undefined;
-  for (const check of LAST.values()) {
-    if (usable && !usable.has(check.tool)) continue;
-    const problems: string[] = [];
-    if (check.error) problems.push(check.error);
-    else if (!check.found) problems.push("not installed");
-    for (const entry of check.extra) {
-      if (entry.ok === false) problems.push(entry.problem ?? entry.question.replace(/\?$/, "").toLowerCase());
-    }
-    if (problems.length > 0) out.push({ tool: check.tool, problems });
+  const tools = new Set<CheckableTool>([...LAST.keys(), ...UNANSWERED.keys()]);
+  const out: { tool: CheckableTool; faults: BoardMessage[] }[] = [];
+  for (const tool of tools) {
+    if (usable && !usable.has(tool)) continue;
+    const since = UNANSWERED.get(tool);
+    const faults = since !== undefined && unansweredLongEnough(since, now)
+      ? [{ key: "tools.unanswered", values: { tool: TOOL_TAB_LABELS[tool], minutes: UNANSWERED_MINUTES } } as BoardMessage]
+      : checkFaults(LAST.get(tool));
+    if (faults.length > 0) out.push({ tool, faults });
   }
   return out;
+}
+
+/** What one finished check found wrong. Every question that comes back
+ *  "no" is the login's: not logged in, with the command that logs it in,
+ *  or a stored login of another account, with the command that removes it. */
+function checkFaults(check: ToolCheck | undefined): BoardMessage[] {
+  if (!check) return [];
+  const tool = TOOL_TAB_LABELS[check.tool];
+  if (check.error) {
+    return [{ key: "tools.unreadable", values: { tool, said: check.error, command: `aide-preflight --facts ${check.tool}` } }];
+  }
+  if (!check.found) return [{ key: "tools.notInstalled", values: { tool } }];
+  return check.extra.filter((entry) => entry.ok === false).map((entry): BoardMessage => {
+    const who = entry.provider ?? tool;
+    if (entry.problem === OTHER_ACCOUNT_PROBLEM) return { key: "tools.otherAccount", values: { who, command: OTHER_ACCOUNT_REMOVAL } };
+    const command = entry.answer?.values?.command;
+    return {
+      key: "tools.notLoggedIn",
+      values: { who, command: typeof command === "string" ? command : providerLoginCommand({ tool: check.tool }) },
+    };
+  });
 }
 
 /** Each AI whose configured models its last Models reading no longer

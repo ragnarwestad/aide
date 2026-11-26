@@ -17,6 +17,7 @@ import { ensureDashboardCheckout } from "../../../src/git/dashboard-checkout/ind
 
 import { clearCheckoutFault, clearCheckoutFaults, setCheckoutFault, checkoutFaultPresentation } from "../../../src/render/ui/checkout-faults.ts";
 import { complain } from "../../../src/serve/project-checkout.ts";
+import { UNANSWERED_FOR_MS, UNANSWERED_MINUTES } from "../../../src/render/ui/faults/unanswered.ts";
 import { pageShell } from "../../../src/render/ui/shell.ts";
 import { t } from "../../../src/i18n/index.ts";
 
@@ -89,7 +90,7 @@ describe("what complain() keeps for diagnosis", () => {
     }
   });
 
-  test("a warning marked to be checked again is drawn from its own words (AC-2)", () => {
+  test("a check git did not finish says nothing until the checkout has gone unanswered long enough", () => {
     const ctx = { saidAbout: new Map<string, string>() } as Parameters<typeof complain>[0];
     const logged = spyOn(console, "error").mockImplementation(() => {});
     try {
@@ -97,11 +98,21 @@ describe("what complain() keeps for diagnosis", () => {
     } finally {
       logged.mockRestore();
     }
+    expect(shell()).not.toContain("checkout-fault");
+
+    clearCheckoutFaults();
+    setCheckoutFault("woodstack", "not checked yet", true, Date.now() - UNANSWERED_FOR_MS);
     // The line starts with a capital letter, whatever the entry starts with.
-    const values = { project: "woodstack", said: "not checked yet" };
+    const values = { project: "woodstack", said: "not checked yet", minutes: String(UNANSWERED_MINUTES) };
+    expect(shell().toLowerCase()).toContain(t("en", "shell.checkoutNotChecked", values).toLowerCase());
+  });
+
+  test("a check git did not finish does not replace an answer git gave", () => {
+    setCheckoutFault("woodstack", "the checkout is broken");
+    setCheckoutFault("woodstack", "not checked yet", true, Date.now() - UNANSWERED_FOR_MS);
     const page = shell().toLowerCase();
-    expect(page).toContain(t("en", "shell.checkoutNotChecked", values).toLowerCase());
-    expect(page).not.toContain(t("en", "shell.checkoutFault", values).toLowerCase());
+    expect(page).toContain(t("en", "shell.checkoutFault", { project: "woodstack", said: "the checkout is broken" }).toLowerCase());
+    expect(page).not.toContain("not checked yet");
   });
 });
 

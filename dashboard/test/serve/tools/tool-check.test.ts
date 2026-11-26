@@ -12,6 +12,8 @@ import { join } from "node:path";
 import {
   checkAllTools, checkTool, forgetChecks, lastChecks, recordCheck, setConfiguredTools, stripAnsi, toolRechecker, toolsWithFaults,
 } from "../../../src/serve/tool-check.ts";
+import { OTHER_ACCOUNT_REMOVAL } from "../../../src/render/pages/settings-page/tools.ts";
+import { UNANSWERED_FOR_MS } from "../../../src/render/ui/faults/unanswered.ts";
 
 type RunResult = { code: number; stdout: string; stderr: string; timedOut: boolean };
 
@@ -172,7 +174,9 @@ describe("whether a provider is logged in", () => {
     const check = await checkTool("claude", opts(run, { providers: () => ({ "Claude-2": PROVIDERS["Claude-2"] }), home: "/home/x" }));
     expect(check.extra[0]!.answer).toEqual({ key: "login.out", values: { command: "CLAUDE_CONFIG_DIR=~/.claude-2 claude auth login" } });
     recordCheck(check);
-    expect(toolsWithFaults()).toEqual([{ tool: "claude", problems: ["Claude-2 not logged in"] }]);
+    expect(toolsWithFaults()).toEqual([{ tool: "claude", faults: [
+      { key: "tools.notLoggedIn", values: { who: "Claude-2", command: "CLAUDE_CONFIG_DIR=~/.claude-2 claude auth login" } },
+    ] }]);
     forgetChecks();
   });
 
@@ -412,7 +416,9 @@ describe("what the header notice is told", () => {
       found: true,
       extra: [{ question: "Is it logged in?", ok: false, detail: "none" }],
     });
-    expect(toolsWithFaults()).toEqual([{ tool: "opencode", problems: ["is it logged in"] }]);
+    expect(toolsWithFaults()).toEqual([{ tool: "opencode", faults: [
+      { key: "tools.notLoggedIn", values: { who: "OpenCode", command: "opencode auth login" } },
+    ] }]);
     forgetChecks();
   });
 
@@ -426,10 +432,27 @@ describe("what the header notice is told", () => {
     forgetChecks();
   });
 
+  test("a check that did not finish keeps the last answer and says nothing until it has gone unanswered long enough", () => {
+    forgetChecks();
+    const at = Date.parse("2026-11-26T08:00:00.000Z");
+    recordCheck({ tool: "claude", at: new Date(at - 60_000).toISOString(), found: true, extra: [] });
+    const unfinished = { tool: "claude" as const, found: false, extra: [], error: "The check did not finish in time.", unfinished: true as const };
+    recordCheck({ ...unfinished, at: new Date(at).toISOString() });
+    recordCheck({ ...unfinished, at: new Date(at + 60_000).toISOString() });
+    expect(lastChecks().claude?.found).toBe(true);
+    expect(toolsWithFaults(at + UNANSWERED_FOR_MS - 1)).toEqual([]);
+    expect(toolsWithFaults(at + UNANSWERED_FOR_MS)).toEqual([
+      { tool: "claude", faults: [{ key: "tools.unanswered", values: { tool: "Claude Code", minutes: 15 } }] },
+    ]);
+    recordCheck({ tool: "claude", at: new Date(at + UNANSWERED_FOR_MS).toISOString(), found: true, extra: [] });
+    expect(toolsWithFaults(at + UNANSWERED_FOR_MS)).toEqual([]);
+    forgetChecks();
+  });
+
   test("a CLI that is not installed is a fault on its own", () => {
     forgetChecks();
     recordCheck({ tool: "codex", at: "2026-09-16T08:00:00.000Z", found: false, extra: [] });
-    expect(toolsWithFaults()).toEqual([{ tool: "codex", problems: ["not installed"] }]);
+    expect(toolsWithFaults()).toEqual([{ tool: "codex", faults: [{ key: "tools.notInstalled", values: { tool: "Codex" } }] }]);
     forgetChecks();
   });
 });
@@ -451,14 +474,14 @@ describe("what the header notice says, and about which tools", () => {
     setConfiguredTools(() => ["claude"]);
     faulty("claude", "the login in use is another account's");
     faulty("opencode");
-    expect(toolsWithFaults()).toEqual([{ tool: "claude", problems: ["the login in use is another account's"] }]);
+    expect(toolsWithFaults().map(({ tool, faults }) => [tool, faults.map((f) => f.key)])).toEqual([["claude", ["tools.otherAccount"]]]);
     forgetChecks();
   });
 
   test("with no configuration known, every faulty tool is named as before", () => {
     forgetChecks();
     faulty("opencode");
-    expect(toolsWithFaults()).toEqual([{ tool: "opencode", problems: ["is it logged in"] }]);
+    expect(toolsWithFaults().map(({ tool, faults }) => [tool, faults.map((f) => f.key)])).toEqual([["opencode", ["tools.notLoggedIn"]]]);
     forgetChecks();
   });
 
@@ -474,7 +497,9 @@ describe("what the header notice says, and about which tools", () => {
       },
     });
     recordCheck(await checkTool("claude", opts(run)));
-    expect(toolsWithFaults()).toEqual([{ tool: "claude", problems: ["the login in use is another account's"] }]);
+    expect(toolsWithFaults()).toEqual([{ tool: "claude", faults: [
+      { key: "tools.otherAccount", values: { who: "Claude Code", command: OTHER_ACCOUNT_REMOVAL } },
+    ] }]);
     forgetChecks();
   });
 });
