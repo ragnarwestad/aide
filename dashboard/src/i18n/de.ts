@@ -23,6 +23,8 @@ export const de: Record<TranslationKey, string> = {
   "shell.usage": "Nutzung",
   "shell.deployWaiting": "{project} hat {count} neue Commits zum Bereitstellen",
   "shell.deployWaitingOne": "{project} hat {count} neuen Commit zum Bereitstellen",
+  "shell.deployHelpCurrent": "Ein grünes Deploy-Symbol bedeutet, dass das Board auf dem neuesten Stand ist.",
+  "shell.deployHelpPending": "Die Zahl am Deploy-Symbol zeigt, wie viele Commits auf das Deployment warten.",
   "shell.deployUpToDate": "{project} ist auf dem Stand von {branch}",
   "shell.themeDark": "Dunkel",
   "shell.themeLight": "Hell",

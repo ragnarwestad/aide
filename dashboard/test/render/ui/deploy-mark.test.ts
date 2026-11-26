@@ -3,6 +3,8 @@
 // what the drift poll last found.
 import { afterEach, describe, expect, test } from "bun:test";
 
+import { KIND_ICONS } from "../../../src/render/ui/components/icons.ts";
+import { t } from "../../../src/i18n";
 import { pageShell } from "../../../src/render/ui/shell.ts";
 import { deployAskDialog } from "../../../src/render/pages/projects-page/deploy-dialog.ts";
 import {
@@ -22,6 +24,7 @@ describe("the header's Deploy mark", () => {
     expect(mark).toContain(`data-ask="${DEPLOY_MARK_DIALOG}"`);
     expect(mark).toContain("(3)");
     expect(mark).toContain("aide has 3 new commits to deploy");
+    expect(mark).toContain(t("en", "shell.deployHelpPending"));
     expect(html).toContain(deployAskDialog("en", "aide", DEPLOY_MARK_DIALOG));
   });
 
@@ -36,11 +39,14 @@ describe("the header's Deploy mark", () => {
     expect(deployMark("en", { project: "aide", commits: 1, branch: "main" })).toContain("aide has 1 new commit to deploy");
   });
 
-  test("draws an up-to-date tick without a count or question (AC-4)", () => {
+  test("explains the shared Deploy icon when nothing is waiting (AC-4)", () => {
     setDeployWaiting(() => ({ project: "aide", commits: 0, branch: "main" }));
     const html = render();
     const mark = markOf(html);
+    expect(mark).toContain(KIND_ICONS.deploy);
     expect(mark).toContain("uptodate");
+    expect(mark).toContain(t("en", "shell.deployHelpCurrent"));
+    expect(html).toContain(t("en", "shell.deployHelpPending"));
     expect(mark).toContain("aide is up to date with main");
     expect(mark).not.toContain("data-ask");
     expect(mark).not.toContain("(0)");

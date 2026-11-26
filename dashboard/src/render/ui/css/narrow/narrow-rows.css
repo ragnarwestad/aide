@@ -214,22 +214,15 @@
      trigger on desktop; at phone width they hide, and the "…" menu's
      own flat morerows copy (rows-and-forms.css) takes over instead. */
   .menu.theme, .menu.lang, .menu.unit { display: none; }
-  /* The board's name stays in the header to the last; its Stop button
-     moves into the "…" menu, first row — beside the wordmark the two
-     together wrapped "aide -dashboard" onto two lines. */
-    header > .boardline > .actionform { display: none; }
-  /* The wordmark never wraps. The board's name has a line of its own
-     under the wordmark and the "…", centred (`::after` is the line break);
-     the Deploy mark stays just right of it, out of the flow. */
+  header .boardline > .actionform { display: none; }
   header .brand { flex: none; white-space: nowrap; }
-  header { flex-wrap: wrap; row-gap: 0; }
-  header::after { content: ""; order: 2; flex-basis: 100%; }
-    header > .boardline { order: 3; margin-inline: auto; min-width: 0; justify-content: center; text-align: center; }
+  header > [data-board-identity] { display: flex; flex: 1 1 auto; flex-wrap: wrap;
+    align-items: center; gap: 0 var(--sp-3); min-width: 0; }
+  header .boardline { margin-inline: auto; min-width: 0; text-align: center; }
     .menupanel > .boardrow { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); white-space: nowrap;
     padding: var(--sp-1) var(--sp-2); border-bottom: 1px solid var(--line); margin-bottom: 2px; }
   .menu .morerows { display: flex; }
-  /* The controls' row holds its width on one line, so "…" stays at the
-     header's right end; the board line is what gives way. */
+  /* The controls stay at the right of the header when the board name wraps. */
   header > .row:not(.boardline) { flex: none; flex-wrap: nowrap; position: relative; }
   /* Usage's and the search help's triggers give way to the "…" menu's
      rows. Each <details> stays, since its panel is what opens: taken out of
@@ -383,6 +376,8 @@
    the whole header — and with it the page — past the viewport instead
    of scrolling only the bar itself. */
 @media (orientation: landscape) and (max-height: 30rem) and (max-width: 60rem) {
+  header .boardline { order: 1; }
+  header > .row { order: 2; }
   header > nav.tabbar { display: flex; flex: 1 1 auto; justify-content: center; gap: var(--sp-3);
     padding: 0; border-bottom: 0; min-width: 0; overflow-x: auto; }
   header > nav.tabbar .tab { min-width: 0; padding-left: var(--sp-2); padding-right: var(--sp-2); }

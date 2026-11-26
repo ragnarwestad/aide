@@ -151,7 +151,8 @@ export function tabBarHelp(lang: Language, tabs: { word: string; kind?: SiteTab 
     t(lang, "shell.tabHelpTitle"),
     `<span data-tab-list>${lines}<br><br></span>${esc(t(lang, "shell.tabHelpCounts"))}` +
       `<br>• ${esc(t(lang, "shell.tabRunning"))}: ${esc(t(lang, "shell.tabHelpCount.jobs"))}` +
-      `<br>• ${esc(t(lang, "shell.tabSpecs"))}: ${esc(t(lang, "shell.tabHelpCount.specs"))}`,
+      `<br>• ${esc(t(lang, "shell.tabSpecs"))}: ${esc(t(lang, "shell.tabHelpCount.specs"))}` +
+      `<br><br>${esc(t(lang, "shell.deployHelpCurrent"))}<br>${esc(t(lang, "shell.deployHelpPending"))}`,
   );
 }
 

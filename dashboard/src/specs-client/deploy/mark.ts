@@ -46,7 +46,7 @@ export const browserMarkIo = (): MarkIo => ({
   slot: () => document.querySelector("header .deploymark"),
   syncControls: (html) => syncDeployControls(document, html),
   hasElement: (id) => document.getElementById(id) !== null,
-  addDialog: (html) => document.querySelector("header > .boardline")?.insertAdjacentHTML("afterend", html),
+  addDialog: (html) => document.querySelector("header .boardline")?.insertAdjacentHTML("afterend", html),
   fetchMark: async () => {
     const res = await fetch("/api/deploy-mark", { headers: { accept: "text/html" }, cache: "no-store" });
     return res.ok ? res.text() : null;

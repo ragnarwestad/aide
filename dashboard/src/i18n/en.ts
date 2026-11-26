@@ -24,6 +24,8 @@ export const en = {
   "shell.usage": "Usage",
   "shell.deployWaiting": "{project} has {count} new commits to deploy",
   "shell.deployWaitingOne": "{project} has {count} new commit to deploy",
+  "shell.deployHelpCurrent": "A green Deploy icon means the board is up to date.",
+  "shell.deployHelpPending": "A number by the Deploy icon shows how many commits are waiting for Deploy.",
   "shell.deployUpToDate": "{project} is up to date with {branch}",
   "shell.themeDark": "Dark",
   "shell.themeLight": "Light",
