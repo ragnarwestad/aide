@@ -126,3 +126,13 @@ test("a group Archive waits while a member's own step is queued, running or wait
   store.writeUnchecked(member.id, { state: "failed" });
   expect(holdFor(store.get(archive.id)!, { ...context({}), maxConcurrent: 4 })).toBeUndefined();
 });
+
+test("an Archive does not wait on a step a usage limit stopped when a newer job for the spec took that step over", () => {
+  const stopped = enqueue({ steps: ["analyze", "implement", "archive"] });
+  store.writeUnchecked(stopped.id, { state: "waiting", finishedAt: new Date(now - 60_000).toISOString() });
+  const archive = enqueue({ steps: ["analyze", "implement", "archive"] });
+  store.writeUnchecked(archive.id, { stepIndex: 2, createdAt: new Date(now - 30_000).toISOString() });
+  expect(holdFor(store.get(archive.id)!, { ...context({}), maxConcurrent: 4 })).toBeUndefined();
+  store.writeUnchecked(archive.id, { createdAt: new Date(now - 90_000).toISOString() });
+  expect(holdFor(store.get(archive.id)!, { ...context({}), maxConcurrent: 4 })?.name).toBe("spec-work-open");
+});
