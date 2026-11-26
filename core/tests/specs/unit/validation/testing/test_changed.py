@@ -101,3 +101,30 @@ def test_a_test_reading_a_result_field_the_dashboard_declares_is_a_contract_test
     ]
     selected = module.contract_tests(ROOT)
     assert "core/tests/specs/unit/core/scripts/run_spec/publish/test_aide_run_spec_pushing.py" in selected
+
+
+def test_the_links_a_merge_puts_in_its_tree_are_no_change(tmp_path, monkeypatch):
+    # A merge's tree carries the manifest's worktreeLinks as symlinks, and an
+    # ignore pattern ending in `/` matches a directory, never a link. Seen as
+    # a new file, `.venv` lies outside dashboard/ and a dashboard-only change
+    # would run the whole of pytest.
+    import re
+    import shutil
+    import subprocess
+
+    manifest = (ROOT / ".aide/project.yaml").read_text()
+    links = re.search(r"^worktreeLinks:\s*(.+)$", manifest, re.M).group(1).split()
+    assert links
+    git = ["git", "-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false"]
+    subprocess.run(git + ["init", "-q"], cwd=tmp_path, check=True)
+    for ignore in [".gitignore", "dashboard/.gitignore"]:
+        (tmp_path / ignore).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(ROOT / ignore, tmp_path / ignore)
+    subprocess.run(git + ["add", "-A"], cwd=tmp_path, check=True)
+    subprocess.run(git + ["commit", "-q", "-m", "base"], cwd=tmp_path, check=True)
+    (tmp_path / "target").mkdir()
+    for link in links:
+        (tmp_path / link).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / link).symlink_to(tmp_path / "target")
+    monkeypatch.chdir(tmp_path)
+    assert module._changed_since("HEAD") == []
