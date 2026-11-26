@@ -18,8 +18,8 @@ e2eBrowser(harness, async (browser) => {
 
 test("phone tabs keep their accessible names", async () => {
   const tabs = page.locator("body > nav.tabbar a.tab");
-  expect(await tabs.count()).toBe(4);
-  for (const name of ["Trabajos", "Especificaciones", "Proyectos", "Programación"]) {
+  expect(await tabs.count()).toBe(3);
+  for (const name of ["Trabajos", "Especificaciones", "Programación"]) {
     expect(await page.getByRole("link", { name: new RegExp(`^${name}( \\(\\d+\\))?$`) }).count()).toBe(1);
   }
 });

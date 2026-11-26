@@ -125,9 +125,9 @@ describe("submitReloadForm", () => {
 
   test("on success a form goes to its address with {key} replaced by the key the answer names", async () => {
     stubPost(200, { ok: true, key: "claude work" });
-    const f = fakeForm({ dataset: { done: "/settings?tab=providers&provider={key}" } });
+    const f = fakeForm({ dataset: { done: "/providers?provider={key}" } });
     await submitReloadForm(f.form, submit(), f.io);
-    expect(f.went).toEqual(["/settings?tab=providers&provider=claude%20work"]);
+    expect(f.went).toEqual(["/providers?provider=claude%20work"]);
   });
 
   test("a form naming where to go goes there on success instead of loading the page again", async () => {

@@ -56,7 +56,7 @@ export const en = {
   "shell.modelsGone": "{tool}: {models} no longer offered",
   "shell.modelsGoneFix": "press {button} beside each of them on {where}",
   "shell.modelsGoneWhere": "the {tab} tab of {provider}",
-  "shell.modelsGoneWhereAny": "a provider's {tab} tab, under the Providers tab in Settings",
+  "shell.modelsGoneWhereAny": "a provider's {tab} tab, under Providers in the … menu",
   "shell.scheduleFault": "{job} does not start: {problem} ({where})",
   "shell.scheduleFaultWhere": "its Settings tab",
   "shell.checkoutFault": "{project}: the dashboard cannot use its own checkout — {said}",

@@ -138,11 +138,11 @@ export const JOBS_PROVIDER = {
     de: "nach zwei Versuchen auf {tool}: {cause}",
     fr: "sur {tool}, après deux tentatives : {cause}",
     solution: {
-      en: "open Settings, the Providers tab, the provider the step ran on, and its Installation tab",
-      nb: "åpne Innstillinger, fanen Providere, leverandøren steget kjørte på, og fanen Installasjon",
-      es: "abre Ajustes, la pestaña Proveedores, el proveedor en el que corrió el paso y su pestaña Instalación",
-      de: "öffne Einstellungen, den Tab Anbieter, den Anbieter, auf dem der Schritt lief, und dessen Tab Installation",
-      fr: "ouvrez Réglages, l'onglet Fournisseurs, le fournisseur sur lequel l'étape s'est exécutée et son onglet Installation",
+      en: "open Providers in the … menu, the provider the step ran on, and its Installation tab",
+      nb: "åpne Providere i …-menyen, leverandøren steget kjørte på, og fanen Installasjon",
+      es: "abre Proveedores en el menú …, el proveedor en el que corrió el paso y su pestaña Instalación",
+      de: "öffne Anbieter im Menü …, den Anbieter, auf dem der Schritt lief, und dessen Tab Installation",
+      fr: "ouvrez Fournisseurs dans le menu …, le fournisseur sur lequel l'étape s'est exécutée et son onglet Installation",
     },
   },
 } as const satisfies Record<string, MessageEntry>;

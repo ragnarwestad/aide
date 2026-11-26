@@ -105,8 +105,8 @@ describe("the header's tabs", () => {
     { label: "Schedule", path: "/schedule" },
   ];
 
-  test("Running comes first, then Specs, Projects and the sections", () => {
-    expect(siteTabKeys(NAV, "/").keys).toEqual(["/", "/specs", "/projects", "/schedule"]);
+  test("Running comes first, then Specs and the sections; Projects is no tab", () => {
+    expect(siteTabKeys(NAV, "/").keys).toEqual(["/", "/specs", "/schedule"]);
   });
 
   test("Running is current for / and Specs for /specs", () => {
@@ -114,17 +114,24 @@ describe("the header's tabs", () => {
     expect(siteTabKeys(NAV, "/specs").current).toBe("/specs");
   });
 
-  test("Projects and a section stay current on their own pages", () => {
-    expect(siteTabKeys(NAV, "/projects").current).toBe("/projects");
+  test("a section stays current on its own page, and no tab is current on Projects", () => {
     expect(siteTabKeys(NAV, "/schedule").current).toBe("/schedule");
+    expect(siteTabKeys(NAV, "/projects").current).toBeUndefined();
   });
 
-  test("draws the four site tabs with their own icons (AC-2, AC-3)", () => {
-    const html = pageShell("Projects", [
+  test("the \"…\" menu opens Projects and Providers", () => {
+    const html = pageShell("Jobs", NAV, "/", "<p>body</p>", "2026-09-01T00:00:00Z");
+    const menu = html.split(`aria-label="${esc(t("en", "shell.more"))}"`)[1] ?? html;
+    expect(menu).toContain('href="/projects"');
+    expect(menu).toContain('href="/providers"');
+  });
+
+  test("draws the three site tabs with their own icons (AC-2, AC-3)", () => {
+    const html = pageShell("Jobs", [
       { label: "Projects", path: "/projects" },
       { label: "Schedule", labelKey: "shell.tabSchedule", path: "/schedule", icon: "schedule" },
-    ], "/projects", "<p>body</p>", "2026-09-01T00:00:00Z");
-    for (const tab of ["jobs", "specs", "projects", "schedule"]) {
+    ], "/", "<p>body</p>", "2026-09-01T00:00:00Z");
+    for (const tab of ["jobs", "specs", "schedule"]) {
       expect(html).toContain(`data-tab="${tab}"`);
     }
   });

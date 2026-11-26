@@ -1,4 +1,4 @@
-// What the Providers tab shows of the chosen provider. The Settings route
+// What the Providers page shows of the chosen provider. The Settings route
 // (`providerDetailFor`) reads the open tab's models or installation before
 // the page answers, and shows the usage the server keeps.
 
@@ -11,7 +11,7 @@ import { providerTab, type ProviderDetailOptions } from "../../../render/pages/s
 import type { ProviderStatus } from "../../../render";
 import type { RoutesContext } from "../";
 
-/** What the Providers tab shows of the chosen provider: its status as the
+/** What the Providers page shows of the chosen provider: its status as the
  *  tab read it, and what the open tab shows: the usage the server keeps, or
  *  the models or the installation, read now. A tool the server reads no
  *  usage for answers its own reading, which runs nothing. */

@@ -1,4 +1,4 @@
-// The Add dialog's three steps on the Providers tab (`provider-add.ts`
+// The Add dialog's three steps on the Providers page (`provider-add.ts`
 // draws it): Next checks the step's own fields before it moves on, the ID
 // is made from the name until it is typed in itself, step 3 turns on the
 // chosen tool's fields alone, and the login command is written out as they

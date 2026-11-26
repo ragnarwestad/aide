@@ -1,7 +1,6 @@
-// What the Providers tab under Settings is made of: its addresses, what was
-// read of each provider, and the row each provider is drawn from. The list
-// is drawn by `provider-list.ts` and the chosen provider by
-// `provider-detail.ts`.
+// What the Providers page is made of: its addresses, what was read of each
+// provider, and the row each provider is drawn from. The list is drawn by
+// `provider-list.ts` and the chosen provider by `provider-detail.ts`.
 
 import { capitalizeFirst } from "../../../messages/usage-limit/get.ts";
 import { formatSentence } from "../../../messages/format.ts";
@@ -15,10 +14,10 @@ export const PROVIDERS_EDIT_ROUTE = "/api/queue/settings/providers/edit";
 export const PROVIDERS_REMOVE_ROUTE = "/api/queue/settings/providers/remove";
 export const PROVIDERS_SWITCH_ROUTE = "/api/queue/settings/providers/switch";
 
-export const PROVIDERS_TAB_PATH = "/settings?tab=providers";
+export const PROVIDERS_ROUTE = "/providers";
 
-/** A provider's own place: the Providers tab with it chosen. */
-export const providerEditPath = (key: string): string => `${PROVIDERS_TAB_PATH}&provider=${encodeURIComponent(key)}`;
+/** A provider's own place: the Providers page with it chosen. */
+export const providerEditPath = (key: string): string => `${PROVIDERS_ROUTE}?provider=${encodeURIComponent(key)}`;
 
 /** The provider the tab shows: the one `asked` names, else the first in
  *  config order, else none. */

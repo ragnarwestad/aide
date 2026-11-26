@@ -68,7 +68,7 @@ function countingProbe(over: { check?: (tool: CheckableTool, provider?: Provider
 
 /** The provider's page with `tab` open. */
 const open = (base: string, key: string, tab: string) =>
-  fetch(`${base}/settings?tab=providers&provider=${encodeURIComponent(key)}&aitab=${tab}`);
+  fetch(`${base}/providers?provider=${encodeURIComponent(key)}&aitab=${tab}`);
 
 describe("the Models tab", () => {
   test("it reads the models once, with the provider's own env and the tool's configured values, and shows the Models block with Add on what is offered", async () => {

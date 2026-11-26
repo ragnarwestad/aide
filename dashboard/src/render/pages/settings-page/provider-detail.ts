@@ -1,4 +1,4 @@
-// The chosen provider, on the right of the Providers tab: its tool's mark,
+// The chosen provider, on the right of the Providers page: its tool's mark,
 // its name and version with Remove, then four tabs. Config holds the one
 // form with the display name and the tool's runtime fields; Usage holds the
 // login and the usage; Models and Installation hold what the server read
@@ -12,7 +12,7 @@ import { t, type Language, type TranslationKey } from "../../../i18n";
 import { providerFields, type Provider, type ProviderField, type ProviderTool } from "../../../queue/providers/index.ts";
 import { TOOL_NAMES } from "../../../queue/providers/tools.ts";
 import {
-  PROVIDERS_EDIT_ROUTE, PROVIDERS_REMOVE_ROUTE, PROVIDERS_TAB_PATH,
+  PROVIDERS_EDIT_ROUTE, PROVIDERS_REMOVE_ROUTE, PROVIDERS_ROUTE,
   providerEditPath, providerStatusLines, versionNumber, type ProviderStatus,
 } from "./providers.ts";
 import { usageBlock } from "./tools.ts";
@@ -97,7 +97,7 @@ function removeControl(key: string, name: string, lang: Language): string {
         action: PROVIDERS_REMOVE_ROUTE,
         hook: "reloadform",
         hidden: { key },
-        data: { done: PROVIDERS_TAB_PATH, line: PROVIDER_REFUSED_LINE },
+        data: { done: PROVIDERS_ROUTE, line: PROVIDER_REFUSED_LINE },
       },
     })
   );

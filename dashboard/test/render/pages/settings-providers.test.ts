@@ -1,4 +1,4 @@
-// What a provider's row on Settings → Providers says about its tool
+// What a provider's row on the Providers page says about its tool
 // and its login. The decision is made by one function, so it is proven there,
 // in one language.
 
@@ -93,9 +93,9 @@ describe("the rows of the providers list", () => {
       "Codex-p": status({ key: "Codex-p", version: "codex-cli 0.166.0", login: login({ answer: { key: "login.inWith", values: { method: "ChatGPT" } } }) }),
     };
     expect(providerRows(providers, statuses)).toEqual([
-      { key: "Claude", name: "Claude", tool: "claude", toolName: "Claude Code", version: "2.1.318", login: "in", plan: "Max", on: true, href: "/settings?tab=providers&provider=Claude" },
-      { key: "Codex-p", name: "Codex personal", tool: "codex", toolName: "Codex", version: "0.166.0", login: "in", plan: "ChatGPT", on: false, href: "/settings?tab=providers&provider=Codex-p" },
-      { key: "OpenCode", name: "OpenCode", tool: "opencode", toolName: "OpenCode", login: "unread", on: true, href: "/settings?tab=providers&provider=OpenCode" },
+      { key: "Claude", name: "Claude", tool: "claude", toolName: "Claude Code", version: "2.1.318", login: "in", plan: "Max", on: true, href: "/providers?provider=Claude" },
+      { key: "Codex-p", name: "Codex personal", tool: "codex", toolName: "Codex", version: "0.166.0", login: "in", plan: "ChatGPT", on: false, href: "/providers?provider=Codex-p" },
+      { key: "OpenCode", name: "OpenCode", tool: "opencode", toolName: "OpenCode", login: "unread", on: true, href: "/providers?provider=OpenCode" },
     ]);
   });
 
@@ -115,7 +115,7 @@ describe("which provider the tab shows", () => {
   });
 });
 
-describe("a provider's short name on the Providers tab", () => {
+describe("a provider's short name on the Providers page", () => {
   const providers: Record<string, Provider> = { Personal: { name: "Claude Personal", short: "CP", tool: "claude" } };
 
   test("its row carries the short name, and its Config form posts it under short (AC-3)", () => {

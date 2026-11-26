@@ -103,7 +103,7 @@ export interface ProviderOption {
    *  table has none (`shortOf`). */
   short?: string;
   tool: ProviderTool;
-  /** Switched off in Settings → Providers. */
+  /** Switched off in the Providers page. */
   off?: boolean;
 }
 

@@ -5,16 +5,13 @@ import { pickTab, tabBar } from "../../ui/tabs.ts";
 import { notificationsPanel } from "./notifications.ts";
 import { appearancePanel } from "./appearance.ts";
 import { processPanel, type ProcessSettings } from "./process.ts";
-import type { ProviderStatus } from "./providers.ts";
-import { providersTab } from "./provider-list.ts";
-import type { ProviderDetailOptions } from "./provider-detail.ts";
-import type { Provider } from "../../../queue/providers/index.ts";
 import type { RunnableTool } from "../../../queue/providers/tools.ts";
 import { t, type Language } from "../../../i18n";
 import { stepLabel } from "../../../format/step-label.ts";
 import { modelSelect, providerSelect, resolveChosenModel, resolveProvider, type ProviderOption } from "../../ui/ai-model";
 import { WORKFLOW_STEPS } from "../../../queue/steps.ts";
 import { PLAN_REVIEW, SIDE_PARTS_OF, type PickPart } from "../../../queue/providers/side-tools.ts";
+import { PROVIDERS_ROUTE } from "./providers.ts";
 
 export const SETTINGS_ROUTE = "/settings";
 
@@ -22,24 +19,31 @@ export const SETTINGS_ROUTE = "/settings";
  *  application's own tab bar, which this page hides. The models table
  *  keeps the key it had as the page's first tab, so `?tab=phases` still
  *  opens it. */
-export const SETTINGS_PANELS = ["phases", "providers", "process", "notifications", "appearance"] as const;
+export const SETTINGS_PANELS = ["phases", "process", "notifications", "appearance"] as const;
 export type SettingsPanel = (typeof SETTINGS_PANELS)[number];
 
-/** The tool tabs the row had once: a link that still names one opens
- *  Providers, where each tool's providers are. */
-const REMOVED_TOOL_TABS = ["claude", "codex", "copilot", "opencode"] as const;
+/** The tabs the row had once that now live on the Providers page: its own
+ *  and one per tool. */
+const MOVED_TO_PROVIDERS = ["providers", "claude", "codex", "copilot", "opencode"] as const;
 
-/** Every value `?tab=` can name: a tab, the AI tab the row had once, or a
- *  removed tool tab. */
-export const SETTINGS_TABS = [...SETTINGS_PANELS, "ai", ...REMOVED_TOOL_TABS] as const;
+/** Every value `?tab=` can name: a tab, or the AI tab the row had once. */
+export const SETTINGS_TABS = [...SETTINGS_PANELS, "ai"] as const;
 
 /** Which panel is open, off `?tab=`. The page opens on its models table,
  *  as does the AI tab it had once and an unknown or absent value. */
 export function resolveSettingsTab(raw: string | undefined): SettingsPanel {
   const tab = pickTab(SETTINGS_TABS, raw, "phases");
-  if (tab === "ai") return "phases";
-  if ((REMOVED_TOOL_TABS as readonly string[]).includes(tab)) return "providers";
-  return tab as SettingsPanel;
+  return tab === "ai" ? "phases" : tab;
+}
+
+/** Where a Settings address that names a tab now on the Providers page
+ *  goes instead: that page, with the provider and its tab the address
+ *  named. Undefined for every other address. */
+export function providersAddressFor(asked: { tab: string | null; provider: string | null; aitab: string | null }): string | undefined {
+  if (!asked.tab || !(MOVED_TO_PROVIDERS as readonly string[]).includes(asked.tab)) return undefined;
+  const kept = [["provider", asked.provider], ["aitab", asked.aitab]]
+    .flatMap(([key, value]) => value ? [`${key}=${encodeURIComponent(value)}`] : []);
+  return kept.length ? `${PROVIDERS_ROUTE}?${kept.join("&")}` : PROVIDERS_ROUTE;
 }
 
 /** The steps that act on a spec: what a reader presses on a row of the
@@ -102,12 +106,6 @@ export interface SettingsPageOptions {
   /** Which tab is open, off `?tab=`. Absent opens the models-per-phase
    *  table. */
   tab?: string;
-  /** The providers the Providers tab lists, by key. */
-  providers?: Record<string, Provider>;
-  /** What was read of each provider when the Providers tab opened, by key. */
-  providerStatuses?: Record<string, ProviderStatus>;
-  /** The provider the Providers tab shows on the right, with what was read of it. */
-  providerDetail?: ProviderDetailOptions;
   /** The server's public key for push, which the Notifications tab's
    *  script subscribes a device with. */
   pushPublicKey?: string;
@@ -228,11 +226,9 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
   const top = tabBar(SETTINGS_PANELS, SETTINGS_ROUTE, open, {}, "", { lang });
   const panel = open === "phases"
     ? phasesPanel
-    : open === "providers"
-      ? providersTab({ providers: opts.providers, statuses: opts.providerStatuses, detail: opts.providerDetail, now: Date.parse(generatedAt) }, lang)
-      : open === "notifications"
-        ? notificationsPanel(opts.pushPublicKey, lang)
-        : open === "appearance" ? appearancePanel(lang) : opts.process ? processPanel(opts.process, lang) : "";
+    : open === "notifications"
+      ? notificationsPanel(opts.pushPublicKey, lang)
+      : open === "appearance" ? appearancePanel(lang) : opts.process ? processPanel(opts.process, lang) : "";
   // `pageShell` wraps the body in `<main>`: a second one inside it takes
   // the frame's padding twice. The row sits directly in it, so page.css's
   // Settings rule centres it, and the panel after it.

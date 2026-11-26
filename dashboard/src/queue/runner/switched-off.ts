@@ -1,4 +1,4 @@
-// A step whose provider is switched off in Settings → Providers waits on
+// A step whose provider is switched off in the Providers page waits on
 // the queue until the provider is switched on again, or the step is given
 // another provider. Worked out from the jobs each tick, like the usage-limit
 // holds, so switching the provider on is all it takes.

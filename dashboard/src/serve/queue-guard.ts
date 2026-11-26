@@ -4,7 +4,7 @@
 // self-contained: neither function reads a `let`, so there is no
 // getter/accessor dance here, unlike `schedules.ts` beside it.
 
-import { APP_START_ROUTE, NEW_SPEC_ROUTE, PROJECTS_ROUTE, SCHEDULE_ROUTE, SETTINGS_ROUTE, TEST_SERVERS_ROUTE } from "../render";
+import { APP_START_ROUTE, NEW_SPEC_ROUTE, PROJECTS_ROUTE, PROVIDERS_ROUTE, SCHEDULE_ROUTE, SETTINGS_ROUTE, TEST_SERVERS_ROUTE } from "../render";
 import { isScheduleOutputPath } from "../schedule-output-route.ts";
 
 /** A step's screenshots under `/jobs/<id>/` join the queue set HERE,
@@ -24,6 +24,8 @@ export const isQueuePath = (path: string) =>
   // reason: it carries a real form.
   path === NEW_SPEC_ROUTE ||
   path === SETTINGS_ROUTE ||
+  // The Providers page carries the providers' switches and forms, as Settings does.
+  path === PROVIDERS_ROUTE ||
   // The Add and Edit pages of a provider carry real forms, as Settings does.
   path.startsWith(`${SETTINGS_ROUTE}/providers/`) ||
   // The board-wide overview carries a live Stop

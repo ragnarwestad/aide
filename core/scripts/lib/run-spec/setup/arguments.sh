@@ -94,7 +94,7 @@ review_claude_config_dir=""; review_codex_home=""; verify_claude_config_dir=""; 
 # (run-spec/turn/plan-review.sh): the same five flags as --review-*.
 plan_review_tool=""; plan_review_model=""; plan_review_claude_config_dir=""; plan_review_codex_home=""; plan_review_bin=""
 # `--bin`: the program the step's tool runs as, when its provider names one
-# (Settings → Providers, Binary path). Wins over AIDE_<TOOL>_BIN and PATH.
+# (the Providers page, Binary path). Wins over AIDE_<TOOL>_BIN and PATH.
 # `--review-bin` / `--verify-bin` are the same for the two side turns.
 bin_arg=""; review_bin=""; verify_bin=""
 # `--autocompact`: Claude Code compacts the conversation once it holds this

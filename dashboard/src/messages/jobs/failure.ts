@@ -77,8 +77,8 @@ export function getToolFailureMessage(f: ToolFailure): ReturnType<typeof getErro
   // The tool is named only when it is known: sending a reader to "a
   // provider" without saying which tool is worse than not sending them.
   const resolve = label
-    ? `Open Settings, the Providers tab, the ${label} provider the step ran on, and open its Installation tab to see whether that AI is installed and logged in.`
-    : `Open Settings, the Providers tab, the provider this model's AI runs on, and open its Installation tab to see whether it is installed and logged in.`;
+    ? `Open Providers in the … menu, then the ${label} provider the step ran on, and open its Installation tab to see whether that AI is installed and logged in.`
+    : `Open Providers in the … menu, then the provider this model's AI runs on, and open its Installation tab to see whether it is installed and logged in.`;
 
   return getErrorMessage({ what, resolve, detail: said });
 }

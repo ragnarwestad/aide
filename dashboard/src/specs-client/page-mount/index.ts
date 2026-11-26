@@ -32,7 +32,7 @@ function onAiChange(event: Event): void {
 
 /** The Projects pages' forms and dialogs, and the Settings page's Notifications tab. */
 function mountProjectForms(doc: Document, cleanups: (() => void)[], options: { referrer: string; background?: boolean }): void {
-  // The Providers tab's Add dialog, when it is the one open.
+  // The Providers page's Add dialog, when it is the one open.
   const providerAdd = doc.getElementById("provider-add") as HTMLDialogElement | null;
   if (providerAdd) bindProviderAdd(providerAdd);
   // The Config tab's Choose file dialog, which reads the picked file into its form.

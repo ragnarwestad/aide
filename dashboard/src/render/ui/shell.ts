@@ -24,7 +24,7 @@ import { SERVED_BY_META } from "../../page-contract.ts";
 import { HEAD_SCRIPT } from "../scripts/head-script.ts";
 import { usageButton } from "./usage-dialog/index.ts";
 import { deployMark, deployMarkDialog } from "./deploy-mark/index.ts";
-import { HEADER_MENU_ICONS, ICON_MORE, ICON_USAGE } from "./components/icons.ts";
+import { HEADER_MENU_ICONS, ICON_MORE, ICON_USAGE, TAB_ICONS } from "./components/icons.ts";
 
 export interface NavEntry {
   label: string;
@@ -247,6 +247,8 @@ function pageHeader(lang: Language, currentUrl: string, tabs = ""): string {
       // On phones the Usage row opens the same panel as the header trigger.
       content: `${boardRow(lang)}${menuSettingRows(lang, currentUrl)}` +
         `<button type="button" data-opens="usage-dialog">${ICON_USAGE}${t(lang, "shell.usage")}</button>` +
+        `<a href="/projects">${TAB_ICONS.projects}${t(lang, "shell.tabProjects")}</a>` +
+        `<a href="/providers">${HEADER_MENU_ICONS.providers}${t(lang, "tab.providers")}</a>` +
         `<a href="/settings">${HEADER_MENU_ICONS.settings}${t(lang, "shell.settings")}</a>` +
         `<a href="/test-servers">${HEADER_MENU_ICONS.servers}${t(lang, "shell.testServers")}</a>` +
         `<button type="button" data-about>${ICON_INFO}${t(lang, "shell.about")}</button>`,
@@ -254,19 +256,18 @@ function pageHeader(lang: Language, currentUrl: string, tabs = ""): string {
   );
 }
 
-/** The header's tab keys in order — Running, Specs, the Projects page, then the
- *  sections — and the one that is current for `currentPath`.
+/** The header's tab keys in order — Running, Specs, then the sections — and
+ *  the one that is current for `currentPath`.
  *
- *  The first entry is the Projects page; the rest are the project pages, which
- *  are NOT tabs — the Projects page lists them, and two lists of the same
- *  projects were one too many. A project's own page counts as being "in"
- *  Projects, so that tab is current there too.
+ *  The first entry is the Projects page, opened from the "…" menu rather
+ *  than a tab; the rest are the project pages, which are not tabs either —
+ *  the Projects page lists them.
  *
  *  Except the sections: anything among the rest with an ABSOLUTE
  *  path is a half of the dashboard rather than a project — so it gets a tab of
- *  its own and is not one of the pages Projects is current on. The shape is
- *  what decides, not the label. A RELATIVE `<slug>.html` is read as a project
- *  page, which no build writes any more (the server serves it instead).
+ *  its own. The shape is what decides, not the label. A RELATIVE
+ *  `<slug>.html` is read as a project page, which no build writes any more
+ *  (the server serves it instead).
  *
  *  Running is current on `/` and on every job's page, which passes `/`; Specs on
  *  `/specs`, which the list, New spec and the spec page pass. */
@@ -274,17 +275,12 @@ export function siteTabKeys(
   entries: NavEntry[],
   currentPath: string,
 ): { keys: string[]; sections: NavEntry[]; current: string | undefined } {
-  const [projectsPage, ...rest] = entries;
-  const sections = rest.filter((e) => e.path.startsWith("/"));
-  const projects = rest.filter((e) => !e.path.startsWith("/"));
-  const onAProject = projects.some((p) => p.path === currentPath);
+  const sections = entries.slice(1).filter((e) => e.path.startsWith("/"));
   const current =
     currentPath === "/" || currentPath === "/specs"
       ? currentPath
-      : projectsPage!.path === currentPath || onAProject
-        ? projectsPage!.path
-        : sections.find((e) => e.path === currentPath)?.path;
-  return { keys: ["/", "/specs", projectsPage!.path, ...sections.map((e) => e.path)], sections, current };
+      : sections.find((e) => e.path === currentPath)?.path;
+  return { keys: ["/", "/specs", ...sections.map((e) => e.path)], sections, current };
 }
 
 function siteTabs(entries: NavEntry[], currentPath: string, lang: Language, showSearchHelp?: boolean): string {
@@ -305,13 +301,11 @@ function siteTabs(entries: NavEntry[], currentPath: string, lang: Language, show
   const words = new Map<string, string>([
     ["/", t(lang, "shell.tabRunning")],
     ["/specs", t(lang, "shell.tabSpecs")],
-    [entries[0]!.path, t(lang, "shell.tabProjects")],
     ...sections.map((e): [string, string] => [e.path, e.labelKey ? t(lang, e.labelKey) : e.label]),
   ]);
   const kinds = new Map<string, SiteTab>([
     ["/", "jobs"],
     ["/specs", "specs"],
-    [entries[0]!.path, "projects"],
     ...sections.flatMap((entry): [string, SiteTab][] => entry.icon ? [[entry.path, entry.icon]] : []),
   ]);
   const icons = new Map([...kinds].map(([path, kind]) => [path, tabIcon(kind)]));

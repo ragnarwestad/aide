@@ -20,7 +20,7 @@ import { hiddenProjects } from "./project-hide.ts";
 import { deployUnderWay } from "../../../queue/queue.ts";
 import { DEFAULT_DASHBOARD_CHECKOUT_ROOT, dashboardSettingsFile } from "../../../git/dashboard-checkout/index.ts";
 import { assessProjectReadiness, manifestTracked, settingsHome } from "../../../project/project-admin";
-import { ADD_PROJECT_ROUTE, PROJECTS_ROUTE, SETTINGS_ROUTE, TEST_SERVERS_ROUTE, renderAddProjectPage, renderProjectPage, renderProjectsPage, renderSettingsPage, renderTestServersPage, resolveBackHref, resolveSettingsTab, specPagePath, type ProviderStatus, type TestServerRow } from "../../../render";
+import { ADD_PROJECT_ROUTE, PROJECTS_ROUTE, PROVIDERS_ROUTE, SETTINGS_ROUTE, TEST_SERVERS_ROUTE, providersAddressFor, renderAddProjectPage, renderProjectPage, renderProjectsPage, renderProvidersPage, renderSettingsPage, renderTestServersPage, resolveBackHref, specPagePath, type ProviderStatus, type TestServerRow } from "../../../render";
 import { MAIN_TEST_SERVER_KEY, refreshTestServerStatus } from "../../test-servers/lifecycle.ts";
 import { testServerFailedPage, testServerUrlFor, waitingForTestServerPage } from "../spec-edit/test-server-waiting.ts";
 import { isSpecFolder } from "../../../project/spec-names.ts";
@@ -34,22 +34,46 @@ async function readProviderStatuses(ctx: RoutesContext): Promise<Record<string, 
   return Object.fromEntries(await Promise.all(providers.map(async ([key, provider]) => [key, await read(key, provider)] as const)));
 }
 
+/** The page, as HTML, with the language cookie the request asked for. */
+function htmlResponse(html: string, setCookie: string | undefined): Response {
+  const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
+  if (setCookie) headers.append("set-cookie", setCookie);
+  return new Response(html, { headers });
+}
+
+/** The Providers page. It reads every provider's status as it opens, and the
+ *  chosen provider's tab: a read can hold the page for as long as its timeout. */
+async function providersPageResponse(ctx: RoutesContext, req: Request, url: URL): Promise<Response> {
+  const langResult = languageChoice(url, req);
+  const providerStatuses = await readProviderStatuses(ctx);
+  const providers = ctx.queue.defaults.providers;
+  const chosen = selectedProviderKey(providers, url.searchParams.get("provider"));
+  const detail = chosen
+    ? await providerDetailFor(ctx, chosen, providers![chosen]!, providerStatuses[chosen], url.searchParams.get("aitab") ?? undefined, langResult.lang)
+    : undefined;
+  const html = renderProvidersPage(ctx.nav(), new Date().toISOString(), {
+    providers, statuses: providerStatuses, detail,
+    backHref: resolveBackHref(req.headers.get("referer"), url.origin, "/", url.pathname),
+    script: await specsClientScript(),
+    lang: langResult.lang,
+    currentUrl: langResult.currentUrl,
+  });
+  return htmlResponse(html, langResult.setCookie);
+}
+
 async function projectPageRoute(ctx: RoutesContext, req: Request, url: URL, path: string): Promise<Response | null> {
+  if (path === PROVIDERS_ROUTE) {
+    if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
+    return providersPageResponse(ctx, req, url);
+  }
   if (path === SETTINGS_ROUTE) {
     if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
+    // A bookmark or link to a tab that moved to the Providers page opens it there.
+    const moved = providersAddressFor({
+      tab: url.searchParams.get("tab"), provider: url.searchParams.get("provider"), aitab: url.searchParams.get("aitab"),
+    });
+    if (moved) return new Response(null, { status: 302, headers: { location: moved } });
     const langResult = languageChoice(url, req);
-    // The one tab that shows a provider's status reads it as it opens, and
-    // no other tab reads anything: a read can hold the page for as long as
-    // its timeout.
-    const tab = url.searchParams.get("tab") ?? undefined;
-    const providerStatuses = resolveSettingsTab(tab) === "providers"
-      ? await readProviderStatuses(ctx)
-      : undefined;
-    const providers = ctx.queue.defaults.providers;
-    const chosen = providerStatuses ? selectedProviderKey(providers, url.searchParams.get("provider")) : undefined;
-    const providerDetail = chosen
-      ? await providerDetailFor(ctx, chosen, providers![chosen]!, providerStatuses?.[chosen], url.searchParams.get("aitab") ?? undefined, langResult.lang)
-      : undefined;
     const html = renderSettingsPage(ctx.nav(), new Date().toISOString(), {
       modelChoices: modelChoiceOptions(ctx.queue, modelsInUse(ctx)),
       defaultModels: ctx.queue.defaults.model,
@@ -59,16 +83,11 @@ async function projectPageRoute(ctx: RoutesContext, req: Request, url: URL, path
       script: await specsClientScript(),
       lang: langResult.lang,
       currentUrl: langResult.currentUrl,
-      tab,
-      providerStatuses,
-      providerDetail,
-      providers,
+      tab: url.searchParams.get("tab") ?? undefined,
       pushPublicKey: await ctx.push.publicKey(),
       process: processSettings(ctx.runner, ctx.opts.queueConcurrency),
     });
-    const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
-    if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
-    return new Response(html, { headers });
+    return htmlResponse(html, langResult.setCookie);
   }
   return null;
 }
@@ -385,6 +404,7 @@ async function projectsListRoute(ctx: RoutesContext, req: Request, url: URL, pat
       const langResult = languageChoice(url, req);
       const html = renderProjectsPage([], new Date().toISOString(), ctx.nav(), {
         error: "this board was started with no project root, so it has no projects to list",
+        backHref: resolveBackHref(req.headers.get("referer"), url.origin, "/", url.pathname),
         lang: langResult.lang,
         currentUrl: langResult.currentUrl,
       });
@@ -409,6 +429,7 @@ async function projectsListRoute(ctx: RoutesContext, req: Request, url: URL, pat
         pinnedProjects: pinnedProjects(ctx),
         hiddenProjects: hiddenProjects(ctx),
         removable: (name) => ctx.allowed.has(name),
+        backHref: resolveBackHref(req.headers.get("referer"), url.origin, "/", url.pathname),
         script: await specsClientScript(),
         lang: langResult.lang,
         currentUrl: langResult.currentUrl,

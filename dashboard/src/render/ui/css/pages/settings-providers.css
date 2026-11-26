@@ -1,8 +1,6 @@
-/* --- Settings › Providers -------------------------------------------- */
+/* --- Providers ----------------------------------------------------- */
 
-/* The heading with Add, and when the logins were read at the row's far end. */
-.providershead { display: flex; align-items: center; gap: var(--sp-2); margin: var(--sp-4) 0 var(--sp-3); }
-.providershead h2 { margin: 0; font-size: var(--fs-xl); }
+/* When the logins were read, at the far end of the title's line. */
 .providerschecked { margin-left: auto; }
 
 /* The list beside the chosen provider, in one frame; one column at phone

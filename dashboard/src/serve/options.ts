@@ -132,7 +132,7 @@ export interface ServerOptions {
     check: (tool: CheckableTool, provider?: Provider) => Promise<ToolCheck>;
     models: (tool: CheckableTool, opts: { configured: string[]; env?: Record<string, string>; bin?: string }) => Promise<ToolModels>;
   };
-  /** What opening Settings on its Providers tab, a provider's page, or a
+  /** What opening the Providers page, a provider's page, or a
    *  save runs in place of the real read of a provider's tool and login. A
    *  test seam. `login: false` asks only whether the tool starts. */
   providerProbe?: (key: string, provider: Provider, opts?: { login?: boolean }) => Promise<ProviderStatus>;

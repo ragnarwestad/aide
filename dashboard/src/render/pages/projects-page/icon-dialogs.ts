@@ -3,7 +3,7 @@
 // choice is set. The two dialogs and Automatic's form are drawn after the
 // settings cards, since a dialog's form cannot sit inside the card's form;
 // all three post to `POST /projects/<name>/icon` and load the page again
-// (`reloadform`), as the Providers tab's Add does.
+// (`reloadform`), as the Providers page's Add does.
 
 import { t, type Language, type TranslationKey } from "../../../i18n";
 import { GLYPH_NAMES, glyphSvg } from "../../../project/project-icon/glyphs.ts";

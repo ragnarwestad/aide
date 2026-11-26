@@ -38,7 +38,7 @@ function board(choices: Record<string, ModelChoice>, defaultModel: string, codex
 }
 
 const open = (base: string, provider: string, tab: string) =>
-  fetch(`${base}/settings?tab=providers&provider=${encodeURIComponent(provider)}&aitab=${tab}`).then((r) => r.text());
+  fetch(`${base}/providers?provider=${encodeURIComponent(provider)}&aitab=${tab}`).then((r) => r.text());
 
 const faultLines = (html: string): string[] => [...html.matchAll(/<p[^>]*tool-fault[^>]*>[\s\S]*?<\/p>/g)].map((m) => m[0]);
 

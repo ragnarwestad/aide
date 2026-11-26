@@ -1,4 +1,4 @@
-// The Add dialog on the Providers tab, in three steps on one form: Provider,
+// The Add dialog on the Providers page, in three steps on one form: Provider,
 // a card for each tool; Identity, the display name and the ID; and Config,
 // the chosen tool's runtime fields and the command that logs the provider
 // in on the serving host. The steps are switched by the page's script
@@ -13,7 +13,7 @@ import { btn, formDialog, radioCards, toolIcon } from "../../ui/components";
 import { t, type Language, type TranslationKey } from "../../../i18n";
 import { PROVIDER_TOOLS } from "../../../queue/providers/index.ts";
 import { TOOL_NAMES } from "../../../queue/providers/tools.ts";
-import { PROVIDERS_ADD_ROUTE, PROVIDERS_TAB_PATH } from "./providers.ts";
+import { PROVIDERS_ADD_ROUTE, PROVIDERS_ROUTE } from "./providers.ts";
 import { fieldRow, runtimeRows } from "./provider-detail.ts";
 
 /** The dialog's id, which the Add buttons name with `data-ask`. */
@@ -63,7 +63,7 @@ export function providerAddDialog(lang: Language): string {
     title: t(lang, "settings.providers.addProvider"),
     action: PROVIDERS_ADD_ROUTE,
     hook: "reloadform",
-    data: { done: `${PROVIDERS_TAB_PATH}&provider={key}` },
+    data: { done: `${PROVIDERS_ROUTE}?provider={key}` },
     fields:
       `<ol class="addsteps">${STEPS.map((k, i) => `<li data-step="${i + 1}"${i === 0 ? ` aria-current="step"` : ""}>${esc(t(lang, k))}</li>`).join("")}</ol>` +
       step(1, `<p class="muted">${esc(t(lang, "settings.providers.chooseTool"))}</p>` + toolCards(lang)) +

@@ -328,7 +328,7 @@ Config. Config holds the form with the display name and the runtime fields, with
 both come back to Config. Usage holds the login and the usage; the version is in the heading. Models holds the
 models reading and the choices it is set against. Installation holds the table of where Aide is installed for the tool.
 The address names the open tab
-(`/settings?tab=providers&provider=Claude&aitab=installation`), so a reload or a link opens the same tab; `aitab` takes
+(`/providers?provider=Claude&aitab=installation`), so a reload or a link opens the same tab; `aitab` takes
 `config`, `usage`, `models` and `installation`, and anything else opens Config.
 
 **Models and Installation read their own answer when the tab is opened,** with no press, before the page
@@ -705,16 +705,17 @@ the provider.
   a line leads with the same icon and short name, with the model after it where the button has room. The selects on
   Settings → Models per phase and the schedule form show the full name.
 
-- **One row of tabs.** Settings has five tabs on one row: Models per phase, Providers, Process, Notifications and
-  Appearance. Appearance holds the browser's color scheme and theme choices. A
-  link that names the AI tab the row once had (`?tab=ai`) opens Models per phase, and one that names a tool tab
-  (`?tab=claude`, `codex`, `copilot`, `opencode`) opens Providers. Copilot is offered nowhere under Settings.
-- **The list.** The Providers tab shows the providers in a list, with the chosen provider beside it (under it on a
+- **A page of its own.** Providers opens from the "…" menu, beside Settings. Settings has four tabs on one row: Models
+  per phase, Process, Notifications and Appearance. Appearance holds the browser's color scheme and theme choices. A
+  link that names the AI tab the row once had (`?tab=ai`) opens Models per phase. A link that names the Providers tab
+  or a tool tab (`?tab=providers`, `claude`, `codex`, `copilot`, `opencode`) opens the Providers page, on the provider
+  and the tab the link names. Copilot is offered nowhere on either page.
+- **The list.** The Providers page shows the providers in a list, with the chosen provider beside it (under it on a
   narrow screen). Each row has the tool's icon, the name, the short name, the tool's version, the login and the plan (Claude Code's
   subscription, or the way Codex is logged in), and the provider's on/off switch. Above the list is **+**, which adds a
   provider, and when the status was read, with Check again. **Add provider** ends the list. Pressing a row chooses
   that provider in place, without loading the page again (as do the tabs of its page and Check again); the address
-  names it (`/settings?tab=providers&provider=Claude`), and with none named the first is
+  names it (`/providers?provider=Claude`), and with none named the first is
   chosen. The tool of a provider does not change; to change it, add a provider. No provider is special: the ones the
   board made on its first start can be renamed and removed like the rest.
 - **Add.** **+** and **Add provider** open the Add dialog, in three steps. Next moves on only when the step's fields are
@@ -762,8 +763,8 @@ the provider.
   it in, with its folder filled in (`CLAUDE_CONFIG_DIR=~/.claude-2 claude auth login`, `CODEX_HOME=~/.codex-p codex
   login`, `opencode auth login`). A login that could not be read says so and asks to open the page again; it is never
   shown as not logged in.
-- **Read as a step would meet it.** The status is read when Settings opens on its Providers tab (for the rows) and when
-  a provider's page opens, and no other tab reads anything. The board's own process reads it, with the provider's folder in the environment, so it is what a
+- **Read as a step would meet it.** The status is read when the Providers page opens (for the rows) and when
+  a provider's page opens, and no Settings tab reads anything. The board's own process reads it, with the provider's folder in the environment, so it is what a
   step on that provider would meet, which a terminal's own login need not be: a login kept in the macOS keychain can be
   readable from a terminal and not from the board's service. The login check at start and before a waiting job reads
   every provider the same way, and the Installation tab reads its own provider so. The Models tab reads the models
@@ -807,14 +808,14 @@ model name starts with.
    `rules`, `plugins` and `projects`. For each, `ln -s ~/.claude/<name> ~/.claude-2/<name>`. Without `projects` a
    step cannot continue a session another login made, and without the rest it runs without the skills.
 3. Log in: `CLAUDE_CONFIG_DIR=~/.claude-2 claude auth login`.
-4. Add it under Settings → Providers, with the name to show and `~/.claude-2`.
+4. Add it on the Providers page, with the name to show and `~/.claude-2`.
 
 **Setting up a second Codex login** is a folder of its own, with its own login, in one of two ways. With a `CODEX_HOME`
 of its own and no shadow home the provider keeps its sessions apart. With a shadow home the provider shares its
 `CODEX_HOME`'s sessions and settings and keeps its own login, so one provider can continue a session another started:
 
 1. Make an empty folder, such as `~/.codex-personal`, and log in there: `CODEX_HOME=~/.codex-personal codex login`.
-2. Add the provider under Settings → Providers with the shared folder as `CODEX_HOME` and the new folder as the
+2. Add the provider on the Providers page with the shared folder as `CODEX_HOME` and the new folder as the
    shadow home. Save links everything in the `CODEX_HOME` except `auth.json` into the shadow home, and again before each
    Codex step, so an entry added since is linked. A shadow home that already has a `sessions` folder or a `config.toml`
    of its own is refused; start from an empty folder and log in there again.

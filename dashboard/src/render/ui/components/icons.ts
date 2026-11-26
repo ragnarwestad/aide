@@ -120,6 +120,7 @@ export const HEADER_MENU_ICONS = {
   units: stroke('<ellipse cx="8" cy="5" rx="5" ry="2.5"></ellipse><path d="M3 5v6a5 2.5 0 0 0 10 0V5M3 8a5 2.5 0 0 0 10 0"></path>'),
   settings: stroke('<path d="M2 4h12M2 8h12M2 12h12M6 2v4m5 0v4m-6 0v4"></path>'),
   servers: stroke('<rect x="2" y="2.5" width="12" height="5" rx="1"></rect><rect x="2" y="8.5" width="12" height="5" rx="1"></rect><path d="M5 5h.01M5 11h.01"></path>'),
+  providers: stroke('<rect x="4" y="4" width="8" height="8" rx="1"></rect><path d="M6.5 2v2M9.5 2v2M6.5 12v2M9.5 12v2M2 6.5h2M2 9.5h2M12 6.5h2M12 9.5h2"></path>'),
   stop: stroke('<rect x="3.5" y="3.5" width="9" height="9" rx="1"></rect>'),
   run: stroke('<path d="M5 3l8 5-8 5z"></path>'),
   delay: stroke('<circle cx="8" cy="8" r="6"></circle><path d="M8 4.5V8l2 2"></path>'),

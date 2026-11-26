@@ -1,4 +1,4 @@
-// The board the Providers tab's browser tests open: two providers in its
+// The board the Providers page's browser tests open: two providers in its
 // queue config, each probed as installed, with no usage to show.
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";

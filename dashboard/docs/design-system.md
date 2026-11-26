@@ -161,7 +161,7 @@ draws the face again whenever the select's value changes. The phone's compact bu
 same face.
 
 **A card of rows** is how the Projects list and every tab of a project's page are laid out: groups of rows in one
-bordered card under a short heading, the frame Settings › Providers draws. A row holds the item's name and one line
+bordered card under a short heading, the frame the Providers page draws. A row holds the item's name and one line
 of explanation on the left and its value or control on the right; at a phone's width the control moves under the
 text and nothing scrolls sideways. A row that opens a page carries its link on the name, stretched over the whole row,
 with a chevron at its end, and its other controls — a warning mark, Remove — rise above the link so a press on one
@@ -400,9 +400,11 @@ the confirmation dialogs out of the page code.
 
 Every page's `<body>` is `header + nav.tabbar + main`, with the page's own notices and dialogs between the header
 and the bar. `shell.ts` builds `pageHeader()` — the wordmark, a line naming the machine and which board it is, the
-theme, language and unit controls, and a "…" menu — and `siteTabs()`, which draws Running, Specs, Projects and Schedule.
+theme, language and unit controls, and a "…" menu — and `siteTabs()`, which draws Running, Specs and Schedule. The "…"
+menu opens Projects, Providers, Settings, Test servers and About.
 There is no sidebar, and no reserved column standing empty for one. A page that passes `hideTabBar` draws no bar at
-all: the spec page, a project's page and Settings.
+all: the spec page, the Projects page, a project's page, Providers, Settings and Test servers. Those opened from the "…"
+menu have a Back link and their title on one line instead.
 
 The board line reads:
 
@@ -428,7 +430,7 @@ being typed in, in place of the filters, the count and New.
 Every tab strip is `tabBar()` in `tabs.ts`: the header's row (`site`, which leaves out `subtabs`), a page's own tabs,
 and a strip nested under one — a step's Log, Changed files and Errors. A caller
 gives it a base path or a function building each tab's address, and its words from the catalogue when it has them; the
-open tab is `aria-current="page"` on every strip. The four site tabs carry icons before their words. On a narrow phone
+open tab is `aria-current="page"` on every strip. The three site tabs carry icons before their words. On a narrow phone
 and on a phone held sideways, the site tabs show only their icons while their words remain available to screen readers
 and as hover text.
 

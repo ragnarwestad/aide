@@ -79,7 +79,7 @@ function panelOf(html: string): string {
 /** The page's own part, below the header. */
 const mainOf = (html: string): string => html.slice(html.indexOf("<main"));
 
-const tabPath = (key: string, tab: string) => `/settings?tab=providers&provider=${key}&aitab=${tab}`;
+const tabPath = (key: string, tab: string) => `/providers?provider=${key}&aitab=${tab}`;
 
 test("a server that has started has read every Claude Code and Codex provider, with no page asked for (AC-1)", async () => {
   const { reads, keys } = serve();

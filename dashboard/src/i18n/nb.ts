@@ -55,7 +55,7 @@ export const nb: Record<TranslationKey, string> = {
   "shell.modelsGone": "{tool}: {models} tilbys ikke lenger",
   "shell.modelsGoneFix": "trykk {button} ved hver av dem på {where}",
   "shell.modelsGoneWhere": "{tab}-fanen til {provider}",
-  "shell.modelsGoneWhereAny": "{tab}-fanen til en provider, under Providere-fanen i Settings",
+  "shell.modelsGoneWhereAny": "{tab}-fanen til en provider, under Providere i …-menyen",
   "shell.scheduleFault": "{job} starter ikke: {problem} ({where})",
   "shell.scheduleFaultWhere": "Settings-fanen til jobben",
   "shell.checkoutFault": "{project}: dashbordet kan ikke bruke sin egen utsjekk — {said}",

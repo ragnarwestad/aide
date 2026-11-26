@@ -1,5 +1,5 @@
 // The dialog that holds a form's fields: a title, the fields, a line for a
-// refusal, and the affirmative and Cancel on one row. The Providers tab's
+// refusal, and the affirmative and Cancel on one row. The Providers page's
 // Add and the Jobs tab's New group are drawn by it. A button carrying
 // `data-ask="<dialog id>"` opens it (`askButton()`, specs-client/ask.ts);
 // the page script posts its form by the hook the caller names, and a

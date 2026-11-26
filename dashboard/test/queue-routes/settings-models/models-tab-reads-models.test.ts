@@ -52,7 +52,7 @@ describe("opening a provider's Models tab reads its tool's models", () => {
 
     const shown = async (base: string) => {
       expect((await offeredChoices(base)).Fable).toBe("Fable 5.1");
-      expect(await pageText(`${base}/settings?tab=providers&provider=Claude&aitab=models`)).toContain("Fable 5.1");
+      expect(await pageText(`${base}/providers?provider=Claude&aitab=models`)).toContain("Fable 5.1");
       expect(await pageText(`${base}/specs?${OPEN_81}`)).toContain(">Fable 5.1</option>");
     };
     await shown(first.base);
@@ -73,7 +73,7 @@ describe("opening a provider's Models tab reads its tool's models", () => {
     expect((await offeredChoices(first.base))["opus[1m]"]).toBe("opus[1m]");
     await openModelsTab(first.base, "Claude");
     expect((await offeredChoices(first.base))["opus[1m]"]).toBe("Opus 5.5 (1M context)");
-    expect(await pageText(`${first.base}/settings?tab=providers&provider=Claude&aitab=models`)).toContain("Opus 5.5 (1M context)");
+    expect(await pageText(`${first.base}/providers?provider=Claude&aitab=models`)).toContain("Opus 5.5 (1M context)");
 
     const afresh = start({ queueDefaults: defaultsOf(choices, { default: "Opus" }), toolProbe: modelsProbe(), modelIdsPath });
     expect((await offeredChoices(afresh.base))["opus[1m]"]).toBe("Opus 5.5 (1M context)");

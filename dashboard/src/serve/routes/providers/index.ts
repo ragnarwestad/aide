@@ -1,5 +1,5 @@
 // The routes behind providers: adding, editing, renaming and removing one on
-// Settings → Providers.
+// the Providers page.
 
 import type { RoutesContext } from "../";
 import { handleProviderSettingsRoutes } from "./settings.ts";

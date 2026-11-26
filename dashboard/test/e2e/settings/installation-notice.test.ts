@@ -42,14 +42,14 @@ afterAll(async () => {
 });
 
 async function open(part: string): Promise<void> {
-  const address = `/settings?tab=providers&provider=Claude&aitab=${part}`;
+  const address = `/providers?provider=Claude&aitab=${part}`;
   await withBrowser(page.goto(`${base}${address}`), `page.goto(${address})`);
 }
 
 async function clickTab(name: string, part: string): Promise<void> {
   const tabs = page.locator("nav[data-aitabs]");
   await Promise.all([
-    page.waitForURL(`**/settings?tab=providers&provider=Claude&aitab=${part}`),
+    page.waitForURL(`**/providers?provider=Claude&aitab=${part}`),
     tabs.getByRole("link", { name, exact: true }).click(),
   ]);
 }

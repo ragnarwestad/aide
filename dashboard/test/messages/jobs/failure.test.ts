@@ -19,8 +19,8 @@ describe("getToolFailureMessage", () => {
 
   test("it points at the Installation tab of the provider of that AI, and at no button", () => {
     const s = getToolFailureMessage({ tool: "codex", model: "gpt-5.6-sol", terminalReason: "cli-error" })!;
-    expect(s.text).toContain("Settings");
-    expect(s.text).toContain("Providers tab");
+    expect(s.text).toContain("… menu");
+    expect(s.text).toContain("Open Providers");
     expect(s.text).toContain("Codex provider");
     expect(s.text).toContain("Installation tab");
     expect(s.text).not.toContain("press Check");
@@ -43,20 +43,20 @@ describe("getToolFailureMessage", () => {
     expect(s.text).toContain("gemini-3.1-pro");
     expect(s.text).not.toContain(" on gemini-3.1-pro on ");
     // Without a tool there is no provider to name by its tool.
-    expect(s.text).toContain("Providers tab");
+    expect(s.text).toContain("Open Providers");
     expect(s.text).toContain("Installation");
   });
 
   // The shape Claude Code writes when it is not logged in: an error result
   // with no error list, so the script's fallback sentence stands.
-  test("a login failure from Claude Code still sends the reader to Settings", () => {
+  test("a login failure from Claude Code still sends the reader to Providers", () => {
     const s = getToolFailureMessage({
       tool: "claude",
       model: "Sonnet",
       error: "provider reported an error \u2014 press Analyze again",
       terminalReason: "cli-error",
     })!;
-    expect(s.text).toContain("Settings");
+    expect(s.text).toContain("… menu");
     expect(s.text).toContain("Claude Code provider");
     expect(s.text).toContain("Installation tab");
     expect(s.text).not.toContain("press Check");

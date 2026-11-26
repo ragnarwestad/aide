@@ -364,7 +364,7 @@ const providerSave = (): HTMLButtonElement => document.getElementById("providerf
 
 describe("a form that names where Cancel goes", () => {
   test("Cancel is pressable from the start, Save waits for an edit, and Cancel restores the fields and leaves", async () => {
-    const name = providerForm("/settings?tab=providers");
+    const name = providerForm("/providers");
     mount();
     expect(providerCancel().disabled).toBe(false);
     expect(providerSave().disabled).toBe(true);
@@ -381,7 +381,7 @@ describe("a form that names where Cancel goes", () => {
   });
 
   test("Cancel leaves even when no field was changed", async () => {
-    providerForm("/settings?tab=providers");
+    providerForm("/providers");
     mount();
     providerCancel().dispatchEvent(new Event("click", { bubbles: true }));
     await new Promise((resolve) => setTimeout(resolve, 0));

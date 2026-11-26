@@ -36,7 +36,7 @@ The page has two parts. [Using it](#using-it) is for someone adding and running 
 
 ### Adding a project
 
-`/projects` lists the projects on the dashboard's allowlist in one card, a row per project by name, with an **Add**
+`/projects`, opened as Projects from the "…" menu, lists the projects on the dashboard's allowlist in one card, a row per project by name, with an **Add**
 button and the count above the card and a **Remove** button on each row. A row shows the project's icon, its name
 with its active and archived counts, and its description under it; a press anywhere on the row but Remove opens the
 project's page, and a chevron at the row's end says so. A directory under the projects root that is not on the allowlist is not listed. Add opens a page

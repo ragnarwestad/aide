@@ -39,7 +39,7 @@ export type { NavEntry } from "./ui/shell.ts";
 export { backLink, resolveBackHref } from "./ui/components";
 
 export {
-  OTHER_STEPS, renderSettingsPage, resolveSettingsTab, SETTINGS_PANELS, SETTINGS_ROUTE, SETTINGS_STEPS,
+  OTHER_STEPS, providersAddressFor, renderSettingsPage, resolveSettingsTab, SETTINGS_PANELS, SETTINGS_ROUTE, SETTINGS_STEPS,
   SETTINGS_TABS, settingsRowChoice, SPEC_STEPS, UNROWED_STEPS,
 } from "./pages/settings-page";
 export type { SettingsPageOptions, SettingsPanel } from "./pages/settings-page";
@@ -49,9 +49,10 @@ export {
 export { installationBlock } from "./pages/settings-page/installation.ts";
 export {
   PROVIDERS_ADD_ROUTE, PROVIDERS_EDIT_ROUTE, PROVIDERS_REMOVE_ROUTE, PROVIDERS_SWITCH_ROUTE,
-  PROVIDERS_TAB_PATH, providerEditPath,
+  PROVIDERS_ROUTE, providerEditPath,
 } from "./pages/settings-page/providers.ts";
 export type { ProviderStatus } from "./pages/settings-page/providers.ts";
+export { renderProvidersPage } from "./pages/settings-page/provider-list.ts";
 export type { CheckableTool, ExtraCheck, ToolCheck } from "./pages/settings-page/tools.ts";
 export { usageView } from "./pages/settings-page/usage.ts";
 export type { ToolUsage, UsageView, UsageWindow } from "./pages/settings-page/usage.ts";

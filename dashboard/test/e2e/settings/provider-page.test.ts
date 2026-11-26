@@ -1,4 +1,4 @@
-// What only a browser does on the Providers tab: a click on a provider in
+// What only a browser does on the Providers page: a click on a provider in
 // the list, the pending label while a save is out, Cancel putting back what
 // was saved, Remove asking first, a refused save keeping what was typed,
 // the on/off switch, and the usage and the Models tab's reading filled in after the tab has drawn.
@@ -36,15 +36,15 @@ afterEach(async () => {
 
 const go = (address: string) => withBrowser(page.goto(`${base}${address}`), `page.goto(${address})`);
 
-const CLAUDE = "/settings?tab=providers&provider=Claude";
+const CLAUDE = "/providers?provider=Claude";
 const CLAUDE_CONFIG = `${CLAUDE}&aitab=config`;
 
 test("a click on a provider in the list shows it beside the list without loading the page again (AC-7)", async () => {
-  await go("/settings?tab=providers");
+  await go("/providers");
   await page.evaluate(() => { (window as unknown as { stayed: boolean }).stayed = true; });
   await page.locator(".provideritem", { hasText: "OpenCode" }).click();
   await page.locator("h3", { hasText: "OpenCode" }).waitFor();
-  expect(page.url()).toContain("/settings?tab=providers&provider=OpenCode");
+  expect(page.url()).toContain("/providers?provider=OpenCode");
   expect(await page.evaluate(() => (window as unknown as { stayed?: boolean }).stayed)).toBe(true);
   await page.goBack();
   await page.getByRole("heading", { name: "Claude", exact: true }).waitFor();
@@ -96,19 +96,19 @@ test("a press on a provider's switch turns it off, and a second press on again",
 });
 
 test("Remove asks first, removes nothing on Cancel, and removes the provider on OK (AC-13)", async () => {
-  await go("/settings?tab=providers&provider=OpenCode");
+  await go("/providers?provider=OpenCode");
   const dialog = page.locator('dialog[id="provider-remove-ask"]');
   await page.locator('button[data-ask="provider-remove-ask"]').click();
   await dialog.waitFor({ state: "visible" });
   await dialog.getByRole("button", { name: t("en", "dialog.cancel") }).click();
   await dialog.waitFor({ state: "hidden" });
-  await go("/settings?tab=providers");
+  await go("/providers");
   expect(await page.locator(".providerlist").innerText()).toContain("OpenCode");
 
-  await go("/settings?tab=providers&provider=OpenCode");
+  await go("/providers?provider=OpenCode");
   await page.locator('button[data-ask="provider-remove-ask"]').click();
   await Promise.all([
-    page.waitForURL("**/settings?tab=providers"),
+    page.waitForURL("**/providers"),
     page.locator('dialog[id="provider-remove-ask"]').getByRole("button", { name: t("en", "dialog.ok") }).click(),
   ]);
   expect(await page.locator(".providerlist").innerText()).not.toContain("OpenCode");

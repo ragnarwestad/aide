@@ -121,6 +121,9 @@ export interface ProjectsPageOptions {
   /** The request's own address, threaded to `pageShell` so its
    *  language links keep the reader on this same page. */
   currentUrl?: string;
+  /** Where "← Back" goes on the Projects page, from the request's own
+   *  `Referer`; `/` without one. */
+  backHref?: string;
 }
 
 export function renderProjectsPage(
@@ -131,6 +134,7 @@ export function renderProjectsPage(
 ): string {
   const lang = opts.lang ?? "en";
   const body =
+    backLink(opts.backHref ?? "/", t(lang, "shell.tabProjects"), "", { lang }) +
     (opts.error ? rowMessage("failed", opts.error, { hook: "refusal", tag: "p" }) + "\n" : "") +
     // One line above the list: the counts on the left, Add on the right
     // — the same shape the spec list's filter row has, where its own
@@ -155,15 +159,12 @@ export function renderProjectsPage(
       hidden: opts.hiddenProjects,
     });
   // No reload of its own: a served page a reader may leave mid-thought needs
-  // no blunt reload. The tagline rides on the tab here, the way it did
-  // on the generated overview — this is still the page that is about
-  // aide itself.
-  // No heading: the tab says "Projects" and the page said it twice more
-  // — an <h1> from the shell and an <h2> over the list (2026-08-21).
-  // The spec list has hidden its own for the same reason since
-  // 2026-08-19.
+  // no blunt reload. The tagline rides on the browser tab here, the way it
+  // did on the generated overview — this is still the page that is about
+  // aide itself. Opened from the "…" menu, it has no tab bar: the title
+  // sits beside Back, as on Settings.
   return pageShell(t(opts.lang ?? "en", "shell.tabProjects"), entries, "/projects", body, generatedAt, {
-    hideHeading: true,
+    hideHeading: true, hideTabBar: true,
     docTitle: `aide -board — ${t(opts.lang ?? "en", "pwa.tagline")}`,
     script: opts.script,
     lang: opts.lang,

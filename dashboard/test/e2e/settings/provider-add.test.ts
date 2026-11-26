@@ -1,4 +1,4 @@
-// What only a browser does in the Add dialog on the Providers tab: the
+// What only a browser does in the Add dialog on the Providers page: the
 // three steps, the ID made from the name, only the chosen tool's fields
 // posted, the login command written as they are typed, a refusal kept in
 // the dialog, and Cancel starting it over.
@@ -36,7 +36,7 @@ const dialog = () => page.locator("dialog#provider-add");
 const next = () => dialog().locator("button[data-add-next]");
 
 async function openAdd(): Promise<void> {
-  await go("/settings?tab=providers");
+  await go("/providers");
   await page.locator("button.iconlink[data-ask=provider-add]").click();
   await dialog().waitFor({ state: "visible" });
 }
@@ -52,7 +52,7 @@ test("Add walks the three steps, makes the ID from the name, and lands on the ne
   expect(await dialog().locator("[data-login-command]").innerText()).toBe(`CLAUDE_CONFIG_DIR=${folder} claude auth login`);
   expect(await dialog().locator("#provider-add-codex-codexHome").isVisible()).toBe(false);
   await Promise.all([
-    page.waitForURL("**/settings?tab=providers&provider=claude-work"),
+    page.waitForURL("**/providers?provider=claude-work"),
     dialog().locator("#provider-add-form-save").click(),
   ]);
   expect(await page.locator(".providerlist").innerText()).toContain("Claude Work");

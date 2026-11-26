@@ -55,7 +55,7 @@ export const fr: Record<TranslationKey, string> = {
   "shell.modelsGone": "{tool} : {models} n'est plus proposé",
   "shell.modelsGoneFix": "appuie sur {button} à côté de chacun dans {where}",
   "shell.modelsGoneWhere": "l'onglet {tab} de {provider}",
-  "shell.modelsGoneWhereAny": "l'onglet {tab} d'un fournisseur, sous l'onglet Fournisseurs de Settings",
+  "shell.modelsGoneWhereAny": "l'onglet {tab} d'un fournisseur, sous Fournisseurs dans le menu …",
   "shell.scheduleFault": "{job} ne démarre pas : {problem} ({where})",
   "shell.scheduleFaultWhere": "son onglet Settings",
   "shell.checkoutFault": "{project} : le tableau de bord ne peut pas utiliser sa propre copie — {said}",

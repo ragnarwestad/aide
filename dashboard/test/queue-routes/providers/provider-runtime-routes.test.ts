@@ -1,4 +1,4 @@
-// What Settings → Providers saves beyond the name and the folders: the ID a
+// What the Providers page saves beyond the name and the folders: the ID a
 // provider is stored under, its binary path, Claude Code's auto-compact
 // threshold, and the on/off switch.
 

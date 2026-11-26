@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
-  CHECKABLE_TOOLS, OTHER_STEPS, renderSettingsPage, resolveSettingsTab, settingsRowChoice, SETTINGS_PANELS, SETTINGS_STEPS,
+  CHECKABLE_TOOLS, OTHER_STEPS, providersAddressFor, renderSettingsPage, resolveSettingsTab, settingsRowChoice, SETTINGS_PANELS, SETTINGS_STEPS,
   SPEC_STEPS, UNROWED_STEPS,
 } from "../../../src/render";
 import { PROVIDER_TABS, providerDetail, providerTab, providerTabPath } from "../../../src/render/pages/settings-page/provider-detail.ts";
@@ -170,9 +170,9 @@ describe("the Settings tabs", () => {
     };
   };
 
-  test("the one row includes Appearance as its fifth tab (AC-1)", () => {
-    expect([...SETTINGS_PANELS]).toEqual(["phases", "providers", "process", "notifications", "appearance"]);
-    expect(SETTINGS_PANELS.map(tabLabel)).toEqual(["Models per phase", "Providers", "Process", "Notifications", "Appearance"]);
+  test("the one row has four tabs, with Providers on a page of its own", () => {
+    expect([...SETTINGS_PANELS]).toEqual(["phases", "process", "notifications", "appearance"]);
+    expect(SETTINGS_PANELS.map(tabLabel)).toEqual(["Models per phase", "Process", "Notifications", "Appearance"]);
     expect([...CHECKABLE_TOOLS]).toEqual(["claude", "codex", "opencode"]);
   });
 
@@ -180,15 +180,25 @@ describe("the Settings tabs", () => {
     for (const raw of ["ai", undefined, "nope"]) expect(resolveSettingsTab(raw)).toBe("phases");
   });
 
-  test("every tab opens its own panel, and a removed tool tab opens Providers (AC-2)", () => {
+  test("every tab opens its own panel", () => {
     for (const tab of SETTINGS_PANELS) expect(resolveSettingsTab(tab)).toBe(tab);
-    for (const old of ["claude", "codex", "copilot", "opencode"]) expect(resolveSettingsTab(old)).toBe("providers");
   });
 
-  test("the page links the five tabs and marks the open one (AC-1)", () => {
-    const claude = links(render("claude"));
-    expect(claude.keys).toEqual(new Set(SETTINGS_PANELS));
-    expect(claude.current).toEqual(new Set(["providers"]));
+  test("an address naming the Providers page or a tool tab goes to the Providers page, keeping the provider and its tab", () => {
+    const at = (query: string) => {
+      const asked = new URLSearchParams(query);
+      return providersAddressFor({ tab: asked.get("tab"), provider: asked.get("provider"), aitab: asked.get("aitab") });
+    };
+    expect(at("tab=providers")).toBe("/providers");
+    for (const old of ["claude", "codex", "copilot", "opencode"]) expect(at(`tab=${old}`)).toBe("/providers");
+    expect(at("tab=providers&provider=Claude&aitab=installation&other=x")).toBe("/providers?provider=Claude&aitab=installation");
+    for (const stays of ["", "tab=phases", "tab=process", "tab=ai"]) expect(at(stays)).toBeUndefined();
+  });
+
+  test("the page links the four tabs and marks the open one", () => {
+    const process = links(render("process"));
+    expect(process.keys).toEqual(new Set(SETTINGS_PANELS));
+    expect(process.current).toEqual(new Set(["process"]));
   });
 });
 
@@ -208,12 +218,12 @@ describe("the tabs of a provider's page", () => {
   test("they are Config, Usage, Models and Installation, in that order, each a link to the provider's page", () => {
     expect([...PROVIDER_TABS]).toEqual(["config", "usage", "models", "installation"]);
     expect(tabs(draw()).map(({ href, label }) => ({ href, label }))).toEqual([
-      { href: "/settings?tab=providers&provider=Claude&aitab=config", label: "Config" },
-      { href: "/settings?tab=providers&provider=Claude&aitab=usage", label: "Usage" },
-      { href: "/settings?tab=providers&provider=Claude&aitab=models", label: t("en", "settings.part.models") },
-      { href: "/settings?tab=providers&provider=Claude&aitab=installation", label: t("en", "settings.part.installation") },
+      { href: "/providers?provider=Claude&aitab=config", label: "Config" },
+      { href: "/providers?provider=Claude&aitab=usage", label: "Usage" },
+      { href: "/providers?provider=Claude&aitab=models", label: t("en", "settings.part.models") },
+      { href: "/providers?provider=Claude&aitab=installation", label: t("en", "settings.part.installation") },
     ]);
-    expect(providerTabPath("Claude", "models")).toBe("/settings?tab=providers&provider=Claude&aitab=models");
+    expect(providerTabPath("Claude", "models")).toBe("/providers?provider=Claude&aitab=models");
   });
 
   test("the page opens on Config, as does an absent, empty or unknown tab, and the old Overview", () => {

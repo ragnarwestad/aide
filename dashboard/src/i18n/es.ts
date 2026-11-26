@@ -55,7 +55,7 @@ export const es: Record<TranslationKey, string> = {
   "shell.modelsGone": "{tool}: {models} ya no se ofrece",
   "shell.modelsGoneFix": "pulsa {button} junto a cada uno en {where}",
   "shell.modelsGoneWhere": "la pestaña {tab} de {provider}",
-  "shell.modelsGoneWhereAny": "la pestaña {tab} de un proveedor, en la pestaña Proveedores de Settings",
+  "shell.modelsGoneWhereAny": "la pestaña {tab} de un proveedor, en Proveedores del menú …",
   "shell.scheduleFault": "{job} no se inicia: {problem} ({where})",
   "shell.scheduleFaultWhere": "su pestaña Settings",
   "shell.checkoutFault": "{project}: el panel no puede usar su propia copia — {said}",

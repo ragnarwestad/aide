@@ -55,7 +55,7 @@ export const de: Record<TranslationKey, string> = {
   "shell.modelsGone": "{tool}: {models} nicht mehr angeboten",
   "shell.modelsGoneFix": "drücke {button} neben jedem davon auf {where}",
   "shell.modelsGoneWhere": "dem Tab {tab} von {provider}",
-  "shell.modelsGoneWhereAny": "dem Tab {tab} eines Anbieters, unter dem Tab Anbieter in Settings",
+  "shell.modelsGoneWhereAny": "dem Tab {tab} eines Anbieters, unter Anbieter im Menü …",
   "shell.scheduleFault": "{job} startet nicht: {problem} ({where})",
   "shell.scheduleFaultWhere": "seinem Settings-Tab",
   "shell.checkoutFault": "{project}: das Dashboard kann seinen eigenen Checkout nicht verwenden — {said}",

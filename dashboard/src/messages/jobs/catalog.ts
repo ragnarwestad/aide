@@ -204,11 +204,11 @@ export const JOBS_CATALOG = {
     de: "zurückgehalten: {provider} ist ausgeschaltet",
     fr: "retenu : {provider} est désactivé",
     solution: {
-      en: "Switch {provider} on in Settings, the Providers tab",
-      nb: "Slå på {provider} i Innstillinger, fanen Providere",
-      es: "Activa {provider} en Ajustes, la pestaña Proveedores",
-      de: "Schalte {provider} in den Einstellungen ein, Reiter Anbieter",
-      fr: "Activez {provider} dans Réglages, onglet Fournisseurs",
+      en: "Switch {provider} on under Providers in the … menu",
+      nb: "Slå på {provider} under Providere i …-menyen",
+      es: "Activa {provider} en Proveedores, en el menú …",
+      de: "Schalte {provider} unter Anbieter im Menü … ein",
+      fr: "Activez {provider} dans Fournisseurs, menu …",
     },
   },
   "runner.runVanished": {

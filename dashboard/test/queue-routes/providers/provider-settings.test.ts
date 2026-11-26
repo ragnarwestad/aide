@@ -1,5 +1,5 @@
 // Adding, editing (the name among the fields) and removing a provider on
-// Settings → Providers, and the pages that add and edit one. The file is
+// the Providers page, and the pages that add and edit one. The file is
 // written first and the live providers changed after; a refusal changes
 // neither.
 
@@ -343,12 +343,12 @@ describe("removing a provider something uses", () => {
   });
 });
 
-describe("a provider on the Providers tab", () => {
+describe("a provider on the Providers page", () => {
   test("Edit shows the name as a field beside the folders, with the tool shown and not asked (AC-9)", async () => {
     const { base } = serve();
     const dir = folder();
     await post(base, ADD, { tool: "claude", name: "Capra", configDir: dir });
-    const page = await (await fetch(`${base}/settings?tab=providers&provider=Capra&aitab=config`)).text();
+    const page = await (await fetch(`${base}/providers?provider=Capra&aitab=config`)).text();
     const html = page.match(/<form id="provider-form"[\s\S]*?<\/form>/)?.[0] ?? "";
     expect(html).toContain('name="name" type="text" value="Capra"');
     expect(html).toContain(`value="${dir}"`);
@@ -359,16 +359,16 @@ describe("a provider on the Providers tab", () => {
 
   test("the name field does not stop an empty name in the browser, so the board's refusal reaches the form's line (AC-18)", async () => {
     const { base } = serve();
-    const html = await (await fetch(`${base}/settings?tab=providers&provider=Claude&aitab=config`)).text();
+    const html = await (await fetch(`${base}/providers?provider=Claude&aitab=config`)).text();
     const field = html.match(/<input id="provider-name"[^>]*>/)?.[0] ?? "";
     expect(field).toContain('name="name"');
     expect(field).not.toContain("required");
   });
 
-  test("the Providers tab carries the four tabs of the chosen provider with Config open, and a named tab opens", async () => {
+  test("the Providers page carries the four tabs of the chosen provider with Config open, and a named tab opens", async () => {
     const { base } = serve();
     const open = async (query: string) => {
-      const html = await (await fetch(`${base}/settings?tab=providers&provider=Claude${query}`)).text();
+      const html = await (await fetch(`${base}/providers?provider=Claude${query}`)).text();
       return [...html.matchAll(/<a [^>]*href="[^"]*aitab=(\w+)"([^>]*)>/g)].map((m) => ({ tab: m[1], current: m[2]!.includes("aria-current") }));
     };
     const tabs = ["config", "usage", "models", "installation"];
@@ -382,7 +382,7 @@ describe("a provider on the Providers tab", () => {
       check: async (tool) => { asked.push(`check:${tool}`); return { tool, at: "2026-11-05T09:00:00.000Z", found: true, missing: ["scripts"], extra: [] }; },
       models: async (tool) => { asked.push(`models:${tool}`); return { tool, at: "2026-11-05T09:00:00.000Z", offered: [{ model: "opus-read-now" }] }; },
     });
-    const page = (tab: string) => fetch(`${base}/settings?tab=providers&provider=Claude&aitab=${tab}`).then((r) => r.text());
+    const page = (tab: string) => fetch(`${base}/providers?provider=Claude&aitab=${tab}`).then((r) => r.text());
     expect(await page("models")).toContain("opus-read-now");
     expect(asked).toEqual(["models:claude"]);
     expect(await page("installation")).toContain("~/.local/bin/");
@@ -403,7 +403,7 @@ describe("what a provider's page shows of its own folders", () => {
     const asked: string[] = [];
     const probe: Probe = async (key, provider, opts) => { asked.push(`status:${key}`); return byKey(key, provider, opts); };
     const { base } = serve({}, CONFIG, probe);
-    expect((await fetch(`${base}/settings?tab=providers&provider=Codex`)).status).toBe(200);
+    expect((await fetch(`${base}/providers?provider=Codex`)).status).toBe(200);
     expect(asked.sort()).toEqual(["status:Claude", "status:Codex"]);
   });
 
@@ -413,7 +413,7 @@ describe("what a provider's page shows of its own folders", () => {
     await post(base, ADD, { tool: "claude", name: "Claude-2", configDir: dir });
     // The tab's own part of the page: the header's Usage panel above it holds every provider's windows.
     const tab = async (key: string): Promise<string> => {
-      const html = await (await fetch(`${base}/settings?tab=providers&provider=${key}&aitab=usage`)).text();
+      const html = await (await fetch(`${base}/providers?provider=${key}&aitab=usage`)).text();
       return html.slice(html.indexOf("<main"));
     };
     const second = await tab("Claude-2");
@@ -429,35 +429,37 @@ describe("what a provider's page shows of its own folders", () => {
     const dir = folder();
     const { base } = serve({}, CONFIG, byKey);
     await post(base, ADD, { tool: "claude", name: "Claude-2", configDir: dir });
-    const page = await (await fetch(`${base}/settings?tab=providers&provider=Claude-2&aitab=usage`, { redirect: "follow" })).text();
+    const page = await (await fetch(`${base}/providers?provider=Claude-2&aitab=usage`, { redirect: "follow" })).text();
     expect(page).toContain("Not logged in");
     expect(page).toContain(`CLAUDE_CONFIG_DIR=${dir} claude auth login`);
   });
 });
 
-describe("reading every provider's status when Settings opens", () => {
+describe("reading every provider's status when the Providers page opens", () => {
   const counting = () => {
     const asked: string[] = [];
     return { asked, probe: async (key: string, provider: Provider) => { asked.push(key); return stubProbe(key, provider); } };
   };
 
-  test("the Providers tab reads each provider once before it answers (AC-6)", async () => {
+  test("the Providers page reads each provider once before it answers (AC-6)", async () => {
     const { asked, probe } = counting();
     const { base } = serve({}, CONFIG, probe);
-    await (await fetch(`${base}/settings?tab=providers`)).text();
+    await (await fetch(`${base}/providers`)).text();
     expect(asked.sort()).toEqual(["Claude", "Codex"]);
   });
 
-  test("a removed tool tab opens Providers and reads the statuses too, and no other tab reads anything (AC-2)", async () => {
+  test("Settings reads no provider, and sends an address naming a tab that moved to the Providers page, keeping its provider and tab", async () => {
     const { asked, probe } = counting();
     const { base } = serve({}, CONFIG, probe);
     await fetch(`${base}/settings`);
     await fetch(`${base}/settings?tab=process`);
     expect(asked).toEqual([]);
+    const moved = await fetch(`${base}/settings?tab=providers&provider=Claude&aitab=usage`, { redirect: "manual" });
+    expect(moved.status).toBe(302);
+    expect(moved.headers.get("location")).toBe("/providers?provider=Claude&aitab=usage");
     for (const tab of ["claude", "codex", "copilot", "opencode"]) {
-      const html = await (await fetch(`${base}/settings?tab=${tab}`)).text();
-      expect(html).toContain("provider=Claude");
+      expect((await fetch(`${base}/settings?tab=${tab}`, { redirect: "manual" })).headers.get("location")).toBe("/providers");
     }
-    expect(asked).toHaveLength(8);
+    expect(asked).toEqual([]);
   });
 });

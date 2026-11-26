@@ -10,7 +10,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   renderAddProjectPage, renderNewSpecPage, renderProjectPage, renderProjectsPage, renderSchedulePage,
-  renderScheduleDetailPage, renderScheduleNewPage, renderSchedulePromptPage, renderSettingsPage,
+  renderProvidersPage, renderScheduleDetailPage, renderScheduleNewPage, renderSchedulePromptPage, renderSettingsPage,
   CHECKABLE_TOOLS, installationBlock, modelsBlock, stamp, TOOL_TAB_LABELS, type ProjectView, type ProviderStatus, type ToolCheck, type ToolModels, type ToolUsage,
 } from "../../../../src/render";
 import type { GitRunner } from "../../../../src/git/process/index.ts";
@@ -75,6 +75,12 @@ const settings = (page: string, opts: Partial<Parameters<typeof renderSettingsPa
   data: [...data, ...MODELS.map((m) => m.name), "Planlegg 1", "claude-planlegg-1", "Raskkodex", "Ukjent"],
 });
 
+const providersPage = (page: string, opts: Partial<Parameters<typeof renderProvidersPage>[2]>, data: string[] = []): PageState => ({
+  page,
+  html: renderProvidersPage(NAV, NOW, { ...nb, ...opts }),
+  data: [...data, ...MODELS.map((m) => m.name), "Planlegg 1", "claude-planlegg-1", "Raskkodex", "Ukjent"],
+});
+
 export function settingsStates(): PageState[] {
   const states: PageState[] = [
     settings("Settings › Models per phase", {}),
@@ -99,18 +105,17 @@ export function settingsStates(): PageState[] {
     Fraverende: statusOf("Fraverende", undefined, false),
   };
   states.push(
-    settings("Settings › Providers", { tab: "providers", providers, providerStatuses: statuses }, [...names, "opencode"]),
-    settings("Settings › Providers, none", { tab: "providers", providers: {} }, ["opencode"]),
-    settings("Settings › claude (a removed tab opens Providers)", { tab: "claude", providers, providerStatuses: statuses }, [...names, "opencode"]),
+    providersPage("Providers", { providers, statuses }, [...names, "opencode"]),
+    providersPage("Providers, none", { providers: {} }, ["opencode"]),
   );
-  // The chosen provider, on the Providers tab, with what was read of it.
+  // The chosen provider, on the Providers page, with what was read of it.
   const PROVIDER_DATA = [...names, "~/.claude-konto", "~/.codex-kodeks", "2.1.273", "noen@eksempel.no, Max", "CODEX_HOME=~/.codex-kodeks codex login",
     "Planlegg 1", "claude-planlegg-1", "Raskkodex", "raskkodex", "Ukjent", "ukjent", "Dagens kvote", "Nov 3 at 11:20pm (Europe/Oslo)", "Max", "claude", "codex", "opencode", "300000", "~/.claude", "~/.codex", "~/.codex-shadow"];
-  type Detail = NonNullable<Parameters<typeof renderSettingsPage>[2]["providerDetail"]>;
+  type Detail = NonNullable<Parameters<typeof renderProvidersPage>[2]["detail"]>;
   const chosen = (page: string, key: keyof typeof providers, over: Partial<Detail> = {}): PageState =>
-    settings(page, {
-      tab: "providers", providers, providerStatuses: statuses,
-      providerDetail: { key, provider: providers[key], status: statuses[key as keyof typeof statuses], ...over },
+    providersPage(page, {
+      providers, statuses,
+      detail: { key, provider: providers[key], status: statuses[key as keyof typeof statuses], ...over },
     }, PROVIDER_DATA);
   for (const tool of CHECKABLE_TOOLS) {
     const key = tool === "claude" ? "Konto" : tool === "codex" ? "Kodeks" : "Aapen";
