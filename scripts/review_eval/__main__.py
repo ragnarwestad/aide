@@ -9,6 +9,8 @@ the spec's description as it was when the commit was made.
   review  runs the review on every case, then has a Claude judge match each finding to a labelled one. It reports
           how many real defects were found, how many false and unclear ones reported, and lists the new ones, which
           need a verdict before they go into cases.json.
+  probe   does the same with a session that tries to break each acceptance criterion by running the code, with
+          scratch tests it writes in the worktree, in the review's place (probe.py).
   verify  gives each case's labelled findings to the verification, and reports how many real ones it kept and how
           many false ones it dropped.
 
@@ -28,6 +30,7 @@ Usage:
   export CLAUDE_CODE_OAUTH_TOKEN=...   # a Claude review or verification, or the judge
   python3 scripts/review_eval review --tool codex --model gpt-6.1-sol [--specs 637,640] [--judge sonnet]
   python3 scripts/review_eval verify --tool claude --model opus [--specs 645]
+  python3 scripts/review_eval probe --tool codex --model gpt-6.1-sol [--specs 645,648]
   python3 scripts/review_eval check
   python3 scripts/review_eval planted --tool codex --model gpt-6.1-sol [--verify-tool claude --verify-model opus]
       [--cases 641-planted,636-clean]
@@ -48,6 +51,7 @@ from pathlib import Path
 
 import compare
 import planted
+import probe
 import replies
 
 HERE = Path(__file__).resolve().parent
@@ -157,6 +161,21 @@ def review_one(args, case, labelled, scratch):
         text = prompt("review_prompt", str(c.description), c.fork, "main", "", HEADLESS)
         (c.out / "prompt-review").write_text(text)
         defects = replies.review_defects(turn(args.tool, args.model, text, c.tree, c.out / "review"))
+    return judged(args, c, defects, labelled)
+
+
+def probe_one(args, case, labelled, scratch):
+    """As review_one, with the session that runs the code against each acceptance criterion in the review's place."""
+    with Case(args, case, scratch) as c:
+        probe.prepare(c.tree, args.code)
+        text = probe.PROMPT.format(description=c.description, fork=c.fork, headless=HEADLESS)
+        (c.out / "prompt-probe").write_text(text)
+        defects = replies.review_defects(probe.turn(args.tool, args.model, text, c.tree, c.out / "probe"))
+    return judged(args, c, defects, labelled)
+
+
+def judged(args, c, defects, labelled):
+    """The defects a session reported, each matched by the judge to a labelled finding of its case or "new"."""
     if defects is None:
         return c.spec, None, [], []
     known = [f for f in labelled if f["spec"] == c.spec]
@@ -197,7 +216,7 @@ def report_review(args, labelled, results):
         for key, value in score.items():
             total[key] = total.get(key, 0) + value
         lines += [f"- {spec}: {n}. [{m}] {d}" for n, (d, m) in enumerate(zip(defects, matched), 1)]
-    head = (f"Review {args.tool} {args.model}: {total.get('real found', 0)} of {total.get('real', 0)} real defects found, "
+    head = (f"{args.command.capitalize()} {args.tool} {args.model}: {total.get('real found', 0)} of {total.get('real', 0)} real defects found, "
             f"{total.get('false reported', 0)} false and {total.get('unclear reported', 0)} unclear reported, "
             f"{total.get('new', 0)} new to check.")
     return head, lines
@@ -263,7 +282,7 @@ def check(args):
 def main(argv):
     home = os.path.expanduser("~")
     ap = argparse.ArgumentParser(description="Measure implement's review and its verification against known defects.")
-    ap.add_argument("command", choices=("review", "verify", "check", "planted", "compare"))
+    ap.add_argument("command", choices=("review", "verify", "probe", "check", "planted", "compare"))
     ap.add_argument("runs", nargs="*", help="compare: the folders of run A and run B")
     ap.add_argument("--tool", choices=("claude", "codex"))
     ap.add_argument("--model")
@@ -296,7 +315,8 @@ def main(argv):
         print(head)
         print(f"Results: {args.out}/results.md")
         return 0
-    work, report = (review_one, report_review) if args.command == "review" else (verify_one, report_verify)
+    work, report = {"review": (review_one, report_review), "probe": (probe_one, report_review),
+                    "verify": (verify_one, report_verify)}[args.command]
     labelled, results = run_all(args, work)
     head, lines = report(args, labelled, results)
     Path(args.out, "results.md").write_text("\n".join([head, "", *lines]) + "\n")

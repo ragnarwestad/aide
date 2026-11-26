@@ -1,5 +1,5 @@
 {
- "_about": "Implement commits whose review on the board found nothing and whose tests went green the first time, with every finding a later review made on them and whether it is a defect. real: a reachable case where the code is wrong against the description. false: the code is right, the state cannot be reached, or only a guard might be missing. unclear: it turns on a judgement the description does not settle. Each verdict was reached by reading the code at the commit.",
+ "_about": "Implement commits whose review on the board found nothing and whose tests went green the first time, with every finding a later review or probe made on them and whether it is a defect. real: a reachable case where the code is wrong against the description. false: the code is right, the state cannot be reached, or only a guard might be missing. unclear: it turns on a judgement the description does not settle. Each verdict was reached by reading the code at the commit.",
  "cases": [
   {
    "spec": "636",
@@ -96,6 +96,13 @@
  ],
  "findings": [
   {
+   "id": "636-alone-spec-no-picker",
+   "spec": "636",
+   "verdict": "false",
+   "text": "An active spec that depends on nothing, in a project with no other specs, gets no Depends on picker on its open Running row.",
+   "reason": "dependsOnLine returns nothing when dependsOnField has nothing to offer or show (dashboard/src/render/pages/specs-list/depends-on/index.ts:50; dashboard/src/render/pages/new-spec-page/index.ts:126). The description says the picker works as it does today, and the New spec picker draws nothing in this case too."
+  },
+  {
    "id": "637-overload-in-errors",
    "spec": "637",
    "verdict": "false",
@@ -108,6 +115,13 @@
    "verdict": "real",
    "text": "core/scripts/lib/run-spec/turn/model-turn.sh:155 skips the capacity check when the step's stream already holds a turn.completed from an earlier turn, so a later fix turn that ends on a capacity error with no turn.failed becomes cli-error, against AC-1.",
    "reason": "Every turn appends to one transcript and the check reads its last turn.completed/turn.failed; a Codex fix turn ending on 'Selected model is at capacity' with exit 1 leaves subtype success from the first turn."
+  },
+  {
+   "id": "637-empty-result-529",
+   "spec": "637",
+   "verdict": "false",
+   "text": "A Claude Code result with is_error=true, api_error_status=529 and result=\"\" ends as cli-error instead of model-at-capacity, because jq's `\"\" // \"overloaded\"` yields the empty string.",
+   "reason": "The code drops this case (core/scripts/lib/run-spec/turn/model-turn.sh:267, so the check at :328 is skipped), but the input does not arise: every real Claude Code result with an api_error_status in ~/.aide/dashboard/jobs carries non-empty text, and the real error results with empty text carry no api_error_status."
   },
   {
    "id": "638-language-links-keep-project",
@@ -145,11 +159,39 @@
    "reason": "finishDeployAfterRestart runs at :276; a deployed commit that throws between there and Bun.serve leaves the job done and the service down. A busy port is not the trigger: kickstart -k starts the new process after the old one exits."
   },
   {
+   "id": "641-whitespace-error-blank-line",
+   "spec": "641",
+   "verdict": "false",
+   "text": "A failed job whose error is whitespace only (\" \") shows a blank message line before Log instead of the sentence saying how it ended.",
+   "reason": "jobMessage only falls back on an empty string (dashboard/src/render/pages/jobs-page/rows.ts:149), but nothing writes a whitespace-only error: the deploy job, the runner and aide-run-spec write keyed messages, composed sentences or an empty string."
+  },
+  {
+   "id": "642-busy-slot-drops-hold",
+   "spec": "642",
+   "verdict": "false",
+   "text": "A dependency-held job whose free slot is then taken by another job loses its Held back mark and sentence on the next tick and reads Queued 1/1 while its dependency is still not archived.",
+   "reason": "The case happens, but it is older behaviour the commit did not touch (the diff changes only startOne), and deliberate: index.ts:156 says a full board says so by its queue position, and clearStaleHolds (index.ts:258) removes the earlier sentence. The description puts when a hold is lifted out of scope."
+  },
+  {
    "id": "644-model-steps-no-time",
    "spec": "644",
    "verdict": "real",
    "text": "The model's steps always show a dash instead of a time: scheduleSteps in dashboard/src/serve/spec-views/job-marks.ts uses timing that only Aide's own stamped marks have, against AC-1.",
    "reason": "timed() gives a time only to a mark with startedSec, which the model's marks never have."
+  },
+  {
+   "id": "644-long-step-title-mark-dropped",
+   "spec": "644",
+   "verdict": "false",
+   "text": "A model step mark longer than 160 characters (a title of about 134 characters or more) loses its ending to the 160-character log clip, so the step is missing from a scheduled job's unfolded row.",
+   "reason": "The clip is real (dashboard/src/queue/parse-stream/shared.ts:18,41,221; step-marks.ts:38), but the schedule prompt asks for short named steps (core/scripts/lib/run-spec/setup/invocation.sh:169-178), and the longest of 10,952 real started marks in ~/.aide/dashboard/jobs/*.run.log is 82 characters."
+  },
+  {
+   "id": "644-done-inside-title-misread",
+   "spec": "644",
+   "verdict": "false",
+   "text": "The mark `--- Step 1 of 1: Read — done reports — started` is read as a step titled Read in state Done, because the title part of MARK is matched lazily.",
+   "reason": "The lazy match in MARK (dashboard/src/queue/parse-stream/step-marks.ts:38) is how a stopped mark's reason is cut off, and no real run log has a title containing ' — done', ' — started', ' — skipped' or ' — stopped'."
   },
   {
    "id": "645-clipped-mark-no-tokens",
@@ -187,6 +229,13 @@
    "reason": "Only a started mark moves the open step; stepMarks ends a running step at a later step's mark, so the line shows tokens from after its own end."
   },
   {
+   "id": "645-megabyte-message-loses-mark",
+   "spec": "645",
+   "verdict": "false",
+   "text": "A single model message line over 1,048,576 bytes that contains a short start mark is skipped whole by model-marks.sh, so that mark is never recorded in the run log, for all three tools.",
+   "reason": "The 1 MiB per-line cap is deliberate (core/scripts/lib/run-spec/turn/model-marks.sh:17, the marks_skip branch in _marks_step): lines that large come from tool results, not from one model message."
+  },
+  {
    "id": "647-falls-back-to-person-checkout",
    "spec": "647",
    "verdict": "false",
@@ -206,6 +255,13 @@
    "verdict": "real",
    "text": "dashboard/src/serve/routes/page-routes/schedule-pages.ts:100 hands the prompt path to git unchanged, so an accepted path like docs/../docs/nightly.md or docs//nightly.md shows cannot be read although the file is on the default branch, against AC-2.",
    "reason": "Saving checks a normalised path, git log normalises it, git show ref:<path> does not and fails."
+  },
+  {
+   "id": "647-pathspec-magic-prompt-name",
+   "spec": "647",
+   "verdict": "false",
+   "text": "A prompt file literally named `:(literal)docs/p.md` shows cannot be read on its prompt page, because git log reads the name as pathspec magic.",
+   "reason": "readFetched passes the path unescaped to git log (dashboard/src/git/branch-file.ts:71), but no real prompt file name starts with ':('; the state exists only when a test makes that file."
   },
   {
    "id": "648-row-stays-after-delete",
@@ -229,6 +285,13 @@
    "reason": "pushed.some(r => codeRoots.has(r.root)) makes landingFor return undefined; the row and the next analyze read the main checkout."
   },
   {
+   "id": "651-body-bullet-misplaces-sent-back",
+   "spec": "651",
+   "verdict": "false",
+   "text": "When a description's Tracking info lacks the approach or criteria-checks line but its body has an example bullet in that syntax, record_sent_back writes the Sent back line under the body bullet, so the row and page show no sent-back notice.",
+   "reason": "record_sent_back inserts after the first matching bullet in the whole file (core/scripts/lib/tracking-info.sh:47-54), but every board create writes those lines into Tracking info before the body, and no 1-description.md in aide-specs has such a bullet outside Tracking info."
+  },
+  {
    "id": "652-yaml-comment-in-prefix",
    "spec": "652",
    "verdict": "real",
@@ -241,6 +304,13 @@
    "verdict": "false",
    "text": "Three existing tests get new names, although renaming tests written before the prefix was set is out of scope.",
    "reason": "The three tests were extended to cover the new criterion and tagged with it; the item forbids renaming old tests to the new prefix, not tagging one that now covers this spec."
+  },
+  {
+   "id": "652-prefixed-title-on-next-line",
+   "spec": "652",
+   "verdict": "false",
+   "text": "A test written as `test(` on one line with its title `\"new (F81 AC-2)\"` on the next gets an empty list under AC-2 in ac-coverage.json.",
+   "reason": "The coverage reader is line-based by design and the commit did not change it (core/scripts/lib/run-spec/record/ac-coverage.sh:52,61-62): an unprefixed (AC-2) title on the next line gets the same empty list, and AC-4 asks only for parity with that."
   },
   {
    "id": "653-link-target-dropped",
@@ -264,6 +334,27 @@
    "reason": "OpenCode's docs and platform.claude.com put tips and cautions in <aside> callouts."
   },
   {
+   "id": "653-separator-variant-copy-collision",
+   "spec": "653",
+   "verdict": "false",
+   "text": "Two watched addresses that differ only in a separator character (a@b.html and a_b.html) map to the same kept copy, so the second is reported as changed on its first run.",
+   "reason": "The collision is real in copy_path (scripts/watch-pages.py:128-130), but the 19 configured pages (docs/AI_NEWS_LOG.md:71-89) all give distinct names, and two real addresses differing only by such a character are not a plausible entry."
+  },
+  {
+   "id": "653-overlong-copy-filename-crash",
+   "spec": "653",
+   "verdict": "false",
+   "text": "An address whose copy file name comes to 256 characters crashes the script with File name too long, and the pages after it are never fetched.",
+   "reason": "copy_path puts no limit on the name and check() does not catch the OSError (scripts/watch-pages.py:128-130,144), but the longest name among the configured pages is 100 characters: a missing guard, not a case real use produces."
+  },
+  {
+   "id": "653-short-page-counted-failed",
+   "spec": "653",
+   "verdict": "false",
+   "text": "A page fetched with under 200 characters of text and no kept copy is reported failed and not stored, while the same page at 200 characters is reported new.",
+   "reason": "MIN_TEXT = 200 (scripts/watch-pages.py:28,139-140) deliberately treats an empty script shell or block page as not fetched, which fits AC-6 and is pinned by the branch's own test; no watched page has so little text."
+  },
+  {
    "id": "655-saved-filter-empty-running",
    "spec": "655",
    "verdict": "real",
@@ -276,6 +367,41 @@
    "verdict": "false",
    "text": "With CRLF line endings in 1-description.md the dashboard recognises '- **Acceptance:** not required' but core/scripts/lib/run-spec/publish/result.sh:53 does not, so analyze leaves the criteria open instead of marking them Not verified, against AC-1.",
    "reason": "Nothing writes a description with CRLF: aide-create-spec and the dashboard's editor both write LF."
+  },
+  {
+   "id": "657-pipe-in-criterion-breaks-row",
+   "spec": "657",
+   "verdict": "false",
+   "text": "A criterion whose text contains a pipe, such as `accept x | y`, is copied unescaped into the rebuilt acceptance table, so its row gets an extra cell and falls out of 4-status.json.",
+   "reason": "The row is built from the raw text (core/scripts/lib/spec-transitions.sh:316-320), an older path the commit did not add, and none of the 3,519 criteria lines in 576 descriptions in aide-specs contains a pipe."
+  },
+  {
+   "id": "657-acceptance-line-in-code-block",
+   "spec": "657",
+   "verdict": "false",
+   "text": "A description whose Tracking info does not exempt acceptance, but whose body has `- **Acceptance:** not required` inside a code block, gets every row marked Not verified instead of open.",
+   "reason": "result.sh:53 greps the whole description, as the dashboard's own acceptanceNotRequiredIn does (dashboard/src/project/discover/acceptance.ts:12,34), and the line occurs in real files only as the Tracking info bullet aide-create-spec writes."
+  },
+  {
+   "id": "659-blank-line-between-added-criteria",
+   "spec": "659",
+   "verdict": "false",
+   "text": "When given criteria sit under Out of scope and create adds AC-2 and AC-3 with a blank line between them, aide-create-spec refuses the description as a changed Out of scope section though every original line is kept.",
+   "reason": "without_added stops at the first non-AC line (core/scripts/aide-create-spec:333-336), but no real description separates criteria with blank lines, the skill adds each directly after the last, and the failure is a loud refusal."
+  },
+  {
+   "id": "662-heading-trailing-spaces-ignored",
+   "spec": "662",
+   "verdict": "false",
+   "text": "With trailing spaces after `### Files to change`, the runner finds no file list and refuses a short analysis that lists three or four source files.",
+   "reason": "The exact-match section reader (core/scripts/lib/files-to-change.sh:17-19) was not changed by the commit, and all 404 Files to change headings in aide-specs are written exactly."
+  },
+  {
+   "id": "662-crlf-analysis-read-as-full",
+   "spec": "662",
+   "verdict": "false",
+   "text": "With CRLF line endings, a short analysis with four source files is read as a full analysis, counts zero files and is accepted instead of refused.",
+   "reason": "The analysis-kind reader and files-to-change.sh were not changed by the commit, and no 2-analysis.md in aide-specs contains a carriage return."
   },
   {
    "id": "667-window-without-fullest",

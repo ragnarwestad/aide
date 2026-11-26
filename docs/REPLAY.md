@@ -204,8 +204,8 @@ the tests go, and why the runner, not the model, decides when it is taken.
 
 `scripts/review_eval` measures implement's review and its verification, which a replay cannot: a replay reruns the
 whole step, while these need fixed commits with known defects. `scripts/review_eval/cases.json` holds 23 implement
-commits whose review on the board found nothing, and every finding a later review made on them, each labelled
-`real`, `false` or `unclear` by reading the code at the commit. Both commands send the runner's own prompts
+commits whose review on the board found nothing, and every finding a later review or probe made on them, each labelled
+`real`, `false` or `unclear` by reading the code at the commit. `review` and `verify` send the runner's own prompts
 (`run-spec/turn/review-prompts.sh`) in a detached worktree of each commit, and read the replies by the runner's own
 rule from the same file.
 
@@ -214,6 +214,9 @@ rule from the same file.
   ones. A new one gets a verdict, by reading the code, before it goes into `cases.json`.
 - `verify --tool claude --model opus` hands each commit's labelled findings to the verification, and reports how many
   real ones it kept and how many false ones it dropped.
+- `probe --tool codex --model gpt-6.1-sol` puts a session in the review's place that tries to break each acceptance
+  criterion by running the code: it writes scratch tests in the worktree, with generated inputs, states and orders the
+  branch's own tests do not try (`scripts/review_eval/probe.py`). It is judged and reported as `review` is.
 
 Results go to `~/.aide/review-eval/`. Run it on the serving host, as a round is run, with the same token.
 
@@ -227,6 +230,12 @@ On 26 October 2026, with 17 real, 13 false and 2 unclear findings labelled:
 
 That is why `model.review` is gpt-6.1-sol and `model.verify` Opus. The three real defects Opus dropped each turn on
 how the description is read.
+
+On 26 November 2026, `probe` on gpt-6.1-sol found 9 of the 17 real defects and reported 25 findings that are not
+defects: 6 false and 1 unclear already labelled, and 18 new ones, all false. The code behaved as each of those
+findings said, for inputs that do not occur: a step title longer than any in the run logs, a pipe in a criterion, CRLF
+in an analysis. 9 real of 34 findings is too much noise for the 3 defects it found that the review did not, so it is not
+part of implement.
 
 ### Planted defects and clean cases
 
