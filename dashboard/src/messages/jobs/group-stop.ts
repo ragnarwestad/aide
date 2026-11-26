@@ -4,7 +4,7 @@ import type { QueueRowView } from "../../render/ui/job-state/types.ts";
 import type { Language } from "../../i18n";
 import type { Message } from "../types.ts";
 import { specNumber } from "../../project/spec-folder.ts";
-import { when } from "../usage-limit/get.ts";
+import { getUsageLimitMessage } from "../usage-limit/get.ts";
 import { stepLabel } from "../../render/ui/components";
 import { getJobMessage } from "./get.ts";
 import { formatMessage } from "../format.ts";
@@ -49,9 +49,8 @@ export function getGroupStopMessage(
   if (group.state === "stopped" && group.stoppedByUser) return { notice: { variant: "info", text: formatMessage(lang, { key: "group.stoppedByUser" }) } };
   const waiting = groupProviderLimitWait(group, members);
   if (waiting) {
-    const sentence = { key: "group.providerLimitWaiting" as const,
-      values: { at: when(waiting.usageLimitWait!.until, Date.now(), lang) } };
-    return { specFolder: waiting.specFolder, notice: { variant: "info", text: formatMessage(lang, sentence), sentence } };
+    const notice = getUsageLimitMessage(waiting, lang, Date.now());
+    if (notice) return { specFolder: waiting.specFolder, notice };
   }
   const member = stoppedMember(group, members);
   if (member && (archiveFailed || endedBadly(member.lead))) {

@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import { getGroupStopMessage, groupProviderLimitWait } from "../../../src/messages/jobs/group-stop.ts";
 import type { QueueRowView } from "../../../src/render/ui/job-state/types.ts";
+import { getUsageLimitMessage } from "../../../src/messages/usage-limit/get.ts";
 import { formatMessage } from "../../../src/messages/format.ts";
 
 const failed: QueueRowView = {
@@ -96,8 +97,7 @@ test("a provider-limit pause reports the automatic retry instead of a stopped me
     until: "2026-11-17T14:30:00Z", resetKnown: true,
   } };
   const notice = getGroupStopMessage(group, [{ specFolder: "805-first", lead }], "en")?.notice;
-  expect(notice?.variant).toBe("info");
-  expect(notice?.sentence).toMatchObject({ key: "group.providerLimitWaiting" });
+  expect(notice).toEqual(getUsageLimitMessage(lead, "en", Date.now()));
 });
 
 
@@ -107,7 +107,7 @@ test("only a current automatic provider retry makes a group wait", () => {
   } };
   const members = [{ specFolder: "805-first", lead }];
   expect(groupProviderLimitWait(group, members)).toBe(lead);
-  expect(getGroupStopMessage(group, members, "en")?.notice.sentence).toMatchObject({ key: "group.providerLimitWaiting" });
+  expect(getGroupStopMessage(group, members, "en")?.notice).toEqual(getUsageLimitMessage(lead, "en", Date.now()));
   expect(groupProviderLimitWait({ ...group, stoppedByUser: true }, members)).toBeUndefined();
   expect(groupProviderLimitWait({ ...group, currentMember: "806-second" }, members)).toBeUndefined();
   for (const state of ["running", "queued", "completed"] as const)

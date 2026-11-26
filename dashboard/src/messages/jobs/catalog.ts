@@ -1,14 +1,6 @@
 import type { MessageEntry } from "../types.ts";
 
 export const JOBS_CATALOG = {
-  "group.providerLimitWaiting": {
-    en: "waiting for the provider's usage limit — next automatic attempt at {at}",
-    nb: "venter på leverandørens bruksgrense — neste automatiske forsøk kl. {at}",
-    es: "esperando el límite de uso del proveedor — próximo intento automático a las {at}",
-    de: "wartet wegen des Nutzungslimits des Anbieters — nächster automatischer Versuch um {at}",
-    fr: "en attente de la limite d'utilisation du fournisseur — prochaine tentative automatique à {at}",
-    statement: "the board retries automatically; no action is required",
-  },
   "group.memberStopped": {
     en: "the group stopped because {spec} stopped",
     nb: "gruppa stoppet fordi {spec} stoppet",
