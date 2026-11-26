@@ -108,11 +108,11 @@ export const JOBS_CATALOG = {
   },
   "runner.mergeOfRunning": {
     statement: "names the Merge whose work is finishing by its branch",
-    en: "the Merge of {branch} in {project} is running",
-    nb: "Merge av {branch} i {project} kjører",
-    es: "el Merge de {branch} en {project} está en curso",
-    de: "der Merge von {branch} in {project} läuft",
-    fr: "le Merge de {branch} dans {project} est en cours",
+    en: "the Merge of “{branch}” in {project} is running",
+    nb: "Merge av «{branch}» i {project} kjører",
+    es: "el Merge de «{branch}» en {project} está en curso",
+    de: "der Merge von „{branch}“ in {project} läuft",
+    fr: "le Merge de « {branch} » dans {project} est en cours",
   },
   "runner.landingUnnamed": {
     statement: "work is finishing while its job is unavailable",
@@ -131,11 +131,11 @@ export const JOBS_CATALOG = {
     statement: "the queued work starts by itself when the current merge finishes",
   },
   "runner.mergeRunning": {
-    en: "held back: the Merge of {branch} is running in this project — it starts when that one has finished",
-    nb: "holdt tilbake: Merge av {branch} kjører i dette prosjektet — dette starter når den er ferdig",
-    es: "retenido: el Merge de {branch} está en curso en este proyecto — empieza cuando ese termine",
-    de: "zurückgehalten: in diesem Projekt läuft der Merge von {branch} — das startet, sobald er fertig ist",
-    fr: "retenu : le Merge de {branch} est en cours dans ce projet — cela démarre une fois celui-là terminé",
+    en: "held back: the Merge of “{branch}” is running in this project — it starts when that one has finished",
+    nb: "holdt tilbake: Merge av «{branch}» kjører i dette prosjektet — dette starter når den er ferdig",
+    es: "retenido: el Merge de «{branch}» está en curso en este proyecto — empieza cuando ese termine",
+    de: "zurückgehalten: in diesem Projekt läuft der Merge von „{branch}“ — das startet, sobald er fertig ist",
+    fr: "retenu : le Merge de « {branch} » est en cours dans ce projet — cela démarre une fois celui-là terminé",
     statement: "the queued work starts by itself when the current merge finishes",
   },
   "runner.scheduleWaitReplaced": {

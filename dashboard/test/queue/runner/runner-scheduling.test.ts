@@ -149,7 +149,7 @@ describe("several jobs at once", () => {
     const b = enqueue({ specFolder: "land", steps: ["land"], branch: "fix/second" });
     makeRunner({ maxConcurrent: 2 }).tick();
     expect(store.get(b.id)?.state).toBe("queued");
-    expect(sentence(store.get(b.id)!.error)).toContain("the Merge of fix/first is running");
+    expect(sentence(store.get(b.id)!.error)).toContain("the Merge of “fix/first” is running");
   });
 
   test("an archive landing holds no step but archive", () => {
