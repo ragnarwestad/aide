@@ -8,7 +8,7 @@
 // recurring cost; a second tab bar would have been the fourth.
 
 import { backLink, helpPopover, tabIcon, type SiteTab } from "./components";
-import { KIND_ICONS } from "./components/icons.ts";
+import { KIND_ICONS, type RowKind } from "./components/icons.ts";
 import { esc } from "./html.ts";
 import { t, type Language, type TranslationKey } from "../../i18n";
 
@@ -136,17 +136,29 @@ export function tabBar<T extends string>(
   );
 }
 
+/** The kinds of job on the Jobs tab. */
+const JOB_KINDS: readonly RowKind[] = ["spec", "land", "schedule", "deploy", "cleanup", "group"];
+
+/** One tab in the tab bar's help. Jobs lists each kind of job beneath it,
+ *  with the icon its rows carry; every other tab has one line. */
+function tabHelpLine(lang: Language, tab: { word: string; kind?: SiteTab }): string {
+  if (!tab.kind) return esc(tab.word);
+  const head = `${tabIcon(tab.kind)} ${esc(tab.word)}`;
+  if (tab.kind !== "jobs") return `${head} — ${esc(t(lang, `shell.tabHelp.${tab.kind}`))}`;
+  const kinds = JOB_KINDS.map((kind) =>
+    `<br><span data-job-kind><span class="kindicon" data-kind="${kind}" aria-hidden="true">${KIND_ICONS[kind]}</span> ` +
+    `${esc(t(lang, `shell.tabHelpJobKind.${kind}`))}</span>`,
+  );
+  return head + kinds.join("");
+}
+
 /** The "?" at the right end of the site tab bar: each tab's icon, word and
  *  what it holds, followed by the counts and Deploy states. A section
  *  with no icon of its own is listed by its word alone. */
 export function tabBarHelp(
   lang: Language, tabs: { word: string; kind?: SiteTab }[], showSearchHelp = false,
 ): string {
-  const lines = tabs
-    .map((tab) => tab.kind
-      ? `${tabIcon(tab.kind)} ${esc(tab.word)} — ${esc(t(lang, `shell.tabHelp.${tab.kind}`))}`
-      : esc(tab.word))
-    .join("<br>");
+  const lines = tabs.map((tab) => tabHelpLine(lang, tab)).join("<br>");
   const deploy = (["Current", "Pending", "Queued", "Running"] as const).map((status) =>
     `<span class="kindicon" data-deploy-legend data-deploy-status="${status.toLowerCase()}" aria-hidden="true">${KIND_ICONS.deploy}${status === "Pending" ? " (2)" : ""}</span> ` +
     esc(t(lang, `shell.deployHelp${status}`)),

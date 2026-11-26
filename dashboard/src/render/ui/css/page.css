@@ -71,6 +71,14 @@ body > nav.tabbar details.intro[open] > p {
   right: calc(clamp(var(--tab-help-gutter), 100vw - var(--tab-help-width) - var(--tab-help-gutter), var(--tab-help-inset)) - var(--tab-help-inset));
 }
 nav.tabbar :is([data-tab-list] .kindicon, [data-deploy-legend]) svg { height: 16px; width: 16px; vertical-align: -3px; }
+/* Each kind of job sits indented under Jobs, its icon in the colour its rows have. */
+nav.tabbar [data-job-kind] { margin-left: var(--sp-5); }
+nav.tabbar [data-job-kind] .kindicon[data-kind="spec"] { color: var(--kind-spec); }
+nav.tabbar [data-job-kind] .kindicon[data-kind="land"] { color: var(--kind-land); }
+nav.tabbar [data-job-kind] .kindicon[data-kind="schedule"] { color: var(--kind-schedule); }
+nav.tabbar [data-job-kind] .kindicon[data-kind="deploy"] { color: var(--kind-deploy); }
+nav.tabbar [data-job-kind] .kindicon[data-kind="cleanup"] { color: var(--kind-cleanup); }
+nav.tabbar [data-job-kind] .kindicon[data-kind="group"] { color: var(--kind-group); }
 /* The same bar's copy inside the header, shown only on a phone held
    sideways (narrow.css). */
 header > nav.tabbar { display: none; }

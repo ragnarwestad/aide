@@ -4,6 +4,7 @@
 import { describe, expect, test } from "bun:test";
 import { tabBar, tabBarHelp } from "../../../src/render/ui/tabs.ts";
 import { esc } from "../../../src/render/ui/html.ts";
+import { KIND_ICONS, type RowKind } from "../../../src/render/ui/components/icons.ts";
 import { t } from "../../../src/i18n";
 
 describe("tabBar() with a link function and a label function", () => {
@@ -74,7 +75,16 @@ describe("tabBarHelp(), the site tab bar's \"?\"", () => {
     for (const tab of TABS) {
       expect(tabList).toContain(`data-tab="${tab.kind}"`);
       expect(tabList).toContain(tab.word);
-      expect(tabList).toContain(esc(t("en", `shell.tabHelp.${tab.kind}`)));
+      if (tab.kind !== "jobs") expect(tabList).toContain(esc(t("en", `shell.tabHelp.${tab.kind}`)));
+    }
+  });
+
+  test("lists every kind of job under Jobs, each with the icon its rows have", () => {
+    const tabList = list(tabBarHelp("en", [...TABS]));
+    const jobs = tabList.split('data-tab="specs"')[0] ?? "";
+    for (const kind of Object.keys(KIND_ICONS) as RowKind[]) {
+      expect(jobs).toContain(`data-kind="${kind}"`);
+      expect(jobs).toContain(esc(t("en", `shell.tabHelpJobKind.${kind}`)));
     }
   });
 
