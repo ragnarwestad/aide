@@ -149,7 +149,7 @@ export function tabBarHelp(lang: Language, tabs: { word: string; kind?: SiteTab 
       : esc(tab.word))
     .join("<br>");
   const deploy = (["Current", "Pending", "Queued", "Running"] as const).map((status) =>
-    `<span class="kindicon" data-deploy-legend data-deploy-status="${status.toLowerCase()}" aria-hidden="true">${KIND_ICONS.deploy}</span> ` +
+    `<span class="kindicon" data-deploy-legend data-deploy-status="${status.toLowerCase()}" aria-hidden="true">${KIND_ICONS.deploy}${status === "Pending" ? " (2)" : ""}</span> ` +
     esc(t(lang, `shell.deployHelp${status}`)),
   );
   return helpPopover(

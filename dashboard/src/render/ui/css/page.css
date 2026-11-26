@@ -43,7 +43,7 @@ header .deploymark svg { width: 16px; height: 16px; }
 :is(header .deploymark, nav.tabbar [data-deploy-legend])[data-deploy-status="running"] {
   color: var(--running-strong); animation: badgepulse 1.8s ease-in-out infinite; }
 header button.deploymark:disabled { opacity: 1; }
-nav.tabbar [data-deploy-status="pending"] { color: var(--queued); }
+nav.tabbar [data-deploy-status="pending"] { color: var(--queued); white-space: nowrap; }
 @media (prefers-reduced-motion: reduce) {
   :is(header .deploymark, nav.tabbar [data-deploy-legend])[data-deploy-status="running"] { animation: none; }
 }

@@ -52,6 +52,7 @@ describe("tabBar() with icons", () => {
 describe("tabBarHelp(), the site tab bar's \"?\"", () => {
   test("the help explains each visible Deploy status", () => {
     const html = tabBarHelp("en", []);
+    expect(html).toContain("(2)");
     for (const key of ["Current", "Pending", "Queued", "Running"] as const) {
       expect(html).toContain(esc(t("en", `shell.deployHelp${key}`)));
     }
