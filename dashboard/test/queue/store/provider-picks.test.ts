@@ -12,7 +12,7 @@ function store(): QueueStore {
 function runningJob(q: QueueStore, extra: object = {}): string {
   const made = q.enqueue({ project: "aide", specFolder: "81-queue", steps: ["analyze", "implement"], ...extra });
   if (!made.ok) throw new Error(made.error);
-  q.update(made.job.id, { state: "running" });
+  q.writeUnchecked(made.job.id, { state: "running" });
   return made.job.id;
 }
 

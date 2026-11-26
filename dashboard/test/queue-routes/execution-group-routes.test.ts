@@ -357,7 +357,7 @@ test("Stop cancels both a member's landing and the next member's queued job", as
     const first = queue.enqueue({ project: "aide", specFolder: "81-first", steps: ["archive"], executionGroupId: group.id });
     const next = queue.enqueue({ project: "aide", specFolder: "82-next", steps: ["analyze"], executionGroupId: group.id });
     if (!first.ok || !next.ok) throw new Error("fixture jobs refused");
-    queue.update(first.job.id, { state: "done", landing: true });
+    queue.writeUnchecked(first.job.id, { state: "done", landing: true });
     queue.executionGroups.update(group.id, { state: "running", jobs: [{ id: first.job.id, specFolder: "81-first", logs: [] }, { id: next.job.id, specFolder: "82-next", logs: [] }] });
     const path = `/api/queue/groups/${group.id}/action`;
     const response = await handleJobActionRoutes({ queue,

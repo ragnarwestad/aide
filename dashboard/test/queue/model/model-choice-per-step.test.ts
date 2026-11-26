@@ -175,7 +175,7 @@ describe("editing a running job's model for a step still ahead", () => {
     const store = new QueueStore({ defaults, resolve, mirrorPath: mirror });
     const made = store.enqueue({ ...REQ, steps });
     if (!made.ok) throw new Error(made.error);
-    store.update(made.job.id, { state: "running", stepIndex });
+    store.writeUnchecked(made.job.id, { state: "running", stepIndex });
     return { store, mirror, id: made.job.id, model: () => store.get(made.job.id)!.model };
   };
 
@@ -251,7 +251,7 @@ describe("editing a running job's model for a step still ahead", () => {
   test("a job that is not running is closed altogether", () => {
     for (const state of ["queued", "done", "failed", "cancelled", "waiting"] as const) {
       const job = running(["analyze", "implement"]);
-      job.store.update(job.id, { state });
+      job.store.writeUnchecked(job.id, { state });
       const answer = job.store.editTailModel(job.id, "implement", "fable");
       expect(`${state}: ${answer.ok}`).toBe(`${state}: false`);
       expect(job.model().implement).toBe("opus");

@@ -568,3 +568,79 @@ def test_rebuild_without_criteria_marks_existing_rows_and_keeps_notes(tmp_path):
         + "| AC-1: first | ✅ | note |\n", "# No readable criteria\n", "Not verified",
     ).read_text()
     assert "| AC-1: first | Not verified | note |" in text
+
+
+# --- stamp_and_move_spec: the one terminal move ----------------------------
+
+
+def _git(root, *args):
+    return subprocess.run(
+        ["git", "-C", str(root), "-c", "user.name=t", "-c", "user.email=t@t", *args],
+        capture_output=True, text=True, check=True,
+    ).stdout
+
+
+def _git_root_with(tmp_path, folder, files):
+    root = tmp_path / "specs"
+    (root / folder).mkdir(parents=True)
+    for name, text in files.items():
+        (root / folder / name).write_text(text)
+    _git(root, "init", "-q")
+    _git(root, "add", "-A")
+    _git(root, "commit", "-q", "-m", "init")
+    return root
+
+
+def stamp_and_move(root, folder, kind, value=""):
+    proc = _run(
+        f'source "{LIB}"\n'
+        f'stamp_and_move_spec "{root}" "{folder}" "{kind}" "{value}"\n'
+        'echo "RC=$?"\n'
+    )
+    assert "RC=0" in proc.stdout, proc.stdout + proc.stderr
+    return proc
+
+
+def test_a_terminal_move_in_a_git_root_stages_the_rename_and_the_state_together(tmp_path):
+    status = "# X - Status\n\n- **Workflow steps completed:** create, analyze, implement\n"
+    root = _git_root_with(tmp_path, "1-x", {"4-status.md": status, "1-description.md": "# X\n"})
+    stamp_and_move(root, "1-x", "archived")
+    indexed = _git(root, "ls-files").split()
+    assert sorted(indexed) == [
+        "archive/1-x/1-description.md", "archive/1-x/4-status.json", "archive/1-x/4-status.md",
+    ]
+    state = json.loads(_git(root, "show", ":archive/1-x/4-status.json"))
+    assert state["archived"]["date"]
+    # The stamp on 4-status.md is left for the caller's commit, as it always was.
+    assert _git(root, "status", "--porcelain", "--", "archive/1-x/4-status.json") == "A  archive/1-x/4-status.json\n"
+
+
+def test_a_terminal_move_in_a_plain_directory_gives_the_same_result_without_git(tmp_path):
+    root = tmp_path / "specs"
+    (root / "1-x").mkdir(parents=True)
+    (root / "1-x" / "4-status.md").write_text("# X - Status\n\n- **Workflow steps completed:** create\n")
+    stamp_and_move(root, "1-x", "closed", "not worth doing")
+    assert not (root / "1-x").exists()
+    moved = root / "archive" / "1-x"
+    assert "**Closed:**" in (moved / "4-status.md").read_text()
+    assert "not worth doing" in (moved / "4-status.md").read_text()
+    state = json.loads((moved / "4-status.json").read_text())
+    assert state["closed"]["reason"] == "not worth doing"
+    assert not (root / ".git").exists()
+
+
+def test_a_terminal_move_without_a_status_file_moves_the_folder_and_creates_none(tmp_path):
+    root = _git_root_with(tmp_path, "1-x", {"1-description.md": "# X\n"})
+    stamp_and_move(root, "1-x", "closed", "dropped")
+    moved = root / "archive" / "1-x"
+    assert (moved / "1-description.md").exists()
+    assert not (root / "1-x").exists()
+    assert not (moved / "4-status.md").exists()
+    assert not (moved / "4-status.json").exists()
+
+
+def test_a_terminal_move_stages_a_changed_state_file_when_there_is_no_status_file(tmp_path):
+    root = _git_root_with(tmp_path, "1-x", {"4-status.json": '{"old": true}\n'})
+    (root / "1-x" / "4-status.json").write_text('{"changed": true}\n')
+    stamp_and_move(root, "1-x", "closed", "dropped")
+    assert json.loads(_git(root, "show", ":archive/1-x/4-status.json")) == {"changed": True}

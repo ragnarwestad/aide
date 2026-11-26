@@ -2,7 +2,7 @@
 // closure, and the `Landing` description `landBranch` is driven by.
 
 import type { Sentence } from "../../messages/types.ts";
-import type { QueueStore, BranchRef, Job, WorkflowStep } from "../../queue/queue.ts";
+import type { QueueStore, BranchRef, Job, JobPatch, WorkflowStep } from "../../queue/queue.ts";
 import type { BranchStatusChecker } from "../../git/branch-status.ts";
 import type { GitRunner } from "../../git/process/index.ts";
 import type { WorkflowHistoryChecker, BranchFileStepsChecker } from "../../git/workflow-history.ts";
@@ -96,7 +96,7 @@ export interface Landing {
   /** Beyond the standard `branchUrl`/`branchUrls`/`error` reset. A
    *  create step renames the job off its provisional key; an archive
    *  step has nothing to add. */
-  landed?: Partial<Job>;
+  landed?: JobPatch;
   /** What to say when the run pushed no branch at all. For `create`
    *  that IS the failure — the spec exists only on a branch that was
    *  never reported. For `archive` a HEAD that never moved is an

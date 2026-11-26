@@ -337,7 +337,7 @@ for (const first of ["poll", "runner"] as const) {
     const queue = new QueueStore({ mirrorPath: join(cfgDir, "queue.json"), defaults: { timeoutSec: {}, permissionMode: {}, model: {} }, resolve: () => ({ specFolders: [] }) });
     const made = queue.enqueue({ project: "aide", specFolder: "schedule-nightly-report", steps: ["schedule"] });
     if (!made.ok) throw new Error(made.error);
-    queue.update(made.job.id, { state: "waiting", stopReason: "provider-limit", createdAt: "2026-11-17T00:00:00Z",
+    queue.writeUnchecked(made.job.id, { state: "waiting", stopReason: "provider-limit", createdAt: "2026-11-17T00:00:00Z",
       usageLimitWait: { until: "2026-11-18T12:00:00Z", resetKnown: true } });
     writeSchedule("aide", [NIGHTLY]);
     const ctx = { projectRoot: cfgDir, allowed: new Set(["aide"]), queue, scheduleStore: createScheduleStore(cfg),
@@ -381,7 +381,7 @@ test("expiry leaves disabled, deleted, not due, unrelated and running attempts a
     const queue = new QueueStore({ defaults: { timeoutSec: {}, permissionMode: {}, model: {} }, resolve: () => ({ specFolders: [] }) });
     const made = queue.enqueue({ project: "aide", specFolder: "schedule-nightly-report", steps: ["schedule"] });
     if (!made.ok) throw new Error(made.error);
-    queue.update(made.job.id, { state: scenario === "running" ? "running" : "waiting", stopReason: "provider-limit",
+    queue.writeUnchecked(made.job.id, { state: scenario === "running" ? "running" : "waiting", stopReason: "provider-limit",
       createdAt: scenario === "not-due" ? "2026-11-18T12:00:00Z" : "2026-11-17T00:00:00Z",
       usageLimitWait: { until: "2027-01-01T00:00:00Z", resetKnown: true } });
     const entry = { ...NIGHTLY, ...(scenario === "disabled" ? { enabled: false } : {}),
@@ -402,7 +402,7 @@ for (const timer of ["poll", "runner"] as const) {
     const request = { project: "aide", specFolder: "schedule-nightly-report", steps: ["schedule"] };
     const old = queue.enqueue(request);
     if (!old.ok) throw new Error(old.error);
-    queue.update(old.job.id, { state: "waiting", stopReason: "provider-limit", createdAt: "2026-11-17T12:00:01Z",
+    queue.writeUnchecked(old.job.id, { state: "waiting", stopReason: "provider-limit", createdAt: "2026-11-17T12:00:01Z",
       usageLimitWait: { until: "2027-01-01T00:00:00Z", resetKnown: true } });
     const manual = queue.enqueue(request);
     if (!manual.ok) throw new Error(manual.error);

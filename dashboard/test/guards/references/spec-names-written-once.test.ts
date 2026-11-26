@@ -15,6 +15,7 @@ const FILE_NAME = new RegExp(`(?:${FILE_NAMES.join("|")})\\\\?\\.(?:md|json)`);
 const TS_PATTERNS: Array<[string, string, RegExp]> = [
   ["the spec-folder test", "AC-1", /\^\\d\+(?:-|\(-\|\$\)|\(\?=)/],
   ["a spec's branch", "AC-2", /["'`]aide\/(?:["'`]|\$\{)/],
+  ["a group's branch", "AC-2", /aide\\?\/group-/],
   ["the schedule key", "AC-3", /["'`]schedule-(?:["'`]|\$\{)/],
   ["the provisional create key", "AC-3", /new-\[0-9a-f\]|`new-\$\{/],
   ["a spec file name", "AC-4", FILE_NAME],
@@ -22,7 +23,8 @@ const TS_PATTERNS: Array<[string, string, RegExp]> = [
 
 const BASH_PATTERNS: Array<[string, string, RegExp]> = [
   ["the spec-folder test", "AC-1", /\[0-9\]\+-/],
-  ["a spec's branch", "AC-2", /["']aide\//],
+  ["a spec's branch", "AC-2", /["']aide\/|\^aide\//],
+  ["a group's branch", "AC-2", /aide\/group-/],
   ["the schedule key", "AC-3", /#schedule-/],
   ["the provisional create key", "AC-3", /new-\[0-9a-f\]/],
   ["a spec file name", "AC-4", FILE_NAME],

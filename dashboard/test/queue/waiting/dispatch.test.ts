@@ -67,7 +67,7 @@ test("a Merge under way passes a saved Deploy boundary, and Deploy waits for it 
   const store = new QueueStore({ defaults: DEFAULTS, resolve: () => ({ specFolders: ["a", "b"] }) });
   const add = (specFolder: string, steps: string[]) => { const r = store.enqueue({ project: "p", specFolder, steps }); if (!r.ok) throw Error(r.error); return r.job; };
   const landing = add("a", ["analyze"]);
-  store.update(landing.id, { state: "done", landing: true });
+  store.writeUnchecked(landing.id, { state: "done", landing: true });
   const deploy = add("deploy", ["deploy"]);
   const roots = createRootLock();
   const dispatch = dispatchFor(store.waiting);
@@ -79,7 +79,7 @@ test("a Merge under way passes a saved Deploy boundary, and Deploy waits for it 
   store.waiting.save(owner, owner.entries.map(e => e.id));
   // The merge is under way, so it goes to its repository past the Deploy saved ahead of it.
   expect(calls).toEqual(["first"]);
-  store.update(deploy.id, { state: "cancelled" });
+  store.writeUnchecked(deploy.id, { state: "cancelled" });
   dispatch.drain();
   expect(calls).toEqual(["first"]);
   const nextDeploy = add("deploy", ["deploy"]);
@@ -101,7 +101,7 @@ test("an earlier merge is admitted before Deploy on the same tick (AC-1, AC-4, A
   const store = new QueueStore({ defaults: DEFAULTS, resolve: () => ({ specFolders: ["a"] }) });
   const landing = store.enqueue({ project: "p", specFolder: "a", steps: ["analyze"] });
   if (!landing.ok) throw Error(landing.error);
-  store.update(landing.job.id, { state: "done", landing: true });
+  store.writeUnchecked(landing.job.id, { state: "done", landing: true });
   const roots = createRootLock(); const dispatch = dispatchFor(store.waiting);
   let releaseRoot!: () => void; let releaseMerge!: () => void;
   const busy = roots.run("repo", () => new Promise<void>(resolve => { releaseRoot = resolve; }));

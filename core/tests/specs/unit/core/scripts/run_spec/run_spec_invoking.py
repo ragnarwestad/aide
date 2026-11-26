@@ -59,6 +59,18 @@ def _standalone_runner_copy(runner, tmp_path, name="aide-run-spec-under-test"):
     return copy
 
 
+def runner_with_branch_prefixes(runner, tmp_path, spec_prefix, group_prefix):
+    """The runner with every script beside it, copied whole, and its
+    spec-identity.json naming other branch prefixes."""
+    scripts = tmp_path / "scripts"
+    shutil.copytree(pathlib.Path(runner).parent, scripts, symlinks=True)
+    contract = scripts / "lib" / "spec-identity.json"
+    identity = json.loads(contract.read_text())
+    identity.update(branchPrefix=spec_prefix, groupBranchPrefix=group_prefix)
+    contract.write_text(json.dumps(identity))
+    return scripts / pathlib.Path(runner).name
+
+
 BRANCH = "aide/81-queue-and-runner"
 
 

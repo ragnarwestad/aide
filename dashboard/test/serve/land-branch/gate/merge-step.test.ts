@@ -93,7 +93,7 @@ test("a red archive landing spends one allowance and a repeated failure does not
   expect(retryArchiveLanding(queue as never, job.id, "archive", "tests-red", "failed test"))
     .toBe(true);
   expect(job.retry).toMatchObject({ action: "archive", attempts: 2, previousAttempt: { terminalReason: "tests-red" } });
-  job.state = "done";
+  Object.assign(job, { state: "done" });
   expect(retryArchiveLanding(queue as never, job.id, "archive", "tests-red", "failed test")).toBe(false);
 });
 

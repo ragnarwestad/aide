@@ -173,9 +173,9 @@ test("a cancelled Archive landing leaves the group stopped", async () => {
   store.executionGroups.update(group.id, { state: "archiving" });
   const queued = store.enqueue({ project: "aide", specFolder: "1-first", executionGroupId: group.id, steps: ["archive"] });
   if (!queued.ok) throw new Error(queued.error);
-  store.update(queued.job.id, { state: "done" });
+  store.writeUnchecked(queued.job.id, { state: "done" });
   const job = store.get(queued.job.id)!;
-  const handle = handler({ landArchivedSpec: async () => { store.update(job.id, { state: "cancelled" }); } });
+  const handle = handler({ landArchivedSpec: async () => { store.writeUnchecked(job.id, { state: "cancelled" }); } });
   await handle(job, "archive", { ok: true, terminalReason: "completed" });
   await Promise.resolve();
   expect(store.executionGroups.get(group.id)?.state).toBe("stopped");
@@ -261,7 +261,7 @@ for (const ending of ["success", "rejected", "recorded-failure", "cancelled", "s
     const group = store.executionGroups.create({ project: "aide", name: "Release", members: ["1-first", "2-next"], branch: "aide/group-release" });
     const made = store.enqueue({ project: "aide", specFolder: "1-first", executionGroupId: group.id, steps: ["analyze"] });
     if (!made.ok) throw new Error(made.error);
-    store.update(made.job.id, { state: "running", landing: true });
+    store.writeUnchecked(made.job.id, { state: "running", landing: true });
     let resolve!: () => void;
     let reject!: (reason: Error) => void;
     const landing = new Promise<void>((yes, no) => { resolve = yes; reject = no; });
@@ -269,11 +269,11 @@ for (const ending of ["success", "rejected", "recorded-failure", "cancelled", "s
     const finishing = Promise.resolve(handle(store.get(made.job.id)!, "analyze", { ok: true, terminalReason: "completed" }));
     expect(store.list().map(j => j.specFolder)).toEqual(["1-first"]);
     expect(store.executionGroups.get(group.id)?.completedMembers).toEqual([]);
-    store.update(made.job.id, { state: "done", landing: true });
+    store.writeUnchecked(made.job.id, { state: "done", landing: true });
     const unrelated = store.enqueue({ project: "other-project", specFolder: "1-first", steps: ["analyze"] });
     if (!unrelated.ok) throw new Error(unrelated.error);
     if (ending === "recorded-failure") store.update(made.job.id, { landingError: "tests failed" });
-    if (ending === "cancelled") store.update(made.job.id, { state: "cancelled" });
+    if (ending === "cancelled") store.writeUnchecked(made.job.id, { state: "cancelled" });
     if (ending === "stopped") store.executionGroups.stop(group.id, true);
     if (ending === "rejected") reject(new Error("merge failed")); else resolve();
     await finishing.catch(() => {});

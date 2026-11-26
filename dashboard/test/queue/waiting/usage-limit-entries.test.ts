@@ -11,7 +11,7 @@ beforeEach(resetHarness);
 afterEach(cleanupHarness);
 
 const stopOnLimit = (id: string): void => {
-  store.update(id, {
+  store.writeUnchecked(id, {
     state: "waiting", stopReason: "provider-limit", finishedAt: "2026-08-16T10:00:00.000Z",
     usageLimitWait: { until: "2026-08-19T04:00:00.000Z", resetKnown: true },
   });
@@ -28,7 +28,7 @@ test("a stopped step its spec has run again since holds no place in the queue", 
   const stopped = enqueue();
   stopOnLimit(stopped.id);
   const again = enqueue({ steps: ["analyze", "implement"] });
-  store.update(again.id, { state: "done", createdAt: "2026-08-16T11:00:00.000Z" });
+  store.writeUnchecked(again.id, { state: "done", createdAt: "2026-08-16T11:00:00.000Z" });
   expect(queuedJobs()).not.toContain(stopped.id);
 });
 
@@ -43,7 +43,7 @@ for (const saveWhileRunning of [false, true]) test(`a running step keeps its pla
     const deploy = enqueue({ specFolder: "deploy", steps: ["deploy"] });
     const owner = store.waiting.open("edit while running", `job:${deploy.id}:0`);
     store.waiting.save(owner, owner.entries.map(entry => entry.id));
-    store.update(deploy.id, { state: "cancelled" });
+    store.writeUnchecked(deploy.id, { state: "cancelled" });
   }
   stopOnLimit(a.id);
   expect(queuedJobs()).toEqual([a.id, b.id]);

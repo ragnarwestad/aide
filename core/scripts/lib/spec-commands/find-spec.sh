@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# The specs root and the spec folder a spec command works on, for
-# aide-archive-spec and aide-close-spec. Needs _aide-spec-lib.sh,
-# lib/spec-reference.sh and lib/spec-result.sh sourced first; a refusal
-# goes through aide_spec_refuse and exits.
+# The specs root and the spec folder a spec command works on. Needs
+# _aide-spec-lib.sh sourced first; aide_spec_command_root and
+# aide_spec_command_folder (aide-archive-spec, aide-close-spec) also need
+# lib/spec-reference.sh and lib/spec-result.sh, and a refusal goes through
+# aide_spec_refuse and exits.
 
 # Sets $specs_root. `--specs-dir`, when the caller names one that exists,
 # IS the specs root, not one more place to look: a headless run passes its
@@ -21,20 +22,32 @@ aide_spec_command_root() {   # <project-dir> <specs-dir or empty>
   [ -d "$specs_root" ] || aide_spec_refuse "no specs root at $specs_root"
 }
 
-# Sets $spec_folder: what aide_resolve_spec names when that folder exists,
-# else the folder under archive/ by full name or by `<arg>-*`. A spelled-out
-# `NN-slug` that only exists under archive/ comes back from aide_resolve_spec
-# as a guess that does not exist, which is why archive/ is looked up here.
-# Refuses, listing the active folders, when neither finds one.
+# Prints where the existing spec <arg> is under <root>: `<folder>` or
+# `archive/<folder>`, active before archived, by what aide_resolve_spec
+# accepts (an existing path, a number, an issue key) or by the full name
+# under archive/. aide_resolve_spec gives a spelled-out `NN-slug` back
+# unchecked, which is why the folder must exist and archive/ is looked up
+# here. Fails, printing nothing, when no folder exists. The lookup
+# aide-archive-spec, aide-close-spec, aide-reopen-spec and aide-reset-spec
+# share; each keeps its own refusal.
+aide_existing_spec() {   # <specs-root> <spec-arg>
+  local root="$1" arg="$2" location
+  [ -n "$arg" ] || return 1
+  location="$(aide_resolve_spec "$arg" "$root")"
+  if [ -n "$location" ] && [ -d "$root/$location" ]; then
+    printf '%s\n' "$location"
+    return 0
+  fi
+  [ -d "$root/archive/$arg" ] || return 1
+  printf 'archive/%s\n' "$arg"
+}
+
+# Sets $spec_folder: what aide_existing_spec finds, else the first
+# `<arg>-*` under archive/. Refuses, listing the active folders, when
+# neither finds one.
 aide_spec_command_folder() {   # <specs-root> <spec-arg>
   local root="$1" arg="$2" active
-  spec_folder=""
-  if declare -f aide_resolve_spec >/dev/null 2>&1; then
-    spec_folder="$(aide_resolve_spec "$arg" "$root")"
-  fi
-  if [ -n "$spec_folder" ] && [ ! -d "$root/$spec_folder" ]; then
-    spec_folder=""
-  fi
+  spec_folder="$(aide_existing_spec "$root" "$arg")"
   if [ -z "$spec_folder" ] && aide_find_spec_folder "$root" "$arg" archive; then
     spec_folder="archive/$found_folder"
   fi

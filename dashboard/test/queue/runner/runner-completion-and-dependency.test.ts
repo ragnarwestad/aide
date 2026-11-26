@@ -400,7 +400,7 @@ describe("the completion hook and the landing window", () => {
     // back after a crash has no such call behind it, and a flag that
     // survived would hold the whole queue shut with nothing to clear it.
     const job = enqueue({ steps: ["create"] });
-    store.update(job.id, { landing: true, state: "done" });
+    store.writeUnchecked(job.id, { landing: true, state: "done" });
     const reloaded = new QueueStore({ mirrorPath: join(dir, "queue.json"), defaults: DEFAULTS, resolve });
     expect(reloaded.get(job.id)?.landing).toBeUndefined();
   });

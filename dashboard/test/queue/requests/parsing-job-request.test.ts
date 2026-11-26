@@ -11,6 +11,7 @@ import {
   persistQueueSettings,
   type QueueDefaults,
 } from "../../../src/queue/queue.ts";
+import { groupBranch } from "../../../src/project/spec-names.ts";
 import { DEFAULTS, resolve, REQ } from "../queue-fixtures.ts";
 
 let dir: string;
@@ -400,6 +401,26 @@ describe("a Land job", () => {
   ])("refuses %s (AC-2)", (_label, body) => {
     expect(parseJobRequest(body, { resolve, defaults: DEFAULTS }).ok).toBe(false);
   });
+});
+
+describe("a group's archive", () => {
+  const GROUP = { ...REQ, steps: ["archive"], groupMembers: [REQ.specFolder, "82-second"] };
+
+  test("accepts the group branch built from the shared contract", () => {
+    const branch = groupBranch(REQ.specFolder);
+    const r = parseJobRequest({ ...GROUP, groupBranch: branch }, { resolve, defaults: DEFAULTS });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.job.groupBranch).toBe(branch);
+  });
+
+  test.each(["aide/group-", "aide/group-1 x", "aide/group-1;x", "aide/81-x", "main"])(
+    "refuses %p as its group branch",
+    (branch) => {
+      const r = parseJobRequest({ ...GROUP, groupBranch: branch }, { resolve, defaults: DEFAULTS });
+      expect(r.ok).toBe(false);
+      if (!r.ok) expect(r.error).toContain("invalid groupBranch");
+    },
+  );
 });
 
 describe("mergeQueueDefaults", () => {

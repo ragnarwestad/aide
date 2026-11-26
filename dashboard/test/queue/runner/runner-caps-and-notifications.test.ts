@@ -282,7 +282,7 @@ describe("Deploy waits for a Merge", () => {
 describe("reconciliation after a restart", () => {
   const runningJob = () => {
     const job = enqueue();
-    store.update(job.id, {
+    store.writeUnchecked(job.id, {
       state: "running",
       pid: 4242,
       pgid: 4242,
@@ -295,7 +295,7 @@ describe("reconciliation after a restart", () => {
   test("a Merge the restart cut before it reached the repository is queued again; one that had begun fails", () => {
     const waited = enqueue({ specFolder: "land", steps: ["land"], branch: "fix/waited" });
     const begun = enqueue({ specFolder: "land", steps: ["land"], branch: "fix/begun" });
-    for (const job of [waited, begun]) store.update(job.id, { state: "running", pid: 4242, resultFile: join(dir, `${job.id}.json`), startedAt: "2026-08-16T09:00:00Z" });
+    for (const job of [waited, begun]) store.writeUnchecked(job.id, { state: "running", pid: 4242, resultFile: join(dir, `${job.id}.json`), startedAt: "2026-08-16T09:00:00Z" });
     store.update(begun.id, { landBegan: true });
     makeRunner({ alive: () => false, readResult: () => null }).reconcile();
     expect(store.get(waited.id)?.state).toBe("queued");

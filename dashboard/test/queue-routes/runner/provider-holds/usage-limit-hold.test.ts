@@ -29,7 +29,7 @@ describe("tickRunner with a used-up usage limit", () => {
   /** A Claude implement stopped at 10:00, waiting for a reset at 14:00. */
   function limitStop() {
     const stopped = enqueue({ steps: ["implement"] });
-    store.update(stopped.id, {
+    store.writeUnchecked(stopped.id, {
       state: "waiting",
       stopReason: "provider-limit",
       createdAt: "2026-08-16T08:00:00.000Z",

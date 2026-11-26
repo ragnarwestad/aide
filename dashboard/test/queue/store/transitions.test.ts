@@ -5,12 +5,14 @@
 // write site outside the store.
 
 import { describe, expect, test } from "bun:test";
-import { mkdtempSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { JOB_STATES, QueueStore, TRANSITIONS, type QueueDefaults, type TransitionEvent } from "../../../src/queue/queue.ts";
 import { STEP_ENDINGS } from "../../../src/step-endings.ts";
 import { ERROR_REASONS } from "../../../src/job-states.ts";
+import { tsFilesUnder } from "../../design/source-files.ts";
+import { queueStateWrites } from "./state-writes.ts";
 
 const DEFAULTS: QueueDefaults = {
   timeoutSec: { default: 1200 },
@@ -72,7 +74,7 @@ describe("QueueStore.transition", () => {
     // `done` has no entry for `cancel` — the job's own work is already
     // over, so this is a refusal by construction, not a fixture that
     // only happens to hit a gap in the table today.
-    store.update(r.job.id, { state: "done" });
+    store.writeUnchecked(r.job.id, { state: "done" });
     const before = store.get(r.job.id);
 
     const refusal = store.transition(r.job.id, "cancel" as TransitionEvent, { finishedAt: "later" });
@@ -84,7 +86,7 @@ describe("QueueStore.transition", () => {
     const store = makeStore();
     const r = store.enqueue({ project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"] });
     if (!r.ok) throw new Error(r.error);
-    store.update(r.job.id, { state: "running" });
+    store.writeUnchecked(r.job.id, { state: "running" });
 
     const result = store.transition(r.job.id, "run-stopped" as TransitionEvent, {
       stopReason: "timeout",
@@ -186,30 +188,34 @@ describe("the diagram and the table agree", () => {
 });
 
 describe("no state write outside the store", () => {
-  // A literal `state:` key whose value is one of the seven JobState
-  // members — narrow on purpose, so this does not also flag
-  // filter-sort.ts's sort-direction `state: "asc"|"desc"` or
-  // group-builders.ts's `SpecGroup.state: "not-started"|...`, neither of
-  // which is a Job.state write.
-  const PATTERN = new RegExp(`state:\\s*["'](${JOB_STATES.join("|")})["']`);
-  const ALLOWED = ["queue/store/index.ts", "queue/execution-groups/store.ts", "queue/parse-request.ts"];
+  // The compiler refuses a job's state written through `update`,
+  // `transition` or an assignment (`state-ownership.test.ts`). What it
+  // cannot see is read off the text: a call to the store's raw
+  // `writeUnchecked`, and a job literal, which only the creation parser
+  // may build.
+  const srcDir = join(import.meta.dir, "..", "..", "..", "src");
+  const STORE = "queue/store/";
+  const CREATION = "queue/parse-request.ts";
 
-  function tsFiles(dir: string, out: string[] = []): string[] {
-    for (const entry of readdirSync(dir)) {
-      const full = join(dir, entry);
-      const stat = statSync(full);
-      if (stat.isDirectory()) tsFiles(full, out);
-      else if (entry.endsWith(".ts") && !entry.endsWith(".test.ts")) out.push(full);
-    }
-    return out;
+  function writesOutsideTheStore(): string[] {
+    return tsFilesUnder(srcDir)
+      .filter((f) => !f.endsWith(".test.ts"))
+      .flatMap((f) => {
+        const rel = f.slice(srcDir.length + 1);
+        if (rel.startsWith(STORE)) return [];
+        return queueStateWrites(readFileSync(f, "utf-8"))
+          .filter((w) => !(w.kind === "job-literal" && rel === CREATION))
+          .map((w) => `${rel}:${w.line} ${w.kind}`);
+      });
   }
 
-  test("the narrowed state-literal pattern appears only in the store and the creation parser", () => {
-    const srcDir = join(import.meta.dir, "..", "..", "..", "src");
-    const offenders = tsFiles(srcDir)
-      .filter((f) => PATTERN.test(readFileSync(f, "utf-8")))
-      .map((f) => f.slice(srcDir.length + 1));
-    expect(offenders.sort()).toEqual([...ALLOWED].sort());
+  test("nothing outside the store writes a job's state, or builds a job but the creation parser (AC-1)", () => {
+    expect(writesOutsideTheStore()).toEqual([]);
+  });
+
+  test("the creation parser's two job literals are found, so the scan reads real code (AC-1)", () => {
+    const found = queueStateWrites(readFileSync(join(srcDir, CREATION), "utf-8"));
+    expect(found.filter((w) => w.kind === "job-literal")).toHaveLength(2);
   });
 });
 
@@ -246,7 +252,7 @@ test("Cancel ends a waiting job, as the schedule wait's own event does", () => {
     const store = makeStore();
     const made = store.enqueue({ project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"] });
     if (!made.ok) throw new Error(made.error);
-    store.update(made.job.id, { state: "waiting" });
+    store.writeUnchecked(made.job.id, { state: "waiting" });
     expect(store.transition(made.job.id, event).ok).toBe(true);
     expect(store.get(made.job.id)?.state).toBe("cancelled");
   }

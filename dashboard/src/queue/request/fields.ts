@@ -8,7 +8,7 @@ import { listedModelName } from "../model-name.ts";
 import { ARCHIVE_ONLY_STEP, CLEANUP_KEY, DEPLOY_KEY, EFFORT_LEVELS, PHASE_STEPS, WORKFLOW_STEPS, type WorkflowStep } from "../steps.ts";
 import type { ProjectResolver, QueueDefaults } from "../types.ts";
 import { resolveDependencyFolderName, specReference } from "../../project/spec-folder.ts";
-import { isScheduleKey } from "../../project/spec-names.ts";
+import { isGroupBranch, isScheduleKey } from "../../project/spec-names.ts";
 import { PICK_PARTS } from "../providers/side-tools.ts";
 import { fixInTheForm, invalidRequest, type RequestRefusal } from "../../format/request-fixes.ts";
 
@@ -288,7 +288,7 @@ export function jobGroupFields(r: Record<string, unknown> & { specFolder: string
         r.groupMembers.some((member) => typeof member !== "string" || !FOLDER_RE.test(member))) {
       return { ok: false, ...invalidRequest("invalid groupMembers") };
     }
-    if (typeof r.groupBranch !== "string" || !/^aide\/group-[A-Za-z0-9._/-]+$/.test(r.groupBranch)) {
+    if (typeof r.groupBranch !== "string" || !isGroupBranch(r.groupBranch) || !/^[A-Za-z0-9._/-]+$/.test(r.groupBranch)) {
       return { ok: false, ...invalidRequest("invalid groupBranch") };
     }
     groupMembers = [...new Set(r.groupMembers as string[])]; groupBranch = r.groupBranch;

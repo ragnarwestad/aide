@@ -15,9 +15,9 @@ test("only real current member jobs have queue positions (AC-3)", () => {
   expect(waitingGroups(store).find((g) => g.id === group.id)?.queuedMembers).toEqual([]);
   const first = enqueue({ executionGroupId: group.id, steps: ["analyze", "implement"] });
   expect(waitingGroups(store).find((g) => g.id === group.id)?.queuedMembers).toEqual(["81-queue-and-runner"]);
-  store.update(first.id, { state: "running" });
+  store.writeUnchecked(first.id, { state: "running" });
   expect(waitingGroups(store).find((g) => g.id === group.id)?.queuedMembers).toEqual([]);
-  store.update(first.id, { state: "done" });
+  store.writeUnchecked(first.id, { state: "done" });
   enqueue({ executionGroupId: group.id, specFolder: "91-parallel-spec-runs" });
   expect(waitingGroups(store).find((g) => g.id === group.id)?.queuedMembers).toEqual(["91-parallel-spec-runs"]);
 });

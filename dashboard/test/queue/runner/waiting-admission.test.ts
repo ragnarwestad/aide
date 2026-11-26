@@ -26,11 +26,11 @@ test("saved priority determines which ready job takes the only slot (AC-4)", () 
 
 for (const landing of [false, true]) test(`successors join after arrivals without page reads, landing=${landing} (AC-1, AC-2)`, () => {
   const a = enqueue({ steps: ["analyze", "implement", "archive"] });
-  store.update(a.id, { state: "running" });
+  store.writeUnchecked(a.id, { state: "running" });
   expect(store.waiting.snapshot().entries).toEqual([]);
   const b = enqueue({ specFolder: "91-parallel-spec-runs" });
   const c = enqueue({ project: "other-project" });
-  store.update(a.id, { state: "queued", stepIndex: 1, landing });
+  store.writeUnchecked(a.id, { state: "queued", stepIndex: 1, landing });
   if (landing) {
     expect(store.waiting.snapshot().entries.map(e => e.jobId)).toEqual([b.id, c.id]);
     store.update(a.id, { landing: false });
@@ -40,7 +40,7 @@ for (const landing of [false, true]) test(`successors join after arrivals withou
   runner.tick();
   expect(store.get(b.id)?.state).toBe("running");
   expect(store.get(a.id)?.state).toBe("queued");
-  store.update(b.id, { state: "done" });
+  store.writeUnchecked(b.id, { state: "done" });
   runner.tick();
   expect(store.get(c.id)?.state).toBe("running");
 });

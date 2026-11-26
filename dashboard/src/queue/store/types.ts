@@ -9,6 +9,10 @@
 import type { JobState, TransitionEvent } from "../steps.ts";
 import type { CreateProjectAllower, Job, ProjectResolver, QueueDefaults } from "../types.ts";
 
+/** A change to a job other than its state: the state moves only through
+ *  `QueueStore.transition`, against the transition table. */
+export type JobPatch = Partial<Omit<Job, "state">> & { state?: never };
+
 /** What `setPendingModel()` answers with — never a `job`, since none
  *  may exist yet for the phase a pick was just made on. `ParseResult`
  *  (`parse-request.ts`) always carries one, which is why this needs a

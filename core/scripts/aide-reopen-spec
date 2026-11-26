@@ -28,6 +28,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=/dev/null
 [ -f "$SCRIPT_DIR/_aide-spec-lib.sh" ] && source "$SCRIPT_DIR/_aide-spec-lib.sh"
 # shellcheck source=/dev/null
+[ -f "$SCRIPT_DIR/lib/spec-commands/find-spec.sh" ] && source "$SCRIPT_DIR/lib/spec-commands/find-spec.sh"
+# shellcheck source=/dev/null
 [ -f "$SCRIPT_DIR/lib/spec-transitions.sh" ] && source "$SCRIPT_DIR/lib/spec-transitions.sh"
 # shellcheck source=/dev/null
 source "$SCRIPT_DIR/lib/spec-result.sh"
@@ -56,20 +58,15 @@ command -v jq >/dev/null 2>&1 || { echo '{"ok":false,"exitCode":2,"terminalReaso
 [ -n "$spec_arg" ] || aide_spec_refuse "missing --spec"
 [ -d "$specs_root" ] || aide_spec_refuse "no such specs root: $specs_root"
 declare -f aide_resolve_spec >/dev/null 2>&1 || aide_spec_refuse "_aide-spec-lib.sh is missing beside aide-reopen-spec — reinstall aide"
+declare -f aide_existing_spec >/dev/null 2>&1 || aide_spec_refuse "lib/spec-commands/find-spec.sh is missing beside aide-reopen-spec — reinstall aide"
 declare -f apply_spec_transition >/dev/null 2>&1 || aide_spec_refuse "lib/spec-transitions.sh is missing beside aide-reopen-spec — reinstall aide"
 
-folder="$(aide_resolve_spec "$spec_arg" "$specs_root")"
-# A full folder name resolves to itself, whichever side of archive/ it is on.
-case "$folder" in
-  ""|archive/*) ;;
-  *) [ -d "$specs_root/$folder" ] || { [ -d "$specs_root/archive/$folder" ] && folder="archive/$folder"; } ;;
-esac
+folder="$(aide_existing_spec "$specs_root" "$spec_arg")"
 case "$folder" in
   archive/*) ;;
   "") aide_spec_refuse "unknown spec: $spec_arg (not under $specs_root)" ;;
   *) aide_spec_refuse "$folder is already active — nothing to reopen" ;;
 esac
-[ -d "$specs_root/$folder" ] || aide_spec_refuse "unknown spec: $spec_arg (no folder $folder under $specs_root)"
 name="${folder#archive/}"
 [ ! -e "$specs_root/$name" ] || aide_spec_refuse "$name already exists among the active specs"
 [ -f "$specs_root/$folder/4-status.md" ] || aide_spec_refuse "$folder has no 4-status.md"

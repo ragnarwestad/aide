@@ -5,7 +5,7 @@
 // a question rather than a promise.
 
 import {
-  mergeBranchRefs, type Job, type QueueDefaults, type QueueStore, type StepResult, type TokenUsage, type TransitionEvent,
+  mergeBranchRefs, type Job, type JobPatch, type QueueDefaults, type QueueStore, type StepResult, type TokenUsage, type TransitionEvent,
   type TransitionResult, type WorkflowStep,
 } from "../queue.ts";
 import { asResultTool } from "../steps.ts";
@@ -87,7 +87,7 @@ export function afterStep(
   outcome: Partial<StepOutcome>,
   results: StepResult[],
   m: Pick<StepMeasures, "cost" | "tokens">,
-): Partial<Job> {
+): JobPatch {
   return {
     results,
     spentUsd: job.spentUsd + m.cost,
@@ -122,7 +122,7 @@ export const STEP_ENDED = {
   // Its value has moved onto the result, if the step wrote one; left set, a
   // job merely `queued` for its NEXT step would read as still ticking.
   stepStartedAt: undefined,
-} as const satisfies Partial<Job>;
+} as const satisfies JobPatch;
 
 /** The events that end a step: the runner's, and a person's Cancel. */
 export type StepEndEvent = Extract<
@@ -136,7 +136,7 @@ export function endStep(
   store: Pick<QueueStore, "transition">,
   jobId: string,
   event: StepEndEvent,
-  patch: Partial<Job> = {},
+  patch: JobPatch = {},
 ): TransitionResult {
   return store.transition(jobId, event, { ...patch, ...STEP_ENDED });
 }

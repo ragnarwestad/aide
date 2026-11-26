@@ -32,9 +32,10 @@ import { loadModelIds, recordModelId } from "./model-ids.ts";
 import { loadPendingModels, loadPendingSteps, pendingProvidersPath, savePendingTable } from "./pending-tables.ts";
 import { editTailModel, renamePendingModel, setPendingModel, writePendingModel, type PickContext } from "./picks.ts";
 import { tailEditStep, withTailStep } from "./tail-edits.ts";
-import type { PendingModelResult, PendingStepsResult, QueueOptions, TransitionResult } from "./types.ts";
+import type { JobPatch, PendingModelResult, PendingStepsResult, QueueOptions, TransitionResult } from "./types.ts";
 import { ExecutionGroupStore } from "../execution-groups/index.ts";
 import { cancelLine, discardOnCancel } from "./cancelled-job.ts";
+import { syncExecutionGroup } from "./execution-group-sync.ts";
 export class QueueStore {
   readonly executionGroups: ExecutionGroupStore;
   readonly waiting: WaitingQueue;
@@ -417,7 +418,15 @@ export class QueueStore {
     return { ok: true };
   }
 
-  update(id: string, patch: Partial<Job>): Job | undefined {
+  /** Writes `patch`, never the state: a `state` key, even `undefined`, is dropped. */
+  update(id: string, patch: JobPatch): Job | undefined {
+    const { state: _state, ...rest } = patch;
+    return this.writeUnchecked(id, rest);
+  }
+
+  /** Writes `patch` as it is, state included, past the transition table:
+   *  for a test that seeds a job in a state. Nothing outside the store calls it. */
+  writeUnchecked(id: string, patch: Partial<Job>): Job | undefined {
     const job = this.jobs.get(id);
     if (!job) return undefined;
     const next = { ...job, ...patch };
@@ -434,7 +443,7 @@ export class QueueStore {
    *  miss leaves the job untouched and reports what was refused
    *  `patch` must not itself set `state` — the event is the
    *  only thing allowed to move it. */
-  transition(id: string, event: TransitionEvent, patch: Partial<Job> = {}): TransitionResult {
+  transition(id: string, event: TransitionEvent, patch: JobPatch = {}): TransitionResult {
     const job = this.jobs.get(id);
     if (!job) return { ok: false, state: "queued", event }; // unreachable in practice: every caller already holds the job
     const to = TRANSITIONS[job.state]?.[event];
@@ -456,29 +465,7 @@ export class QueueStore {
   }
 
   private syncExecutionGroup(job: Job): void {
-    if (!job.executionGroupId || !this.executionGroups.get(job.executionGroupId)) return;
-    const group = this.executionGroups.get(job.executionGroupId)!;
-    const history = {
-      id: job.id,
-      specFolder: job.specFolder,
-      logs: job.results.map((result) => ({ step: result.step, sessionId: result.sessionId, streamFile: result.streamFile })),
-    };
-    const jobs = [...group.jobs.filter((entry) => entry.id !== job.id), history];
-    // A job that ends done or cancelled with nothing else of its group in
-    // flight leaves the group idle; one that waits for Archive keeps waiting.
-    // The group's archive job keeps it archiving until its landing settles.
-    const othersInFlight = [...this.jobs.values()].some((other) =>
-      other.id !== job.id && other.executionGroupId === group.id && (other.state === "queued" || other.state === "running"));
-    const archive = job.steps[job.stepIndex] === "archive";
-    const state = job.state === "waiting" || job.state === "failed" ? "stopped"
-      : archive && (job.state === "queued" || job.state === "running") ? "archiving"
-        : job.state === "running" ? "running"
-          : job.state === "queued" ? "queued"
-            : archive && job.state === "done" && (group.state === "running" || group.state === "queued") ? "archiving"
-              : archive && job.state === "cancelled" && group.state === "archiving" ? "stopped"
-                : (group.state === "running" || group.state === "queued") && !othersInFlight && !job.landing ? "stopped"
-                : group.state;
-    this.executionGroups.update(group.id, { jobs, state, currentMember: job.specFolder });
+    syncExecutionGroup(this.executionGroups, this.jobs.values(), job);
   }
 
   /** The newest run of a choice wins; see `model-ids.ts`. */
@@ -497,4 +484,4 @@ export class QueueStore {
 }
 
 // What used to live here too, in parts beside this file.
-export type { PendingModelResult, PendingStepsResult, TransitionResult, QueueOptions } from "./types.ts";
+export type { JobPatch, PendingModelResult, PendingStepsResult, TransitionResult, QueueOptions } from "./types.ts";

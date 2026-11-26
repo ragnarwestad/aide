@@ -204,7 +204,7 @@ describe("editing a running job's tail", () => {
     const store = new QueueStore({ defaults: DEFAULTS, resolve, mirrorPath: mirror });
     const made = store.enqueue({ ...REQ, steps });
     if (!made.ok) throw new Error(made.error);
-    store.update(made.job.id, { state: "running", stepIndex });
+    store.writeUnchecked(made.job.id, { state: "running", stepIndex });
     return { store, mirror, id: made.job.id, steps: () => store.get(made.job.id)!.steps };
   };
 
@@ -243,7 +243,7 @@ describe("editing a running job's tail", () => {
   test("a job that is not running is closed altogether", () => {
     for (const state of ["queued", "done", "failed", "cancelled", "waiting"] as const) {
       const job = running(["analyze"]);
-      job.store.update(job.id, { state });
+      job.store.writeUnchecked(job.id, { state });
       const answer = job.store.editTailStep(job.id, "implement", true);
       expect(`${state}: ${answer.ok}`).toBe(`${state}: false`);
       expect(job.steps()).toEqual(["analyze"]);
@@ -293,7 +293,7 @@ describe("editing a running job's tail", () => {
 
     test("a job that is not running has nothing open", () => {
       const job = running(["analyze", "archive"]);
-      job.store.update(job.id, { state: "queued" });
+      job.store.writeUnchecked(job.id, { state: "queued" });
       expect(tailEdits(job.store.get(job.id)!)).toEqual([]);
     });
 
@@ -318,7 +318,7 @@ describe("refusing an enqueue while the spec's last job is still landing", () =>
     const s = store();
     const create = s.enqueue({ ...REQ, steps: ["create"] });
     if (!create.ok) throw new Error(create.error);
-    s.update(create.job.id, { state: "done", landing: true });
+    s.writeUnchecked(create.job.id, { state: "done", landing: true });
     const answer = s.enqueue({ ...REQ, steps: ["analyze"] });
     expect(answer.ok).toBe(false);
     if (!answer.ok) expect(sentence(answer.error)).toContain("aide:81");
@@ -328,7 +328,7 @@ describe("refusing an enqueue while the spec's last job is still landing", () =>
     const s = store();
     const create = s.enqueue({ ...REQ, steps: ["create"] });
     if (!create.ok) throw new Error(create.error);
-    s.update(create.job.id, { state: "done", landing: true });
+    s.writeUnchecked(create.job.id, { state: "done", landing: true });
     const answer = s.enqueue({ project: "aide-dashboard", specFolder: "01-first", steps: ["analyze"] });
     expect(answer.ok).toBe(true);
   });
@@ -337,7 +337,7 @@ describe("refusing an enqueue while the spec's last job is still landing", () =>
     const s = store();
     const create = s.enqueue({ ...REQ, steps: ["create"] });
     if (!create.ok) throw new Error(create.error);
-    s.update(create.job.id, { state: "done", landing: false });
+    s.writeUnchecked(create.job.id, { state: "done", landing: false });
     const answer = s.enqueue({ ...REQ, steps: ["analyze"] });
     expect(answer.ok).toBe(true);
   });
@@ -351,7 +351,7 @@ describe("refusing an enqueue while the spec's last job is still landing", () =>
     const s = store();
     const first = s.enqueue({ ...REQ, steps: ["create", "analyze"] });
     if (!first.ok) throw new Error(first.error);
-    s.update(first.job.id, { state: "queued", stepIndex: 1, landing: true });
+    s.writeUnchecked(first.job.id, { state: "queued", stepIndex: 1, landing: true });
     const answer = s.enqueue({ project: "aide-dashboard", specFolder: "01-first", steps: ["create"] });
     // sanity check only: a different spec is never held back by this
     expect(answer.ok).toBe(true);

@@ -167,6 +167,20 @@ def test_depends_on_resolves_unique_numbers_and_refuses_ambiguity_ac_1_ac_2_ac_3
     assert not (specs_root / "79-another").exists()
 
 
+def test_depends_on_an_active_and_an_archived_spec_with_one_number_is_ambiguous(
+    script, specs_root
+):
+    (specs_root / "12-a").mkdir()
+    (specs_root / "archive" / "12-b").mkdir(parents=True)
+    rc, out, _ = run(
+        script, specs_root, "78-do-a-thing", "Do a thing", "Problem: X.",
+        depends_on="12",
+    )
+    assert rc == 2 and out["terminalReason"] == "refused", out
+    assert "12" in out["error"]
+    assert not (specs_root / "78-do-a-thing").exists()
+
+
 def test_no_depends_on_flag_writes_no_depends_line(script, specs_root):
     rc, out, _ = run(script, specs_root, "42-do-a-thing", "Do a thing", "Problem: X.")
     assert rc == 0, out

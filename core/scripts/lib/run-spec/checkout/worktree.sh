@@ -348,7 +348,7 @@ resolve_status_conflict() {
 
 # Analyze and Implement share the group's code snapshot until its Archive.
 preserves_group_code() {
-  [ "$1" = "$project_root" ] && [[ "$branch" == aide/group-* ]] && \
+  [ "$1" = "$project_root" ] && aide_is_group_branch "$branch" && \
     { [ "$command_name" = "analyze" ] || [ "$command_name" = "implement" ]; }
 }
 

@@ -37,7 +37,7 @@ function stopped(
   wait: { until: string; resetKnown: boolean } | undefined,
   createdAt?: string,
 ): Job {
-  return store.update(made.id, {
+  return store.writeUnchecked(made.id, {
     state: "waiting",
     stopReason: "provider-limit",
     finishedAt: iso(stoppedAt),
@@ -214,7 +214,7 @@ describe("a stop with no reset time sends one step ahead", () => {
     restartAfterUsageLimit(store, toolOf, at("11:02"));
     // The probe's step ends: a second result lands on the job.
     const probe = store.get(a.id)!;
-    store.update(a.id, {
+    store.writeUnchecked(a.id, {
       state: "done",
       results: [...probe.results, { step: "implement", ok: true, terminalReason: "completed" } as never],
     });
@@ -229,7 +229,7 @@ describe("a stop with no reset time sends one step ahead", () => {
     const c = job({ steps: ["analyze"] });
     restartAfterUsageLimit(store, toolOf, at("11:02"));
     const probe = store.get(a.id)!;
-    store.update(a.id, {
+    store.writeUnchecked(a.id, {
       state: "waiting",
       stopReason: "provider-limit",
       finishedAt: iso("11:10"),
@@ -251,7 +251,7 @@ describe("a probe that stops again with a reset time", () => {
     const c = job({ steps: ["analyze"] });
     restartAfterUsageLimit(store, toolOf, at("11:02"));
     const probe = store.get(a.id)!;
-    store.update(a.id, {
+    store.writeUnchecked(a.id, {
       state: "waiting", stopReason: "provider-limit", finishedAt: iso("11:10"),
       results: [...probe.results, { step: "implement", ok: false, terminalReason: "provider-limit" } as never],
       usageLimitWait: { until: iso("11:30"), resetKnown: true },
@@ -269,7 +269,7 @@ describe("a restarted step that hits the limit again is held again", () => {
     const queued = job({ steps: ["analyze"] });
     restartAfterUsageLimit(store, toolOf, at("14:00"));
     const restarted = store.get(made.id)!;
-    store.update(made.id, {
+    store.writeUnchecked(made.id, {
       state: "waiting",
       stopReason: "provider-limit",
       finishedAt: iso("14:05"),
@@ -377,7 +377,7 @@ describe("which stop decides an AI's time", () => {
     const old = stopped(job({ steps: ["analyze"], specFolder: "81-queue-and-runner" }), "06:00", { until: "23:00", resetKnown: true }, "05:00");
     const again = enqueue({ specFolder: old.specFolder, steps: ["analyze"] });
     tools.set(again.id, "claude");
-    store.update(again.id, { state: "done", pressed: true, createdAt: iso("07:00") });
+    store.writeUnchecked(again.id, { state: "done", pressed: true, createdAt: iso("07:00") });
     const a = stopped(job({ steps: ["implement"] }), "10:00", { until: "14:00", resetKnown: true });
     const b = stopped(job({ steps: ["analyze"] }), "10:00", { until: "14:00", resetKnown: true });
     restartAfterUsageLimit(store, toolOf, at("14:00"));
@@ -391,7 +391,7 @@ describe("which stop decides an AI's time", () => {
     const made = stopped(job({ steps: ["analyze"], specFolder: "81-queue-and-runner" }), "10:00", { until: "23:00", resetKnown: true });
     const again = enqueue({ specFolder: made.specFolder, steps: ["analyze"] });
     tools.set(again.id, "claude");
-    store.update(again.id, { state: "done", pressed: true, createdAt: iso("10:30") });
+    store.writeUnchecked(again.id, { state: "done", pressed: true, createdAt: iso("10:30") });
     const queued = job({ steps: ["implement"] });
     restartAfterUsageLimit(store, toolOf, at("12:00"));
     expect(usageLimitHolds(store.list(), toolOf).get(queued.id)?.values).toEqual({ provider: "claude", at: iso("23:00") });
@@ -409,7 +409,7 @@ describe("a step that ran on the AI since the stop", () => {
   /** A job that ran `step` on claude from `started`, ending as `reason`. */
   function ran(step: string, started: string, reason: string): Job {
     const made = job({ steps: [step], ...(step === "deploy" ? { specFolder: "deploy" } : {}) });
-    return store.update(made.id, {
+    return store.writeUnchecked(made.id, {
       state: "done", pressed: true, createdAt: iso(started),
       results: [{ step, ok: true, terminalReason: reason, startedAt: iso(started), at: iso(started) } as never],
     })!;

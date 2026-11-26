@@ -133,7 +133,7 @@ describe("loading a group's active job", () => {
       const group = queue.executionGroups.create({ project: "aide", name: "Release", members: ["1-first"], branch: "group/release" });
       const made = queue.enqueue({ project: "aide", specFolder: "1-first", steps: ["analyze", "implement", "archive"], executionGroupId: group.id });
       if (!made.ok) throw new Error(made.error);
-      queue.update(made.job.id, { state, stepIndex: 1 });
+      queue.writeUnchecked(made.job.id, { state, stepIndex: 1 });
       queue.executionGroups.update(group.id, { state: "archiving" });
       let changes = 0;
       const restored = new QueueStore({ ...options, onChange: () => { changes++; } });

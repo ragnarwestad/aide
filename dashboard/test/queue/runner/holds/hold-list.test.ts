@@ -53,13 +53,13 @@ describe("the hold list", () => {
 
 test("Land waits only for an active landing and Archive waits for Land (AC-3, AC-4)", () => {
   const archive = enqueue({ steps: ["archive"] });
-  store.update(archive.id, { state: "running" });
+  store.writeUnchecked(archive.id, { state: "running" });
   const land = enqueue({ specFolder: "land", steps: ["land"], branch: "topic" });
   expect(holdFor(land, context({}))).toBeUndefined();
-  store.update(archive.id, { state: "done", landing: true });
+  store.writeUnchecked(archive.id, { state: "done", landing: true });
   expect(holdFor(land, context({}))?.name).toBe("project-landing");
   store.update(archive.id, { landing: false });
-  store.update(land.id, { state: "running", landing: true });
+  store.writeUnchecked(land.id, { state: "running", landing: true });
   const laterArchive = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["archive"] });
   expect(holdFor(laterArchive, context({}))?.name).toBe("project-landing");
 });
@@ -68,19 +68,19 @@ test("Land waits only for an active landing and Archive waits for Land (AC-3, AC
 test("a schedule is not held by another spec's running step", () => {
   const scheduled = enqueue({ specFolder: "schedule-nightly", steps: ["schedule"] });
   const running = enqueue({ steps: ["implement"] });
-  store.update(running.id, { state: "running" });
+  store.writeUnchecked(running.id, { state: "running" });
   expect(holdFor(scheduled, { ...context({}), maxConcurrent: 2 })).toBeUndefined();
 });
 
 test("queued Land branches run one at a time through the end of the landing", () => {
   const first = enqueue({ specFolder: "land", steps: ["land"], branch: "first" });
-  store.update(first.id, { state: "running", landing: true });
+  store.writeUnchecked(first.id, { state: "running", landing: true });
   const second = enqueue({ specFolder: "land", steps: ["land"], branch: "second" });
   const runner = makeRunner({ maxConcurrent: 4 });
   runner.tick();
   expect(store.get(second.id)?.state).toBe("queued");
   expect(spawns).toHaveLength(0);
-  store.update(first.id, { state: "done" });
+  store.writeUnchecked(first.id, { state: "done" });
   runner.tick();
   expect(store.get(second.id)?.state).toBe("queued");
   expect(spawns).toHaveLength(0);
@@ -92,25 +92,25 @@ test("queued Land branches run one at a time through the end of the landing", ()
 
 test("a running Deploy holds new Archive and Land jobs but not Implement", () => {
   const deploy = enqueue({ specFolder: "deploy", steps: ["deploy"] });
-  store.update(deploy.id, { state: "running" });
+  store.writeUnchecked(deploy.id, { state: "running" });
   for (const steps of [["archive"], ["land"]]) {
     const job = enqueue({ specFolder: steps[0] === "land" ? "land" : "91-parallel-spec-runs", steps, branch: "topic" });
     expect(holdFor(job, { ...context({}), maxConcurrent: 10 })?.name).toBe("deploy-priority");
   }
   const implement = enqueue({ steps: ["implement"] });
   expect(holdFor(implement, { ...context({}), maxConcurrent: 10 })).toBeUndefined();
-  store.update(deploy.id, { state: "cancelled" });
+  store.writeUnchecked(deploy.id, { state: "cancelled" });
   const waiting = store.list().find((job) => job.steps[0] === "land")!;
   expect(holdFor(waiting, { ...context({}), maxConcurrent: 10 })).toBeUndefined();
 });
 
 test("a Land behind another landing Land names the landing, not the same spec", () => {
   const first = enqueue({ specFolder: "land", steps: ["land"], branch: "one" });
-  store.update(first.id, { state: "running", landing: true });
+  store.writeUnchecked(first.id, { state: "running", landing: true });
   const second = enqueue({ specFolder: "land", steps: ["land"], branch: "two" });
   expect(holdFor(second, context({}))?.name).toBe("project-landing");
   const spec = enqueue({ steps: ["analyze"] });
-  store.update(spec.id, { state: "running" });
+  store.writeUnchecked(spec.id, { state: "running" });
   const again = enqueue({ steps: ["implement"] });
   expect(holdFor(again, { ...context({}), maxConcurrent: 2 })?.name).toBe("same-spec-running");
 });
@@ -120,9 +120,9 @@ test("a group Archive waits while a member's own step is queued, running or wait
   const archive = enqueue({ specFolder: "81-queue-and-runner", steps: ["archive"] });
   store.update(archive.id, { groupMembers: ["81-queue-and-runner", "91-parallel-spec-runs"] });
   for (const state of ["queued", "running", "waiting"] as const) {
-    store.update(member.id, { state });
+    store.writeUnchecked(member.id, { state });
     expect(holdFor(store.get(archive.id)!, { ...context({}), maxConcurrent: 4 })?.name).toBe("spec-work-open");
   }
-  store.update(member.id, { state: "failed" });
+  store.writeUnchecked(member.id, { state: "failed" });
   expect(holdFor(store.get(archive.id)!, { ...context({}), maxConcurrent: 4 })).toBeUndefined();
 });

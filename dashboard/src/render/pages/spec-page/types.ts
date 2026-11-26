@@ -169,12 +169,8 @@ export interface SpecPageView {
   testServer?: TestServerStatusView;
 }
 
-/** A board's status, as the spec page shows it. Named
- *  `status`, never `state`: a repo-wide guard
- *  (test/queue/store/transitions.test.ts) reserves the literal
- *  "state:" for a queue JOB's own state, and a board's lifecycle is an
- *  unrelated concept the guard's naive text match cannot tell apart from
- *  it. */
+/** A board's status, as the spec page shows it: the registry's own
+ *  `status` field, a board's lifecycle and not a queue job's state. */
 export interface TestServerStatusView {
   status: "starting" | "running" | "failed";
   branch: string;

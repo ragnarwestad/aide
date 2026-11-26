@@ -44,6 +44,7 @@ The code is in these places:
 - `completed_steps_for` and the post-step checks — in `core/scripts/lib/run-spec/record/records.sh` and
   `run-spec/record/status-line.sh`.
 - The gates — in `core/scripts/aide-archive-spec`.
+- The terminal stamp and move for Archive and Close — `stamp_and_move_spec` in `core/scripts/lib/spec-transitions.sh`.
 - The merge — in `src/serve/land-branch/`.
 
 ## What "has had a phase" means

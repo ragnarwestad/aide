@@ -73,7 +73,7 @@ test("a later landing waits outside the merge lock until Deploy ends or is cance
     await new Promise((resolve) => setTimeout(resolve, 5));
     expect(released).toBe(false);
     expect(later.errorReason).toBe("held-back");
-    deploy.state = state;
+    Object.assign(deploy, { state });
     await wait;
     expect(released).toBe(true);
     expect(later.errorReason).toBeUndefined();

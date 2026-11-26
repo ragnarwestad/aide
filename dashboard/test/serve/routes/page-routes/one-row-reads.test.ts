@@ -250,7 +250,7 @@ for (const [route, path] of [[jobsPage, "/"], [specsPages, "/specs"]] as const) 
     const original = ctx.jobRow;
     let changed = false;
     ctx.jobRow = async (job) => {
-      if (!changed) { changed = true; queue.update("j149", { state: "failed" }); }
+      if (!changed) { changed = true; queue.writeUnchecked("j149", { state: "failed" }); }
       return original(job);
     };
     const response = await ask(route, `${path}?state=all&rows=1`);

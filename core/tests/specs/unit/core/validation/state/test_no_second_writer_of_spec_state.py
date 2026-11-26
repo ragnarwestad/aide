@@ -26,10 +26,8 @@ ALLOWED_BASH_FILES = {
     "core/scripts/lib/spec-reference.sh",   # defines the shared file name; never reads or writes it
     "core/scripts/lib/spec-state.sh",       # the one writer
     "core/scripts/aide-write-spec",          # reads the derived file back, for its own stdout contract
-    "core/scripts/aide-archive-spec",        # stages the new file alongside the git-mv rename
-    "core/scripts/aide-close-spec",          # Same stage-alongside-the-git-mv-rename as aide-archive-spec
     "core/scripts/lib/run-spec/publish/result.sh",   # aide-run-spec derives it after every completed step, so the gates read what the run just landed
-    "core/scripts/lib/spec-transitions.sh",  # Reads via read_spec_state, writes via write_spec_state — doc comments only, no second derivation
+    "core/scripts/lib/spec-transitions.sh",  # writes via write_spec_state, and stamp_and_move_spec stages it alongside the git-mv rename
 }
 ALLOWED_DASHBOARD_FILES = {
     "dashboard/src/project/spec-names.ts",       # defines the shared file name; never reads or writes it

@@ -4,7 +4,7 @@ import { join } from "node:path";
 import {
   AC_COVERAGE_FILE, ANALYSIS_FILE, DESCRIPTION_FILE, SOLUTION_FILE, STATE_FILE, STATUS_FILE,
   isProvisionalKey, isScheduleKey, isSpecFolder, newProvisionalKey, scheduleNameOf, scheduleTrackingKey,
-  groupBranch, specBranch, specFolderOfBranch,
+  groupBranch, isGroupBranch, specBranch, specFolderOfBranch,
 } from "../../src/project/spec-names.ts";
 
 const LIB = join(import.meta.dir, "..", "..", "..", "core", "scripts", "lib", "spec-reference.sh");
@@ -62,6 +62,18 @@ describe("a spec's branch", () => {
     expect(groupBranch("742-first")).toBe("aide/group-742-first");
     expect(groupBranch("742-first", "Release / unsafe name")).toBe("aide/group-742-first");
     expect(bash('aide_group_branch "$1"', "742-first").out).toBe(groupBranch("742-first"));
+  });
+
+  test.each([
+    [groupBranch("742-first"), true],
+    ["aide/group-", false],
+    ["aide/742-x", false],
+    ["main", false],
+    ["refs/heads/aide/group-1", false],
+    ["", false],
+  ])("%p is a group's branch on both sides: %p", (branch, want) => {
+    expect(isGroupBranch(branch)).toBe(want);
+    expect(bash('aide_is_group_branch "$1"', branch).ok).toBe(want);
   });
 
   test.each(["main", "aide/", "refs/heads/aide/742-x", ""])("%p names no spec (AC-3)", (branch) => {

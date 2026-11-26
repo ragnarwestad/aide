@@ -94,7 +94,7 @@ describe("QueueStore", () => {
     const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
     const r = store.enqueue(REQ);
     if (!r.ok) throw new Error("enqueue failed");
-    store.update(r.job.id, { state: "failed" });
+    store.writeUnchecked(r.job.id, { state: "failed" });
     expect(store.storage.fault).toBeUndefined();
     expect(new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve }).get(r.job.id)?.state).toBe("failed");
   });
@@ -231,7 +231,7 @@ describe("the running step's session", () => {
     const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
     const r = store.enqueue(REQ);
     if (!r.ok) throw new Error("enqueue failed");
-    store.update(r.job.id, {
+    store.writeUnchecked(r.job.id, {
       state: "running",
       sessionId: "3f7a1c2e-0000-4000-8000-000000000001",
       streamFile: "/tmp/jobs/x.stream.jsonl",
@@ -273,7 +273,7 @@ describe("branchesFor", () => {
   const seed = (store: QueueStore, steps: string[], branchUrls: { root: string; url: string }[]) => {
     const r = store.enqueue({ ...REQ, steps });
     if (!r.ok) throw new Error(r.error);
-    store.update(r.job.id, { state: "done", branchUrls, startedAt: "2026-08-17T10:00:00Z" });
+    store.writeUnchecked(r.job.id, { state: "done", branchUrls, startedAt: "2026-08-17T10:00:00Z" });
     return r.job.id;
   };
 
@@ -300,14 +300,14 @@ describe("branchesFor", () => {
     const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
     const older = store.enqueue({ ...REQ, steps: ["analyze"] });
     if (!older.ok) throw new Error(older.error);
-    store.update(older.job.id, {
+    store.writeUnchecked(older.job.id, {
       state: "done",
       startedAt: "2026-08-17T09:00:00Z",
       branchUrls: [{ root: "/repos/aide", url: "https://example.test/old" }],
     });
     const newer = store.enqueue({ ...REQ, steps: ["implement"] });
     if (!newer.ok) throw new Error(newer.error);
-    store.update(newer.job.id, {
+    store.writeUnchecked(newer.job.id, {
       state: "done",
       startedAt: "2026-08-17T11:00:00Z",
       branchUrls: [{ root: "/repos/aide", url: "https://example.test/new" }],
@@ -332,7 +332,7 @@ describe("branchDeleteErrorFor", () => {
     const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
     const r = store.enqueue(REQ);
     if (!r.ok) throw new Error(r.error);
-    store.update(r.job.id, { state: "done" });
+    store.writeUnchecked(r.job.id, { state: "done" });
     expect(store.branchDeleteErrorFor("aide", "81-queue-and-runner")).toBeUndefined();
   });
 
@@ -340,14 +340,14 @@ describe("branchDeleteErrorFor", () => {
     const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
     const older = store.enqueue({ ...REQ, steps: ["analyze"] });
     if (!older.ok) throw new Error(older.error);
-    store.update(older.job.id, {
+    store.writeUnchecked(older.job.id, {
       state: "done",
       startedAt: "2026-08-17T09:00:00Z",
       branchDeleteError: "merged, but deleting aide/81-queue-and-runner on origin failed: old reason",
     });
     const newer = store.enqueue({ ...REQ, steps: ["implement"] });
     if (!newer.ok) throw new Error(newer.error);
-    store.update(newer.job.id, {
+    store.writeUnchecked(newer.job.id, {
       state: "done",
       startedAt: "2026-08-17T11:00:00Z",
       branchDeleteError: "merged, but deleting aide/81-queue-and-runner on origin failed: new reason",
@@ -361,7 +361,7 @@ describe("branchDeleteErrorFor", () => {
     const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
     const r = store.enqueue(REQ);
     if (!r.ok) throw new Error(r.error);
-    store.update(r.job.id, { state: "done", branchDeleteError: "merged, but deleting failed: reason" });
+    store.writeUnchecked(r.job.id, { state: "done", branchDeleteError: "merged, but deleting failed: reason" });
     expect(store.branchDeleteErrorFor("aide-dashboard", "01-first")).toBeUndefined();
   });
 });
@@ -389,7 +389,7 @@ describe("the same work is not queued twice", () => {
 
   test("a job that has been started still blocks — it is not finished", () => {
     const { store, first } = queued();
-    store.update(first.id, { state: "running" });
+    store.writeUnchecked(first.id, { state: "running" });
     expect(store.enqueue(REQ).ok).toBe(false);
   });
 
@@ -414,7 +414,7 @@ describe("the same work is not queued twice", () => {
   for (const state of ["done", "cancelled", "failed", "waiting"] as const) {
     test(`a ${state} job does not block the next one`, () => {
       const { store, first } = queued();
-      store.update(first.id, { state });
+      store.writeUnchecked(first.id, { state });
       expect(store.enqueue(REQ).ok).toBe(true);
     });
   }

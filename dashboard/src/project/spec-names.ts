@@ -28,6 +28,11 @@ export const specBranch = (folder: string): string => `${BRANCH_PREFIX}${folder}
 export const groupBranch = (firstFolder: string, _displayName?: string): string =>
   `${groupBranchPrefix}${firstFolder}`;
 
+/** A group's branch: the shared group prefix and a non-empty rest. Says
+ *  nothing about whether the characters are safe for git; callers keep that. */
+export const isGroupBranch = (branch: string): boolean =>
+  branch.startsWith(groupBranchPrefix) && branch.length > groupBranchPrefix.length;
+
 /** The folder a spec's branch is named for; undefined for any other branch. */
 export const specFolderOfBranch = (branch: string): string | undefined =>
   branch.startsWith(BRANCH_PREFIX) && branch.length > BRANCH_PREFIX.length

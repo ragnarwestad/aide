@@ -59,7 +59,7 @@ for (const state of ["queued", "running", "done"] as const) {
     try {
       const first = queue.enqueue({ project: "aide", specFolder: "land", steps: ["land"], branch: "first" });
       if (!first.ok) throw new Error(first.error);
-      queue.update(first.job.id, { state, landing: state !== "queued" });
+      queue.writeUnchecked(first.job.id, { state, landing: state !== "queued" });
       const res = await handleLandSteps(ctx as never, new Request("http://board/api/queue/projects/aide/land", {
         method: "POST", body: JSON.stringify({ branch: "second" }),
       }), "/api/queue/projects/aide/land");
@@ -82,7 +82,7 @@ test("Merge retries a cancelled job with the same branch and kind (AC-1)", async
   try {
     const old = queue.enqueue({ project: "aide", specFolder: "land", steps: ["land"], branch: "topic" });
     if (!old.ok) throw new Error(old.error);
-    queue.update(old.job.id, { state: "cancelled" });
+    queue.writeUnchecked(old.job.id, { state: "cancelled" });
     const res = await handleLandSteps(ctx as never, new Request("http://board/api/queue/projects/aide/land", {
       method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ branch: "topic" }),
     }), "/api/queue/projects/aide/land");

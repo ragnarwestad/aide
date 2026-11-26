@@ -42,8 +42,9 @@ First write `--- Step 1 of 6: Find the spec — started`, and when this step end
 
 
 Resolve the spec to a folder, looking under `archive/` — that is
-where the spec is. `aide_resolve_spec` in `_aide-spec-lib.sh` already
-searches both and returns `archive/<NN>-slug` for an archived spec.
+where the spec is. `aide_existing_spec` in
+`lib/spec-commands/find-spec.sh` searches both, active first, and returns
+`archive/<NN>-slug` for an archived spec.
 
 If it is NOT archived, stop and say so: a spec already in the active
 list has nothing to reopen, and resetting its files would throw away the

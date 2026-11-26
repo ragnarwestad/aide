@@ -94,7 +94,7 @@ describe("a create that ends without a spec", () => {
   test("a create whose own merge failed while the job went on gets one, with the merge's reason", async () => {
     const b = await board();
     const job = b.create();
-    b.store.update(job.id, { state: "queued", landingError: "cannot fast-forward main", error: "held back" });
+    b.store.writeUnchecked(job.id, { state: "queued", landingError: "cannot fast-forward main", error: "held back" });
     await b.push.idle();
     expect(b.push.failedCreates.get(job.id)?.reason).toBe("cannot fast-forward main");
     expect(b.sent.calls).toHaveLength(1);

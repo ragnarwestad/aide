@@ -137,6 +137,13 @@ def test_refuses_an_unknown_spec(script, tmp_path):
     assert rc == 2 and out["terminalReason"] == "refused", out
 
 
+def test_refuses_an_unknown_full_name_as_unknown_not_active(script, tmp_path):
+    rc, out = run(script, "--specs-root", str(tmp_path), "--spec", "99-none")
+    assert rc == 2 and out["terminalReason"] == "refused", out
+    assert out["error"] == f"unknown spec: 99-none (not under {tmp_path})", out
+    assert not (tmp_path / "99-none").exists()
+
+
 def test_a_closed_spec_is_reopened_with_its_closed_line_kept(script, tmp_path):
     status = (
         "# X - Status\n\n## Tracking info\n\n"

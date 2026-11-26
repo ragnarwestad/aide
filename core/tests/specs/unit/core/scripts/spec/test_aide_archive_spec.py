@@ -227,6 +227,9 @@ def test_group_archive_moves_every_member_in_order_after_whole_group_preflight(s
     assert not (specs / "82-second").exists()
     assert (specs / "archive" / "81-first").exists()
     assert (specs / "archive" / "82-second").exists()
+    for member in ("81-first", "82-second"):
+        state = json.loads((specs / "archive" / member / "4-status.json").read_text())
+        assert state["archived"]["date"], member
 
 
 def test_group_archive_refusal_moves_no_member(script, project, specs):

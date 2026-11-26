@@ -128,7 +128,7 @@ describe("a landing the last process never finished", () => {
 
 test("an interrupted individual Archive on a group member is cancelled rather than resumed", () => {
   const job = enqueue({ steps: ["analyze", "implement", "archive"] });
-  store.update(job.id, { executionGroupId: "group-1", state: "done", stepIndex: 2, landingCut: true,
+  store.writeUnchecked(job.id, { executionGroupId: "group-1", state: "done", stepIndex: 2, landingCut: true,
     results: [{ step: "archive", ok: true, costUsd: 0, costMeasured: true, terminalReason: "completed" }], resultFile: "old.json" });
   let called = false;
   resumeCutLandings({ store, readResult: () => okResult(0), onStepDone: () => { called = true; } });

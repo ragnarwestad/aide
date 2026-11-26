@@ -307,7 +307,15 @@ is_positive_number() { [[ "$1" =~ ^[0-9]+([.][0-9]+)?$ ]] && [[ "$1" =~ [1-9] ]]
 [ -n "$permission_mode" ] || refuse "missing --permission-mode"
 [ -n "$result_file" ] || refuse "missing --result-file"
 
-if [ -n "$branch_arg" ] && [[ ! "$branch_arg" =~ ^aide/[A-Za-z0-9._/-]+$ ]]; then
+# A run's branch: safe characters, and either a group's branch or a spec
+# prefix with something after it. A name under the group prefix must be a
+# whole group branch, so an empty group suffix is refused.
+valid_branch_arg() {
+  [[ "$1" =~ ^[A-Za-z0-9._/-]+$ ]] || return 1
+  case "$1" in "$AIDE_GROUP_BRANCH_PREFIX"*) aide_is_group_branch "$1"; return ;; esac
+  [[ "$1" == "$AIDE_BRANCH_PREFIX"?* ]]
+}
+if [ -n "$branch_arg" ] && ! valid_branch_arg "$branch_arg"; then
   refuse "invalid --branch: $branch_arg"
 fi
 

@@ -81,6 +81,7 @@ export {
 
 export {
   QueueStore,
+  type JobPatch,
   type PendingModelResult,
   type QueueOptions,
   type TransitionResult,

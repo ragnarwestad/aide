@@ -192,8 +192,8 @@ describe("QueueStore.onChange", () => {
     const c = counting();
     const made = c.store.enqueue(REQ);
     if (!made.ok) throw new Error(made.error);
-    expect(c.store.update(made.job.id, { state: "running" })).toBeDefined();
-    expect(c.store.update(made.job.id, { state: "done" })).toBeDefined();
+    expect(c.store.writeUnchecked(made.job.id, { state: "running" })).toBeDefined();
+    expect(c.store.writeUnchecked(made.job.id, { state: "done" })).toBeDefined();
     expect(c.fired()).toBe(3); // the enqueue and the two updates
   });
 
@@ -201,7 +201,7 @@ describe("QueueStore.onChange", () => {
     const c = counting();
     const made = c.store.enqueue({ ...REQ, steps: ["analyze"] });
     if (!made.ok) throw new Error(made.error);
-    c.store.update(made.job.id, { state: "running", stepIndex: 0 });
+    c.store.writeUnchecked(made.job.id, { state: "running", stepIndex: 0 });
     expect(c.store.editTailStep(made.job.id, "implement", true).ok).toBe(true);
     expect(c.fired()).toBe(3); // the enqueue, the update, the edit
   });
@@ -222,7 +222,7 @@ describe("QueueStore.onChange", () => {
 
   test("stays silent when update names a job that does not exist", () => {
     const c = counting();
-    expect(c.store.update("no-such-job", { state: "done" })).toBeUndefined();
+    expect(c.store.writeUnchecked("no-such-job", { state: "done" })).toBeUndefined();
     expect(c.fired()).toBe(0);
   });
 
@@ -230,7 +230,7 @@ describe("QueueStore.onChange", () => {
     const c = counting();
     const made = c.store.enqueue({ ...REQ, steps: ["analyze"] });
     if (!made.ok) throw new Error(made.error);
-    c.store.update(made.job.id, { state: "running", stepIndex: 0 });
+    c.store.writeUnchecked(made.job.id, { state: "running", stepIndex: 0 });
     const before = c.fired();
     // The running step itself, an unknown job, and a step name that is
     // not a step at all: three refusals, no announcement.

@@ -34,6 +34,9 @@ aide_spec_branch() { printf '%s%s' "$AIDE_BRANCH_PREFIX" "$1"; }
 # A group's branch, named for its immutable first member folder.
 aide_group_branch() { printf '%s%s' "$AIDE_GROUP_BRANCH_PREFIX" "$1"; }
 
+# A group's branch: the shared group prefix and a non-empty rest.
+aide_is_group_branch() { [[ "$1" == "$AIDE_GROUP_BRANCH_PREFIX"?* ]]; }
+
 # The key a create job carries until its merge names the spec. The dashboard
 # makes it; the runner only recognises it.
 aide_is_provisional_key() { [[ "$1" =~ $AIDE_PROVISIONAL_KEY_PATTERN ]]; }

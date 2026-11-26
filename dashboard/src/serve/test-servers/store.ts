@@ -6,12 +6,9 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 
-// Named `status`, never `state` (which a repo-wide guard, in
-// test/queue/store/transitions.test.ts, reserves for a QUEUE
-// JOB's own state literals): a board's lifecycle is an unrelated
-// concept that happens to share two of the same words ("running",
-// "failed"), and the guard's naive text match cannot tell the two
-// apart.
+// A board's lifecycle, not a queue job's: it shares two words with a
+// job's state ("running", "failed") and nothing else. The field is
+// named `status`, as it is stored in the registry file.
 export type TestServerStatus = "starting" | "running" | "failed";
 
 export interface TestServer {

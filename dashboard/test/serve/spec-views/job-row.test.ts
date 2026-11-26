@@ -152,7 +152,7 @@ test("an active process retains its running fact without a waiting position (AC-
   const queue = makeStore();
   const made = queue.enqueue({ project: "aide", specFolder: "a", steps: ["analyze", "implement"] });
   if (!made.ok) throw new Error(made.error);
-  const job = queue.update(made.job.id, { state: "running" })!;
+  const job = queue.writeUnchecked(made.job.id, { state: "running" })!;
   const row = await jobRow({ queue, store: new AideRunStore() }, job);
   expect(row.state).toBe("running");
   expect(row.queuePosition).toBeUndefined();
@@ -162,7 +162,7 @@ test("future phases have no waiting position while the current process runs (AC-
   const queue = makeStore();
   const made = queue.enqueue({ project: "aide", specFolder: "a", steps: ["analyze", "implement"] });
   if (!made.ok) throw new Error(made.error);
-  const job = queue.update(made.job.id, { state: "running" })!;
+  const job = queue.writeUnchecked(made.job.id, { state: "running" })!;
   const view = await jobRow({ queue, store: new AideRunStore() }, job);
   const { phasesFor } = await import("../../../src/render/pages/specs-list/data-model/phases.ts");
   const { wordPhase } = await import("../../../src/render/ui/job-state/word-phase.ts");
@@ -178,7 +178,7 @@ test("a merge waiter has a position while its successor remains unattempted (AC-
   const queue = makeStore();
   const made = queue.enqueue({ project: "aide", specFolder: "a", steps: ["analyze", "implement"] });
   if (!made.ok) throw new Error(made.error);
-  const job = queue.update(made.job.id, { state: "queued", stepIndex: 1, landing: true,
+  const job = queue.writeUnchecked(made.job.id, { state: "queued", stepIndex: 1, landing: true,
     results: [{ step: "analyze", ok: true, costUsd: 0, costMeasured: false, terminalReason: "completed" }] })!;
   queue.waiting.pending.set("merge:test:analyze:repo", { id: "merge:test:analyze:repo", jobId: job.id, project: "aide", label: "a", operation: "analyze", reason: "Repository busy" });
   const view = await jobRow({ queue, store: new AideRunStore() }, job);
@@ -216,7 +216,7 @@ test("merge rows resolve the destination and forward current numeric activity (A
     const ctx = { queue, store: new AideRunStore(), mergeTarget: async () => "trunk" };
     for (const [task, activity] of [[1, "merging"], [2, "testing"], [3, "running"], [4, "running"]] as const) {
       writeFileSync(file.replace(".stream.jsonl", ".run.log"), `aide-run-spec 12:00:00 +0s --- Step ${task} of 4: Task — started\n`);
-      queue.update(queued.job.id, { state: "running", streamFile: file });
+      queue.writeUnchecked(queued.job.id, { state: "running", streamFile: file });
       expect(await jobRow(ctx, queue.get(queued.job.id)!)).toMatchObject({ mergeTarget: "trunk", mergeActivity: activity });
     }
     expect((await jobRow({ ...ctx, mergeTarget: async () => { throw new Error("unavailable"); } }, queue.get(queued.job.id)!)).mergeTarget).toBeUndefined();
@@ -252,7 +252,7 @@ test("window selection keeps pending merges in the Queued filter (AC-3, AC-7)", 
   const queue = makeStore();
   const made = queue.enqueue({ project: "aide", specFolder: "land", steps: ["land"], branch: "topic" });
   if (!made.ok) throw new Error(made.error);
-  const own = queue.update(made.job.id, { state: "done", landing: true })!;
+  const own = queue.writeUnchecked(made.job.id, { state: "done", landing: true })!;
   queue.waiting.pending.set("merge:waiting", { id: "merge:waiting", jobId: own.id, project: "aide", label: "Merge", operation: "land", reason: "Repository busy" });
   const summary = summaryJob(own, queue.waiting.snapshot().entries);
   const facts = jobFacts(summary, Date.now());
@@ -265,7 +265,7 @@ test("a failed or cancelled Merge's row asks origin whether its branch is gone",
   for (const state of ["failed", "cancelled"] as const) {
     const made = queue.enqueue({ project: "aide", specFolder: "land", steps: ["land"], branch: `topic-${state}` });
     if (!made.ok) throw new Error(made.error);
-    queue.update(made.job.id, { state, startedAt: "2026-11-20T10:00:00Z" });
+    queue.writeUnchecked(made.job.id, { state, startedAt: "2026-11-20T10:00:00Z" });
     expect((await jobRow(ctx, queue.get(made.job.id)!)).branchGone).toBe(true);
   }
 });

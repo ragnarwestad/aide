@@ -34,6 +34,10 @@
 #   by the time a step's outcome is being recorded here the step already
 #   ran, and a write that recorded today unconditionally must keep doing
 #   so, not refuse on a gate that has already had its say.
+#
+# stamp_and_move_spec($specs_root, $folder, $kind, [$value])
+#   The one terminal move, for archive and close: stamps, moves the folder
+#   under archive/, rewrites 4-status.json there and stages it in a git root.
 
 _spec_transitions_lib_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TRANSITIONS_JSON="${TRANSITIONS_JSON:-$_spec_transitions_lib_dir/transitions.json}"
@@ -204,6 +208,34 @@ write_phase_stamp() {
   esac
 }
 
+# stamp_and_move_spec($specs_root, $folder, $kind, [$value]) — the one
+# terminal move: writes the $kind stamp ("archived" or "closed", $value
+# the close reason) on <root>/<folder>/4-status.md when that file exists,
+# moves <folder> to archive/<folder> (git mv in a git work tree, mv
+# otherwise), rewrites 4-status.json at the new path, and in a git root
+# stages it with the rename — also when the rewrite fails, so a state
+# file the folder already had is staged as it stands. The stamp goes on
+# the old path and the state on the new one, which is why this is not
+# apply_spec_transition. A failing git mv is not reported here; the caller
+# answers as it always has. The gates, the held-back cleanup and the
+# answer stay with the caller.
+stamp_and_move_spec() {
+  local specs_root="$1" folder="$2" kind="$3" value="${4:-}"
+  local status_file="$specs_root/$folder/4-status.md" in_git="no"
+  [ -f "$status_file" ] && write_phase_stamp "$status_file" "$kind" "$value"
+  mkdir -p "$specs_root/archive"
+  if git -C "$specs_root" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    in_git="yes"
+    git -C "$specs_root" mv "$folder" "archive/$folder"
+  else
+    mv "$specs_root/$folder" "$specs_root/archive/$folder"
+  fi
+  declare -f write_spec_state >/dev/null 2>&1 || return 0
+  write_spec_state "$specs_root/archive/$folder/4-status.md"
+  [ "$in_git" = "yes" ] && git -C "$specs_root" add -- "archive/$folder/4-status.json" 2>/dev/null
+  return 0
+}
+
 # write_round_boundary_stamp($status_file, $specs_root, [$sha]) — the
 # moment a round is mechanically known to be held back (aide-archive-
 # spec's own acceptance-criteria-unticked decline), stamped once, in the
@@ -372,10 +404,10 @@ AWK
 # wrapper for the single-path case: reopen and reset, the only two
 # events where the stamp write and the state-file mirror happen at the
 # SAME status_file path with nothing (a git-mv, a second script) in
-# between. create/analyze/implement/archive write at two different
-# points or two different paths (aide-run-spec's phase-append,
-# aide-archive-spec's stamp-and-move) and call write_phase_stamp/
-# write_spec_state directly instead — see each call site's own comment.
+# between. create/analyze/implement write at two different points
+# (aide-run-spec's phase-append) and call write_phase_stamp/
+# write_spec_state directly; archive and close stamp one path and write
+# the state at another, which is stamp_and_move_spec above.
 #
 # "reopen-keep" is a function-level event, not a row of transitions.json:
 # the phase a keep-Reopen ends in is whatever the kept files say (the

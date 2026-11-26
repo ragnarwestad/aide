@@ -179,7 +179,7 @@ export interface Job {
   specFolder: string; groupMembers?: string[]; groupBranch?: string;
   steps: WorkflowStep[];
   stepIndex: number;
-  state: JobState;
+  readonly state: JobState;
   /** Per step, resolved at creation like `permissionMode`/`model`.
    *  A job persisted before that change still holds a bare
    *  number; `resolveTimeoutSec` in serve.ts is what reads either. */

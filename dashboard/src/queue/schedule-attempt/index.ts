@@ -1,11 +1,11 @@
-import { jobKind, type Job, type QueueStore, type TransitionResult } from "../queue.ts";
+import { jobKind, type Job, type JobPatch, type QueueStore, type TransitionResult } from "../queue.ts";
 import { automaticProviderWait } from "../job-rules/activity.ts";
 import { endStep } from "../runner/step-result.ts";
 
 export const scheduleCancellationFields = {
   usageLimitWait: undefined, usageLimitProbe: undefined, retry: undefined,
   stopReason: undefined, error: undefined, errorReason: undefined, errorDetail: undefined,
-} satisfies Partial<Job>;
+} satisfies JobPatch;
 
 export function canCancelScheduleWait(job: Pick<Job, "steps" | "stepIndex" | "specFolder" | "state" | "stopReason" | "usageLimitWait" | "landing">): boolean {
   return jobKind(job) === "schedule" && !job.landing && automaticProviderWait(job);

@@ -65,12 +65,12 @@ describe("TestServerStore.listAll", () => {
 });
 
 describe("a failed board read back after a restart", () => {
-  test("keeps the command that ran and what it printed", () => {
+  test("keeps its status, the command that ran and what it printed (AC-3)", () => {
     const dir = mkdtempSync(join(tmpdir(), "aide-board-store-"));
     try {
       const path = join(dir, "test-servers.json");
       new TestServerStore({ path }).set("aide", "150-x", entry({ status: "failed", command: "make preview", error: "e", detail: "a\nb" }));
-      expect(new TestServerStore({ path }).get("aide", "150-x")).toMatchObject({ command: "make preview", detail: "a\nb" });
+      expect(new TestServerStore({ path }).get("aide", "150-x")).toMatchObject({ status: "failed", command: "make preview", detail: "a\nb" });
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

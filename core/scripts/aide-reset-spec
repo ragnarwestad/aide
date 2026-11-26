@@ -20,6 +20,8 @@ set -u
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=/dev/null
 [ -f "$SCRIPT_DIR/_aide-spec-lib.sh" ] && source "$SCRIPT_DIR/_aide-spec-lib.sh"
+# shellcheck source=/dev/null
+[ -f "$SCRIPT_DIR/lib/spec-commands/find-spec.sh" ] && source "$SCRIPT_DIR/lib/spec-commands/find-spec.sh"
 source "$SCRIPT_DIR/lib/spec-result.sh"
 
 specs_root=""; spec_arg=""; result_file=""
@@ -44,10 +46,14 @@ command -v jq >/dev/null 2>&1 || { echo '{"ok":false,"exitCode":2,"terminalReaso
 [ -n "$spec_arg" ] || aide_spec_refuse "missing --spec"
 [ -d "$specs_root" ] || aide_spec_refuse "no such specs root: $specs_root"
 declare -f aide_resolve_spec >/dev/null 2>&1 || aide_spec_refuse "_aide-spec-lib.sh is missing beside aide-reset-spec — reinstall aide"
+declare -f aide_existing_spec >/dev/null 2>&1 || aide_spec_refuse "lib/spec-commands/find-spec.sh is missing beside aide-reset-spec — reinstall aide"
 
-folder="$(aide_resolve_spec "$spec_arg" "$specs_root")"
-[ -n "$folder" ] && [ -d "$specs_root/$folder" ] || aide_spec_refuse "unknown spec: $spec_arg (no active folder under $specs_root)"
+folder="$(aide_existing_spec "$specs_root" "$spec_arg")" \
+  || aide_spec_refuse "unknown spec: $spec_arg (no active folder under $specs_root)"
 case "$folder" in
+  # An archived spec named by its bare full name is refused as unknown:
+  # reset only ever looks for that name among the active specs.
+  "archive/$spec_arg") aide_spec_refuse "unknown spec: $spec_arg (no active folder under $specs_root)" ;;
   archive/*) aide_spec_refuse "$folder is archived — reset is for an active spec; use reopen" ;;
 esac
 dest="$specs_root/$folder"

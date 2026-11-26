@@ -128,9 +128,8 @@ export interface RoundState {
   specs: RoundSpec[];
 }
 
-// `stage`, not `state`: a job's `state` is written by the store alone
-// (transitions.test.ts guards the literal), and this is the round's own
-// progress, not a job's.
+// `stage`, not `state`: this is the round's own progress, not a job's,
+// whose `state` only the queue store moves.
 let current: RoundState = { stage: "idle", specs: [] };
 
 /** For tests: back to the boot-time state between cases. */

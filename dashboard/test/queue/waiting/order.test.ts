@@ -95,7 +95,7 @@ test("startup drops a successor reservation while its predecessor's landing must
     const a = store.enqueue({ project: "aide", specFolder: "1-a", steps: ["analyze", "implement"] });
     const b = store.enqueue({ project: "aide", specFolder: "2-b", steps: ["analyze"] });
     if (!a.ok || !b.ok) throw new Error("enqueue failed");
-    store.update(a.job.id, { state: "queued", stepIndex: 1, landing: true });
+    store.writeUnchecked(a.job.id, { state: "queued", stepIndex: 1, landing: true });
     writeFileSync(path, JSON.stringify({ revision: 0, order: [`job:${a.job.id}:1`, `job:${b.job.id}:0`] }));
     store = make();
     expect(store.waiting.snapshot().entries.map(e => e.jobId)).toEqual([b.job.id]);

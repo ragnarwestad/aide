@@ -218,6 +218,29 @@ def test_existing_safe_commands_still_name_a_missing_required_library_ac_2_ac_3(
     assert "_aide-spec-lib.sh" in payload["error"]
 
 
+@pytest.mark.parametrize(
+    ("command", "arguments"),
+    tuple(c for c in SAFE_COMMANDS if c[0] in ("aide-reopen-spec", "aide-reset-spec")),
+)
+def test_lifecycle_commands_name_a_missing_spec_lookup_library(
+    scripts, tmp_path, command, arguments,
+):
+    missing = "lib/spec-commands/find-spec.sh"
+    copied = copy_scripts(scripts, tmp_path, missing)
+    specs = tmp_path / "specs"
+    status = specs / "archive" / "770-example" / "4-status.md"
+    status.parent.mkdir(parents=True)
+    status.write_text("# Example - Status\n")
+    args = tuple(value.format(project=tmp_path, specs=specs) for value in arguments)
+
+    result = run(copied / command, *args)
+
+    assert result.returncode == 2
+    assert missing in json.loads(result.stdout)["error"]
+    assert status.read_text() == "# Example - Status\n"
+    assert not (specs / "770-example").exists()
+
+
 def test_record_test_run_keeps_its_optional_tree_hash_library_ac_4(
     scripts, tmp_path,
 ):

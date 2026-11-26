@@ -13,7 +13,7 @@ import re
 import pytest
 from ...conftest import git, run, stand_in
 from ..run_spec_fakes import creating_claude, specs_only_claude, writing_claude
-from ..run_spec_invoking import CREATE_KEY, create
+from ..run_spec_invoking import CREATE_KEY, create, runner_with_branch_prefixes
 from ..run_spec_origins import leave_branch_on_origin, leave_unmerged_branch_on_origin
 from ..run_spec_results import RESULT_OK
 from ..run_spec_status_files import add_spec, set_depends_on, with_status
@@ -614,3 +614,26 @@ def test_copilot_is_installed_but_not_a_tool_a_step_can_run_on_ac_5(runner, work
     rc, out, _ = run(runner, workspace, claude, tool="copilot")
     assert rc == 2, out
     assert out["error"].startswith("invalid --tool: copilot"), out
+
+
+@pytest.mark.parametrize("branch,accepted", [
+    ("aide/81-queue-and-runner", True), ("aide/group-81-queue-and-runner", True),
+    ("aide/group-", False), ("aide/", False), ("main", False), ("aide/x y", False),
+])
+def test_the_branch_must_be_a_spec_or_group_branch_with_safe_characters(runner, workspace, fake_claude, branch, accepted):
+    rc, out, _ = run(runner, workspace, fake_claude("exit 1"), branch=branch, dry_run=True)
+    if accepted:
+        assert rc == 0, out
+    else:
+        assert rc == 2 and out["error"] == f"invalid --branch: {branch}", out
+
+
+def test_the_branch_prefixes_come_from_the_shared_contract(runner, workspace, fake_claude, tmp_path):
+    copy = runner_with_branch_prefixes(runner, tmp_path, "work/", "work/group-")
+    claude = fake_claude("exit 1")
+    for branch in ("work/81-queue-and-runner", "work/group-81-queue-and-runner"):
+        rc, out, _ = run(runner, workspace, claude, runner_path=copy, branch=branch, dry_run=True)
+        assert rc == 0, (branch, out)
+    for branch in ("aide/group-81-queue-and-runner", "work/group-"):
+        rc, out, _ = run(runner, workspace, claude, runner_path=copy, branch=branch, dry_run=True)
+        assert rc == 2 and out["error"] == f"invalid --branch: {branch}", (branch, out)

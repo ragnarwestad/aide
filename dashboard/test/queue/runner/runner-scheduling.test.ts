@@ -129,7 +129,7 @@ describe("several jobs at once", () => {
   // the step should have resolved (the round's 02, one run in three).
   test("an archive step waits while another job in the project is landing", () => {
     const a = enqueue({ steps: ["archive"] });
-    store.update(a.id, { state: "done", landing: true });
+    store.writeUnchecked(a.id, { state: "done", landing: true });
     const b = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["archive"] });
     const runner = makeRunner({ maxConcurrent: 2 });
     runner.tick();
@@ -145,7 +145,7 @@ describe("several jobs at once", () => {
 
   test("a Merge held by another Merge's landing names that Merge's branch", () => {
     const a = enqueue({ specFolder: "land", steps: ["land"], branch: "fix/first" });
-    store.update(a.id, { state: "running", landing: true });
+    store.writeUnchecked(a.id, { state: "running", landing: true });
     const b = enqueue({ specFolder: "land", steps: ["land"], branch: "fix/second" });
     makeRunner({ maxConcurrent: 2 }).tick();
     expect(store.get(b.id)?.state).toBe("queued");
@@ -154,7 +154,7 @@ describe("several jobs at once", () => {
 
   test("an archive landing holds no step but archive", () => {
     const a = enqueue({ steps: ["archive"] });
-    store.update(a.id, { state: "done", landing: true });
+    store.writeUnchecked(a.id, { state: "done", landing: true });
     const b = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["implement"] });
     const runner = makeRunner({ maxConcurrent: 2 });
     runner.tick();
@@ -163,7 +163,7 @@ describe("several jobs at once", () => {
 
   test("an analyze landing moves the specs repository alone and holds no archive", () => {
     const a = enqueue({ steps: ["analyze"] });
-    store.update(a.id, { state: "done", landing: true });
+    store.writeUnchecked(a.id, { state: "done", landing: true });
     const b = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["archive"] });
     const runner = makeRunner({ maxConcurrent: 2 });
     runner.tick();
@@ -246,7 +246,7 @@ describe("several jobs at once", () => {
     const a = enqueue({ steps: ["analyze"] });
     const b = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["archive"] });
     const runner = makeRunner({ maxConcurrent: 2 });
-    store.update(a.id, { state: "done", landing: true });
+    store.writeUnchecked(a.id, { state: "done", landing: true });
     runner.tick();
     expect(store.get(b.id)?.state).toBe("running");
     expect(store.get(b.id)?.error).toBeUndefined();
@@ -259,7 +259,7 @@ describe("several jobs at once", () => {
     const b = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["analyze"] });
     const c = enqueue({ project: "other-project", steps: ["analyze"] });
     const runner = makeRunner({ maxConcurrent: 3, projectDir: (p) => join(dir, p) });
-    store.update(a.id, { state: "done", landing: true });
+    store.writeUnchecked(a.id, { state: "done", landing: true });
     runner.tick();
     expect(store.get(b.id)?.state).toBe("running");
     expect(store.get(c.id)?.state).toBe("running");
@@ -271,7 +271,7 @@ describe("several jobs at once", () => {
   test("a landing job is not restarted while its own merge runs", () => {
     const a = enqueue({ steps: ["analyze", "implement"] });
     const runner = makeRunner({ maxConcurrent: 2 });
-    store.update(a.id, { state: "queued", landing: true });
+    store.writeUnchecked(a.id, { state: "queued", landing: true });
     runner.tick();
     expect(spawns.length).toBe(0);
   });
@@ -287,7 +287,7 @@ describe("several jobs at once", () => {
       maxConcurrent: 2,
       projectDir: (p) => join(dir, p),
     });
-    store.update(a.id, { state: "done", landing: true });
+    store.writeUnchecked(a.id, { state: "done", landing: true });
     runner.tick();
     expect(store.get(b.id)?.state).toBe("running");
   });
@@ -303,7 +303,7 @@ describe("several jobs at once", () => {
       maxConcurrent: 2,
       projectDir: (p) => (p === "aide" || p === "other-project" ? sharedRoot : join(dir, p)),
     });
-    store.update(a.id, { state: "done", landing: true });
+    store.writeUnchecked(a.id, { state: "done", landing: true });
     runner.tick();
     expect(store.get(b.id)?.state).toBe("running");
   });
@@ -355,7 +355,7 @@ describe("schedule jobs share the queue with spec work", () => {
 
   test("starts while another job's landing holds its own repository locks", () => {
     const spec = enqueue({ steps: ["analyze"] });
-    store.update(spec.id, { state: "done", landing: true });
+    store.writeUnchecked(spec.id, { state: "done", landing: true });
     const schedule = enqueue({ specFolder: "schedule-nightly", steps: ["schedule"] });
     makeRunner({ maxConcurrent: 2 }).tick();
     expect(store.get(schedule.id)?.state).toBe("running");
@@ -412,7 +412,7 @@ describe("shared queue admission order", () => {
     const runner = makeRunner({ maxConcurrent: 1 });
     const d = enqueue({ specFolder: "deploy", steps: ["deploy"] }); const owner = store.waiting.open("admit before dispatch", `job:${d.id}:0`);
     runner.tick();
-    store.waiting.cancel(owner); store.update(d.id, { state: "cancelled" });
+    store.waiting.cancel(owner); store.writeUnchecked(d.id, { state: "cancelled" });
     const analyze = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["analyze"] });
     const blocked = new Map([[archive.id, "80-some-dependency"]]);
     runner.tick({ dependencies: blocked });
@@ -787,7 +787,7 @@ test("editing pauses new starts while polling completes active work", () => {
   expect(store.get(b.id)?.state).toBe("queued");
   runner.poll();
   expect(store.get(a.id)?.state).toBe("done");
-  store.waiting.cancel(owner); store.update(d.id, { state: "cancelled" });
+  store.waiting.cancel(owner); store.writeUnchecked(d.id, { state: "cancelled" });
   runner.tick();
   expect(store.get(b.id)?.state).toBe("running");
 });
