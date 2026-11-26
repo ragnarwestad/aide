@@ -350,7 +350,7 @@
   .tabbar .tab > .kindicon + span { position: absolute; width: 1px; height: 1px;
     overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   /* The "?" moves into the bar's narrower padding, clear of the last tab. */
-  body > nav.tabbar > .row { right: var(--sp-2); }
+  body > nav.tabbar { --tab-help-inset: var(--sp-2); }
 }
 
 /* A phone held sideways: a wide screen, but a short one, and the header
@@ -383,8 +383,11 @@
      against the window's right edge, and no taller than the window —
      border-box, so the cap counts its padding and border too. */
   header > nav.tabbar > .row { flex: none; }
-  header > nav.tabbar details.intro[open] p { position: fixed; top: auto; left: auto; right: var(--sp-2);
-    max-height: calc(100vh - 4rem); box-sizing: border-box; overflow-y: auto; }
+  header > nav.tabbar details.intro[open] > p {
+    --tab-help-width: 28rem;
+    position: fixed; top: auto; left: auto;
+    right: clamp(0px, 100vw - var(--tab-help-width), var(--sp-2));
+    max-height: calc(100vh - 4rem); overflow-y: auto; }
   header { padding-top: var(--sp-2); padding-bottom: var(--sp-2); border-bottom: 1px solid var(--line); }
   main { padding-top: var(--sp-3); }
 }

@@ -57,8 +57,18 @@ body > nav.tabbar { display: flex; justify-content: center; gap: var(--sp-4);
   padding: 0 var(--sp-6); border-bottom: 1px solid var(--line); }
 /* The bar's "?" sits at its right end out of the flex flow, so the tabs
    stay centred on the page. */
-body > nav.tabbar { position: relative; }
-body > nav.tabbar > .row { position: absolute; top: 0; bottom: 0; right: var(--sp-6); }
+body > nav.tabbar { position: relative; --tab-help-inset: var(--sp-6); }
+body > nav.tabbar > .row { position: absolute; top: 0; bottom: 0; right: var(--tab-help-inset); }
+/* Keep the usual help width where it fits. Give back the right inset
+   before shrinking the panel to fit the viewport. */
+:is(body, header) > nav.tabbar details.intro[open] > p {
+  --tab-help-width: calc(28rem + 2 * var(--sp-3) + 2px);
+  box-sizing: border-box; width: var(--tab-help-width); max-width: 100vw;
+}
+body > nav.tabbar details.intro[open] > p {
+  left: auto;
+  right: calc(clamp(0px, 100vw - var(--tab-help-width), var(--tab-help-inset)) - var(--tab-help-inset));
+}
 nav.tabbar :is([data-tab-list] .kindicon, [data-deploy-legend]) svg { height: 16px; width: 16px; vertical-align: -3px; }
 /* The same bar's copy inside the header, shown only on a phone held
    sideways (narrow.css). */
