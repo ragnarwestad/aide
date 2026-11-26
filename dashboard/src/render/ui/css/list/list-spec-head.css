@@ -207,7 +207,7 @@ table.list tr.specstate > td { padding-top: var(--sp-2); }
    The fold keeps its original hit area; only the chevron moves. */
 table:is([data-list="jobs"], [data-list="specs"]) tr:is(.spechead, .grouphead) { position: relative; }
 table:is([data-list="jobs"], [data-list="specs"]) tr:is(.spechead, .grouphead) .specpart > .kindicon {
-  position: absolute; inset-inline-start: var(--sp-2); top: var(--sp-3);
+  position: absolute; inset-inline-start: var(--sp-2); inset-block-start: var(--sp-2);
   pointer-events: none;
 }
 table:is([data-list="jobs"], [data-list="specs"]) tr:is(.spechead, .grouphead) .specpart > .kindicon,
