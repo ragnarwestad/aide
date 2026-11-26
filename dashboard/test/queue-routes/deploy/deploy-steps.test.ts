@@ -50,6 +50,9 @@ function deployGit(project: string, repo: Repo, fetchGate?: Promise<void>) {
       headCalls += 1;
       return { code: 0, stdout: `${headCalls === 1 ? repo.bootSha : repo.headSha}\n` };
     }
+    if (a === `log --format=%H%x09%s ${repo.bootSha}..refs/remotes/origin/${repo.branch}`) {
+      return { code: 0, stdout: `${repo.headSha}\tPending change\n` };
+    }
     if (a.startsWith("rev-list --count")) return { code: 0, stdout: `${repo.behind ?? 0}\n` };
     if (repo.fetchFails && args[0] === "fetch") return { code: 128, stdout: "" };
     return inner.run(dir, args);
@@ -196,8 +199,9 @@ const queued = async (base: string): Promise<{ id: string; specFolder: string; s
   ((await (await fetch(`${base}/api/queue`, { headers: AUTH })).json()) as { jobs: { id: string; specFolder: string; steps: string[]; state: string }[] }).jobs;
 
 describe("POST .../deploy queues the board's own deploy as a job", () => {
-  test("it answers the job and the queue holds it", async () => {
-    const { base, paths } = await deployServer(SAME, noRestart, {}, new Promise<void>(() => {}));
+  test("it records the known commits before the deploy's fetch finishes", async () => {
+    const headSha = "def5678deadbeef";
+    const { base, paths } = await deployServer({ ...SAME, headSha }, noRestart, {}, new Promise<void>(() => {}));
     installs(paths.project);
     const res = await post(base, "aide/deploy");
     expect(res.status).toBe(200);
@@ -206,7 +210,10 @@ describe("POST .../deploy queues the board's own deploy as a job", () => {
     expect(body.job).toMatchObject({ project: "aide", specFolder: "deploy", steps: ["deploy"] });
     const jobs = (await queued(base)).filter((j) => j.specFolder === "deploy");
     expect(jobs).toHaveLength(1);
-    expect(jobs[0]).toMatchObject({ state: "running", deployWaitForLandings: [] });
+    expect(jobs[0]).toMatchObject({
+      state: "running", deployWaitForLandings: [],
+      deploy: { pending: [{ sha: headSha, subject: "Pending change" }] },
+    });
   });
 
   test("it refuses a project with no install command, a project that is not the board's, and a board with no runner, and queues nothing", async () => {

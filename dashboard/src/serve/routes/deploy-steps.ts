@@ -2,6 +2,8 @@
 // `serve/deploy-job/`). And the read-only origin check the Deploy tab makes
 // when it is opened, for every project.
 
+import { resolve } from "node:path";
+import { pendingCommits } from "../deploy-job/commits.ts";
 import { resolveInstallCmd } from "../../project/discover";
 import { SETTING_LABELS } from "../../project/setting-labels.ts";
 import { DEPLOY_KEY, jobKind, inFlight } from "../../queue/queue.ts";
@@ -51,12 +53,19 @@ async function queueDeploy(ctx: RoutesContext, name: string): Promise<Response> 
   if (!(ctx.opts.runnerAvailable ?? ctx.runner !== null)) {
     return refuse("this board has no runner, so a deploy job would never start");
   }
+  const { sha, repoRoot } = ctx.readServing();
+  const pending = sha && repoRoot && resolve(root) === resolve(repoRoot)
+    ? await ctx.branchStatus.defaultBranch(root)
+      .then((base) => base ? pendingCommits(root, sha, base, ctx.gitRun) : undefined)
+      .catch(() => undefined)
+    : undefined;
   const running = ctx.queue.list().find((j) => j.project === name && jobKind(j) === "deploy" && inFlight(j));
   if (running) return refuse(`a deploy is already ${running.state} — follow it on the Running tab`);
   const result = enqueueRequest(ctx.queue, { project: name, specFolder: DEPLOY_KEY, steps: ["deploy"] }, "manual");
   if (!result.ok) return refuse(result.error);
+  if (pending?.length) ctx.queue.update(result.job.id, { deploy: { root, pending } });
   await ctx.tickRunner();
-  return json({ ok: true, job: result.job });
+  return json({ ok: true, job: ctx.queue.get(result.job.id) ?? result.job });
 }
 
 export async function handleDeploySteps(ctx: RoutesContext, req: Request, path: string): Promise<Response | null> {

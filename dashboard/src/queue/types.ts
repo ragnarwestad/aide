@@ -269,6 +269,7 @@ export interface Job {
     restartedAt?: string;
     leaving?: string;
     restartAttempts?: number;
+    pending?: { sha: string; subject: string; url?: string }[];
   };
   /** Set by `holdLanding` while a finished step's work is being landed on
    *  a default branch — a merge that runs AFTER the step reported success, in this

@@ -25,6 +25,18 @@ function fakeGit() {
 }
 
 describe("the commits a deploy took in", () => {
+  test("shows the known commits while queued, then uses the range reached by the fetch", () => {
+    const { git, logs } = fakeGit();
+    const pending = [{ sha: "aaaaaaa1", subject: "First change" }];
+    const job = deploy({ state: "queued", deploy: { root: "/preview", pending } });
+    expect(deployCommits(job, [], git)).toEqual(pending);
+    expect(logs()).toEqual([]);
+
+    const fetched = deploy({ deploy: { root: "/preview", pending, from: "served", commit: "fetched" } });
+    expect(deployCommits(fetched, [], git)).toHaveLength(2);
+    expect(logs()).toEqual([["log", "--format=%H%x09%s", "served..fetched"]]);
+  });
+
   test("are, for a project's first deploy, the commits from the one its checkout stood at to the one its fetch reached, newest first, each with its address", () => {
     const { git, logs } = fakeGit();
     const job = deploy({ deploy: { root: "/r1", from: "f0", commit: "c1" } });

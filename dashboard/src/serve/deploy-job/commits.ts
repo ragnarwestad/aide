@@ -5,7 +5,7 @@
 // deploys too, so it stands in only for a project's first deploy. Read from git the first time a deploy's row is
 // opened, and kept: a finished deploy's commits never change.
 
-import { jobKind, type Job } from "../../queue/queue.ts";
+import { inFlight, jobKind, type Job } from "../../queue/queue.ts";
 import type { AfterRestartDeps } from "./after-restart.ts";
 import { gitSync } from "./index.ts";
 import type { GitRunner } from "../../git/process/index.ts";
@@ -52,7 +52,8 @@ function previousCommit(job: Job, jobs: readonly Job[]): string | undefined {
 export function deployCommits(job: Job, jobs: readonly Job[], git: Git = gitSync): DeployCommit[] | undefined {
   const to = job.deploy?.commit;
   const root = job.deploy?.root;
-  if (!to || !root) return undefined;
+  if (!to) return inFlight(job) ? job.deploy?.pending : undefined;
+  if (!root) return undefined;
   const from = previousCommit(job, jobs) ?? job.deploy?.from;
   if (!from) return undefined;
   if (from === to) return [];
