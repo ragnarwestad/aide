@@ -32,6 +32,13 @@ for example, this work consumes a contract the other spec replaces, or
 both changes need to coordinate the same rule. Never choose `depends`
 from the filename alone. Do not edit Depends on yourself.
 
+The reason is shown to the user on the board, beside the dependency it
+explains. Write it for that reader: one plain sentence saying what each
+spec changes and why the order matters. Name the specs by number and the
+things the user sees or knows — a tab, a page, a step, a message — never
+a file, a line number, a function or a code expression. Put those details
+in the rest of the analysis, where the next step reads them.
+
 Separate keys or functions do not make two changes independent when one
 of them changes something every entry in the file goes through — how each
 message in a catalogue is rendered, what every caller of a helper gets
