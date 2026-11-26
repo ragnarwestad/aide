@@ -1,4 +1,5 @@
 import { mayAdmit } from "../job-rules/deploy-priority.ts";
+import { mergeTurnReason } from "../job-rules/merge-order.ts";
 import { join, dirname } from "node:path";
 import { WaitingQueue, type WaitingEntry } from "./index.ts";
 import type { QueueStore } from "../store/index.ts";
@@ -42,6 +43,8 @@ export function createWaiting(store: QueueStore, mirrorPath?: string): WaitingQu
   const waiting: WaitingQueue = new WaitingQueue({
     path: mirrorPath ? join(dirname(mirrorPath), "waiting-order.json") : undefined,
     admit: (entry, entries, admitted) => mayAdmit(entry, entries, store.list(), admitted),
+    reasonOf: (entry, entries, admitted) =>
+      entry.id.startsWith("merge:") ? mergeTurnReason(entry, entries, store.list(), admitted) : undefined,
     retainAbsent: id => running.has(id) || unresolved.has(id) || (!id.startsWith("job:") && !id.startsWith("group:")),
     placeOf: entry => {
       const job = entry.id.startsWith("merge:") && entry.operation === "land" && entry.jobId ? store.get(entry.jobId) : undefined;

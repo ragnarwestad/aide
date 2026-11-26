@@ -67,13 +67,19 @@ export const BADGE_VARIANT: Record<QueueRowView["state"], BadgeVariant> = {
   cancelled: "waiting",
 };
 
+/** Why a job stopped, for the popover beside its state: a job waiting on a
+ *  usage limit, and a failed or cancelled job a stop ended first. None for a
+ *  stop with no sentence of its own. */
+export function whyStopped(r: Pick<QueueRowView, "state" | "stopReason" | "error">, lang: Language = "en"): string | undefined {
+  const stopped = r.state === "waiting" || ((r.state === "failed" || r.state === "cancelled") && r.stopReason);
+  return stopped ? formatSentence(lang, r.error) : undefined;
+}
+
 export function stateChip(r: QueueRowView, lang: Language = "en"): string {
   // The word alone (see `stateWord`); why it stopped is what the popover
   // beside it is for.
   const b = badge(jobPresentation(r).variant, capitalizeFirst(stateWord(r, lang)));
-  // Why it stopped is the popover's, not the badge's — and a stop with
-  // no sentence of its own gets no popover at all.
-  const detail = r.state === "waiting" || (r.state === "failed" && r.stopReason) ? formatSentence(lang, r.error) : undefined;
+  const detail = whyStopped(r, lang);
   return detail ? b + helpPopover(t(lang, "help.whyStopped"), esc(detail)) : b;
 }
 

@@ -200,6 +200,7 @@ export type TransitionEvent =
   | "cancel-schedule-wait" // waiting -> cancelled: Cancel pressed on a scheduled quota wait
   | "replace-schedule-wait" // waiting|queued -> failed: the next scheduled run was due while it waited or was held by a usage limit
   | "limit-reset" // waiting -> queued: its provider's usage limit has reset
+  | "wait-taken-over" // waiting -> cancelled: a newer job for its spec has the step it waited to run
   | "restart" // failed|cancelled -> queued: Start pressed on a failed or cancelled Merge
   | "restart-unbegun"; // running -> queued: the server restarted before a Merge was let into the repository
 
@@ -248,10 +249,12 @@ export const TRANSITIONS: Readonly<Partial<Record<JobState, Partial<Record<Trans
     "retry-late": "queued",
     restart: "queued",
   },
-  // A provider wait can restart after reset, end as cancelled on Cancel, or
-  // fail when its schedule's next run is due first.
+  // A provider wait can restart after reset, end as cancelled on Cancel or
+  // when a newer job for its spec has the step, or fail when its schedule's
+  // next run is due first.
   waiting: {
     cancel: "cancelled",
+    "wait-taken-over": "cancelled",
     "cancel-schedule-wait": "cancelled",
     "replace-schedule-wait": "failed",
     "retry-late": "queued",

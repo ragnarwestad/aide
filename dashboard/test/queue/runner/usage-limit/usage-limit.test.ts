@@ -301,14 +301,13 @@ describe("a person's press", () => {
     expect(usageLimitHolds(store.list(), toolOf).has(early.id)).toBe(true);
   });
 
-  test("when the reset time comes, a stopped step a person has already pressed again stays stopped and its wait is cleared (AC-11)", () => {
+  test("when the reset time comes, a stopped step a person has already pressed again is ended, not started (AC-11)", () => {
     const made = stopped(job({ steps: ["implement"], specFolder: "81-queue-and-runner" }), "10:00", { until: "14:00", resetKnown: true });
     const again = enqueue({ specFolder: made.specFolder, steps: ["implement"] });
     tools.set(again.id, "claude");
     store.update(again.id, { pressed: true, createdAt: iso("10:30") });
     restartAfterUsageLimit(store, toolOf, at("14:00"));
-    expect(store.get(made.id)?.state).toBe("waiting");
-    expect(store.get(made.id)?.usageLimitWait).toBeUndefined();
+    expect(store.get(made.id)).toMatchObject({ state: "cancelled", usageLimitWait: undefined, error: { key: "runner.waitTakenOver" } });
   });
 });
 
@@ -383,8 +382,7 @@ describe("which stop decides an AI's time", () => {
     restartAfterUsageLimit(store, toolOf, at("14:00"));
     expect(store.get(a.id)?.state).toBe("queued");
     expect(store.get(b.id)?.state).toBe("queued");
-    expect(store.get(old.id)?.state).toBe("waiting");
-    expect(store.get(old.id)?.usageLimitWait).toBeUndefined();
+    expect(store.get(old.id)?.state).toBe("cancelled");
   });
 
   test("a stop whose spec has run again since still holds the AI until its own time when it is the newest", () => {
@@ -451,5 +449,30 @@ describe("a step that ran on the AI since the stop", () => {
     tools.set(other.id, "codex");
     restartAfterUsageLimit(store, toolOf, at("12:00"));
     expect(store.get(old.id)?.state).toBe("waiting");
+  });
+});
+
+describe("a stop its spec has taken over", () => {
+  test("two stops whose wait was already cleared are ended once a newer job for the spec has the step", () => {
+    const spec = "81-queue-and-runner";
+    const first = stopped(job({ steps: ["analyze", "implement", "archive"], specFolder: spec }), "09:00", undefined, "08:59");
+    const second = stopped(job({ steps: ["analyze", "implement", "archive"], specFolder: spec }), "10:00", undefined, "09:59");
+    const newer = enqueue({ specFolder: spec, steps: ["analyze", "implement", "archive"] });
+    store.writeUnchecked(newer.id, { state: "done", pressed: true, createdAt: iso("11:00") });
+    restartAfterUsageLimit(store, toolOf, at("12:00"));
+    for (const ended of [first, second]) {
+      expect(store.get(ended.id)).toMatchObject({
+        state: "cancelled",
+        error: { key: "runner.waitTakenOver", values: { step: "analyze" } },
+        finishedAt: iso("12:00"),
+      });
+    }
+    expect(store.get(newer.id)?.state).toBe("done");
+  });
+
+  test("a stop whose wait was cleared and that nothing has taken over keeps waiting", () => {
+    const made = stopped(job({ steps: ["analyze"] }), "10:00", undefined);
+    restartAfterUsageLimit(store, toolOf, at("12:00"));
+    expect(store.get(made.id)?.state).toBe("waiting");
   });
 });

@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { mergeHasItsTurn } from "../../../src/queue/job-rules/merge-order.ts";
+import { mergeHasItsTurn, mergeTurnReason } from "../../../src/queue/job-rules/merge-order.ts";
 import type { Job } from "../../../src/queue/types.ts";
 import type { WaitingEntry } from "../../../src/queue/waiting/types.ts";
 
@@ -45,4 +45,16 @@ test("one merge at a time: an archive waits while another merge in its project h
   const entries = [merge(archive, "archive")];
   expect(mergeHasItsTurn(entries[0]!, entries, [merging, archive], new Set(["merging"]))).toBe(false);
   expect(mergeHasItsTurn(entries[0]!, entries, [merging, archive], new Set())).toBe(true);
+});
+
+test("a merge waiting for its turn names the merge it waits for", () => {
+  const branch = job("merge-job", { branch: "topic" });
+  const entries = [queued(branch), merge(archive, "archive")];
+  expect(mergeTurnReason(entries[1]!, entries, [branch, archive], new Set()))
+    .toBe("Waiting for the Merge of topic, ahead of it in the queue");
+  const merging = job("merging", { state: "done", landing: true, steps: ["archive"], specFolder: "880-other-spec" });
+  const alone = [merge(archive, "archive")];
+  expect(mergeTurnReason(alone[0]!, alone, [merging, archive], new Set(["merging"])))
+    .toBe("Waiting for the archive of 880-other-spec, which is merging now");
+  expect(mergeTurnReason(alone[0]!, alone, [archive], new Set())).toBeUndefined();
 });

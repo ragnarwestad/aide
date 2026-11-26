@@ -27,6 +27,8 @@ export interface WaitingOptions {
   refresh?: () => WaitingEntry[];
   admit?: (entry: WaitingEntry, entries: WaitingEntry[], admitted: ReadonlySet<string>) => boolean;
   retainAbsent?: (id: string) => boolean;
+  /** A reason worked out from the whole queue, in place of the entry's own. */
+  reasonOf?: (entry: WaitingEntry, entries: readonly WaitingEntry[], admitted: ReadonlySet<string>) => string | undefined;
   /** The id whose place in the order a new entry takes, if any. */
   placeOf?: (entry: WaitingEntry) => string | undefined;
 }

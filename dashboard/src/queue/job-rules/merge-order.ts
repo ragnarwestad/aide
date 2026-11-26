@@ -26,6 +26,27 @@ export function waitsForItsMerge(job: Job, admitted: ReadonlySet<string>, now = 
   return hold === undefined || TURN_HOLDS.has(hold);
 }
 
+/** The merge a merge waiting for its repository waits for: another merge in
+ *  its project that is under way, or the first one ahead of it in the queue
+ *  that is waiting for its turn. None when it may go now. */
+function mergeAhead(
+  entry: WaitingEntry,
+  entries: readonly WaitingEntry[],
+  jobs: readonly Job[],
+  admitted: ReadonlySet<string>,
+): { job: Job; underWay: boolean } | undefined {
+  if (!entry.id.startsWith("merge:") || !entry.jobId || !MERGES.has(entry.operation)) return undefined;
+  const others = jobs.filter((job) => job.id !== entry.jobId && job.project === entry.project);
+  const underWay = others.find((job) => job.landing && admitted.has(job.id) && MERGES.has(stepOf(job)));
+  if (underWay) return { job: underWay, underWay: true };
+  const mine = placeOf(entries, entry.jobId);
+  const waiting = others
+    .map((job) => ({ job, place: placeOf(entries, job.id) }))
+    .filter(({ job, place }) => place >= 0 && place < mine && waitsForItsMerge(job, admitted))
+    .sort((a, b) => a.place - b.place)[0];
+  return waiting && { job: waiting.job, underWay: false };
+}
+
 /** Whether a merge waiting for its repository may go now: no other merge
  *  in its project is under way, and none ahead of it is waiting. */
 export function mergeHasItsTurn(
@@ -34,14 +55,23 @@ export function mergeHasItsTurn(
   jobs: readonly Job[],
   admitted: ReadonlySet<string>,
 ): boolean {
-  if (!entry.id.startsWith("merge:") || !entry.jobId || !MERGES.has(entry.operation)) return true;
-  const others = jobs.filter((job) => job.id !== entry.jobId && job.project === entry.project);
-  if (others.some((job) => job.landing && admitted.has(job.id) && MERGES.has(stepOf(job)))) return false;
-  const mine = placeOf(entries, entry.jobId);
-  return !others.some((job) => {
-    const theirs = placeOf(entries, job.id);
-    return theirs >= 0 && theirs < mine && waitsForItsMerge(job, admitted);
-  });
+  return mergeAhead(entry, entries, jobs, admitted) === undefined;
+}
+
+/** What a merge waiting for its turn shows as its reason in the queue: the
+ *  merge it waits for. None when it does not wait for another merge. */
+export function mergeTurnReason(
+  entry: WaitingEntry,
+  entries: readonly WaitingEntry[],
+  jobs: readonly Job[],
+  admitted: ReadonlySet<string>,
+): string | undefined {
+  const ahead = mergeAhead(entry, entries, jobs, admitted);
+  if (!ahead) return undefined;
+  const name = stepOf(ahead.job) === "land"
+    ? `the Merge of ${ahead.job.branch ?? ahead.job.specFolder}`
+    : `the archive of ${ahead.job.specFolder}`;
+  return `Waiting for ${name}, ${ahead.underWay ? "which is merging now" : "ahead of it in the queue"}`;
 }
 
 /** Whether `candidate`'s merge is still waiting, behind `job` in the queue. */

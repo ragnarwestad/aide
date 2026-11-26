@@ -187,7 +187,8 @@ function queueAgain(store: QueueStore, job: Job, probeAt?: string): void {
  *  - every waiting job carries the provider's time, so its row says when it
  *    starts;
  *  - a waiting job whose spec has had a job queued for its step since the
- *    stop stands down at that time, and is not started again;
+ *    stop is ended at that time, and is not started again; one with no
+ *    wait left is ended at once;
  *  - a job whose landing is in flight is left for the next tick;
  *  - after a probe of that AI, or any step that started on it after a
  *    stop, has ended without a usage-limit stop, every job that stopped
@@ -208,10 +209,24 @@ export function usageLimitStopSuperseded(jobs: readonly Job[], w: Job): boolean 
   );
 }
 
+/** End a stopped step its spec has taken over: it is never started again. */
+function endTakenOver(store: QueueStore, job: Job, nowIso: string): void {
+  store.transition(job.id, "wait-taken-over", {
+    usageLimitWait: undefined,
+    usageLimitProbe: undefined,
+    error: { key: "runner.waitTakenOver", values: { step: job.steps[job.stepIndex] ?? "" } },
+    finishedAt: nowIso,
+  });
+}
+
 export function restartAfterUsageLimit(store: QueueStore, providerOf: ProviderOf, now: number): void {
   const jobs = store.list();
   const nowIso = isoOf(now);
   const handled = (w: Job): boolean => usageLimitStopSuperseded(jobs, w);
+  // A stop with no wait left holds nothing, so it ends as soon as it is taken over.
+  for (const w of jobs) {
+    if (w.state === "waiting" && !w.usageLimitWait && !w.landing && handled(w)) endTakenOver(store, w, nowIso);
+  }
   for (const [key, hold] of heldAis(jobs, providerOf)) {
     if (hold.probe) continue;
     const deciding = decidingWait(hold.waiting);
@@ -231,7 +246,7 @@ export function restartAfterUsageLimit(store: QueueStore, providerOf: ProviderOf
     );
     if (released.length > 0) {
       for (const w of released) {
-        if (handled(w)) store.update(w.id, { usageLimitWait: undefined });
+        if (handled(w)) endTakenOver(store, w, nowIso);
         else queueAgain(store, w);
       }
       continue;
@@ -249,7 +264,7 @@ export function restartAfterUsageLimit(store: QueueStore, providerOf: ProviderOf
     }
     const starting = waiting.filter((w) => {
       if (!handled(w)) return true;
-      store.update(w.id, { usageLimitWait: undefined });
+      endTakenOver(store, w, nowIso);
       return false;
     });
     if (starting.length === 0) continue;

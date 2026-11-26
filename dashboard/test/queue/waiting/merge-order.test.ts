@@ -12,6 +12,8 @@ afterEach(cleanupHarness);
 
 const flush = async (): Promise<void> => { for (let i = 0; i < 5; i++) await Promise.resolve(); };
 
+const reasonOf = (id: string): string | undefined => store.waiting.snapshot().entries.find((entry) => entry.id === id)?.reason;
+
 function held(): { promise: Promise<void>; release: () => void } {
   let release!: () => void;
   return { promise: new Promise<void>((resolve) => { release = resolve; }), release };
@@ -36,6 +38,7 @@ test("a Merge job moved ahead of an archive's waiting merge merges before it", a
   store.writeUnchecked(archive.id, { state: "done", landing: true });
   const archiveDone = held();
   const archiveMerge = dispatch.run(mergeOf(archive.id, "archive"), roots, "code", () => { calls.push("archive"); return archiveDone.promise; });
+  expect(reasonOf(`merge:${archive.id}:archive:code`)).toBe("Waiting for the Merge of running, which is merging now");
 
   // A Merge job queued after it is moved to the front.
   const moved = enqueue({ specFolder: "land", steps: ["land"], branch: "moved" });
@@ -49,6 +52,7 @@ test("a Merge job moved ahead of an archive's waiting merge merges before it", a
   store.writeUnchecked(running.id, { state: "done", landing: undefined });
   await flush();
   expect(calls).toEqual(["running"]);
+  expect(reasonOf(`merge:${archive.id}:archive:code`)).toBe("Waiting for the Merge of moved, ahead of it in the queue");
 
   // The moved Merge job starts, and the archive waits while it reaches its merge.
   const runner = makeRunner({ maxConcurrent: 4 });

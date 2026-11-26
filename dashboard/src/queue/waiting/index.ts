@@ -76,7 +76,9 @@ export class WaitingQueue {
   }
   snapshot(): WaitingSnapshot {
     this.refresh();
-    return { revision: this.revision, entries: this.order.flatMap(id => this.entries.has(id) ? [{ ...this.entries.get(id)!, reason: this.reasons.get(id) ?? this.entries.get(id)!.reason }] : []) };
+    const entries = this.order.flatMap(id => this.entries.has(id) ? [{ ...this.entries.get(id)!, reason: this.reasons.get(id) ?? this.entries.get(id)!.reason }] : []);
+    const reasonOf = this.options.reasonOf;
+    return { revision: this.revision, entries: reasonOf ? entries.map(entry => ({ ...entry, reason: reasonOf(entry, entries, this.admitted) ?? entry.reason })) : entries };
   }
   private owned(owner: Credential): void {
     if (!this.paused || !this.lease || owner.generation !== this.generation || owner.token !== this.lease.token) {

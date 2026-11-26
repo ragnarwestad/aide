@@ -33,7 +33,7 @@ A job is an ordered list of steps with a `stepIndex`; its `state` says where the
 | `done`      | No step is left to run. Written the instant the last step's process succeeds, so a merge that follows may still fail — and an `archive` held back on unticked criteria reaches it without running at all.                                                                                                              |
 | `waiting`   | A step a provider's usage limit ended. The board queues it again when the limit resets (`limit-reset`); nobody has to act.                                                                                                                                                                                             |
 | `failed`    | The job did not finish and nobody stopped it: a step failed, its process died, it reached its time limit, an analyze stopped on its acceptance criteria or on shared files, a merge failed or its suite went red, or a scheduled job was still waiting for quota when its next run was due. `stopReason` names a stop. |
-| `cancelled` | A person pressed Cancel.                                                                                                                                                                                                                                                                                               |
+| `cancelled` | A person pressed Cancel, or a newer job for its spec took over a step a usage limit stopped.                                                                                                                                                                                                                           |
 
 Only `queued` and `running` own their work (`UNFINISHED`), and the duplicate guard is built on that set alone. A
 second guard refuses a NEW job of any step for a spec whose own job reads `done` with a merge still in flight; once
@@ -61,6 +61,7 @@ stateDiagram-v2
     done --> queued: archive landing gets its automatic second attempt
     done --> cancelled: Cancel pressed while it merged
     waiting --> cancelled: Cancel pressed while it waits on its usage limit
+    waiting --> cancelled: a newer job for its spec has the step it waited to run
     waiting --> failed: next scheduled run due while it waited
     queued --> failed: next scheduled run due while a usage limit held it back
     waiting --> queued: usage limit reset or a late check gets its automatic second attempt
@@ -148,7 +149,8 @@ empty, while the server runs ("the run vanished without leaving a result") and o
 A job whose process is gone but whose result is on disk is completed from that file.
 
 **Cancelled** comes from `POST /api/queue/<id>/cancel` and from the test board's control, which cancels every queued
-and running job of a project. Both write `cancelled` and then send `SIGTERM` to the job's process group. A job that
+and running job of a project. The board also cancels a step a usage limit stopped once a newer job for its spec has
+that step; its state's popover says so. Both write `cancelled` and then send `SIGTERM` to the job's process group. A job that
 has already finished is refused with 409 and keeps its state, except a job waiting on its usage limit. Cancelling that
 wait clears its automatic retry and probe metadata and signals no process; a scheduled job's wait uses
 `cancel-schedule-wait`, every other job's `cancel`. A job cancelled while it was queued and before any
@@ -247,7 +249,9 @@ restart of the board keeps it.
   every step that started waiting before it is queued again at once; when it stops on the limit, the provider waits for the new
   stop's time.
 - A person's press queues a new job with `pressed`, which a stop made before it does not hold. A waiting step whose
-  spec has had a job queued since the stop is not started again at its time.
+  spec has had a job queued for that step since the stop is never started again: at its time it ends `cancelled`
+  (`wait-taken-over`), with a sentence saying the newer job took the step over. One whose wait is already gone ends
+  the same way on the next tick.
 - The step's transcript is `<job id>.<step>.stream.jsonl`; a later attempt of the same step is
   `<job id>.<step>.<n>.stream.jsonl`, so the earlier attempt's log stays.
 

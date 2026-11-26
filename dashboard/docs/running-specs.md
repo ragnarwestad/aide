@@ -617,7 +617,7 @@ resolves outside the project root is dropped when the file is read, and a malfor
 
 ## How many run at once
 
-Press the Queued n/N button on any waiting job on the Jobs tab to edit the full waiting queue. Only that job can move: drag by its handle or use Move up and Move down, then Save. It can move up or down past the work that was waiting when the editor opened, but not behind work that arrived since. Other jobs keep their order and show their queue position and reason. Cancel or Escape leaves the saved order unchanged. New work appears at the end; completed or cancelled work disappears. A step a provider's usage limit stopped stays in the queue until it starts again, unless its spec has had a newer job for that step: the board never starts such a step again.
+Press the Queued n/N button on any waiting job on the Jobs tab to edit the full waiting queue. Only that job can move: drag by its handle or use Move up and Move down, then Save. It can move up or down past the work that was waiting when the editor opened, but not behind work that arrived since. Other jobs keep their order and show their queue position and reason. Cancel or Escape leaves the saved order unchanged. New work appears at the end; completed or cancelled work disappears. A step a provider's usage limit stopped stays in the queue until it starts again, unless its spec has had a newer job for that step: the board then ends it as cancelled and never starts it again.
 
 Only the next selected step gets a queue position, after its preceding work has finished, including review and any required merge. It joins behind the work already waiting. Later selected steps and later group members have no reserved position or editor row. A phase with no recorded attempt shows the existing dash; earlier attempts keep their status.
 
@@ -636,6 +636,9 @@ In a project, Merge jobs and archives merge into main one at a time, in the queu
 - A merge never goes before a Merge job or another merge that stands ahead of it and is waiting for its turn.
 - A merge waits for no other kind of work ahead of it. The merges of a spec's other steps, such as an analysis, are
   not part of this order.
+- A scheduled job's merge is not part of this order either. It waits only for the repository to be free.
+- A merge waiting for its turn says which merge it waits for, on its row and in the queue editor: the Merge job or
+  archive ahead of it in the queue, or the one merging now.
 
 `concurrency`, two by default. **1 to 8 is accepted and anything else — missing, non-numeric, out of range — falls back
 to two**; it does not clamp.

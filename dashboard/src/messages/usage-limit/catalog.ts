@@ -1,6 +1,14 @@
 import type { MessageEntry } from "../types.ts";
 
 export const USAGE_LIMIT_CATALOG = {
+  "runner.waitTakenOver": {
+    en: "did not start again: a newer job for this spec took over {step} after the usage limit stopped it",
+    nb: "startet ikke igjen: en nyere jobb for denne specen tok over {step} etter at bruksgrensen stoppet den",
+    es: "no se reinició: un trabajo más reciente de esta spec se encargó de {step} después de que el límite de uso lo detuviera",
+    de: "startete nicht erneut: ein neuerer Job für diese Spec hat {step} übernommen, nachdem das Nutzungslimit ihn gestoppt hatte",
+    fr: "n’a pas redémarré : un job plus récent pour cette spec a repris {step} après que la limite d’utilisation l’a arrêté",
+    statement: "the newer job runs the step — nothing to press",
+  },
   "runner.usageLimitHeld": {
     en: "held back: waits for {provider}'s usage limit — it starts at {at}",
     nb: "holdt tilbake: venter på bruksgrensen til {provider} — den starter kl. {at}",
