@@ -353,6 +353,7 @@ frontmatter allowlist in `test_core_skills.py` does not permit it.
 | Skills              | `~/.claude/skills/`, `~/.copilot/skills/`, `~/.agents/skills/`, `.github/skills/` | SKILL.md-based skills           |
 | Custom agents       | `.github/agents/*.md`                                                             | Agent definitions               |
 | CLI config          | `~/.copilot/config.json`                                                          | CLI configuration               |
+| Workspace MCP       | `.mcp.json`, `.github/mcp.json`                                                   | MCP servers (JSONC, v1.0.116+)  |
 | Coding Agent env    | `.github/workflows/copilot-setup-steps.yml`                                       | CI environment for Coding Agent |
 
 ### Path-specific instructions
@@ -382,6 +383,19 @@ From v1.0.11 Copilot CLI discovers skills, instructions, MCP servers
 and agents at every directory level from cwd up to the git root. This
 means projects can have project-specific skills in
 `.github/skills/` that supplement the global ones in `~/.claude/skills/`.
+
+### Workspace MCP servers and the `env` setting (v1.0.116+)
+
+Copilot CLI loads a workspace's MCP servers from `.mcp.json` and
+`.github/mcp.json`. From v1.0.116 both may be JSONC: comments and
+trailing commas no longer stop the servers from loading.
+
+From the same version the `env` setting sets environment variables for
+every process Copilot starts: shell commands, local LSP and MCP servers,
+hooks and extensions, with or without the sandbox. Aide sets no `env`.
+A variable set in the environment that starts `copilot` also reaches
+the shell commands it runs; `test_copilot_e2e.py` checks that with a
+marker variable and `AIDE_INSTALLATION_PATH`.
 
 ### Plugins, team defaults and policy
 
@@ -570,6 +584,7 @@ structured inter-agent messaging.
 - CLI skills: <https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/create-skills>
 - Custom agents: <https://docs.github.com/en/copilot/how-tos/use-copilot-agents/coding-agent/create-custom-agents>
 - CLI config: <https://docs.github.com/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/configure-copilot-cli>
+- Workspace MCP JSONC and `env` for spawned processes (v1.0.116): <https://github.com/github/copilot-cli/releases/tag/v1.0.116>
 - Coding Agent env: <https://docs.github.com/en/copilot/how-tos/use-copilot-agents/coding-agent/customize-the-agent-environment>
 - Plugins and their precedence: <https://docs.github.com/copilot/concepts/customizations/plugins>
 - CLI plugins: <https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/plugins-creating>
