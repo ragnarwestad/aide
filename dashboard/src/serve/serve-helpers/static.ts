@@ -111,8 +111,10 @@ function buildSpecEditorAsset(): Promise<{ text: string; etag: string } | undefi
   return specEditorAsset;
 }
 
-export async function serveSpecEditorAsset(req: Request): Promise<Response> {
-  const built = await buildSpecEditorAsset();
+// The response rules both JavaScript bundles share: a bundle that failed
+// to build is a 404, and a built one is revalidated by its ETag, answered
+// with a bodiless 304 when the browser's copy is still current.
+export function serveRevalidatedScript(req: Request, built: { text: string; etag: string } | undefined): Response {
   if (!built) return new Response("not found", { status: 404 });
   const headers = new Headers({
     "content-type": "text/javascript; charset=utf-8",
@@ -121,6 +123,10 @@ export async function serveSpecEditorAsset(req: Request): Promise<Response> {
   });
   if (req.headers.get("if-none-match") === built.etag) return new Response(null, { status: 304, headers });
   return new Response(built.text, { headers });
+}
+
+export async function serveSpecEditorAsset(req: Request): Promise<Response> {
+  return serveRevalidatedScript(req, await buildSpecEditorAsset());
 }
 
 // The read-only counterpart of `specEditorClientScript()`: a
@@ -159,15 +165,7 @@ function buildSpecViewerAsset(): Promise<{ text: string; etag: string } | undefi
 }
 
 export async function serveSpecViewerAsset(req: Request): Promise<Response> {
-  const built = await buildSpecViewerAsset();
-  if (!built) return new Response("not found", { status: 404 });
-  const headers = new Headers({
-    "content-type": "text/javascript; charset=utf-8",
-    "cache-control": "no-cache",
-    etag: built.etag,
-  });
-  if (req.headers.get("if-none-match") === built.etag) return new Response(null, { status: 304, headers });
-  return new Response(built.text, { headers });
+  return serveRevalidatedScript(req, await buildSpecViewerAsset());
 }
 
 // The tail of a file, without reading the rest of it — the part that
