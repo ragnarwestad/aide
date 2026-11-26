@@ -92,9 +92,11 @@ model_turn_read_codex() {
   # rather than lines) and only THEN read for `.item.text`: that text can
   # carry its own embedded newlines, which `-r`'s raw output would split
   # across several lines and `tail -n 1` would then truncate to the last
-  # one alone.
-  turn_message_json="$(jq -Rc 'fromjson? | select(type == "object" and .type == "item.completed" and (.item.item_type // .item.type) == "agent_message")' \
-    "$transcript" 2>/dev/null | tail -n 1)"
+  # one alone. Read from this turn's own bytes, like the closing event: a
+  # turn that ends with no message has none, never an earlier turn's.
+  turn_message_json="$(tail -c +"$turn_from" "$transcript" 2>/dev/null \
+    | jq -Rc 'fromjson? | select(type == "object" and .type == "item.completed" and (.item.item_type // .item.type) == "agent_message")' \
+      2>/dev/null | tail -n 1)"
   turn_message=""
   [ -n "$turn_message_json" ] && turn_message="$(jq -r '.item.text // empty' <<<"$turn_message_json" 2>/dev/null)"
   if [ -n "$result_json" ]; then

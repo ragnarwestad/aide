@@ -388,6 +388,62 @@ def test_a_red_suite_after_a_codex_review_fix_resumes_the_thread_once_more_with_
     assert calls[3].split().count("resume") == 1 and calls[3].split().count("-") == 1, calls[3]
 
 
+DEFECT_SHAPED = "review: 1 defect(s) found" + chr(10) + "1. Something is off"
+
+
+def _codex_after_a_defect_shaped_implement(fake_codex, review_stream):
+    """The implement turn's own final message reads like a review that
+    found a defect; the review turn, appended to the same transcript,
+    ends with `review_stream`."""
+    implement = _codex_review_stream(DEFECT_SHAPED, thread=CODEX_THREAD_ID)
+    return fake_codex(
+        "prompt=\"$(cat)\"\n"
+        f"if printf '%s' \"$prompt\" | grep -q \"{REVIEW_MARKER}\"; then\n"
+        "  " + emits(review_stream).replace("cat > /dev/null; ", "") + "\n"
+        f"elif printf '%s' \"$prompt\" | grep -q \"{FIX_MARKER}\"; then\n"
+        "  " + emits(CODEX_STREAM_OK).replace("cat > /dev/null; ", "") + "\n"
+        "else\n"
+        "  printf 'real work\\n' > implemented.txt && git add -A && git commit -q -m 'the step'\n"
+        "  " + emits(implement).replace("cat > /dev/null; ", "") + "\n"
+        "fi\n"
+    )
+
+
+def test_a_codex_review_turn_with_no_message_never_reads_the_implement_turns_text_as_its_verdict_ac_2_ac_3(
+    runner, workspace, fake_codex
+):
+    """The review turn ends `turn.completed` with no agent_message: its
+    reply is absent, so the review is handled as having no `review:` line
+    and no fix turn follows, even though the implement turn before it in
+    the same transcript ended with defect-shaped text."""
+    with_status(workspace, ["create", "analyze"])
+    silent_review = "\n".join(
+        json.dumps(e)
+        for e in [
+            {"type": "thread.started", "thread_id": REVIEW_THREAD_ID},
+            {"type": "turn.started"},
+            {"type": "turn.completed", "usage": CODEX_USAGE},
+        ]
+    )
+    codex = _codex_after_a_defect_shaped_implement(fake_codex, silent_review)
+    rc, out, _, err = run(
+        runner, workspace, tool="codex", codex=codex, command="implement", review_model="gpt-6.1-sol", return_stderr=True
+    )
+    assert out["terminalReason"] == "completed", out
+    assert len(fake_codex.calls.read_text().splitlines()) == 2
+    stages = _stamped(err)
+    assert WENT_BACK not in stages, stages
+    assert any(s.startswith("error: the review's reply has no review: line") for s in stages), stages
+
+
+def test_a_codex_review_turn_reads_its_own_message_after_an_earlier_turns_ac_1(runner, workspace, fake_codex):
+    with_status(workspace, ["create", "analyze"])
+    codex = _codex_after_a_defect_shaped_implement(fake_codex, _codex_review_stream("review: no defects found"))
+    rc, out, _ = run(runner, workspace, tool="codex", codex=codex, command="implement", review_model="gpt-6.1-sol")
+    assert out["terminalReason"] == "completed", out
+    assert len(fake_codex.calls.read_text().splitlines()) == 2
+
+
 def _with_out_of_scope_section(workspace):
     """The spec's description gains an `## Out of scope` section, committed
     in the specs repo where the review reads it."""
