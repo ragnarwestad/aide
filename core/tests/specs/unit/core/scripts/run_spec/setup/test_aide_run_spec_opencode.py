@@ -10,6 +10,11 @@ words instead.
 """
 
 import json
+import os
+import re
+import shutil
+import subprocess
+from fnmatch import fnmatchcase
 
 import pytest
 
@@ -171,6 +176,65 @@ def test_a_read_only_mode_denies_opencode_every_tool_that_changes_a_file(
     assert config is not None
     for rules in (config["permission"], config["agent"]["plan"]["permission"]):
         assert rules == {"edit": "deny", "bash": "deny", "task": "deny"}, config
+
+
+# The OpenCode whose plan behaviour this check answers for: 2.4.2 moved the
+# plan rules into the system prompt, so an older binary passing says nothing
+# about it and is skipped rather than counted.
+REAL_OPENCODE_MIN = (2, 4, 2)
+
+
+def _real_opencode():
+    """The installed opencode and its version, or a reason to skip."""
+    binary = shutil.which("opencode")
+    if binary is None:
+        pytest.skip("no opencode on PATH: the resolved rules need a real OpenCode")
+    said = subprocess.run([binary, "--version"], capture_output=True, text=True, timeout=60).stdout
+    found = re.search(r"(\d+)\.(\d+)\.(\d+)", said)
+    version = tuple(int(n) for n in found.groups()) if found else (0, 0, 0)
+    if version < REAL_OPENCODE_MIN:
+        pytest.skip(f"opencode {said.strip()!r} is older than 2.4.2, the version whose plan rules this check verifies")
+    return binary
+
+
+def _effect(rules, action, resource):
+    """OpenCode's answer for one action on one resource: the LAST rule
+    that matches it wins."""
+    effect = None
+    for rule in rules:
+        if fnmatchcase(action, rule["action"]) and fnmatchcase(resource, rule["resource"]):
+            effect = rule["effect"]
+    return effect
+
+
+def test_a_real_opencode_keeps_the_plan_agent_read_only_under_aides_config_ac_1(
+    runner, workspace, fake_opencode, tmp_path
+):
+    """The other tests prove what Aide hands OpenCode; this one asks a real
+    OpenCode how it resolves it, with no model and no provider called.
+    OpenCode 2 names Aide's `bash` and `task` rules `shell` and `subagent`
+    in its resolved list, and lets the plan agent write its own plan files
+    unless a later rule says otherwise."""
+    binary = _real_opencode()
+    config = _config_seen(fake_opencode, tmp_path, runner, workspace, "plan")
+    repo = tmp_path / "fixture"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q", str(repo)], check=True)
+    said = subprocess.run(
+        [binary, "debug", "agents", "--standalone"], cwd=repo, capture_output=True, text=True,
+        timeout=120, env={**os.environ, "OPENCODE_CONFIG_CONTENT": json.dumps(config)},
+    )
+    assert said.returncode == 0, said.stderr
+    plan = next(agent for agent in json.loads(said.stdout) if agent["id"] == "plan")
+    rules = plan["permissions"]
+    edited = ["README.md", str(repo / "src" / "app.py")]
+    edited += [rule["resource"] for rule in rules if rule["action"] == "edit" and rule["effect"] == "allow"]
+    for resource in edited:
+        assert _effect(rules, "edit", resource) == "deny", (resource, rules)
+    for action in ("shell", "subagent"):
+        assert _effect(rules, action, "anything") == "deny", (action, rules)
+    for action in ("read", "glob", "grep", "webfetch", "websearch", "skill", "todowrite"):
+        assert _effect(rules, action, "src/app.py") == "allow", (action, rules)
 
 
 @pytest.mark.parametrize("mode", ["bypassPermissions", "acceptEdits"])

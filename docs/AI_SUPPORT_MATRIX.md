@@ -414,7 +414,16 @@ reads the prompt from stdin and prints one JSON event per line; OpenCode
   general rule, hence both levels. The plan agent is left with glob, grep,
   read, skill, todowrite, webfetch and websearch (verified 1.19.0).
   OpenCode 2's plan agent likewise may write plan files and leaves shell
-  commands to the permission config.
+  commands to the permission config. `opencode debug agents --standalone`
+  prints each agent's resolved rules without calling a model, with `bash`
+  and `task` named `shell` and `subagent`; under the config above the plan
+  agent's last matching rule denies edit, shell and subagent and allows
+  the read tools (verified 2.4.1). A test asks the installed OpenCode the
+  same question when it is 2.4.2 or later, and skips on an older one.
+- Web-fetch approvals — from 2.4.2 a new "Always allow" for a web fetch is
+  stored for that one site, not for every fetch; grants stored before 2.4.2
+  are kept as they were. Only a person grants one: the config Aide passes
+  has no `webfetch` rule, and an `opencode run` turn never answers an ask.
 - `--agent build` — the default.
 - `--standalone` — OpenCode 2 runs a background service (`opencode serve
   --service`), and `opencode run` hands the turn to it unless told

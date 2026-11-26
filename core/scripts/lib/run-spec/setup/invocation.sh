@@ -82,6 +82,12 @@ safety_flags=()
 # agent outranks a general rule, which is why the deny is written for the
 # plan agent too and `task` is denied with it. The plan agent is then left
 # with glob, grep, read, skill, todowrite, webfetch and websearch.
+# Verified on 2.4.1 (2026-11-26) with `opencode debug agents --standalone`,
+# which prints each agent's resolved rules: OpenCode 2 names `bash` and
+# `task` there `shell` and `subagent`, and under this config the plan
+# agent's last matching rule denies edit (its own plan files included),
+# shell and subagent. A test asks the installed OpenCode the same question
+# when it is 2.4.2 or later.
 # The turn runs with `--standalone` (below): OpenCode 2's background service
 # never sees OPENCODE_CONFIG_CONTENT, and a plan turn under the deny ran a
 # shell command through it (2.3.0).
