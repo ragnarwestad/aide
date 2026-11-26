@@ -147,13 +147,13 @@ td form { margin: 0; display: inline-block; }
    by the panel's own row rules. */
 .menupanel > * { display: block; padding: 6px 10px; border-radius: var(--r-s); }
 .menupanel > a { color: var(--text); }
+header .menupanel > a:has(> svg),
+header .morerows > .lbl { display: flex; align-items: center; gap: var(--sp-2); }
+header .menupanel > :is(a, button) > svg,
+header .morerows > .lbl > svg,
+header .boardrow button > svg { flex: none; width: 1rem; height: 1rem; }
 .menupanel > a:hover { background: var(--surface-2); text-decoration: none; }
-/* The language menu's own rows: a check mark, a flag and the
-   name in one row, needing the flex layout the base rule above does not
-   give an <a> — scoped to `.menu.lang` alone, so Settings, About, Test
-   servers and the state dropdown's own `<a role="checkbox">` rows (all
-   sharing the same `.menupanel > a` ancestor shape) keep their current
-   block layout untouched. */
+/* Keep the check mark and flag alongside each language name. */
 .menu.lang .menupanel > a { display: flex; align-items: center; gap: var(--sp-2); }
 /* Theme's own rows: a button, not a link, exactly the
    reason Units' buttons already needed the same colour/hover pair —
@@ -190,7 +190,8 @@ td form { margin: 0; display: inline-block; }
 /* Desktop default: the mobile-only rows stay out of the way entirely
    — narrow.css reveals them at phone width. */
 .menu .morerows { display: none; align-items: center; justify-content: space-between; gap: var(--sp-3);
-  padding: 2px 10px; }
+  flex-wrap: wrap; padding: 2px 10px; }
+.menu .morerows > .seg { flex: none; }
 /* A segmented control: word buttons side by side, one border round the
    group. `.seg > button` and `.seg > label` are not direct children of
    the panel, so the panel's own row rules above do not reach them. */

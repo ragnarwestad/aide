@@ -11,7 +11,7 @@ import { PWA_LINKS, waitingMeta } from "./pwa.ts";
 import { esc } from "./html.ts";
 import { readSpecActivityCounts } from "./running-specs";
 import { tabBar, tabBarHelp } from "./tabs.ts";
-import { buttonForm, confirmDialog, headerMenu, messageSlot, tabIcon, type SiteTab } from "./components";
+import { buttonForm, confirmDialog, headerMenu, ICON_INFO, messageSlot, tabIcon, type SiteTab } from "./components";
 import { capitalizeFirst } from "../../messages/shared/written.ts";
 import { themeControl, languageControl, menuSettingRows } from "./header-controls.ts";
 import { getBoardInfo, isRoundBoard } from "./board-info.ts";
@@ -24,7 +24,7 @@ import { SERVED_BY_META } from "../../page-contract.ts";
 import { HEAD_SCRIPT } from "../scripts/head-script.ts";
 import { usageButton } from "./usage-dialog/index.ts";
 import { deployMark, deployMarkDialog } from "./deploy-mark/index.ts";
-import { ICON_MORE } from "./components/icons.ts";
+import { HEADER_MENU_ICONS, ICON_MORE, ICON_USAGE } from "./components/icons.ts";
 
 export interface NavEntry {
   label: string;
@@ -186,7 +186,7 @@ function runForm(lang: Language): string {
   return buttonForm({
     action: "/api/self-run",
     hook: "actionform reloadform",
-    button: { label: t(lang, "shell.runTestRound"), pending: t(lang, "list.starting") },
+    button: { icon: HEADER_MENU_ICONS.run, label: t(lang, "shell.runTestRound"), pending: t(lang, "list.starting") },
     after: messageSlot("refused"),
   });
 }
@@ -204,6 +204,7 @@ function delayForm(lang: Language): string {
     hook: "actionform reloadform",
     hidden: { seconds: String(nextDelay(current)) },
     button: {
+      icon: HEADER_MENU_ICONS.delay,
       label: t(lang, "shell.delay", { value: current ? `${current} s` : t(lang, "shell.delayOff") }),
       title: t(lang, "shell.delayTitle"),
     },
@@ -213,7 +214,7 @@ function delayForm(lang: Language): string {
 /** A test board's Stop control; nothing on a prod board. */
 function stopForm(lang: Language): string {
   if (!getBoardInfo()) return "";
-  return buttonForm({ action: "/api/self-stop", hook: "actionform", button: { label: t(lang, "shell.stopTestServer") } });
+  return buttonForm({ action: "/api/self-stop", hook: "actionform", button: { icon: HEADER_MENU_ICONS.stop, label: t(lang, "shell.stopTestServer") } });
 }
 
 /** `tabs` is the tab bar again, shown in the header's own row on a phone
@@ -245,10 +246,10 @@ function pageHeader(lang: Language, currentUrl: string, tabs = ""): string {
     headerMenu({ label: t(lang, "shell.more"), icon: ICON_MORE,
       // On phones the Usage row opens the same panel as the header trigger.
       content: `${boardRow(lang)}${menuSettingRows(lang, currentUrl)}` +
-        `<button type="button" data-opens="usage-dialog">${t(lang, "shell.usage")}</button>` +
-        `<a href="/settings">${t(lang, "shell.settings")}</a>` +
-        `<a href="/test-servers">${t(lang, "shell.testServers")}</a>` +
-        `<button type="button" data-about>${t(lang, "shell.about")}</button>`,
+        `<button type="button" data-opens="usage-dialog">${ICON_USAGE}${t(lang, "shell.usage")}</button>` +
+        `<a href="/settings">${HEADER_MENU_ICONS.settings}${t(lang, "shell.settings")}</a>` +
+        `<a href="/test-servers">${HEADER_MENU_ICONS.servers}${t(lang, "shell.testServers")}</a>` +
+        `<button type="button" data-about>${ICON_INFO}${t(lang, "shell.about")}</button>`,
     }) + `</div></header>`
   );
 }

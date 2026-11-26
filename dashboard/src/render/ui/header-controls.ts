@@ -3,6 +3,7 @@
 // enforces, so marking which option is chosen had somewhere to add its
 // checkmark and its heading.
 import { LANGUAGES, t, type Language, type TranslationKey } from "../../i18n";
+import { HEADER_MENU_ICONS } from "./components/icons.ts";
 import { esc } from "./html.ts";
 import { headerMenu, ICON_CHECK, ICON_THEME_AUTO, ICON_THEME_DARK, ICON_THEME_LIGHT } from "./components";
 
@@ -130,8 +131,8 @@ export function languageControl(lang: Language, currentUrl: string): string {
 // `data-unit-choice`, so theme-script.ts and unit-script.ts mark them
 // unchanged. The groups are <span>s so a `.morerows` block still ends at
 // its own first `</div>`.
-function menuRow(kind: string, caption: string, control: string): string {
-  return `<div class="morerows ${kind}"><span class="lbl">${caption}</span>${control}</div>`;
+function menuRow(kind: string, icon: string, caption: string, control: string): string {
+  return `<div class="morerows ${kind}"><span class="lbl">${icon}<span>${caption}</span></span>${control}</div>`;
 }
 
 // Script only, for the reason themeChoiceRows() gives above.
@@ -171,9 +172,9 @@ function unitSegment(lang: Language): string {
 
 export function menuSettingRows(lang: Language, currentUrl: string): string {
   return (
-    menuRow("theme", t(lang, "shell.colorScheme"), themeSegment(lang)) +
-    menuRow("lang", t(lang, "shell.language"), languageSelect(lang, currentUrl)) +
-    menuRow("unit", t(lang, "shell.unit"), unitSegment(lang)) +
+    menuRow("theme", ICON_THEME_AUTO, t(lang, "shell.colorScheme"), themeSegment(lang)) +
+    menuRow("lang", HEADER_MENU_ICONS.language, t(lang, "shell.language"), languageSelect(lang, currentUrl)) +
+    menuRow("unit", HEADER_MENU_ICONS.units, t(lang, "shell.unit"), unitSegment(lang)) +
     `<div class="menusep" role="separator"></div>`
   );
 }
