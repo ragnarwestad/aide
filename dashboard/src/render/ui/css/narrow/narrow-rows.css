@@ -386,7 +386,7 @@
   header > nav.tabbar details.intro[open] > p {
     --tab-help-width: 28rem;
     position: fixed; top: auto; left: auto;
-    right: clamp(0px, 100vw - var(--tab-help-width), var(--sp-2));
+    right: clamp(var(--tab-help-gutter), 100vw - var(--tab-help-width) - var(--tab-help-gutter), var(--sp-2));
     max-height: calc(100vh - 4rem); overflow-y: auto; }
   header { padding-top: var(--sp-2); padding-bottom: var(--sp-2); border-bottom: 1px solid var(--line); }
   main { padding-top: var(--sp-3); }
@@ -464,16 +464,15 @@
      the same air as above a phone's width, not a card edge's. */
   table.speclist[data-list="jobs"] tr.specstate:has(+ tr.specnotice) { padding-bottom: 0; }
 }
-/* The time keeps the card's own room at its right where the phone has it.
-   Under 25rem a line is already full, and from 27.5rem, where the AI and
-   model button widens, a phase line has no room to spare until 29.5rem.
-   The group's line ends with the others. */
-@media (min-width: 25rem) and (max-width: 27.4375rem) {
-  table.speclist[data-list="jobs"] tr:is(.specstate, .subrow) { padding-right: var(--sp-1); }
-}
-@media (min-width: 29.5625rem) and (max-width: 40rem) {
-  table.speclist[data-list="jobs"] tr:is(.specstate, .subrow) { padding-right: var(--sp-3); }
-  table.speclist.groupcard > tbody > tr.groupline:not(.spechead, .specstate, .subrow) { padding-right: calc(var(--sp-3) - 2px); }
+/* Reserve the same right inset for the Time column throughout the phone layout. */
+@media (max-width: 40rem) {
+  table.speclist[data-list="jobs"] { --job-time-inset: var(--sp-3); }
+  table.speclist[data-list="jobs"] tr:is(.specstate, .subrow) { padding-right: var(--job-time-inset); }
+  table.speclist[data-list="jobs"] tr[data-job] + tr.specstate > td:first-child { flex-basis: 0; }
+  table.speclist[data-list="jobs"] tr[data-job] + tr.specstate .createdpips > .muted {
+    min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  table.speclist[data-list="jobs"] table.groupcard > tbody > tr.groupline:not(.spechead, .specstate, .subrow) {
+    padding-right: calc(var(--job-time-inset) - 2px); }
 }
 
 /* Where the search line is short, the filters are their icons alone,

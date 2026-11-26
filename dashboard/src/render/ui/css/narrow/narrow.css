@@ -97,7 +97,7 @@
   table.list tr.subrow .phasecell > .fold { margin-left: calc(-1 * (24px + var(--sp-1))); }
   table.list { --phase-w: 5.75rem; --tick-w: 31px; --time-w: 3.25rem;
     --state-w: min(5.25rem, max(2.5rem, calc(100vw - 4px - 2 * var(--sp-4) - var(--sp-3) - var(--fold-w) - var(--phase-w)
-      - var(--aimodel-w) - var(--tick-w) - 4 * var(--sp-2) - var(--time-w)))); }
+      - var(--aimodel-w) - var(--tick-w) - 4 * var(--sp-2) - var(--time-w) - var(--job-time-inset, 0px)))); }
   html[lang="en"] table.list { --phase-w: 4.5rem; }
   header { padding: var(--sp-3) var(--sp-4) var(--sp-2); }
   /* The Usage panel's cap counts the header's smaller top padding here; a
