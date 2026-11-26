@@ -33,9 +33,9 @@ export const currentDeployWaiting = (): DeployWaiting | undefined => waitingNow?
 export function deployMark(lang: Language, waiting: DeployWaiting | undefined = waitingNow?.()): string {
   if (!waiting) return `<span class="deploymark" aria-hidden="true"></span>`;
   const activity = ` data-deploy-project="${esc(waiting.project)}" data-deploy-under-way="${!!waiting.underWay}" data-deploy-commits="${waiting.commits}"`;
-  if (waiting.commits === 0) {
+  if (!waiting.underWay && waiting.commits === 0) {
     const label = esc(t(lang, "shell.deployUpToDate", { project: waiting.project, branch: waiting.branch }));
-    return `<span class="deploymark uptodate"${activity} role="img" title="${label} — ${esc(t(lang, "shell.deployHelpCurrent"))}" aria-label="${label}">${KIND_ICONS.deploy}</span>`;
+    return `<span class="deploymark uptodate" data-deploy-status="current"${activity} role="img" title="${label} — ${esc(t(lang, "shell.deployHelpCurrent"))}" aria-label="${label}">${KIND_ICONS.deploy}</span>`;
   }
   const helpKey = waiting.underWay === "queued" ? "shell.deployHelpQueued"
     : waiting.underWay === "running" ? "shell.deployHelpRunning" : "shell.deployHelpPending";
@@ -43,7 +43,7 @@ export function deployMark(lang: Language, waiting: DeployWaiting | undefined = 
   const label = esc(waiting.underWay
     ? t(lang, "project.deployUnderWay", { state: t(lang, `state.${waiting.underWay}`) })
     : t(lang, key, { project: waiting.project, count: waiting.commits }));
-  return `<button class="deploymark iconlink"${activity} type="button"${waiting.underWay ? " disabled" : ` data-ask="${DEPLOY_MARK_DIALOG}"`} title="${label} — ${esc(t(lang, helpKey))}" aria-label="${label}">${KIND_ICONS.deploy}<span>(${waiting.commits})</span></button>`;
+  return `<button class="deploymark iconlink" data-deploy-status="${waiting.underWay ?? "pending"}"${activity} type="button"${waiting.underWay ? " disabled" : ` data-ask="${DEPLOY_MARK_DIALOG}"`} title="${label} — ${esc(t(lang, helpKey))}" aria-label="${label}">${KIND_ICONS.deploy}${waiting.commits > 0 ? `<span>(${waiting.commits})</span>` : ""}</button>`;
 }
 
 /** The Deploy tab's question, drawn by the same function for the header. */

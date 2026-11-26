@@ -75,3 +75,11 @@ test("a queued or running deploy keeps its count but offers no new Deploy questi
     expect(html).not.toContain(`id="${DEPLOY_MARK_DIALOG}"`);
   }
 });
+
+test("an active Deploy still reports its job state when no commits are pending", () => {
+  for (const underWay of ["queued", "running"] as const) {
+    const mark = deployMark("en", { project: "aide", commits: 0, branch: "main", underWay });
+    expect(mark).toContain(t("en", underWay === "queued" ? "shell.deployHelpQueued" : "shell.deployHelpRunning"));
+    expect(mark).not.toContain("(0)");
+  }
+});

@@ -38,8 +38,15 @@ header .boardline:has(.deploymark) { flex-wrap: nowrap; }
 header .deploymark { display: inline-flex; flex: none; align-items: center;
   gap: 2px; color: var(--queued); text-decoration: none; white-space: nowrap; }
 header .deploymark svg { width: 16px; height: 16px; }
-header .deploymark.uptodate, nav.tabbar [data-deploy-legend="Current"] { color: var(--ok); }
-nav.tabbar [data-deploy-legend]:not([data-deploy-legend="Current"]) { color: var(--queued); }
+:is(header .deploymark, nav.tabbar [data-deploy-legend])[data-deploy-status="current"] { color: var(--ok); }
+:is(header .deploymark, nav.tabbar [data-deploy-legend])[data-deploy-status="queued"] { color: var(--warn); }
+:is(header .deploymark, nav.tabbar [data-deploy-legend])[data-deploy-status="running"] {
+  color: var(--running-strong); animation: badgepulse 1.8s ease-in-out infinite; }
+header button.deploymark:disabled { opacity: 1; }
+nav.tabbar [data-deploy-status="pending"] { color: var(--queued); }
+@media (prefers-reduced-motion: reduce) {
+  :is(header .deploymark, nav.tabbar [data-deploy-legend])[data-deploy-status="running"] { animation: none; }
+}
 /* The two tabs: a real tab bar — the row sits ON the hairline, and the
    current tab is marked by an underline in the accent colour, PaceUp's
    tab bar being the reference (2026-08-19). Centred deliberately:
