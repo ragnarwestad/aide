@@ -143,13 +143,13 @@ describe("several jobs at once", () => {
     expect(store.get(b.id)?.state).toBe("running");
   });
 
-  test("a Merge held by another Merge's landing names that Merge's branch", () => {
+  test("the runner records why a Merge is waiting for another Merge", () => {
     const a = enqueue({ specFolder: "land", steps: ["land"], branch: "fix/first" });
     store.writeUnchecked(a.id, { state: "running", landing: true });
     const b = enqueue({ specFolder: "land", steps: ["land"], branch: "fix/second" });
     makeRunner({ maxConcurrent: 2 }).tick();
     expect(store.get(b.id)?.state).toBe("queued");
-    expect(sentence(store.get(b.id)!.error)).toContain("the Merge of “fix/first” is running");
+    expect(store.get(b.id)?.error).toMatchObject({ key: "runner.waitingForMerge" });
   });
 
   test("an archive landing holds no step but archive", () => {

@@ -12,6 +12,7 @@ export const HELD_BACK_INFO_KEYS = new Set<MessageKey>([
   "runner.deployPriority",
   "runner.archiveRunning",
   "runner.mergeRunning",
+  "runner.waitingForMerge",
   "runner.archiveWaitsForSpecWork",
   "runner.dependencyNotArchived",
   "runner.usageLimitHeld",

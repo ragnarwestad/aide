@@ -122,12 +122,21 @@ export const JOBS_CATALOG = {
     fr: "retenu : un autre archive est en cours dans ce projet — cela démarre une fois celui-là mergé",
     statement: "the queued work starts by itself when the current merge finishes",
   },
+  // Legacy holds carry a branch without a project.
   "runner.mergeRunning": {
     en: "held back: the Merge of “{branch}” is running in this project — it starts when that one has finished",
     nb: "holdt tilbake: Merge av «{branch}» kjører i dette prosjektet — dette starter når den er ferdig",
     es: "retenido: el Merge de «{branch}» está en curso en este proyecto — empieza cuando ese termine",
     de: "zurückgehalten: in diesem Projekt läuft der Merge von „{branch}“ — das startet, sobald er fertig ist",
     fr: "retenu : le Merge de « {branch} » est en cours dans ce projet — cela démarre une fois celui-là terminé",
+    statement: "the queued work starts by itself when the current merge finishes",
+  },
+  "runner.waitingForMerge": {
+    en: 'held back: waiting for the merge of “{branch}” in project "{project}" to finish',
+    nb: "holdt tilbake: venter på at Merge av «{branch}» i prosjektet «{project}» skal bli ferdig",
+    es: "retenido: esperando a que termine el merge de «{branch}» en el proyecto «{project}»",
+    de: "zurückgehalten: wartet auf den Abschluss des Merges von „{branch}“ im Projekt „{project}“",
+    fr: "retenu : en attente de la fin du merge de « {branch} » dans le projet « {project} »",
     statement: "the queued work starts by itself when the current merge finishes",
   },
   "runner.scheduleWaitReplaced": {

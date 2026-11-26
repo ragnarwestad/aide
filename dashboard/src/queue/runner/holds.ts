@@ -101,7 +101,7 @@ export const HOLDS: readonly Hold[] = [
     });
     if (!held) return undefined;
     return stepOf(held) === "land" && held.branch
-      ? { key: "runner.mergeRunning", values: { branch: held.branch } }
+      ? { key: "runner.waitingForMerge", values: { branch: held.branch, project: held.project } }
       : { key: "runner.archiveRunning" };
   } },
   { name: "deploy-waits-for-landing", check: (job, at) => answer(at.answers.deployWaitsForLanding, job.id) },

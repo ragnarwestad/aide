@@ -108,7 +108,9 @@ test("a Land behind another landing Land names the landing, not the same spec", 
   const first = enqueue({ specFolder: "land", steps: ["land"], branch: "one" });
   store.writeUnchecked(first.id, { state: "running", landing: true });
   const second = enqueue({ specFolder: "land", steps: ["land"], branch: "two" });
-  expect(holdFor(second, context({}))?.name).toBe("project-landing");
+  const hold = holdFor(second, context({}));
+  expect(hold?.name).toBe("project-landing");
+  expect(hold?.reason?.values).toEqual({ branch: "one", project: first.project });
   const spec = enqueue({ steps: ["analyze"] });
   store.writeUnchecked(spec.id, { state: "running" });
   const again = enqueue({ steps: ["implement"] });
