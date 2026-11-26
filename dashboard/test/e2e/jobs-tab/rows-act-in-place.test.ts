@@ -343,11 +343,15 @@ test("live merge activity changes without folding the open row (AC-5, AC-6, AC-7
   writeFileSync(file, "");
   const mark = (task: number) => appendFileSync(log, `aide-run-spec 12:00:00 +0s --- Step ${task} of 4: Task — started\n`);
   mark(1);
-  const { base } = harness.start({ queueMirror: JSON.stringify([{
+  const { base, server } = harness.start({ queueMirror: JSON.stringify([{
     id: "live-merge", project: "aide", specFolder: "land", steps: ["land"], stepIndex: 0,
     state: "running", pid: process.pid, branch: "feature/live", streamFile: file, results: [],
     timeoutSec: {}, permissionMode: {}, model: {}, createdAt: "2026-11-18T12:00:00Z",
   }]), extra: { gitRun: fakeGit(CLEAN_MASTER).run, queueRunnerBin: "/bin/true", queueResultDir: own } });
+  // Its merge has its turn at the repository, as a running landing's does
+  // once the queue admits it; before that the Merge job keeps its place in the queue.
+  server.queue().waiting.admitted.add("live-merge");
+  server.queue().update("live-merge", { landing: true });
   const page = await browser.newPage();
   try {
     await page.goto(`${base}/?open=aide/land:land@live-merge`);

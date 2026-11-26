@@ -1,5 +1,7 @@
 import { dispatchFor } from "../waiting/dispatch.ts";
 import { waitingKey, jobEntry, validateWaitingArchives } from "../waiting/jobs.ts";
+import type { WaitingEntry } from "../waiting/types.ts";
+import { mergeWaitsBehind } from "../job-rules/merge-order.ts";
 // The scheduler: a configurable number of jobs at
 // once, every step bounded before it starts, and a restart reconciled
 // rather than guessed at.
@@ -151,7 +153,8 @@ export class Runner {
       }
     }
     validateWaitingArchives(this.o.store);
-    const priority = this.o.store.waiting.snapshot().entries.map(entry => entry.id);
+    const entries = this.o.store.waiting.snapshot().entries;
+    const priority = entries.map(entry => entry.id);
     // A Merge or an archive started in this pass is not yet waiting at the
     // repository, so a Deploy weighed in the same pass cannot see it and
     // would restart the server under it. The Deploy waits for the next pass.
@@ -159,7 +162,7 @@ export class Runner {
     for (const job of this.o.store.list().sort((a, b) => priority.indexOf(waitingKey(a)) - priority.indexOf(waitingKey(b)))) {
       if (job.state !== "queued") continue;
       if (job.steps[job.stepIndex] === "deploy" && mergeStarted) continue;
-      if (this.admit(job, answers, hold)) mergeStarted = true;
+      if (this.admit(job, answers, hold, entries)) mergeStarted = true;
     }
     this.waits.keepOnly(new Set(this.o.store.list().filter((job) => job.state === "queued").map((job) => job.id)));
     clearStaleHolds(this.o.store, heldNow);
@@ -167,13 +170,14 @@ export class Runner {
 
   /** A queued job held for its reason, or started when a slot and the
    *  queue admit it; true when it started a merge or an archive. */
-  private admit(job: Job, answers: HoldAnswers, hold: (job: Job, reason: BoardMessage) => void): boolean {
+  private admit(job: Job, answers: HoldAnswers, hold: (job: Job, reason: BoardMessage) => void, entries: readonly WaitingEntry[]): boolean {
     const step = job.steps[job.stepIndex];
     const held = holdFor(job, {
       jobs: () => this.o.store.list(),
       maxConcurrent: this.maxConcurrent,
       now: this.o.now(),
       answers,
+      mergeWaitsBehind: (candidate, behindOf) => mergeWaitsBehind(candidate, behindOf, entries, this.o.store.waiting.admitted),
     });
     if (held) {
       this.o.store.waiting.reasons.set(waitingKey(job), held.reason ? formatSentence("en", held.reason) ?? "" : held.name.replaceAll("-", " "));

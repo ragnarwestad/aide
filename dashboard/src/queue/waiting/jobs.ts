@@ -43,6 +43,10 @@ export function createWaiting(store: QueueStore, mirrorPath?: string): WaitingQu
     path: mirrorPath ? join(dirname(mirrorPath), "waiting-order.json") : undefined,
     admit: (entry, entries, admitted) => mayAdmit(entry, entries, store.list(), admitted),
     retainAbsent: id => running.has(id) || unresolved.has(id) || (!id.startsWith("job:") && !id.startsWith("group:")),
+    placeOf: entry => {
+      const job = entry.id.startsWith("merge:") && entry.operation === "land" && entry.jobId ? store.get(entry.jobId) : undefined;
+      return job ? waitingKey(job) : undefined;
+    },
     refresh: () => {
       const jobs = store.list();
       for (const id of waiting.admitted) if (!jobs.some(job => job.id === id && job.landing)) waiting.admitted.delete(id);
@@ -54,6 +58,7 @@ export function createWaiting(store: QueueStore, mirrorPath?: string): WaitingQu
       for (const id of archives) if (!checked.has(id)) unresolved.add(id);
       const pending = (waiting.established ? [...jobs].reverse() : seedOrder([...jobs].reverse())).filter(j =>
         (j.state === "queued" && !j.landing && !j.landingCut && !unresolved.has(waitingKey(j))) ||
+        mergeJobBeforeItsMerge(j, waiting) ||
         (j.state === "waiting" && !!j.usageLimitWait && !usageLimitStopSuperseded(jobs, j)) ||
         ((j.state === "done" || j.state === "failed") && j.results.at(-1)?.terminalReason === "approach-choice" &&
           !jobs.some(other => other.id !== j.id && other.project === j.project && other.specFolder === j.specFolder && Date.parse(other.createdAt) >= Date.parse(j.createdAt))));
@@ -62,6 +67,13 @@ export function createWaiting(store: QueueStore, mirrorPath?: string): WaitingQu
   });
   waiting.snapshot();
   return waiting;
+}
+
+/** A started Merge job keeps its place in the queue until its merge,
+ *  which takes that place, is waiting for the repository. */
+function mergeJobBeforeItsMerge(job: Job, waiting: WaitingQueue): boolean {
+  return job.state === "running" && job.steps[job.stepIndex] === "land" && !waiting.admitted.has(job.id) &&
+    ![...waiting.pending.values()].some((entry) => entry.jobId === job.id);
 }
 
 /** Group summaries read the same admitted work as the editor. */

@@ -144,6 +144,7 @@ export function serverHandle(parts: {
   watch: WatchSetup;
   schedules: Schedules;
   testServerStore: TestServers["testServerStore"];
+  queue: Wiring["queue"];
   timer: ReturnType<typeof setInterval> | null;
   keepAlive: ReturnType<typeof setInterval>;
 }) {
@@ -164,6 +165,9 @@ export function serverHandle(parts: {
      *  board is already tracked, without spawning a real round to get
      *  there) that nothing else exposes. */
     testServersStore: () => parts.testServerStore,
+    /** The queue itself, for the same reason: a fixture that needs a merge
+     *  admitted at its repository, which only a running landing does. */
+    queue: () => parts.queue,
     settle: schedules.settleSpecCaches,
     // `server.stop` resolves once the last connection is closed. Nothing
     // here waits for that — the caller is shutting down — so the promise

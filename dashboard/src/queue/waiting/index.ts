@@ -40,8 +40,15 @@ export class WaitingQueue {
   reconcile(entries: WaitingEntry[]): void {
     entries = [...entries, ...this.pending.values()];
     this.entries = new Map(entries.map(e => [e.id, e]));
+    // A new entry that names an entry already in the order takes its place.
+    const heirs = new Map<string, string[]>();
+    for (const e of entries) {
+      const place = this.order.includes(e.id) ? undefined : this.options.placeOf?.(e);
+      if (place && this.order.includes(place)) heirs.set(place, [...(heirs.get(place) ?? []), e.id]);
+    }
     // Merge segments retain their place between repository registrations.
-    const retained = this.order.filter(id => this.entries.has(id) || (this.options.retainAbsent?.(id) ?? true));
+    const retained = this.order.flatMap(id => [...(heirs.get(id) ?? []),
+      ...(this.entries.has(id) || (this.options.retainAbsent?.(id) ?? true) ? [id] : [])]);
     const additions = entries.filter(e => !retained.includes(e.id)).map(e => e.id);
     const next = [...retained, ...additions];
     if (next.length !== this.order.length || next.some((id, i) => id !== this.order[i])) {

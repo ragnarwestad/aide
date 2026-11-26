@@ -628,6 +628,15 @@ Only one tab can edit at a time. While it edits, waiting work cannot start, incl
 
 Saved priority survives refresh and server restart. Prerequisites, provider limits, concurrency and repository locks still apply. A blocked ordinary entry does not stop eligible work below it; following work cannot overtake a queued Deploy.
 
+In a project, Merge jobs and archives merge into main one at a time, in the queue's order:
+
+- A Merge job has its place in the queue from the moment it is queued, and keeps it after it starts until it merges.
+- An Archive's own work runs from its place in the queue. When it reaches its merge, the merge joins the end of the
+  queue.
+- A merge never goes before a Merge job or another merge that stands ahead of it and is waiting for its turn.
+- A merge waits for no other kind of work ahead of it. The merges of a spec's other steps, such as an analysis, are
+  not part of this order.
+
 `concurrency`, two by default. **1 to 8 is accepted and anything else — missing, non-numeric, out of range — falls back
 to two**; it does not clamp.
 

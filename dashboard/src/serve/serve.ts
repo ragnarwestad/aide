@@ -86,7 +86,7 @@ export function createServer(opts: ServerOptions) {
   // Primed first, so the jobs the store already holds are not news.
   const timer = bootServices(w, { land, runner, runnerSetupCtx, schedules, testServersCtx });
 
-  return serverHandle({ state, server, watch, schedules, testServerStore, timer, keepAlive });
+  return serverHandle({ state, server, watch, schedules, testServerStore, queue: w.queue, timer, keepAlive });
 }
 
 /** Every service the stages share, built in dependency order. */

@@ -27,4 +27,6 @@ export interface WaitingOptions {
   refresh?: () => WaitingEntry[];
   admit?: (entry: WaitingEntry, entries: WaitingEntry[], admitted: ReadonlySet<string>) => boolean;
   retainAbsent?: (id: string) => boolean;
+  /** The id whose place in the order a new entry takes, if any. */
+  placeOf?: (entry: WaitingEntry) => string | undefined;
 }

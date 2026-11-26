@@ -47,6 +47,8 @@ export interface HoldContext {
   maxConcurrent: number;
   now: string;
   answers: HoldAnswers;
+  /** Whether `candidate`'s merge is still waiting, behind `job` in the queue. */
+  mergeWaitsBehind?: (candidate: Job, job: Job) => boolean;
 }
 
 interface Hold {
@@ -94,7 +96,7 @@ export const HOLDS: readonly Hold[] = [
     const held = at.jobs().find((candidate) => {
       if (candidate.id === job.id || candidate.project !== job.project) return false;
       const other = stepOf(candidate);
-      if (step === "land") return candidate.landing && (other === "archive" || other === "land");
+      if (step === "land") return candidate.landing && (other === "archive" || other === "land") && !at.mergeWaitsBehind?.(candidate, job);
       return (other === "archive" && writing(candidate)) || (other === "land" && candidate.landing);
     });
     if (!held) return undefined;
