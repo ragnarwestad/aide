@@ -8,6 +8,7 @@
   - [YouTube channels](#youtube-channels)
 - [Notation](#notation)
 - [News log](#news-log)
+  - [2026-11-26](#2026-11-26)
   - [2026-11-25](#2026-11-25)
   - [2026-11-24](#2026-11-24)
   - [2026-11-23](#2026-11-23)
@@ -166,6 +167,69 @@ Relevance markers in each review's `Relevance for aide` section:
 ---
 
 ## News log
+
+### 2026-11-26
+
+Review period: 2026-11-25 to 2026-11-26. All 16 source addresses, 28 watched pages and 14 YouTube channels fetched.
+Three watched pages changed; only the hooks guide changed advice. 18 videos listed; five selected and all captions read.
+Fresh MyAI failed with HTTP 503; no X posts assessed. The scheduled report contains full coverage and session follow-ups.
+
+**Claude Code (review period):**
+
+| Date                | Version      | News                                                                                                                                                                           | Source                                                                    |
+|---------------------|--------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------|
+| Nov 25              | 2.1.332      | Already assessed Nov 25: MCP skills beta, PreSkillShellCommand and headless fixes. No duplicate release follow-up.                                                             | [Source](https://github.com/anthropics/claude-code/releases/tag/v2.1.332) |
+| Nov 26 (changed)    | watched page | Hooks guide now documents PreSkillShellCommand matchers Bash/PowerShell and support for the if filter.                                                                         | [Source](https://code.claude.com/docs/en/hooks-guide)                     |
+| Nov 25–26 (checked) | —            | Blog/resources latest Nov 24; no new dated tool article. Anthropic news header date is not an article publication date. Building effective agents changed a related link only. | [Source](https://claude.com/resources/articles)                           |
+
+**GitHub Copilot CLI (review period):**
+
+| Date      | Version                  | News                                                                                                                                                                                                         | Source                                                                                                                |
+|-----------|--------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------|
+| Nov 25    | 1.0.116                  | Stable: env applies to spawned processes; JSONC workspace MCP config; occurredAt subagent timestamps; usage grouped by agent name; plan approval no longer offers fleet; sandbox and MCP startup fixes.      | [Source](https://github.com/github/copilot-cli/releases/tag/v1.0.116)                                                 |
+| Nov 25–26 | 1.0.116-2…5; 1.0.117-0…2 | Pre-releases only; no action assessment before stable.                                                                                                                                                       | [Source](https://github.com/github/copilot-cli/releases)                                                              |
+| Nov 25    | article                  | Evidence-first modernization: preserve working behavior, choose least disruptive treatment, time-box feasibility, state regression protection and uncertainty, and keep architectural decisions with owners. | [Source](https://github.blog/ai-and-ml/github-copilot/how-to-choose-the-next-safe-step-in-application-modernization/) |
+| Nov 25    | billing notice           | Unset paid-member code review billing defaults to organization Dec 30; explicit saved choice stays. Not a CLI runtime change.                                                                                | [Source](https://github.blog/changelog/2026-11-25-copilot-code-review-billing-will-default-to-the-organization/)      |
+
+**OpenAI Codex CLI (review period):**
+
+| Date                | Version           | News                                                                   | Source                                             |
+|---------------------|-------------------|------------------------------------------------------------------------|----------------------------------------------------|
+| Nov 25              | 0.174.0-alpha.5…6 | Pre-release builds with generic notes; no stable behavior inferred.    | [Source](https://github.com/openai/codex/releases) |
+| Nov 25–26 (checked) | —                 | Desktop changelog and developer blog latest Nov 24; no new dated item. | [Source](https://developers.openai.com/blog)       |
+
+**OpenCode (review period):**
+
+| Date   | Version | News                                                                                                                                                                                                                          | Source                                                              |
+|--------|---------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------|
+| Nov 26 | 2.4.2   | Web-fetch Always allow now site-scoped; old grants persist. Automations continue after failures and kill timed-out shell calls. Plan rules move to system prompt; plugin instructions update without rebuilding prompt cache. | [Source](https://github.com/anomalyco/opencode/releases/tag/v2.4.2) |
+
+**Across tools (review period):**
+
+| Date                | Version      | News                                                                                                                                                                                                                                                        | Source                                                       |
+|---------------------|--------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------|
+| Nov 25–26 (checked) | —            | Cookbooks latest commit Nov 20; Fowler latest dated article Nov 12. Artificial Analysis comparison exists, but chart values remain unavailable in fetched text. No ranking inferred.                                                                        | [Source](https://artificialanalysis.ai/agents/coding-agents) |
+| Nov 26 (changed)    | watched page | agents.md repository counters changed only; no changed advice.                                                                                                                                                                                              | [Source](https://agents.md)                                  |
+| Nov 25              | video        | 1,000 Claude Agents Formalized Fermat's Last Theorem — Lance Martin, Anthropic: Formal verification, simple Git/database coordination and curated memory. Thousand-agent performance is a speaker report, not a general CLI guarantee.                      | [Source](https://www.youtube.com/watch?v=wrfbI5eyLAI)        |
+| Nov 25              | video        | How 21 People Built a $100M+ Agent Company — Quinn Slack, Amp: Small monitored changes, shadow comparisons and agents proving results. Company revenue/efficiency claims are anecdotes.                                                                     | [Source](https://www.youtube.com/watch?v=Xyb1Bn_L2U4)        |
+| Nov 25              | video        | I Built a Claude System That Makes Context Loss Impossible: Cited decision retrieval and short curated memory are useful. Context-loss impossibility, universal transcript deletion after 30 days and imminent local autodream are not verified guarantees. | [Source](https://www.youtube.com/watch?v=t6azkOJwx5M)        |
+| Nov 25              | video        | Beyond Software Factories: How We'll Run Coding Agents in 2027: Prefer responsibilities by domain, a shared work queue and measured replay of simpler agent setups. Claimed cost savings are author-specific; multi-user results are simulated.             | [Source](https://www.youtube.com/watch?v=CmmrdJwji-Y)        |
+| Nov 25              | video        | Paste this into Claude, Never Hit a Token Limit Again: Per-completed-task cost and host-controlled budgets are useful. Third-party mod estimates, savings and a promise to avoid token limits are not vendor guarantees.                                    | [Source](https://www.youtube.com/watch?v=pULHlDNvmd4)        |
+
+**Relevance for aide:**
+
+- ⭐ Hooks guide adds operational details beyond yesterday's release finding: PreSkillShellCommand matches the executing shell tool and supports if. Update matrix/reference hook tables; check older-version compatibility before installer use. [Source](https://code.claude.com/docs/en/hooks-guide). [Source](https://github.com/anthropics/claude-code/releases/tag/v2.1.332).
+- ⭐ Copilot 1.0.116 makes the env setting apply to all spawned processes and accepts JSONC workspace MCP files. Update matrix/reference configuration and telemetry notes; check runner environment propagation and grouped subagent usage. [Source](https://github.com/github/copilot-cli/releases/tag/v1.0.116).
+- ⭐ GitHub modernization guidance touches analysis, refactoring and testing skills: add bounded feasibility and explicit evidence strength when a legacy baseline cannot run. Existing TDD alone does not describe this decision fork. [Source](https://github.blog/ai-and-ml/github-copilot/how-to-choose-the-next-safe-step-in-application-modernization/).
+- ⚠️ OpenCode 2.4.2 changes persistent web-fetch grants, automation failure/timeout behavior and plan/plugin instruction placement. Update matrix/reference; check plan restrictions still come from explicit permission config and keep scheduled actions disabled in managed runs. [Source](https://github.com/anomalyco/opencode/releases/tag/v2.4.2).
+- ℹ Copilot code-review billing notice is relevant only if the organization uses that hosted service. No change to the CLI installer or runner follows from the notice. [Source](https://github.blog/changelog/2026-11-25-copilot-code-review-billing-will-default-to-the-organization/).
+- ✅ 1,000 Claude Agents Formalized Fermat's Last Theorem — Lance Martin, Anthropic: Formal verification, simple Git/database coordination and curated memory. Thousand-agent performance is a speaker report, not a general CLI guarantee. [Source](https://www.youtube.com/watch?v=wrfbI5eyLAI). [Source](https://platform.claude.com/docs/en/managed-agents/dreams).
+- ⭐ How 21 People Built a $100M+ Agent Company — Quinn Slack, Amp: Small monitored changes, shadow comparisons and agents proving results. Company revenue/efficiency claims are anecdotes. [Source](https://www.youtube.com/watch?v=Xyb1Bn_L2U4). [Source](https://github.blog/ai-and-ml/github-copilot/how-to-choose-the-next-safe-step-in-application-modernization/).
+- ⚠️ I Built a Claude System That Makes Context Loss Impossible: Cited decision retrieval and short curated memory are useful. Context-loss impossibility, universal transcript deletion after 30 days and imminent local autodream are not verified guarantees. [Source](https://www.youtube.com/watch?v=t6azkOJwx5M). [Source](https://code.claude.com/docs/en/memory).
+- ⭐ Beyond Software Factories: How We'll Run Coding Agents in 2027: Prefer responsibilities by domain, a shared work queue and measured replay of simpler agent setups. Claimed cost savings are author-specific; multi-user results are simulated. [Source](https://www.youtube.com/watch?v=CmmrdJwji-Y). [Source](https://alignment.anthropic.com/2026/worse-together/).
+- ⚠️ Paste this into Claude, Never Hit a Token Limit Again: Per-completed-task cost and host-controlled budgets are useful. Third-party mod estimates, savings and a promise to avoid token limits are not vendor guarantees. [Source](https://www.youtube.com/watch?v=pULHlDNvmd4). [Source](https://code.claude.com/docs/en/costs).
+- ℹ Coverage gap: fresh MyAI fetch returned HTTP Error 503: Service Unavailable; complete=false; zero collected, zero retained. No posts assessed and no older digest substituted.
+- ℹ Two guessed Dreams documentation paths returned HTTP success but only a documentation shell; their bodies were unassessable. Correct /managed-agents/dreams page was then fetched and read. No official source or channel failed. [Source](https://platform.claude.com/docs/en/managed-agents/dreams).
 
 ### 2026-11-25
 
