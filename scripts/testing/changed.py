@@ -6,11 +6,8 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-import re
 
 CONTRACT_CHECK = "python3 scripts/testing/changed.py --contracts"
-RESULT_FIELDS_HELPER = "run_spec_result_fields"
-STEP_OUTCOME = "dashboard/src/queue/runner/types.ts"
 
 
 # Each suite by name, in the order a run takes them. The landing asks for
@@ -54,70 +51,29 @@ def commands_for(paths):
     return None if suites == FULL else [SUITES[name] for name in suites]
 
 
-def _uses_result_fields_helper(tree):
-    for node in ast.walk(tree):
-        if isinstance(node, ast.ImportFrom):
-            names = [node.module or ""] + [alias.name for alias in node.names]
-        elif isinstance(node, ast.Import):
-            names = [alias.name for alias in node.names]
-        else:
-            continue
-        if any(name.split(".")[-1] == RESULT_FIELDS_HELPER for name in names):
-            return True
-    return False
-
-
-def _names_dashboard_side(tree, fixtures):
+def _names_the_dashboard_folder(tree):
     # A bare string statement is a docstring or a comment in disguise, never code.
     bare = {id(node.value) for node in ast.walk(tree) if isinstance(node, ast.Expr)}
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Constant) and isinstance(node.value, str) and id(node) not in bare:
-            text = node.value
-            if "dashboard" in text or re.search(r"\.ts\b", text) or any(name in text for name in fixtures):
-                return True
-    return False
+    return any(
+        isinstance(node, ast.Constant) and isinstance(node.value, str) and id(node) not in bare
+        and (node.value == "dashboard" or node.value.startswith("dashboard/"))
+        for node in ast.walk(tree))
 
 
-def result_fields_the_dashboard_reads(root):
-    """The camelCase fields of the dashboard's StepOutcome: the runner's result keys it reads."""
-    path = Path(root) / STEP_OUTCOME
-    if not path.is_file():
-        return set()
-    body = re.search(r"^export interface StepOutcome \{\n(.*?)^\}", path.read_text(), re.S | re.M)
-    if not body:
-        return set()
-    return {name for name in re.findall(r"^  (\w+)\??:", body.group(1), re.M) if re.search("[A-Z]", name)}
-
-
-def _reads_result_field(tree, fields):
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Subscript):
-            key = node.slice
-        elif isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == "get" and node.args:
-            key = node.args[0]
-        else:
-            continue
-        if isinstance(key, ast.Constant) and key.value in fields:
-            return True
-    return False
-
-
-def is_contract_test(source, fixtures=(), fields=()):
-    """A test checks the runner-dashboard contract when its code, not its comments, says so."""
+def is_contract_test(source):
+    """A Python test a dashboard change can turn red: its code, not its comments,
+    names the dashboard folder, which is how a test reaches a file there."""
     try:
         tree = ast.parse(source)
     except SyntaxError:
         return True
-    return (_uses_result_fields_helper(tree) or _names_dashboard_side(tree, fixtures)
-            or _reads_result_field(tree, fields))
+    return _names_the_dashboard_folder(tree)
 
 
 def contract_tests(root):
     root = Path(root)
-    fixtures = [p.name for p in (root / "core/tests/fixtures").glob("*.json")]
-    fields = result_fields_the_dashboard_reads(root)
     return sorted(str(p.relative_to(root)) for p in (root / "core/tests").rglob("test_*.py")
-                  if is_contract_test(p.read_text(), fixtures, fields))
+                  if is_contract_test(p.read_text()))
 
 
 def _changed_since(base):

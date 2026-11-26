@@ -46,20 +46,21 @@ def test_docs_only_get_documentation_check():
     assert module.commands_for(["docs/CONFIGURATION.md"]) == ["scripts/check-docs"]
 
 
-def test_contract_tests_include_the_result_field_tests_without_the_words_ac_1():
+def test_a_test_is_a_contract_test_when_its_code_names_the_dashboard_folder(tmp_path):
+    tests = tmp_path / "core/tests"
+    tests.mkdir(parents=True)
+    (tests / "test_joined.py").write_text('def test_x(root):\n    (root / "dashboard" / "src" / "a.ts").read_text()\n')
+    (tests / "test_path.py").write_text('SOURCE = "dashboard/src/parser.ts"\n')
+    (tests / "test_made_up_names.py").write_text('CHANGES = ["src/a.ts", "x.ts:10"]\n')
+    (tests / "test_result_field.py").write_text('def test_x(out):\n    assert out["branchUrls"]\n')
+    (tests / "test_board_home.py").write_text('HOME = "~/.aide/dashboard/worktrees"\n')
+    assert module.contract_tests(tmp_path) == ["core/tests/test_joined.py", "core/tests/test_path.py"]
+
+
+def test_the_runner_test_that_reads_the_dashboards_source_is_a_contract_test():
     selected = module.contract_tests(ROOT)
-    run_spec = "core/tests/specs/unit/core/scripts/run_spec"
-    assert f"{run_spec}/checkout/test_aide_run_spec_time_limit_and_cancel.py" in selected
-    assert f"{run_spec}/turn/step_tests/test_aide_run_spec_tests_not_run.py" in selected
-
-
-def test_every_test_using_the_result_field_helper_is_a_contract_test_ac_3():
-    selected = set(module.contract_tests(ROOT))
-    users = {str(p.relative_to(ROOT)) for p in (ROOT / "core/tests").rglob("test_*.py")
-             if "run_spec_result_fields" in p.read_text()}
-    assert users
-    missing = sorted(users - selected)
-    assert not missing, f"tests using run_spec_result_fields missing from the contract tests: {missing}"
+    assert "core/tests/specs/unit/core/scripts/run_spec/setup/test_aide_run_spec_gates.py" in selected
+    assert "core/tests/specs/unit/core/scripts/run_spec/checkout/test_aide_run_spec_time_limit_and_cancel.py" not in selected
 
 
 def test_comments_and_docstrings_neither_add_nor_remove_a_contract_test_ac_2(tmp_path):
@@ -69,38 +70,13 @@ def test_comments_and_docstrings_neither_add_nor_remove_a_contract_test_ac_2(tmp
         '"""Checks what the dashboard reads from parser.ts."""\n'
         "# the dashboard's parser.ts reads this too\n"
         "def test_x():\n"
-        '    """dashboard parser.ts"""\n'
+        '    """dashboard/src/parser.ts"""\n'
         "    assert 1\n")
-    (tests / "test_helper.py").write_text(
+    (tests / "test_code_commented.py").write_text(
         '"""Nothing about the board here."""\n'
-        "from ..run_spec_result_fields import assert_written_as_in_fixture\n")
-    (tests / "test_helper_commented.py").write_text(
-        '"""The dashboard reads parser.ts."""\n'
-        "# dashboard\n"
-        "from ..run_spec_result_fields import assert_written_as_in_fixture\n")
-    (tests / "test_code.py").write_text('SOURCE = "dashboard/src/parser.ts"\n')
-    assert module.contract_tests(tmp_path) == [
-        "core/tests/test_code.py",
-        "core/tests/test_helper.py",
-        "core/tests/test_helper_commented.py",
-    ]
-
-
-def test_a_test_reading_a_result_field_the_dashboard_declares_is_a_contract_test(tmp_path):
-    types = tmp_path / module.STEP_OUTCOME
-    types.parent.mkdir(parents=True)
-    types.write_text("export interface StepOutcome {\n  ok: boolean;\n  branchUrls?: BranchRef[];\n}\n")
-    tests = tmp_path / "core/tests"
-    tests.mkdir(parents=True)
-    (tests / "test_reads_field.py").write_text('def test_x(out):\n    assert out["branchUrls"]\n')
-    (tests / "test_reads_with_get.py").write_text('def test_x(out):\n    assert out.get("branchUrls")\n')
-    (tests / "test_reads_only_ok.py").write_text('def test_x(out):\n    assert out["ok"]\n')
-    assert module.contract_tests(tmp_path) == [
-        "core/tests/test_reads_field.py",
-        "core/tests/test_reads_with_get.py",
-    ]
-    selected = module.contract_tests(ROOT)
-    assert "core/tests/specs/unit/core/scripts/run_spec/publish/test_aide_run_spec_pushing.py" in selected
+        "# nothing here either\n"
+        'SOURCE = "dashboard/src/parser.ts"\n')
+    assert module.contract_tests(tmp_path) == ["core/tests/test_code_commented.py"]
 
 
 def test_the_links_a_merge_puts_in_its_tree_are_no_change(tmp_path, monkeypatch):
