@@ -12,7 +12,7 @@ test("automatic holds queue Archive and Merge with or without positions; a held 
   for (const step of ["archive", "land"]) for (const queuePosition of [undefined, { ...position, operation: step }]) {
     const got = jobPresentation(row({ steps: [step], queuePosition,
       errorReason: "held-back", error: { key: "runner.landingPause" } }));
-    expect(got.state).toBe("queued");
+    expect(got).toMatchObject({ state: "queued", variant: "waiting" });
     expect(got.waiting).toEqual(queuePosition);
   }
   expect(jobPresentation(row({ steps: ["deploy"], errorReason: "held-back", error: { key: "runner.landingPause" } })).state).toBe("running");

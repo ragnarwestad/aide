@@ -77,6 +77,7 @@ const groupBadgeVariant = (state: ExecutionGroup["state"], stoppedByUser?: boole
 /** A member's pip, in the colour its own badge has: done, running, failed,
  *  waiting or held back, or not started. */
 export function memberPipKind(member: SpecGroup | undefined, completed: boolean, job?: QueueRowView): PipKind {
+  if (job && automaticProviderWait(job)) return "waiting";
   if (job && inFlight(job)) return job.state === "queued" && !job.landing ? "queued" : "now";
   if (completed || (member && isArchivedRow(member))) return "past";
   if (!member) return "todo";

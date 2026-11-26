@@ -59,7 +59,7 @@ export function endingWord(lang: Language, reason: string): string {
 //                 finish, and pressing again is what comes next. Grey
 //                 read as "never ran", which a cancelled step is not.
 export const BADGE_VARIANT: Record<QueueRowView["state"], BadgeVariant> = {
-  queued: "idle",
+  queued: "waiting",
   running: "running",
   done: "done",
   waiting: "waiting",

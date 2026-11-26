@@ -6,12 +6,13 @@ import { statSync } from "node:fs";
 import { runLogPath } from "../../queue/runner/run-log-path.ts";
 import { t, type Language } from "../../i18n";
 import { formatSentence } from "../../messages/format.ts";
-import { stepLog, stepMarks, stepPlan, stepSlices, stepTokens, schedulePlan, type LogPart, type PlannedStep, type StepMark } from "../../queue/parse-stream";
+import { AIDE_PARTS, stepLog, stepMarks, stepPlan, stepSlices, stepTokens, schedulePlan, type LogPart, type PlannedStep, type StepMark } from "../../queue/parse-stream";
 import { stepKey } from "../../queue/parse-stream/step-marks.ts";
 import { inFlight, jobKind, writing, type Job } from "../../queue/queue.ts";
 import { tailFileAt } from "../serve-helpers";
 import { deployPlan } from "../deploy-job/plan.ts";
 import { CLEANUP_OPERATIONS } from "../process-cleanup/engine.ts";
+import { automaticProviderWait } from "../../queue/job-rules/activity.ts";
 import { readRunLog } from "./job-detail.ts";
 
 const cleanupPlan = (lang: Language, marks: StepMark[]): PlannedStep[] => {
@@ -110,6 +111,18 @@ export function stepLinesOf(marks: StepMark[], logs: LogPart[], plan: PlannedSte
   ];
 }
 
+function stepIsWaiting(job: Job): boolean {
+  return job.state === "queued" || automaticProviderWait(job) || (inFlight(job) && job.errorReason === "held-back");
+}
+
+function markWaitingStep(job: Job, steps: CloseOrReopenStep[]): CloseOrReopenStep[] {
+  if (!stepIsWaiting(job)) return steps;
+  const retrying = automaticProviderWait(job);
+  const active = steps.findIndex((step) => step.state === "running" || (retrying && step.state === "failed"));
+  const next = active === -1 ? steps.findIndex((step) => step.state === undefined) : active;
+  return steps.map((step, index) => index === next ? { ...step, state: "queued", since: undefined } : step);
+}
+
 /** A job's steps as its row on the Running page lists them. A job held
  *  back waits, so the step its log had started is waiting again. */
 function jobSteps(job: Job, plan: PlannedStep[], lang: Language): CloseOrReopenStep[] {
@@ -117,8 +130,7 @@ function jobSteps(job: Job, plan: PlannedStep[], lang: Language): CloseOrReopenS
   // A done job whose merge into main is still landing goes on.
   const going = writing(job);
   const steps = stepLinesOf(marks, logs, plan, Date.parse(job.stepStartedAt ?? job.startedAt ?? ""), going);
-  if (job.errorReason !== "held-back" || !inFlight(job)) return steps;
-  return steps.map((step) => step.state === "running" ? { ...step, state: undefined, since: undefined } : step);
+  return markWaitingStep(job, steps);
 }
 
 /** A Close's or Reopen's steps: every step its skill plans. */
@@ -136,7 +148,9 @@ export function deploySteps(job: Job, lang: Language): CloseOrReopenStep[] {
 export function scheduleSteps(job: Job, lang: Language, prompt = ""): CloseOrReopenStep[] {
   const { marks, logs } = jobMarks(job, lang);
   const plan = jobKind(job) === "cleanup" ? cleanupPlan(lang, marks) : schedulePlan(logs, prompt);
-  return stepLinesOf(marks, logs, plan, Date.parse(job.stepStartedAt ?? job.startedAt ?? ""), writing(job));
+  const planned = plan.length || marks.length || !stepIsWaiting(job)
+    ? plan : [{ key: stepKey("Aide", AIDE_PARTS.before), label: t(lang, "job.logAideBefore") }];
+  return markWaitingStep(job, stepLinesOf(marks, logs, planned, Date.parse(job.stepStartedAt ?? job.startedAt ?? ""), writing(job)));
 }
 
 export function jobStepLines(job: Job, lang: Language, prompt = ""): CloseOrReopenStep[] {

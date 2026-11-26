@@ -231,9 +231,20 @@ describe("a Merge held back behind another", () => {
       specFolder: "land", steps: ["land"], branch: "fix/x", state: "queued", errorReason: "held-back",
       streamFile: `${base}.stream.jsonl`,
     });
-    expect(jobStepLines(held, "en").map((s) => s.state)).toEqual([undefined, undefined, undefined, undefined]);
+    expect(jobStepLines(held, "en").map((s) => s.state)).toEqual(["queued", undefined, undefined, undefined]);
     expect(jobStepLines({ ...held, state: "running", errorReason: undefined }, "en")[0]!.state).toBe("running");
   });
+});
+
+test.each([
+  ["close", "01-spec"], ["reopen", "01-spec"], ["cleanup", "cleanup"],
+  ["schedule", "schedule-nightly"], ["land", "land"], ["deploy", "deploy"],
+])("a queued %s job marks only its next step as queued", (step, specFolder) => {
+  const queued = job({ specFolder, steps: [step], state: "queued" });
+  const states = jobStepLines(queued, "en").map(({ state }) => state);
+  expect(states[0]).toBe("queued");
+  expect(states.slice(1).every((state) => state === undefined)).toBe(true);
+  expect(jobStepPips(queued, "en").map(({ state }) => state)).toEqual(states);
 });
 
 describe("deploySteps", () => {
@@ -286,7 +297,7 @@ describe("deploySteps", () => {
     ]);
     const waiting = deployJob(file, { state: "running", errorReason: "held-back" });
     const lines = deploySteps(waiting, "en");
-    expect(lines.map((s) => s.state)).toEqual(["done", undefined, undefined, undefined, undefined]);
+    expect(lines.map((s) => s.state)).toEqual(["done", "queued", undefined, undefined, undefined]);
     expect(lines[1]!.since).toBeUndefined();
     expect(jobStepPips(waiting, "en").map((s) => s.state)).toEqual(lines.map((s) => s.state));
     const resumed = deploySteps({ ...waiting, errorReason: undefined }, "en");
@@ -294,10 +305,12 @@ describe("deploySteps", () => {
     expect(resumed[1]!.since).toBeDefined();
   });
 
-  test("a deploy with nothing marked yet lists the five steps, none with a state", () => {
-    const got = deploySteps(job({ specFolder: "deploy", steps: ["deploy"], state: "queued" }), "en");
+  test("a queued Deploy marks only Fetch from origin as queued before any logs exist", () => {
+    const queued = job({ specFolder: "deploy", steps: ["deploy"], state: "queued" });
+    const got = deploySteps(queued, "en");
     expect(got.map((s) => s.key)).toEqual(KEYS);
-    expect(got.every((s) => s.state === undefined)).toBe(true);
+    expect(got.map((s) => s.state)).toEqual(["queued", undefined, undefined, undefined, undefined]);
+    expect(jobStepPips(queued, "en").map((s) => s.state)).toEqual(got.map((s) => s.state));
   });
 });
 
@@ -374,8 +387,8 @@ describe("scheduleSteps", () => {
     expect(got.map((s) => [s.state, s.seconds])).toEqual([["done", 2], ["done", 15], ["done", 10]]);
   });
 
-  test("a queued job with no log yet has no steps", () => {
-    expect(scheduleSteps(scheduled({ state: "queued", streamFile: undefined }), "en")).toEqual([]);
+  test("a queued schedule without a declared plan or log shows its preparation step", () => {
+    expect(scheduleSteps(scheduled({ state: "queued", streamFile: undefined }), "en").map(({ state }) => state)).toEqual(["queued"]);
   });
 
   test("each step carries its own part of the log", () => {

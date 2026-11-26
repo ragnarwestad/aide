@@ -30,9 +30,9 @@ describe("the pip of a phase on the Running tab", () => {
     expect(phasePipKind({ ...phase, fileResult: "completed" }, ["create"])).toBe("past");
   });
 
-  test("a phase held back on a dependency draws the plain pip, not the moving one", () => {
+  test("a phase held back on a dependency draws the queued pip", () => {
     const jobs = [held("analyze", "runner.dependencyNotArchived")];
-    expect(pipOf(jobs, "analyze", ["create"])).toBe("todo");
+    expect(pipOf(jobs, "analyze", ["create"])).toBe("queued");
   });
 
   test("a phase held back for a person to act draws the plain pip, not amber", () => {
@@ -50,12 +50,12 @@ describe("the pip of a phase on the Running tab", () => {
       createdAt: "2026-10-11T09:00:00Z",
     });
     const jobs = [cancelled, held("analyze", "runner.dependencyNotArchived")];
-    expect(pipOf(jobs, "analyze", ["create"])).toBe("todo");
+    expect(pipOf(jobs, "analyze", ["create"])).toBe("queued");
   });
 
-  test("an archive held back because another archive runs draws the plain pip", () => {
+  test("an archive held back because another archive runs draws the queued pip", () => {
     const jobs = [held("archive", "runner.archiveRunning")];
-    expect(pipOf(jobs, "archive", ["create", "analyze", "implement"])).toBe("todo");
+    expect(pipOf(jobs, "archive", ["create", "analyze", "implement"])).toBe("queued");
   });
 
   test("a queued phase has a distinct stationary pip, including Create", () => {

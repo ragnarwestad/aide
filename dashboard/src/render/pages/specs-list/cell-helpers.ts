@@ -11,6 +11,7 @@ import {
   completedThirds,
   durationLabel,
   inFlight,
+  heldBackResolvesOnItsOwn,
   specStateChip,
   wordPhase,
   type PhaseWord,
@@ -212,9 +213,8 @@ const waitsOnHold = (r: QueueRowView): boolean => r.state === "queued" && !r.lan
 const pipAttempt = (p: Phase): QueueRowView | undefined =>
   p.attempts.find((a) => inFlight(a) && !waitsOnHold(a)) ?? p.attempts.find(inFlight) ?? p.attempts[0];
 
-/** What one phase's pip is. A held-back job has not started, so the pip
- *  reads as if it were not queued at all: what the files and the history
- *  say about the phase, which is grey for a phase that has not run. The
+/** What one phase's pip is. An automatic hold still counts as queued.
+ *  A hold that needs someone to act leaves the phase as the files and history say. The
  *  motion is for a phase whose job is running right now. */
 export function phasePipKind(p: Phase, done: string[]): PipKind {
   if (p.step === "create") {
@@ -227,7 +227,7 @@ export function phasePipKind(p: Phase, done: string[]): PipKind {
   // by hand showed four grey pips and a cancelled re-run turned a
   // finished phase grey again.
   const attempt = pipAttempt(p);
-  const live = attempt && waitsOnHold(attempt) ? undefined : attempt;
+  const live = attempt && waitsOnHold(attempt) && !heldBackResolvesOnItsOwn(attempt) ? undefined : attempt;
   return wordPhase(done.includes(p.step), p.heldBack, live, { ...p.history, waiting: p.waiting, step: p.step, fileResult: p.fileResult }).pip;
 }
 

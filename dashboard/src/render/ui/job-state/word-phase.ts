@@ -400,7 +400,7 @@ function decidePhase(
   const shown = attempt ? jobPresentation(attempt, history.step, pending) : undefined;
   if (pending?.id && (!shown || shown.queued)) {
     const pos = pending;
-    return { pip: "queued", waiting: pos, badge: { variant: "idle", label: t(lang, "list.stateQueuedPosition", { n: pos.n, total: pos.total }) }, qualifier: pos.reason };
+    return { pip: "queued", waiting: pos, badge: { variant: "waiting", label: t(lang, "list.stateQueuedPosition", { n: pos.n, total: pos.total }) }, qualifier: pos.reason };
   }
   const running = !!attempt && inFlight(attempt);
   // Said when the file and the history part company, and never over a

@@ -147,7 +147,7 @@ export function phaseMessagesRow(
 export function stepState(state: ProgressStepState | undefined, lang: Language): string {
   if (state === undefined) return "–";
   if (state === "done") return badge("done", t(lang, "dialog.stepDone"));
-  if (state === "queued") return badge("idle", t(lang, "list.state.queued"));
+  if (state === "queued") return badge("waiting", t(lang, "list.state.queued"));
   if (state === "running") return badge("running", t(lang, "dialog.stepRunning"));
   if (state === "cancelled") return badge("waiting", t(lang, "state.cancelled"));
   if (state === "failed") return badge("refused", t(lang, "dialog.stepFailed"));
