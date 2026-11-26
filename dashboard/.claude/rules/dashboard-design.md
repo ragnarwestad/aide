@@ -37,8 +37,11 @@ know.
 
 Before reporting the change as finished, compare it with the named
 reference in the browser, in the surrounding page, at desktop and phone
-widths. Check its appearance and its opening, closing and keyboard
-behaviour. Passing functional tests does not replace this comparison.
+widths. For a reported layout bug, also check the reported width and both
+sides of every breakpoint that affects the layout. Include the intermediate
+widths between phone and desktop. Check its appearance and its opening,
+closing and keyboard behaviour. Passing functional tests does not
+replace this comparison.
 If browser verification is unavailable, report the missing check and do
 not claim visual verification. A review of an interface change must read
 this rule, inspect the same reference and check the implementation's
