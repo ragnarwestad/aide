@@ -181,11 +181,11 @@ export function specsStoodForByJobs(shown: readonly JobLike[]): Set<string> {
 
 /** What a job row is called, without its project, which the row draws
  *  before the name: the scheduled job, the Close or Reopen and its spec, or
- *  the deploy, the project it deploys and the commit its fetch reached. */
+ *  the deploy and the commit its fetch reached. */
 export function jobTitle(row: TitleRow, lang: Language = "en"): string {
   const kind = jobKind(row);
   if (kind === "deploy") {
-    const named = `${stepLabel("deploy", lang)} ${row.project}`.trim();
+    const named = stepLabel("deploy", lang);
     return row.deployCommit ? `${named} · ${row.deployCommit.slice(0, 7)}` : named;
   }
   if (kind === "land") {

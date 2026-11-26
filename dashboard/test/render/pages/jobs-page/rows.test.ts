@@ -379,9 +379,9 @@ describe("a deploy is a job row of its own, named for the deploy", () => {
     expect(ids([deploy({ id: "d", state: "done" })])).toEqual(["d"]);
   });
 
-  test("its title is the deploy and its project, and its key is the project's own", () => {
+  test("its title is the deploy, without the project the row names first, and its key is the project's own", () => {
     const row = deploy({ project: "aide" });
-    expect(jobTitle(row)).toBe("Deploy aide");
+    expect(jobTitle(row)).toBe("Deploy");
     expect(jobKey(row)).toBe("aide/deploy:deploy");
   });
 });
@@ -425,8 +425,8 @@ describe("each job row has a key of its own", () => {
 describe("a deploy's title", () => {
   test("names the commit its fetch reached, short, once it has one", () => {
     const row = { project: "aide", specFolder: "deploy", steps: ["deploy"], stepIndex: 0 };
-    expect(jobTitle({ ...row, deployCommit: "1cddc87ac0ffee" })).toBe("Deploy aide · 1cddc87");
-    expect(jobTitle(row)).toBe("Deploy aide");
+    expect(jobTitle({ ...row, deployCommit: "1cddc87ac0ffee" })).toBe("Deploy · 1cddc87");
+    expect(jobTitle(row)).toBe("Deploy");
   });
 });
 

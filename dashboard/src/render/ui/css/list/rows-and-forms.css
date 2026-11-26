@@ -192,6 +192,11 @@ header .boardrow button > svg { flex: none; width: 1rem; height: 1rem; }
 .menu .morerows { display: none; align-items: center; justify-content: space-between; gap: var(--sp-3);
   flex-wrap: wrap; padding: 2px 10px; }
 .menu .morerows > .seg { flex: none; }
+/* The panel is as wide as its widest row at every width, so a setting's
+   name and its control share a line once the page has narrowed enough to
+   bring the setting in; never wider than the screen. */
+header .menupanel:has(> .morerows) { box-sizing: border-box; width: max-content;
+  max-width: calc(100vw - 2 * var(--sp-3)); }
 /* A segmented control: word buttons side by side, one border round the
    group. `.seg > button` and `.seg > label` are not direct children of
    the panel, so the panel's own row rules above do not reach them. */

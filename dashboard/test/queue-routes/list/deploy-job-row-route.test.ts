@@ -61,7 +61,7 @@ describe("a deploy job on the Running tab", () => {
     const { base } = board([deploy()]);
     const html = await rows(base);
     expect(html).toContain(`id="spec-${KEY}"`);
-    expect(html).toContain("Deploy aide");
+    expect(html).toMatch(/aide<\/[^>]+>.*Deploy/s);
     expect(html).not.toContain('id="spec-aide/deploy"');
     expect(html.match(/id="spec-aide\/deploy[^"]*"/g)).toHaveLength(1);
   });

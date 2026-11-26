@@ -157,8 +157,10 @@
      flex line below, and blocking its cells put the time and the cost
      back on the phone, one line each, after the rules
      below had hidden them. */
-  table.speclist tr:not(.spechead):not(.specstate):not(.subrow) { display: block; }
-  table.speclist tr:not(.spechead):not(.specstate):not(.subrow) > td { display: block; }
+  /* The list's own rows only: a table inside a row, such as a deploy's
+     commits, keeps its columns. */
+  table.speclist > :is(thead, tbody) > tr:not(.spechead):not(.specstate):not(.subrow) { display: block; }
+  table.speclist > :is(thead, tbody) > tr:not(.spechead):not(.specstate):not(.subrow) > td { display: block; }
   .tabbar .tab { min-width: 0; }
 
   /* The desktop chain (page.css's body/main rules, list.css's

@@ -221,8 +221,6 @@
   header .boardline { margin-inline: auto; min-width: 0; text-align: center; }
     .menupanel > .boardrow { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); white-space: nowrap;
     padding: var(--sp-1) var(--sp-2); border-bottom: 1px solid var(--line); margin-bottom: 2px; }
-  header .menupanel:has(> .morerows) { box-sizing: border-box; width: max-content;
-    max-width: calc(100vw - 2 * var(--sp-3)); }
   .menu .morerows { display: flex; }
   /* The controls stay at the right of the header when the board name wraps. */
   header > .row:not(.boardline) { flex: none; flex-wrap: nowrap; position: relative; }

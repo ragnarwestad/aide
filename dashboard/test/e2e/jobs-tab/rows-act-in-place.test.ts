@@ -331,7 +331,7 @@ test("Types can select Merge separately and its card names the source branch (AC
     await page.waitForURL((url) => url.searchParams.get("kind") === "land");
     await page.getByText(/Merge to .* · fix\/example/, { exact: true }).waitFor();
     expect(new URL(page.url()).searchParams.get("kind")).toBe("land");
-    await page.getByText("Deploy aide", { exact: true }).waitFor({ state: "hidden" });
+    await page.getByText("Deploy", { exact: true }).waitFor({ state: "hidden" });
   } finally { await page.close(); }
 });
 

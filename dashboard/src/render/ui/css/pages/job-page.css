@@ -2,6 +2,9 @@
 
 table.facts { width: auto; margin: var(--sp-3) 0 var(--sp-4); }
 table.facts td { padding: 2px var(--sp-4) 2px 0; }
+/* Inside a row of the list, such as a deploy's commits, the cells stay the
+   table's own: the list's padding, line and centring are for its own rows. */
+table.list td table.facts td { padding: 2px var(--sp-4) 2px 0; vertical-align: top; border-bottom: none; }
 table.facts .label { color: var(--muted); font-weight: 500; white-space: nowrap; }
 table.facts .pipwrap { margin-left: var(--sp-2); vertical-align: middle; }
 /* Each Logs row expands to its own log rather than one
