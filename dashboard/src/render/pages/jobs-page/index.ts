@@ -319,6 +319,7 @@ export function renderJobsPage(v: JobsView, generatedAt: string, entriesNav: Nav
   // no redraw of the rows replaces either.
   const body = listRefusalLine() + `<div id="jobrows">${renderJobsRows(v)}</div>` + refusalRowTemplate();
   return pageShell(t(lang, "shell.tabRunning"), entriesNav, "/", body, generatedAt, {
+    showSearchHelp: true,
     hideHeading: true,
     script: v.list.script,
     lang,

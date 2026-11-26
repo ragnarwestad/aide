@@ -243,11 +243,8 @@ function pageHeader(lang: Language, currentUrl: string, tabs = ""): string {
     // The trigger is a QUIET icon — no border, no button chrome; a round
     // hover flat is all (PaceUp's header menu is the reference).
     headerMenu({ label: t(lang, "shell.more"), icon: ICON_MORE,
-      // The search help and Usage stand in for their own triggers, which a
-      // phone's stylesheet hides (narrow-rows.css); the menu script opens
-      // the `<details>` each names.
+      // On phones the Usage row opens the same panel as the header trigger.
       content: `${boardRow(lang)}${menuSettingRows(lang, currentUrl)}` +
-        `<button type="button" data-opens="search-help">${t(lang, "list.searchHelpTitle")}</button>` +
         `<button type="button" data-opens="usage-dialog">${t(lang, "shell.usage")}</button>` +
         `<a href="/settings">${t(lang, "shell.settings")}</a>` +
         `<a href="/test-servers">${t(lang, "shell.testServers")}</a>` +
@@ -289,7 +286,7 @@ export function siteTabKeys(
   return { keys: ["/", "/specs", projectsPage!.path, ...sections.map((e) => e.path)], sections, current };
 }
 
-function siteTabs(entries: NavEntry[], currentPath: string, lang: Language): string {
+function siteTabs(entries: NavEntry[], currentPath: string, lang: Language, showSearchHelp?: boolean): string {
   // Real tabs, not filter pills: a hairline the row sits on, and the
   // current tab marked by an underline in the accent colour (asked for
   // 2026-08-19, with PaceUp's tab bar as the reference).
@@ -317,7 +314,7 @@ function siteTabs(entries: NavEntry[], currentPath: string, lang: Language): str
     ...sections.flatMap((entry): [string, SiteTab][] => entry.icon ? [[entry.path, entry.icon]] : []),
   ]);
   const icons = new Map([...kinds].map(([path, kind]) => [path, tabIcon(kind)]));
-  const help = tabBarHelp(lang, keys.map((path) => ({ word: words.get(path)!, kind: kinds.get(path) })));
+  const help = tabBarHelp(lang, keys.map((path) => ({ word: words.get(path)!, kind: kinds.get(path) })), showSearchHelp);
   const activity = readSpecActivityCounts();
   return tabBar(keys, (path) => path, current, { "/": activity.activeJobs, "/specs": activity.openSpecs }, help, {
     label: (path) => words.get(path)!, icon: (path) => icons.get(path), site: true, showZero: true,
@@ -352,6 +349,7 @@ export interface PageShellOpts {
    *  offers, so it draws no tab bar at all. Absent (never required)
    *  on every other page. */
   hideTabBar?: boolean;
+  showSearchHelp?: boolean;
   /** Where a browser tab whose first board page this is goes instead, as
    *  the `aide-start` meta `start-page.ts` reads. Absent on every page but
    *  the Running tab with no row. */
@@ -418,7 +416,7 @@ export function shellRest(
   // parsed — and waits for DOMContentLoaded before touching an element.
   const script = opts.script ? `\n<script>${opts.script}</script>` : "";
   const scriptSrc = opts.scriptSrc ? `\n<script src="${esc(opts.scriptSrc)}"></script>` : "";
-  const tabs = opts.hideTabBar ? "" : siteTabs(entries, currentPath, lang);
+  const tabs = opts.hideTabBar ? "" : siteTabs(entries, currentPath, lang, opts.showSearchHelp);
   return `
 ${pageHeader(lang, currentUrl, tabs)}
 ${headerNotices(lang)}

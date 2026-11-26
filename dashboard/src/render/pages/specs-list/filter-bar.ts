@@ -4,7 +4,7 @@
 // draws the rows themselves.
 
 import { NEW_SPEC_ROUTE } from "../projects-page";
-import { btn, btnLink, FILTER_ICONS, helpPopover, ICON_CHEVRON, ICON_SEARCH } from "../../ui/components";
+import { btn, btnLink, FILTER_ICONS, ICON_CHEVRON, ICON_SEARCH } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { t, type Language, type TranslationKey } from "../../../i18n";
 import {
@@ -50,19 +50,6 @@ export function queuePath(f: SpecsFilter, patch: SpecsFilter = {}, path = "/spec
     .map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`)
     .join("&");
   return q ? `${path}?${q}` : path;
-}
-
-// What the page used to say in a separate paragraph under the search
-// field: what the search reads. It sits behind the "?" beside
-// the field instead — the one thing a reader cannot see about a filter is
-// what it looked in. It is inside `#jobrows`, so it shuts again on the
-// five-second refresh, and fine for that: nothing here is being typed
-// into.
-/** The search help's id: the phone's "…" menu opens it by this. */
-export const SEARCH_HELP = "search-help";
-
-function runsHelp(lang: Language): string {
-  return helpPopover(t(lang, "list.searchHelpTitle"), t(lang, "list.searchHelpBody"), SEARCH_HELP);
 }
 
 export function filterBar(groups: SpecGroup[], f: SpecsFilter, opts: SpecsPageOptions, shown: number): string {
@@ -264,7 +251,6 @@ export function searchForm(
     `</span>` +
     keep +
     btn({ label: t(lang, "list.search"), data: { "search-submit": "" } }) +
-    runsHelp(lang) +
     o.after +
     `</form>\n`
   );

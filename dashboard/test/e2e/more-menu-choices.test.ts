@@ -6,6 +6,7 @@
 // language reloads the page in it once.
 import { expect, test } from "bun:test";
 import type { Page } from "playwright";
+import { t } from "../../src/i18n";
 import { browserDeadline, withBrowser } from "../helpers/browser-deadline.ts";
 import { e2eBrowser, pageOnRunning } from "../helpers/setup/e2e-browser.ts";
 import { queueHarness } from "../helpers/queue-server.ts";
@@ -78,11 +79,23 @@ test("on Jobs the filters stay on the phone's search line, outside the … menu,
   expect(await page.locator('details.menu[data-filter="kind"]').evaluate((el) => (el as HTMLDetailsElement).open)).toBe(true);
 });
 
-test("on Specs the Filter opens from the phone's search line, and the … menu opens the search help", async () => {
-  await openMore(PHONE, "/specs?live=0");
-  await page.locator(MORE_MENU).getByRole("button", { name: "What the search reads", exact: true }).click();
-  expect(await page.locator("#search-help").evaluate((el) => (el as HTMLDetailsElement).open)).toBe(true);
+for (const path of ["/", "/specs"]) {
+  test(`the tab bar help opens the search explanation on ${path}`, async () => {
+    await page.setViewportSize(PHONE);
+    await withBrowser(page.goto(`${base}${path}?live=0`), `page.goto(${path})`);
+    const tabs = page.getByRole("navigation").filter({ has: page.getByLabel(t("en", "shell.tabHelpTitle")) });
+    const help = tabs.getByLabel(t("en", "shell.tabHelpTitle"), { exact: true });
+    await help.click({ timeout: 2000 });
+    const explanation = tabs.getByText(t("en", "list.searchHelpBody"), { exact: false });
+    await explanation.waitFor({ state: "visible", timeout: 2000 });
+    await page.keyboard.press("Escape");
+    await explanation.waitFor({ state: "hidden" });
+  });
+}
 
+test("on Specs the Filter opens from the phone's search line", async () => {
+  await page.setViewportSize(PHONE);
+  await withBrowser(page.goto(`${base}/specs?live=0`), "page.goto(/specs)");
   await page.locator('.specsearch details.menu[data-filter="state"] > summary').click();
   const filter = page.locator('details.menu[data-filter="state"]');
   expect(await filter.evaluate((el) => (el as HTMLDetailsElement).open)).toBe(true);

@@ -224,17 +224,10 @@
   .menu .morerows { display: flex; }
   /* The controls stay at the right of the header when the board name wraps. */
   header > .row:not(.boardline) { flex: none; flex-wrap: nowrap; position: relative; }
-  /* Usage's and the search help's triggers give way to the "…" menu's
-     rows. Each <details> stays, since its panel is what opens: taken out of
-     its row's flow and pinned to the row's bottom right, its panel opens
-     under the header's controls and under the search line. */
+  /* The "…" menu opens the Usage panel under the header's controls. */
   header #usage-dialog { position: absolute; right: 0; top: 100%; }
   header #usage-dialog > summary { display: none; }
-  .specsearch { position: relative; }
-  .specsearch > #search-help { position: absolute; right: 0; top: 100%; }
-  .specsearch > #search-help > summary { display: none; }
-  .menupanel > [data-opens="usage-dialog"],
-  body:has(#search-help) .menupanel > [data-opens="search-help"] { display: flex; }
+  .menupanel > [data-opens="usage-dialog"] { display: flex; }
   /* The list starts the board's standard margin below the search line. */
   #jobrows .specsearch { margin-bottom: var(--sp-3); }
   /* New says only "New", and Search shows while the field is being typed

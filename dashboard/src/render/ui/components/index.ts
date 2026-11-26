@@ -174,8 +174,7 @@ export function switchControl(o: {
 // --- help popover ----------------------------------------------------------------
 
 /** A "(?)" disclosure that answers one question about the control or panel
- *  beside it — the search field's own "What the search reads",
- *  and each spec tab's own explanation of what it shows.
+ *  beside it, such as the explanations in the site tab bar.
  *  `<details>`/`<summary>`, so it opens and closes with no script and is
  *  identical markup with JavaScript off; `menu-script.ts` already
  *  queries every `details.intro` document-wide to close it like any other

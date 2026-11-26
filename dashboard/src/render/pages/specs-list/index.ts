@@ -455,6 +455,7 @@ export function renderSpecsPage(
   // gone (2026-08-19). The title still names the page for the shell.
   return pageShell(t(opts.lang ?? "en", "shell.tabSpecs"), entries, "/specs", specsPageBody(rows, opts), generatedAt, {
     docTitle: "aide -board",
+    showSearchHelp: true,
     hideHeading: true,
     script: opts.script,
     scriptSrc: opts.scriptSrc,

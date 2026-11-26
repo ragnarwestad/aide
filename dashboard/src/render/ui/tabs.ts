@@ -139,7 +139,9 @@ export function tabBar<T extends string>(
 /** The "?" at the right end of the site tab bar: each tab's icon, word and
  *  what it holds, followed by the counts and Deploy states. A section
  *  with no icon of its own is listed by its word alone. */
-export function tabBarHelp(lang: Language, tabs: { word: string; kind?: SiteTab }[]): string {
+export function tabBarHelp(
+  lang: Language, tabs: { word: string; kind?: SiteTab }[], showSearchHelp = false,
+): string {
   const lines = tabs
     .map((tab) => tab.kind
       ? `${tabIcon(tab.kind)} ${esc(tab.word)} — ${esc(t(lang, `shell.tabHelp.${tab.kind}`))}`
@@ -149,12 +151,15 @@ export function tabBarHelp(lang: Language, tabs: { word: string; kind?: SiteTab 
     `<span class="kindicon" data-deploy-legend data-deploy-status="${status.toLowerCase()}" aria-hidden="true">${KIND_ICONS.deploy}${status === "Pending" ? " (2)" : ""}</span> ` +
     esc(t(lang, `shell.deployHelp${status}`)),
   );
+  const search = showSearchHelp
+    ? `<br><br><strong>${esc(t(lang, "list.searchHelpTitle"))}</strong><br>${esc(t(lang, "list.searchHelpBody"))}`
+    : "";
   return helpPopover(
     t(lang, "shell.tabHelpTitle"),
     `<span data-tab-list>${lines}<br><br></span>${esc(t(lang, "shell.tabHelpCounts"))}` +
       `<br>• ${esc(t(lang, "shell.tabRunning"))}: ${esc(t(lang, "shell.tabHelpCount.jobs"))}` +
       `<br>• ${esc(t(lang, "shell.tabSpecs"))}: ${esc(t(lang, "shell.tabHelpCount.specs"))}` +
-      `<br><br>${deploy.join("<br>")}`,
+      `<br><br>${deploy.join("<br>")}${search}`,
   );
 }
 
