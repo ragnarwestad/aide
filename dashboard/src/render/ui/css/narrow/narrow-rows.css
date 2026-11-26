@@ -454,6 +454,7 @@
    phase lines' own margins above, which this replaces. */
 @media (max-width: 40rem) {
   table.speclist[data-list="jobs"] tr:is(.specstate, .subrow) > td[data-col="state"] { margin-left: auto; }
+  table.speclist[data-list="jobs"] tr[data-jobstep]:not([data-phasestep]) > .phasecell { flex: 1 1 0; }
   /* And the time ends at that edge, a few seconds as much as an hour. */
   table.speclist[data-list="jobs"] tr:is(.specstate, .subrow, .groupline) > td[data-col="started"] { text-align: right; }
 }
