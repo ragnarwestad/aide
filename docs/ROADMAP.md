@@ -30,6 +30,7 @@
   - [32. Switching provider before a usage limit is reached](#32-switching-provider-before-a-usage-limit-is-reached)
   - [33. Domain Specific / Standard Agents](#33-domain-specific--standard-agents)
   - [35. Claude Ship on a project that lands through pull requests](#35-claude-ship-on-a-project-that-lands-through-pull-requests)
+  - [36. A pull request that shows the criteria it touches and the tests that prove them](#36-a-pull-request-that-shows-the-criteria-it-touches-and-the-tests-that-prove-them)
 
 ---
 
@@ -45,7 +46,7 @@ An idea that becomes a spec names it, and leaves this page once the spec is arch
 
 Each idea has a number that stays with it. A new idea gets the next number after the highest one ever given, and
 the number of an idea taken off the page is never used again, so a number can be referred to and still mean the
-same idea later. The next number is 36.
+same idea later. The next number is 37.
 
 ## To consider
 
@@ -782,3 +783,55 @@ repair sessions, and there is no pull request for Claude Ship to work on.
 
 Limits: Claude Ship needs a Team or Enterprise plan and a repository on GitHub, and is not offered with Zero Data
 Retention, the HIPAA configuration or customer-managed keys. PR Steward and Claude Approvals are in beta.
+
+### 36. A pull request that shows the criteria it touches and the tests that prove them
+
+From [The End of Code Review](https://www.youtube.com/watch?v=UA3qEfR11zM) by Kent C. Dodds (Nov 24, 2026), and from
+Skjera moving from pushing to main to pull requests.
+
+Dodds' point: agents write more code than a person can read, and adding more review bots does not change that. The
+person should review the intent, and something else should show that the code holds to it. In Aide the intent is
+the acceptance criteria, but a pull request today carries only the commit message. Whoever reviews it sees neither
+the criteria nor the tests that cover them, and has to read the diff.
+
+Skjera already keeps its criteria as a lasting catalogue of its own:
+
+- One file per feature under `docs/acceptance`, where each criterion has an id such as SIGN-06 AC-3, its text in
+  EARS, a manual test written as Given/When/Then, and an "Automated:" line naming the tests that cover it.
+- A test plan in Notion with one row per criterion, saying whether it is covered by a unit test, a browser test or a
+  manual test.
+- Test names that carry the catalogue id, such as "(SIGN-06 AC-1)".
+
+What is missing is the link from a change to that catalogue. Nothing tells the reviewer which criteria a pull
+request adds, changes or relies on, or which of them need testing by hand again.
+
+The idea, for a project that keeps such a catalogue:
+
+1. **The project says where its catalogue is**, in settings kept outside its repository, since Skjera has no
+   `.aide` folder. A project without a catalogue works as today.
+2. **Analyze links each spec criterion to the catalogue**, such as "AC-3 → STU-01 AC-5, changed" or "new:
+   SIGN-17 AC-1", and the plan review checks that every criterion has its link. The link goes one way, from the
+   private spec to the catalogue, and nothing in the project names the spec.
+3. **Implement updates the catalogue** — a criterion's text, its manual test and its "Automated:" line — and names
+   tests by the catalogue id. Where a criterion is a rule over many inputs, its test can be a property test (fast-check
+   for TypeScript).
+4. **The runner checks the proof.** The tests for every new or changed criterion are red without the change and green
+   with it. No model is involved, so the answer is the same every time.
+5. **The pull request lists the criteria it touches**, split into new, changed and relied on, each with its tests,
+   their result and whether it needs testing by hand, linked to its file under `docs/acceptance`. It is written in
+   the project's own words, without naming Aide or the spec.
+
+Testing by hand stays in the project's own test rounds, and the pull request's list is what the tester reads. Having
+Aide mark a changed criterion as untested in the Notion test plan is left until the list has been tried.
+
+A first trial needs no change to Aide: write the list by hand on Skjera's first pull request and see whether the
+reviewer can do without reading the diff.
+
+Open questions:
+
+- Implement puts the spec criterion's id in a test's name today (`acPrefix`, `core/scripts/aide-ac-prefix`), and
+  the board reads those names to show which test covers which criterion. In a project with a catalogue the test
+  takes the catalogue id instead, and the board finds its way back through the link in the analysis.
+- The criteria must be the person's own. When the create step fills in missing criteria and acceptance ticking is
+  turned off, the list shows what an agent wrote that nobody read.
+- How a property test's random inputs stay repeatable in Merge and CI, so a red result can be run again.
