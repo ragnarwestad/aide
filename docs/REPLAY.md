@@ -107,9 +107,15 @@ Use `--preflight '<command>'` when a project's tests need services. The command 
 in each historical code copy, before analyze, the judge or implement. A nonzero
 exit or a ten-minute timeout stops that spec without calling a model; its output
 stays in `preflight.log` beside the step logs. For Skjera, use
-`--preflight 'docker compose up -d --wait mailpit && curl -fsS --max-time 10 http://127.0.0.1:8025/readyz'`.
-A port conflict must be resolved before replay; do not stop another service to
-make room for it.
+`--preflight 'mise trust --quiet && mise exec -- docker compose up -d --wait mailpit && curl -fsS --max-time 10 http://127.0.0.1:8025/readyz'`,
+so mailpit gets the same settings from mise as the tests do.
+
+Skjera code from before 5 November 2026 binds mailpit to 0.0.0.0:8025 whenever
+`SKJERA_TEST_SERVER_URL` is set, and Tailscale serve holds port 8025 on the serving
+host's tailnet addresses. A round on that code sets `MISE_CONFIG_DIR` to a folder
+holding a copy of the mise config without that variable, as
+`~/.aide/run-replay-skjera.sh` on the serving host does. A port conflict must be
+resolved before replay; do not stop another service to make room for it.
 
 Start it with `tmux new-session -d -s <name> <launcher>`.
 
