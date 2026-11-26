@@ -365,6 +365,8 @@ table.speclist[data-list="jobs"] tr:is(.specstate, .groupline) .createdpips:has(
     left: calc(20% + 4.75rem + var(--sp-1) + 8rem + var(--sp-2) + 2px + 20px + 2px); }
   table.speclist[data-list="jobs"] tbody[data-group-members] tr.specstate .createdpips > .actionslot {
     left: calc(20% + 4.75rem + var(--sp-1) + 8rem + var(--sp-2) + 2px + 20px + 12px); }
+  table.speclist[data-list="jobs"] tr[data-job] + tr.specstate .createdpips > .actionslot {
+    position: static; transform: none; width: auto; flex: none; }
   /* The Select column stands 20px further from the Model select than the
      row's gap, so the button over it clears the select. */
   table.speclist[data-list="jobs"] tr.subrow .modelcell > .row > .phase[data-phase] { margin-left: 20px; }
