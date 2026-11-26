@@ -71,6 +71,11 @@ export interface CheckOptions {
    *  login of each provider of that tool, and its own login when it has
    *  none. */
   providers?: () => Record<string, Provider> | undefined;
+  /** One provider whose login alone is asked, in place of `providers`:
+   *  the one whose Installation tab is open. It is asked whether or not
+   *  it is switched on, and through its own binary even when the
+   *  preflight does not find the tool's CLI. */
+  provider?: Provider;
   /** Test seam: the home directory a provider's folder is expanded against. */
   home?: string;
 }
@@ -275,16 +280,28 @@ export async function checkTool(tool: CheckableTool, opts: CheckOptions = {}): P
   // A CLI that is not there cannot be asked anything, and asking would
   // report "not logged in" for what is really "not installed".
   const extra: ExtraCheck[] = [];
-  if (found) {
+  const binOf = (provider: Provider): string => provider.binary ? expandDir(provider.binary, opts.home ?? homedir()) : path(tool);
+  if (opts.provider) {
+    // A binary of its own can be asked when the tool's CLI is not found.
+    if (found || opts.provider.binary) extra.push(await askLogin(tool, run, binOf(opts.provider), opts.provider, opts.home));
+  } else if (found) {
     // A switched-off provider runs nothing, so its login is no fault.
     const own = Object.values(opts.providers?.() ?? {}).filter((p) => p.tool === tool && p.enabled !== false);
     if (own.length === 0) extra.push(await askLogin(tool, run, path(tool)));
-    for (const provider of own) {
-      const bin = provider.binary ? expandDir(provider.binary, opts.home ?? homedir()) : path(tool);
-      extra.push(await askLogin(tool, run, bin, provider, opts.home));
-    }
+    for (const provider of own) extra.push(await askLogin(tool, run, binOf(provider), provider, opts.home));
   }
   return { tool, at, found, missing, paths, behind, extra };
+}
+
+/** The check to store after one provider's check: the last stored
+ *  check's login answers for the tool's other providers, then the new
+ *  answer — left out for a switched-off provider, whose login is no
+ *  fault. The last check's time is kept, so the recheck before a job
+ *  still sees how old the other providers' answers are. */
+export function withProviderAnswer(last: ToolCheck | undefined, check: ToolCheck, provider: Provider): ToolCheck {
+  const others = (last?.extra ?? []).filter((e) => e.provider !== undefined && e.provider !== provider.name);
+  const own = provider.enabled === false ? [] : check.extra;
+  return { ...check, at: last?.at ?? check.at, extra: [...others, ...own] };
 }
 
 /** Run every check once, for a server that has just come up.

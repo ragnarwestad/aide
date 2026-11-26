@@ -129,8 +129,8 @@ export interface ServerOptions {
    *  the models read and the check. A test seam, and both halves are required, so a test that
    *  sets it can never fall through to a real CLI on the other. */
   toolProbe?: {
-    check: (tool: CheckableTool) => Promise<ToolCheck>;
-    models: (tool: CheckableTool, opts: { configured: string[]; env?: Record<string, string> }) => Promise<ToolModels>;
+    check: (tool: CheckableTool, provider?: Provider) => Promise<ToolCheck>;
+    models: (tool: CheckableTool, opts: { configured: string[]; env?: Record<string, string>; bin?: string }) => Promise<ToolModels>;
   };
   /** What opening Settings on its Providers tab, a provider's page, or a
    *  save runs in place of the real read of a provider's tool and login. A

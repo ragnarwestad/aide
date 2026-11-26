@@ -452,8 +452,10 @@ which is how a project points its runs at a stand-in binary; a value written the
 
 The tool checks run when the board starts, when a provider's Installation tab is opened, and for the tool a queued job's next step will run on,
 at most once a minute per tool. A check that finds something wrong puts a line at the top of every page, but only for a
-tool some model is configured for. The login check reads every provider of the tool, each with its own folder, so the
-line names the provider whose login is wrong ("Claude Code: Claude-2 not logged in"). A Claude Code login that names one account with an organization plan it cannot have is
+tool some model is configured for. The login check at start and before a job reads every switched-on provider of the
+tool, each with its own folder, so the line names the provider whose login is wrong ("Claude Code: Claude-2 not logged
+in"). A provider's Installation tab asks that provider's login alone, switched on or not, through its binary path when it
+has one, even when the tool's own CLI is not found; the other providers' last answers stay as they were. A Claude Code login that names one account with an organization plan it cannot have is
 reported as the login in use being another account's. All of this happens only on a board started with
 `checkToolsOnStart`.
 
@@ -750,8 +752,9 @@ the provider.
 - **Read as a step would meet it.** The status is read when Settings opens on its Providers tab (for the rows) and when
   a provider's page opens, and no other tab reads anything. The board's own process reads it, with the provider's folder in the environment, so it is what a
   step on that provider would meet, which a terminal's own login need not be: a login kept in the macOS keychain can be
-  readable from a terminal and not from the board's service. The login check at start, on the Installation tab and before a waiting
-  job reads every provider the same way.
+  readable from a terminal and not from the board's service. The login check at start and before a waiting job reads
+  every provider the same way, and the Installation tab reads its own provider so. The Models tab reads the models
+  through the provider's binary path when it has one, with its folder in the environment.
 - **One login each.** Save refuses a provider whose login another provider of the same tool already uses: the same
   Claude config folder, the same Codex folder (the shadow home when there is one), or a second OpenCode provider.
 - **Stored under a key.** The `providers` table of `queue-config.json` holds each provider under a key that never

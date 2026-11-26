@@ -219,6 +219,46 @@ describe("whether a provider is logged in", () => {
   });
 });
 
+describe("a check for one provider", () => {
+  const PROVIDERS = {
+    Claude: { name: "Claude", tool: "claude" as const },
+    "Claude-2": { name: "Claude-2", tool: "claude" as const, configDir: "~/.claude-2" },
+  };
+  const loggedIn = { "auth status": { stdout: JSON.stringify({ loggedIn: true }) } };
+  const asked = (run: ReturnType<typeof fakeRun>) =>
+    run.calls.map((c, i) => ({ argv: c.join(" "), env: run.envs[i] })).filter((c) => c.argv.includes("auth status"));
+
+  test("only that provider is asked, with its own folder, though the tool has others (AC-2, AC-4)", async () => {
+    const run = fakeRun({ "aide-preflight": { stdout: "cli\tfound\n" }, ...loggedIn });
+    const check = await checkTool("claude", opts(run, { provider: PROVIDERS["Claude-2"], providers: () => PROVIDERS, home: "/home/x" }));
+    expect(asked(run)).toEqual([{ argv: "claude auth status", env: { CLAUDE_CONFIG_DIR: "/home/x/.claude-2" } }]);
+    expect(check.extra.map((e) => e.provider)).toEqual(["Claude-2"]);
+  });
+
+  test("a switched-off provider is still asked (AC-2)", async () => {
+    const run = fakeRun({ "aide-preflight": { stdout: "cli\tfound\n" }, ...loggedIn });
+    const check = await checkTool("claude", opts(run, { provider: { ...PROVIDERS.Claude, enabled: false }, home: "/home/x" }));
+    expect(asked(run)).toHaveLength(1);
+    expect(check.extra.map((e) => e.provider)).toEqual(["Claude"]);
+  });
+
+  test("with the CLI missing, a provider with a binary path is asked through that program, and the CLI stays not found (AC-3)", async () => {
+    const run = fakeRun({ "aide-preflight": { stdout: "cli\tmissing\n" }, ...loggedIn });
+    const provider = { ...PROVIDERS["Claude-2"], binary: "~/bin/claude-next" };
+    const check = await checkTool("claude", opts(run, { provider, home: "/home/x" }));
+    expect(asked(run)).toEqual([{ argv: "/home/x/bin/claude-next auth status", env: { CLAUDE_CONFIG_DIR: "/home/x/.claude-2" } }]);
+    expect(check.found).toBe(false);
+    expect(check.extra.map((e) => e.provider)).toEqual(["Claude-2"]);
+  });
+
+  test("with the CLI missing, a provider with no binary path is asked nothing (AC-3)", async () => {
+    const run = fakeRun({ "aide-preflight": { stdout: "cli\tmissing\n" }, ...loggedIn });
+    const check = await checkTool("claude", opts(run, { provider: PROVIDERS["Claude-2"], home: "/home/x" }));
+    expect(run.calls).toHaveLength(1);
+    expect(check.extra).toEqual([]);
+  });
+});
+
 describe("whether a tool is logged in", () => {
   const preflight = { "aide-preflight": { stdout: "cli\tfound\n" } };
   const login = (check: Awaited<ReturnType<typeof checkTool>>) =>

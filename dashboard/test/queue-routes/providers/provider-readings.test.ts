@@ -3,11 +3,12 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
-import { forgetChecks, lastChecks } from "../../../src/serve/tool-check.ts";
+import { forgetChecks, lastChecks, recordCheck } from "../../../src/serve/tool-check.ts";
 import { lastModels } from "../../../src/serve/tool-models";
-import type { CheckableTool, ToolCheck, ToolModels } from "../../../src/render";
+import type { CheckableTool, ExtraCheck, ToolCheck, ToolModels } from "../../../src/render";
+import type { Provider } from "../../../src/queue/providers/index.ts";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
 import { AT, defaultsOf, modelsProbe, ownFiles, post, stubReads } from "../settings-models/fixtures.ts";
 
@@ -24,7 +25,7 @@ const CHOICES = { Opus: { model: "opus" }, Fable: { model: "fable" }, "gpt-5.5":
 
 /** A board with the three providers, a probe that counts what it is asked, and
  *  the page's own reads stubbed so no CLI starts. */
-function serve(probe: ReturnType<typeof countingProbe> | ReturnType<typeof modelsProbe>) {
+function serve(probe: ReturnType<typeof countingProbe> | ReturnType<typeof modelsProbe>, providers?: Record<string, Provider>) {
   forgetChecks();
   const { file, modelIdsPath } = ownFiles(JSON.stringify({
     model: { default: "Opus" },
@@ -36,23 +37,25 @@ function serve(probe: ReturnType<typeof countingProbe> | ReturnType<typeof model
     },
   }, null, 2), ownDirs);
   const { base } = startServer({
-    ...stubReads, queueDefaults: defaultsOf(CHOICES, { default: "Opus" }),
+    ...stubReads, queueDefaults: { ...defaultsOf(CHOICES, { default: "Opus" }), ...(providers ? { providers } : {}) },
     queueConfigFile: file, modelIdsPath, toolProbe: probe,
   });
   return { base };
 }
 
 /** Counts each kind of read; what it answers is the test's to set. */
-function countingProbe(over: { check?: (tool: CheckableTool) => Promise<ToolCheck>; models?: (tool: CheckableTool) => Promise<ToolModels> } = {}) {
+function countingProbe(over: { check?: (tool: CheckableTool, provider?: Provider) => Promise<ToolCheck>; models?: (tool: CheckableTool) => Promise<ToolModels> } = {}) {
   const probe = {
     checks: [] as CheckableTool[],
-    modelReads: [] as { tool: CheckableTool; configured: string[]; env?: Record<string, string> }[],
-    check: async (tool: CheckableTool): Promise<ToolCheck> => {
+    checkedProviders: [] as (string | undefined)[],
+    modelReads: [] as { tool: CheckableTool; configured: string[]; env?: Record<string, string>; bin?: string }[],
+    check: async (tool: CheckableTool, provider?: Provider): Promise<ToolCheck> => {
       probe.checks.push(tool);
-      return over.check ? over.check(tool) : { tool, at: AT, found: true, missing: ["scripts"], extra: [] };
+      probe.checkedProviders.push(provider?.name);
+      return over.check ? over.check(tool, provider) : { tool, at: AT, found: true, missing: ["scripts"], extra: [] };
     },
-    models: async (tool: CheckableTool, opts: { configured: string[]; env?: Record<string, string> }): Promise<ToolModels> => {
-      probe.modelReads.push({ tool, configured: opts.configured, env: opts.env });
+    models: async (tool: CheckableTool, opts: { configured: string[]; env?: Record<string, string>; bin?: string }): Promise<ToolModels> => {
+      probe.modelReads.push({ tool, configured: opts.configured, env: opts.env, bin: opts.bin });
       return over.models ? over.models(tool) : { tool, at: AT, offered: [] };
     },
   };
@@ -95,6 +98,23 @@ describe("the Models tab", () => {
     expect(lastModels().codex).toMatchObject({ offered: [{ model: "gpt-6.1-sol" }], provider: "Codex" });
   });
 
+  test("a provider with a binary path is read through that program, with its own env (AC-1)", async () => {
+    const probe = countingProbe();
+    const { base } = serve(probe, { Next: { name: "Next", tool: "claude", configDir: "/srv/claude-next", binary: "~/bin/claude-next" } });
+    await open(base, "Next", "models");
+    expect(probe.modelReads).toHaveLength(1);
+    expect(probe.modelReads[0]!.bin).toBe(join(homedir(), "bin/claude-next"));
+    expect(probe.modelReads[0]!.env).toMatchObject({ CLAUDE_CONFIG_DIR: "/srv/claude-next" });
+  });
+
+  test("a provider with no binary path is read through the tool's own program, with its own env (AC-4)", async () => {
+    const probe = countingProbe();
+    const { base } = serve(probe, { Own: { name: "Own", tool: "claude", configDir: "/srv/claude-own" } });
+    await open(base, "Own", "models");
+    expect(probe.modelReads[0]!.bin).toBeUndefined();
+    expect(probe.modelReads[0]!.env).toMatchObject({ CLAUDE_CONFIG_DIR: "/srv/claude-own" });
+  });
+
 
   test("a probe that throws is answered as a reading that failed, and kept as one (AC-9)", async () => {
     const { base } = serve(countingProbe({ models: async () => { throw new Error("opencode would not start"); } }));
@@ -131,6 +151,36 @@ describe("the Installation tab", () => {
     expect(lastChecks().codex).toMatchObject({ tool: "codex", missing: ["scripts"] });
   });
 
+
+  const login = (provider: string, ok: boolean): ExtraCheck => ({ question: "Is it logged in?", ok, detail: "", provider, ...(ok ? {} : { problem: `${provider} not logged in` }) });
+  const TWO: Record<string, Provider> = { Claude: { name: "Claude", tool: "claude" }, "Claude-2": { name: "Claude-2", tool: "claude", configDir: "/srv/claude-2" } };
+  const OLD = "2026-10-03T12:00:00.000Z";
+
+  test("the check is handed the open provider only (AC-2)", async () => {
+    const probe = countingProbe();
+    const { base } = serve(probe, TWO);
+    await open(base, "Claude-2", "installation");
+    expect(probe.checkedProviders).toEqual(["Claude-2"]);
+  });
+
+  test("the stored check keeps the other provider's answer and its time, with the open one's new (AC-2)", async () => {
+    const probe = countingProbe({ check: async (tool, provider) => ({ tool, at: AT, found: true, extra: [login(provider!.name, true)] }) });
+    const { base } = serve(probe, TWO);
+    recordCheck({ tool: "claude", at: OLD, found: true, extra: [login("Claude", false), login("Claude-2", false)] });
+    await open(base, "Claude-2", "installation");
+    const stored = lastChecks().claude!;
+    expect(stored.at).toBe(OLD);
+    expect(stored.extra.map((e) => [e.provider, e.ok])).toEqual([["Claude", false], ["Claude-2", true]]);
+  });
+
+  test("a switched-off provider's answer is not stored (AC-2)", async () => {
+    const probe = countingProbe({ check: async (tool, provider) => ({ tool, at: AT, found: true, extra: [login(provider!.name, false)] }) });
+    const { base } = serve(probe, { ...TWO, "Claude-2": { ...TWO["Claude-2"]!, enabled: false } });
+    recordCheck({ tool: "claude", at: OLD, found: true, extra: [login("Claude", true)] });
+    await open(base, "Claude-2", "installation");
+    expect(probe.checkedProviders).toEqual(["Claude-2"]);
+    expect(lastChecks().claude!.extra.map((e) => e.provider)).toEqual(["Claude"]);
+  });
 
   test("a check that throws is answered as one that could not run (AC-9)", async () => {
     const { base } = serve(countingProbe({ check: async () => { throw new Error("spawn failed"); } }));
