@@ -4,13 +4,17 @@ import type { RowSplit } from "./row-markup.ts";
 export const NOTICED_MS = 5000;
 
 /** The rows a redraw adds to the Jobs list, top first: a head row whose
- *  key the list did not have before. A row that only changed or moved is
- *  not one, and the first redraw after a page load has nothing to compare
- *  with, so it adds none. */
+ *  key the list did not have before, standing above the lowest row it
+ *  kept. A row that only changed or moved is not one; nor is an older job
+ *  the loaded list takes in at its foot when rows above it leave. The
+ *  first redraw after a page load has nothing to compare with, so it adds
+ *  none. */
 export function addedRowKeys(before: RowSplit | null, after: RowSplit | null): string[] {
   if (!before || !after) return [];
   const had = new Set(before.groups.map((g) => g.key));
-  return after.groups.map((g) => g.key).filter((key) => !had.has(key));
+  const keys = after.groups.map((g) => g.key);
+  const lowestKept = keys.findLastIndex((key) => had.has(key));
+  return keys.slice(0, Math.max(lowestKept, 0)).filter((key) => !had.has(key));
 }
 
 /** Whether a row lies wholly inside the part of the list on screen. */

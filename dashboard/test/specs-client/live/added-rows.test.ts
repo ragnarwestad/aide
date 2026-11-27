@@ -5,9 +5,14 @@ import { addedRowKeys, NOTICED_MS, showAddedRow } from "../../../src/specs-clien
 const split = (...keys: string[]) => ({ prefix: "", suffix: "", groups: keys.map((key) => ({ key, html: "" })) });
 
 test("a redraw's new rows are the keys the list did not have, top first; a moved or changed row is not one", () => {
-  expect(addedRowKeys(split("spec-a", "spec-b"), split("spec-c", "spec-b", "spec-a", "spec-d"))).toEqual(["spec-c", "spec-d"]);
+  expect(addedRowKeys(split("spec-a", "spec-b"), split("spec-c", "spec-b", "spec-e", "spec-a"))).toEqual(["spec-c", "spec-e"]);
   expect(addedRowKeys(split("spec-a", "spec-b"), split("spec-b", "spec-a"))).toEqual([]);
   expect(addedRowKeys(null, split("spec-a"))).toEqual([]);
+});
+
+test("older jobs the list takes in at its foot when rows are removed are not new", () => {
+  expect(addedRowKeys(split("spec-a", "spec-b", "spec-c", "spec-d"), split("spec-a", "spec-d", "spec-old1", "spec-old2"))).toEqual([]);
+  expect(addedRowKeys(split("spec-a", "spec-b"), split("spec-new", "spec-a", "spec-old"))).toEqual(["spec-new"]);
 });
 
 /** A list whose rows stand at the given tops, 40px tall, in a window 600px high. */
