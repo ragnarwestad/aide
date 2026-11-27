@@ -120,6 +120,19 @@ def test_only_codex_gets_the_macos_certificate_service(runner, workspace, fake_c
     assert "enableWeakerNetworkIsolation" not in _turns(workspace)[-1][1]
 
 
+def test_an_opencode_turn_reaches_the_specs_worktree_through_srt_not_a_flag(runner, workspace, fake_opencode):
+    """`opencode run` has no `--add-dir` (2.4.2 refuses it as an unknown flag
+    and the step ends before it starts); its build agent may reach any
+    directory, so what it may write is srt's to say."""
+    rc, out, _ = run(runner, workspace, tool="opencode", opencode=fake_opencode(emits(OPENCODE_STREAM_OK)),
+                     permission_mode="acceptEdits")
+    assert rc == 0, out
+    assert "--add-dir" not in fake_opencode.calls.read_text().split()
+    ((_, settings),) = _turns(workspace)
+    allowed = settings["filesystem"]["allowWrite"]
+    assert any(rule.endswith("/" + workspace["specs"].name) for rule in allowed), allowed
+
+
 def test_an_opencode_turn_reads_its_own_login_and_not_codex_s(runner, workspace, fake_opencode):
     rc, out, _ = run(runner, workspace, tool="opencode", opencode=fake_opencode(emits(OPENCODE_STREAM_OK)),
                      permission_mode="bypassPermissions")

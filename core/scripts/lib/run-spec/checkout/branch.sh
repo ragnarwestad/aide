@@ -136,12 +136,15 @@ specs_wt=""
 # The fresh argv an implement falls back to, when its analysis's session
 # cannot be continued, is handed them too. A resumed Codex thread
 # (`codex exec resume <thread> -`) ends at its prompt and takes no
-# --add-dir: it keeps the directories it started with.
+# --add-dir: it keeps the directories it started with. `opencode run` has no
+# --add-dir at all: srt's settings, built from $invocation_add_dirs, say what
+# it may write.
 codex_resumes="no"
 [ "$tool" = "codex" ] && [ "${argv[${#argv[@]}-1]}" = "-" ] && codex_resumes="yes"
 for wt in "${work_roots[@]}"; do
   [ "$wt" = "$project_wt" ] && continue
   invocation_add_dirs+=("$wt")
+  [ "$tool" = "opencode" ] && continue
   [ "$codex_resumes" = "yes" ] || argv+=(--add-dir "$wt")
   fresh_argv+=(--add-dir "$wt")
 done

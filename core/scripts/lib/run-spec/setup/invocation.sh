@@ -180,7 +180,11 @@ invocation_build() {  # <tool> <bin> <permission> <model> <effort> <requested-id
       ;;
     *) return 1 ;;
   esac
-  if { [ "$invocation_tool" != "codex" ] || [ -z "$invocation_resume" ]; } \
+  # `opencode run` has no `--add-dir` (2.4.2 refuses it as an unknown flag):
+  # its build agent may reach any directory, and srt's settings say which
+  # it may write (turn/model-turn/launch.sh).
+  if [ "$invocation_tool" != "opencode" ] \
+    && { [ "$invocation_tool" != "codex" ] || [ -z "$invocation_resume" ]; } \
     && [ "${#invocation_add_dirs[@]}" -gt 0 ]; then
     for invocation_dir in "${invocation_add_dirs[@]}"; do
       invocation_argv+=(--add-dir "$invocation_dir")
