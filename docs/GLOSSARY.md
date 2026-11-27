@@ -13,7 +13,7 @@ Each entry says what the word is and links the page that has the rest.
 
 ## The spec
 
-- **Spec** — one piece of work: a folder of four files in the project's
+- **Spec** — one piece of work: a folder of five files in the project's
   specs root, `NN-slug/`. [Spec structure](../core/rules/spec-structure.md).
   Other tools use the word for something larger: the
   [AI Coding Dictionary](https://www.aicodingdictionary.com/?term=spec)
@@ -72,10 +72,10 @@ Each entry says what the word is and links the page that has the rest.
 - **Board** — the dashboard: the web pages that queue, run and show the
   steps. [The dashboard](../dashboard/README.md).
 - **Job** — one run of one or more steps for one spec or scheduled
-  task, with its own state: queued, running, done, stopped, failed
+  task, with its own state: queued, running, done, waiting, failed
   or cancelled.
   [A job's states](../dashboard/docs/job-states.md).
-- **Step** — anything the queue runs: the four phases, and explore,
+- **Step** — anything the runner runs: the four phases, and explore,
   schedule, reopen and close.
 - **Skill step** — a numbered section of the skill a step runs,
   `Step N of X`, marked in the step's log.
@@ -88,8 +88,9 @@ Each entry says what the word is and links the page that has the rest.
   `.venv`, linked into a worktree from the main checkout; named by
   `worktreeLinks:` in the project's manifest.
 - **Merge** — merging a step's branch into the default branch, after
-  the step itself. A step is not finished until it has merged; an
-  archive's merge runs the project's tests on the merge first.
+  the step itself. A step is not finished until it has merged, except
+  implement, which merges nothing: its code waits on its branch for
+  archive. An archive's merge runs the project's tests on the merge first.
   [Merge](../dashboard/docs/landing.md).
 - **Merge spec files into main** — the last step of Create, Analyze, Reopen and Close.
   Only the spec files reach the default branch, and no tests run. Archive instead says
@@ -98,10 +99,11 @@ Each entry says what the word is and links the page that has the rest.
 - **Test server** — a running copy of the project built from a spec's
   branch, offered between implement and archive.
   [Test server](../dashboard/docs/test-server.md).
-- **Deploy** — installing what has reached the default branch on the
-  machine the board runs on (`AIDE_INSTALL_CMD`); pressed by hand.
-- **Schedule** — a task the board runs at set times, such as the nightly
-  browser tests.
+- **Deploy** — installing the board's own project from what has reached
+  its default branch (`AIDE_INSTALL_CMD`) and restarting the board;
+  pressed by hand. Another project's install command runs by itself when
+  its code merges.
+- **Schedule** — a task the board runs at set times.
 - **Specs root** — the folder holding a project's specs; `AIDE_SPECS_PATH`
   points Aide's own at `aide-specs/aide/`.
 

@@ -23,8 +23,8 @@ holds what every installer does. What each CLI gets on top of that is on its own
 
 ## What you need first
 
-The installers check for these and install none of them. A missing one is reported with the command that installs
-it, and the install carries on with what it can do without it.
+The installers install none of these. A missing mise, node or AI CLI is reported with the command that installs it,
+and the install carries on with what it can do without it.
 
 - **Git.**
 - **[mise](https://mise.jdx.dev) with a node.** The installers put the shared tools in place through it; without it
@@ -130,7 +130,7 @@ The places it prints come from one table, `core/scripts/lib/install-targets.txt`
 
 **`aide --help`** prints the `aide` command's usage, which shows that the scripts are on PATH.
 
-**On the board**, each provider's page under **Settings** has an **Installation** tab. It lists the same places and,
+**On the board**, each provider's page under **Providers** in the "…" menu has an **Installation** tab. It lists the same places and,
 below them, what is wrong on the machine the board runs on: a place that is missing, installed files behind the
 repository, or a command line that is not found. For the first two it advises pressing **Deploy**.
 

@@ -32,13 +32,13 @@ loops that send work back, and who decides that a step is done. The details of e
 - **Extra agents only judge.** A second agent reads and reports, and never changes anything itself. What it finds goes
   back to the agent that wrote the work. A merge's repair session is the one exception: once the step is done, it
   fixes tests the merge broke, or a conflict in Merge, and the merge tests the result again.
-- **The spec is the memory.** Each step starts a new session. What one step leaves for the next is in the spec's four
+- **The spec is the memory.** Each step starts a new session. What one step leaves for the next is in the spec's five
   files, not in a conversation, so every session starts with a clean context.
 - **The runner checks, not the agent.** What an agent says about its own work decides nothing. The runner runs the
-  tests itself, refuses changes outside the spec's own folder, and the merge runs the whole suite on exactly what
+  tests itself, refuses changes to the specs root outside the spec's own folder, and the merge runs the whole suite on exactly what
   main is about to become.
 - **A person at both ends.** A person writes what is to be done, and decides whether the result is good enough.
-  Between those two points the agents run unattended, with every permission granted in advance.
+  Between those two points the agents run unattended, with their permissions set in advance.
 - **Many specs at once, not many agents per spec.** Several specs run at the same time, each in its own worktree.
 
 ## Two kinds of agent
@@ -64,8 +64,9 @@ No subagents and no review.
 2. The session reads the description and the code, and writes `2-analysis.md`, with a list of the files the change
    will touch under `### Files to change`.
 3. **The comparison.** The session runs `aide-spec-overlap`, which compares that list with the lists of the other
-   open, analyzed specs in the project. When one shares a file, the analysis ends there, stopped: no plan, no review.
-   After the turn the runner runs the same command and ends the step `shared-files` if the session did not
+   open, analyzed specs in the project. For each one that shares a file, the session records a reasoned `depends` or
+   `independent` decision, and goes on with the plan. After the turn the runner runs the same command and ends the
+   step `shared-files` when a decision says `depends` or one is missing
    ([The runner](../dashboard/docs/the-runner.md)).
 4. The session writes the plan in `3-solution.md`, with more than one approach when the spec asks for a choice and the
    approaches really differ.
@@ -75,8 +76,8 @@ No subagents and no review.
    complexity. A tool with no way to start a subagent runs the same reviews one after the other in its own session.
    With a Review under Analyze chosen, the session hands the review over instead: the runner runs the three reviewers
    in a fresh read-only session on that AI and model, and gives their findings back to the analyze session.
-6. The same session corrects the plan from the findings and writes `4-status.md`. The runner reads only the counts on
-   the plan review's `**Findings:**` line.
+6. The same session corrects the plan from the findings and writes `4-status.md`. The runner reads the counts on
+   the plan review's `**Findings:**` line and, at the `stop` criteria checks level, its `**Criteria check:**` line.
 
 #### The complexity grade
 
@@ -98,10 +99,10 @@ grade, and the runner does not check it.
    session also photographs the dashboard pages its change affects, at a desktop and a phone width, into a folder the
    runner names beside the step's log; the step's log links them under Screenshots, and the review is shown them.
 2. **The review.** The runner starts a second, new session (`run-spec/turn/review.sh`), on the spec's Review choice,
-   then the Models per phase choice, Codex included, else the step's own. It reads the description, finds the branch's
+   then the Models per phase choice, Codex included, else the board's default model. It reads the description, finds the branch's
    whole change against where it left the default branch with `git diff` itself, and reports defects against the
    description. It changes nothing.
-3. **The verification**, when the spec's or Models per phase's Verify choice names a model. A third new session traces each defect in the code and
+3. **The verification**, on the spec's Verify choice, then Models per phase, else the board's default model. A third new session traces each defect in the code and
    keeps or drops it. Only the kept ones go on.
 4. Defects found go back to the implement session as one more turn, which fixes them, or turns down one it shows is
    not a defect. The review does not run again.
@@ -118,8 +119,8 @@ No AI. A person ticks the acceptance criteria, and can try the change on the tes
 ### Archive
 
 1. When the spec cannot be archived yet, such as acceptance criteria still unticked, the runner says so and no AI runs.
-2. Otherwise the runner starts one new session with `aide-archive`. It merges the default branch in, resolves any
-   conflict and moves the spec to `archive/`.
+2. Otherwise the runner starts one new session with `aide-archive`. It resolves any conflict with the default branch
+   that the runner left open, and moves the spec to `archive/`.
 3. The merge runs the project's tests and merges the branch into main. When tests the branch broke
    fail on the merge and pass on main alone, the merge starts a new session to fix them on the branch, at most twice
    (`dashboard/src/serve/land-branch/repair/`), then rebuilds the merge and tests it again.
@@ -167,7 +168,7 @@ Every loop that sends work back has an end:
 - **`AIDE_TEST_RUN_LIMIT_SEC`**: how long one of the runner's own test runs may take. An hour unless set; the step's
   own time limit does not count it.
 - **The AI, model and effort for each step**, chosen per spec. Review and Verify can also be chosen per spec; otherwise
-  they use Models per phase, with Implement's own model and no verification as their final defaults. Review under
+  they use Models per phase, with the board's default model as their final default. Review under
   Analyze can be chosen the same way; without a choice the analyze session reviews on its own model.
 
 ## What Aide does not do

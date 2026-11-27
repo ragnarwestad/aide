@@ -20,10 +20,10 @@ run of one or more steps, and its `queued`/`running`/`done` says nothing about h
 
 | Word           | What it is                                                                                                                                                                                     | Where it is decided                                                                 |
 |----------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
-| **Step**       | Anything the queue can run: `create`, `analyze`, `implement`, `archive`, `explore`, `schedule`, `reopen`, `close`. A job is a list of steps, and each step has its own log                     | `workflowSteps` in `core/scripts/lib/workflow-steps.json`                           |
-| **Phase**      | The four steps a spec passes through — `create`, `analyze`, `implement`, `archive`                                                                                                             | `workflowArc` in the same file, "deliberately narrower … not places a spec gets to" |
+| **Step**       | Anything the queue can run: `create`, `analyze`, `implement`, `archive`, `explore`, `schedule`, `reopen`, `close`, `deploy`, `land`, `cleanup`. A job is a list of steps, and each step has its own log | `steps` in `core/scripts/lib/workflow-steps.json`                                   |
+| **Phase**      | The four steps a spec passes through — `create`, `analyze`, `implement`, `archive`                                                                                                             | the steps with a `phaseOrder` in the same file                                      |
 | **State**      | Where the spec stands now, in the past tense: `created`, `analyzed`, `implemented`, `archived`, `closed`                                                                                       | the `phase` column of `core/scripts/lib/transitions.json`                           |
-| **Skill step** | A numbered section of the skill a step runs, `Step N of X`; its log lines, `--- Step 3 of 9: … — started`, say how far the step has got                                                        | the `### Step N of X:` headings in `core/skills/aide-<step>/SKILL.md`               |
+| **Skill step** | A numbered section of the skill a step runs, `Step N of X`; its log lines, `--- Step 3 of 9: … — started`, say how far the step has got                                                        | the `### Step N of X:` headings in `core/scripts/lib/steps/aide-<step>/SKILL.md`    |
 
 `close` and `reopen` are steps, not phases: a spec that is `closed` has left the arc rather than reached a fifth
 stage of it. Two things about that table are worth knowing before reading it:
@@ -137,10 +137,11 @@ order, stopping at the first that applies:
 | `acceptance-criteria-unticked` | A row under `## Acceptance criteria` in `4-status.md` is still open — only a user ticks those |
 | `archived`                     | Stamped and moved; the merge follows                                                          |
 
-Four of the five outcomes short of `archived` end the step with no model run at all: `refused`,
-`already-archived`, `not-implemented-yet` and `acceptance-criteria-unticked`. `conflict-open` and `archived` spawn
-one:
+Two of the five outcomes short of `archived` end the step with no model run at all: `not-implemented-yet` and
+`acceptance-criteria-unticked`. The other four spawn one:
 
+- `refused` — which reports the script's error and stops.
+- `already-archived` — which goes on to Step 2 when the folder was just moved, and otherwise stops.
 - `conflict-open` — for the conflict.
 - `archived` — for the documentation feedback.
 
@@ -195,8 +196,7 @@ Three things hold a job back rather than stop it: nothing failed, and the job is
 - **That job's own merge.** A job with `landing` set does not start its next step until its merge settles.
   Every other job runs as usual: the merge works in a worktree of its own.
 
-An archived or closed spec is refused rather than held: the server refuses every step but `reopen` for it
-(`ARCHIVE_ONLY_STEP`).
+An archived or closed spec is refused rather than held: the server refuses every step but `reopen` for it.
 
 ## Where the work is between phases
 
@@ -213,7 +213,7 @@ root's branch open through `archive` too, as the pull request; the specs root st
 
 ## Which button a row offers
 
-The row carries one control at a time, on the caption line inside the Running tab's open row. While nothing of the spec is running it
+The row carries one control at a time, on the caption line inside the spec's open row on the Specs list. While nothing of the spec is running it
 is the row's button, **labelled with the phase it would run** — Analyze, Implement, Archive — and greyed out, still
 named, when that phase is unticked.
 
@@ -255,13 +255,13 @@ A row's state is one of these:
 The State filter groups them:
 
 - **All** — every row; the default.
-- **Active** — everything not archived and not closed.
-- **Running** — `running`, a merge included, `queued` not.
-- **Waiting** — `waiting`.
-- **Failed** — `failed`, `cancelled` and `archived-unlanded`.
+- **Not archived** — everything not archived and not closed.
+- **Active** — a spec with a job queued or running, or in an unfinished group.
+- **Created**, **Idle**, **Reopened** — a spec with nothing in flight: no step beyond `create`; work done; reopened
+  with no analyze or implement since.
 - **Archived** — `archived` and `archived-unlanded`.
 - **Closed** — `closed`.
-- **Not verified** — specs with an acceptance row marked Not verified, archived ones included.
+- **Not verified** — specs with an acceptance row marked Not verified or Failed, archived ones included, closed ones not.
 
 **That list is a job's state, not the spec's.** `archived` and `closed` appear in both vocabularies and mean the
 same thing; the rest — `queued`, `running`, `done`, `waiting`, `failed`, `cancelled` — belong to the

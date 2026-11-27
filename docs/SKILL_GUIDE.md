@@ -17,8 +17,7 @@
 ---
 
 Internal guide. Combines Anthropic's official recommendations with
-practical experience from large skill collections (30+ skills in
-production use).
+practical experience from large skill collections.
 
 
 ## Official sources

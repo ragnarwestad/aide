@@ -18,8 +18,9 @@ implementation and archiving on Claude Code, Codex or OpenCode.
 
 ## What Aide is
 
-Before an AI CLI writes code, Aide has it write a spec: four plain-Markdown files that say what is wrong, what the
-codebase looks like around it, the plan, and what each step did. The spec is committed to git, in the project or in
+Before an AI CLI writes code, the change is written down as a spec: plain-Markdown files that say what is wrong
+(you write that), what the codebase looks like around it and the plan (the AI CLI writes those), and what each step
+did. The spec is committed to git, in the project or in
 a specs repository of its own, so the reasoning a chat history loses is still there to review a month later.
 
 The **board** (the dashboard) is a local web application that runs the specs. You add a project, write a spec, and
@@ -45,8 +46,9 @@ start the next phase.</em></p>
 
 ## What a spec looks like
 
-A spec is a folder of four files:
+A spec is a folder of five files:
 
+- `0-README.md` — a table of contents linking the other four
 - `1-description.md` — what is wrong and what done means, with the acceptance criteria. You write it
 - `2-analysis.md` — what analyze found in the codebase, with file and line references
 - `3-solution.md` — the plan analyze writes for implement to follow
@@ -173,7 +175,7 @@ edited as the feature evolves) and spec-as-source (the code is generated from th
 edited).
 
 Aide is spec-anchored. When the result is not what you wanted, you add or reword acceptance criteria and run the
-same spec again; an archived spec keeps all four files and can be reopened for another round. You and the AI still
+same spec again; an archived spec keeps all five files and can be reopened for another round. You and the AI still
 read and edit the code. [How Aide compares](docs/COMPARISON.md) puts Kiro, Spec Kit, OpenSpec, Tessl and the
 tools that run AI coding agents through the same criteria.
 

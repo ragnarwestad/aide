@@ -38,8 +38,8 @@ work so far committed. The merge is described in full in [Branches and merging](
 Implement, Merge and Archive use `AIDE_TEST_CHANGED_CMD` when configured, with the default branch as its last
 argument; Merge and Archive run it on the merged result before updating the default branch. The command must fall
 back to the full suite for changes it cannot classify safely. Without it, every step uses `AIDE_TEST_CMD`. A
-Markdown-only change runs `scripts/check-docs` when present. The scheduled nightly run of the whole suite on main
-catches what a selection misses.
+Markdown-only change runs `scripts/check-docs` when present. In Aide's own project, a scheduled nightly run of the
+whole suite on main (`docs/prompts/run-full-test-suite.md`) catches what a selection misses.
 Aide's selector runs dashboard tests and Python cross-language checks for dashboard-only changes; core or unknown
 changes keep the full suite. Only a full run may tick the spec's "Run the full test suite" row.
 
@@ -72,13 +72,13 @@ project. In short:
 
 - Every change ships with its test, and a bug fix with a test for that bug; the fix is reverted once to see that
   exactly that test goes red.
-- A test proves a rule, not the rendering: one place per rule, layout measured in a browser rather than read out of
-  the stylesheet, no test that pins the wording of a text, one language for a translated word.
+- A test proves a rule, not the rendering: one place per rule, no layout test in unit or browser tests, no test that pins the wording of a text, one language for a translated word.
 - A change that replaces behaviour deletes the tests for what it replaced.
 - A red full run is fixed file by file, running only the file at hand, and the full suite runs again once, when
   every file is green. A test that fails in the full run and passes on its own is the machine's load, not a fault.
 - In implement the AI runs the tests it wrote and the tests covering its change, never the whole suite. The runner
-  runs the whole suite once on the result, and a green run ticks the spec's "Run the full test suite" row.
+  runs the project's tests once on the result, and only a green full run ticks the spec's "Run the full test suite"
+  row.
 
 The implement step adds its own: at least one test per acceptance criterion, with the criterion's AC-id in the test's
 name, and none for a criterion an existing test already proves — that test gets the id in its name instead.
@@ -157,7 +157,7 @@ repository an implement that changes a page therefore looks at it before the ste
 
 For whoever changes Aide itself.
 
-- `make test` under `dashboard/` type-checks first, then deals the test files out over one bun process per core
+- `make test` under `dashboard/` type-checks first, then deals the test files out over several bun processes
   (`scripts/run-tests.sh`). A process stopped by a signal with no failing test is run once more, and a file with a
   failing test is run once more on its own; only a second failure turns the suite red. The output keeps the first
   attempt's lines as well as the retry's, marked `[first attempt]`.

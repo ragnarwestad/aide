@@ -57,10 +57,12 @@ The Add form asks for:
 | Try a branch     | Optional. How a spec's branch can be tried before it is merged; starts on none                                                |
 | Worktree links   | Optional. Space-separated repo-relative paths a run has to symlink into its worktree                                          |
 | Test command     | Optional. Its placeholder is the command the Git URL's root files point at — see below                                        |
+| Worktree setup   | Optional. The command that installs a worktree's own dependencies, run at its root before anything runs there                 |
 | Install command  | Optional. What installing the project means on this machine, run after its code merges                                        |
 | Preview command  | Optional. How to start the project for a look at one branch; it serves on `$PORT`                                             |
 | Criterion prefix | Optional. Put before a criterion's id in a test's name; `{spec}` is the spec's number, so `F{spec}` names a test `(F02 AC-2)` |
 | Description      | One line saying what the project is                                                                                           |
+| Icon             | Optional. A path to an image file in the repository — see [A project's icon](#a-projects-icon)                                |
 
 **The Test command's placeholder is read off the Git URL, without a checkout.** When the Git URL field changes, the
 page asks the server (`POST /api/queue/projects/test-command`), which runs a shallow, contents-free clone into a
@@ -99,8 +101,8 @@ with Dismiss. The line goes away as soon as a check succeeds. Dismiss hides it o
 the recheck. A check that did not finish never replaces an answer git gave: a confirmed checkout fault stays an error.
 
 **A project that does not already track a manifest keeps nothing of Aide's in its repository.** What the form sets is
-saved after the clone by the same save the Config tab makes. The name, description, worktree links, code merge,
-Try a branch, Test command and Preview command go to the dashboard's own settings file,
+saved after the clone by the same save the Config tab makes. The name, description, icon, worktree links, worktree setup, code merge,
+Try a branch, Test command, Preview command and Criterion prefix go to the dashboard's own settings file,
 `~/.aide/dashboard/checkouts/<name>/settings.yaml`, in the manifest's own format; the specs path and the install
 command go to the project's `.aide/config`. A field left empty and a default (Merge, Not before it is merged) write
 nothing. A manifest the checkout already tracks is the team's: what the form sets is committed to it in one commit,
@@ -111,7 +113,7 @@ what it said is not lost.
 ### Where a project's settings are kept
 
 The specs path and the install command belong to the machine and are kept in its `.aide/config`, which is never
-committed. The rest live in the manifest table, headed with the file a save writes to. Four
+committed. The rest live in the manifest table, headed with the file a save writes to. Two
 states decide which:
 
 | The manifest table is headed         | What it means                                                                        |
@@ -129,7 +131,7 @@ was typed goes to the file the state names, and the specs path and the install c
 its repository, and the dashboard reads that instead from the next
 render on. Nothing on the board moves the settings, and no press copies one file into the other.
 
-Two of the eight values never travel this way at all: Specs path and Install command are written to
+Two of the values never travel this way at all: Specs path and Install command are written to
 `.aide/config`, which is never committed, so they are this machine's alone whichever state the
 project is in.
 
@@ -257,14 +259,14 @@ first, as the deploy's own row lists them afterwards: from the commit the servic
 the last check fetched it, or "No new commits". A **Deploy** button sits under them. It is disabled when the checkout
 matches origin or when origin has not been checked yet. A board with no `AIDE_INSTALL_CMD` has no button, and says
 so in a sentence in place of the count. The button asks first ("Deploy aide?"); OK queues the deploy job and goes
-to the Running tab scrolled to the job's row, shut (`/#spec-<project>/deploy:deploy@<job>`); opened, the five steps are
-followed as lines of the row (`running-specs.md`, "The Running tab"): fetch from origin, install, restart the service, wait for
+to the Jobs tab scrolled to the job's row, shut (`/#spec-<project>/deploy:deploy@<job>`); opened, the five steps are
+followed as lines of the row (`running-specs.md`, "The Jobs tab"): fetch from origin, install, restart the service, wait for
 the service to answer, and check that the service runs the newest commit. Closing the tab stops nothing. While a
 deploy is queued or running a second press is refused, and the button's hover line says where to follow the first.
 
 While there are such commits, every page's header shows the deploy icon and their count in parentheses beside the
 board's name, in the orange used for a queued job. Pressing the mark asks the same question as the Deploy button;
-OK queues the same job and opens its row on the Running tab. When the latest check reached origin and found nothing
+OK queues the same job and opens its row on the Jobs tab. When the latest check reached origin and found nothing
 to deploy, the mark is the Done badge's green tick and says that the project is up to date with the branch. Before
 the first check, or while origin cannot be reached, the mark's place is empty. The mark follows the background check
 of origin, and an open page draws it again as soon as the answer changes and when it reconnects after a restart,
@@ -294,7 +296,7 @@ unavailable.
 
 #### Config
 
-Five things, in this order.
+Five things, in this order, with the Pin and Hide cards between the settings cards and the Models per phase card.
 
 A line saying the checkout has no `.aide/config`, when it has none: "no file" and "a file setting nothing" are
 different states, and the first is what a project cloned onto a second machine is in.
@@ -308,7 +310,7 @@ settings row owns, `specsRoot` and `worktreeLinks`, are left out here and carrie
 
 **Two settings cards, one per file** (every setting belongs to exactly one now): `.aide/config`, holding Specs
 path and Install command, and the manifest — headed `.aide/project.yaml`, or the dashboard's `settings.yaml` when
-the project tracks no manifest — holding Worktree links, Preview command, Test command, Criterion prefix, Description, a **Code merge** row and a **Try a branch** row, which are not config keys. How
+the project tracks no manifest — holding Worktree links, Worktree setup, Preview command, Test command, Criterion prefix, Description, Icon, a **Code merge** row and a **Try a branch** row, which are not config keys. How
 strictly Analyze checks a spec's acceptance criteria is not a project setting: it is chosen per spec, on the New
 spec form. No row's explanation names a file: which card a setting is in already says that. `AIDE_LINT_CMD`
 and `AIDE_BUILD_CMD` have no row: the runner never runs them, and the implement step's AI works them out from the
@@ -322,7 +324,7 @@ merges", with the worked-out command beside it as a suggestion.
 
 **Every field is editable as the tab opens**; there is no Edit button. Each card is a form of its own, with
 **Save** and **Cancel** at its foot. The `.aide/config` card holds Specs path and Install command; the manifest card
-holds Worktree links, Preview command, Test command, Criterion prefix, Description, Icon, Code merge and Try a branch.
+holds Worktree links, Worktree setup, Preview command, Test command, Criterion prefix, Description, Icon, Code merge and Try a branch.
 The test field is empty with the worked-out command as its placeholder, so a save that never touched it configures
 nothing. Worktree links has a line of the checkout's own top-level `.gitignore` entries under it. Each field grows to
 show the whole value; with the board's script on, Enter saves its card, and a value is always one line — a line
@@ -335,7 +337,7 @@ their saved values. Leaving the page while a card holds unsaved edits asks first
 unsaved.
 
 A save writes each value to the file its card names, and to no other file, regardless of where the value
-currently lives: Specs path and Install command to `.aide/config`, which is never committed; Worktree links,
+currently lives: Specs path and Install command to `.aide/config`, which is never committed; Worktree links, Worktree setup,
 Preview command, Test command, Criterion prefix, Description, Icon, Code merge and Try a branch (`deployment.previewFrom`) to the manifest — the project's own `.aide/project.yaml` where it
 is tracked, else the dashboard's `settings.yaml`. A description or a criterion prefix is written on one line, quoted where a plain line would not read back as typed, and replaces a description that an older Add stored over several lines. Unchanged values are not rewritten.
 
@@ -424,7 +426,7 @@ project, beside its checkouts, and never committed to either repository. **Remov
 ### How a project's code merges
 
 When a spec is archived, the dashboard merges its code in one of two ways, chosen per project with **Code merge** — in
-the Add form, which leaves it unchosen and refuses a project added without an answer, or under Edit on the project's own page:
+the Add form, which leaves it unchosen and refuses a project added without an answer, or on the project's Config tab:
 
 | Code merge                    | What happens                                                                                                                                                                                                                 |
 | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

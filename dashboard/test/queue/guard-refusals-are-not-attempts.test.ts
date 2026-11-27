@@ -1,8 +1,7 @@
-// A hand-paired bash/TypeScript decision (docs/bash-typescript-decisions.md):
-// which archive refusals are guards rather than attempts, and so are
-// left out of a phase's attempt count on both sides — the file's own
-// `Attempts:` stamp (aide-run-spec) and the row's count (the dashboard).
-// Nothing imports across the two.
+// Which archive refusals are guards rather than attempts, and so are left
+// out of a phase's attempt count on both sides — the file's own `Attempts:`
+// stamp (aide-run-spec) and the row's count (the dashboard). Both read the
+// `guard` flag from core/scripts/lib/step-endings/catalog.json.
 
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";

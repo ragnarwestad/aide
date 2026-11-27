@@ -69,7 +69,7 @@ tool.
 
 | Tool               | Document structure                                     | AI tool support                                                 | Execution                                       | Code handling                                | Invasiveness                                                               |
 |--------------------|--------------------------------------------------------|-----------------------------------------------------------------|-------------------------------------------------|----------------------------------------------|----------------------------------------------------------------------------|
-| Aide               | 4 files per spec, then archived                        | 4 tools, one install per machine                                | Unattended, on the board                        | Merges, or opens a pull request              | No files required in the repo; branches and merges show in the git history |
+| Aide               | 5 files per spec, then archived                        | 4 tools, one install per machine                                | Unattended, on the board                        | Merges, or opens a pull request              | No files required in the repo; branches and merges show in the git history |
 | OpenSpec           | Change folder holding a capability delta               | 30+ tools, files in the project                                 | By hand                                         | You merge                                    | `openspec/` and per-tool commands                                          |
 | GitHub Spec Kit    | Spec, plan and tasks under `.specify/`                 | 50+ tools, files in the project                                 | By hand                                         | You merge                                    | `.specify/` and per-tool commands                                          |
 | Spec Kitty         | Spec, plan, tasks and work packages per mission        | 17 agents; commands per machine, skills in the project for some | By hand, or unattended through its orchestrator | Merges on a command; tests run at acceptance | `kitty-specs/`, `.kittify/`, `.worktrees/`                                 |
@@ -87,31 +87,31 @@ tool.
 
 ## Aide
 
-**What it is.** A set of skills and scripts installed once per machine, plus a dashboard that can run them. A skill
+**What it is.** A set of skills and scripts installed once per machine, plus a dashboard that runs a spec's steps. A skill
 is a Markdown file holding the instructions for one command, which an AI CLI reads when the command is typed. The
 dashboard is a web page served on the machine that runs the work, and it keeps a clone of each project, separate
 from any checkout a person uses.
 
-**Document structure.** A spec is a folder of four files: `1-description.md` holds the problem, the proposed
+**Document structure.** A spec is a folder of five files: `0-README.md` links the other four, `1-description.md` holds the problem, the proposed
 solution, an optional `## Out of scope` list and the acceptance criteria, each an AC-n line in one of the five EARS
 patterns (the create step can fill in the criteria a description is missing), `2-analysis.md` records what the code
 shows, `3-solution.md` holds the plan and a given/when/then case for each AC-id, and `4-status.md` records what
 happened, including the cost of each step. The folder goes in
 `specs/` in the project, or in a separate specs repository when `AIDE_SPECS_PATH` in the machine's own
 `.aide/config` names one. A finished spec is moved to `archive/`, and the archive step writes what was learned into
-the project's own documentation first.
+the project's own documentation.
 
 **Workflow.** Create, analyze, implement and archive, each a step the board runs, started from the board or with the
 `aide` command. Beside them: close and reopen for specs that stop or come back, and the `/aide-explore` skill for
 thinking a problem through first. The analyze step reviews its own plan against the description: criteria that
-contradict each other or cannot be built, a condition with no scenario for when it does not hold, and anything that
-falls under "Out of scope", at a level chosen per spec (off, warn or stop). After implement, a second session
+contradict each other or cannot be built, and a condition with no scenario for when it does not hold, at a level
+chosen per spec (off, warn or stop); and, at every level, anything that falls under "Out of scope". After implement, a second session
 reviews the diff against the description, "Out of scope" included.
 
 **AI tool support.** Claude Code, Codex, OpenCode and Copilot. The content exists once, in `core/`, and each tool
 has a small installer that writes it into the user's home directory: `~/.claude/skills/` for Claude Code,
-`~/.agents/skills/` for Codex and Copilot, which also get a generated instructions file, and nothing for OpenCode,
-which scans both directories itself. The dashboard's runner, `aide-run-spec`, runs a spec's steps on three of them,
+`~/.agents/skills/` for Codex and Copilot, which also get a generated instructions file, and for OpenCode only that
+instructions file, since it scans both skill directories itself. The dashboard's runner, `aide-run-spec`, runs a spec's steps on three of them,
 Claude Code, Codex and OpenCode: it starts each CLI with that CLI's own command line and reads the events it prints
 while it works. That part is written and tested per tool, in a set order of priority: Claude Code, then Codex and
 OpenCode.
@@ -134,8 +134,7 @@ default branch and leave the rest of the branch alone. Implement merges nothing:
 until the archive step, which merges the branch into the default branch and deletes it on origin. Code therefore
 reaches the default branch through archive alone. Before a merge is pushed, the project's test suite runs on the
 merged result, and a failing run stops the job with nothing merged. With `codeLanding: pr` in the project's
-settings, the code branch is left open as a pull request instead, for someone to review and merge. Run by hand,
-the skills run the tests themselves, and what to do about a failure — and when to merge — is the person's.
+settings, the code branch is left open as a pull request instead, for someone to review and merge.
 [Branches and merging](../dashboard/docs/landing.md) has the merge, the conflicts and the test gate in full.
 
 **Invasiveness.** In the working tree, two file sets, and both can be kept out. The first is the project's
@@ -149,8 +148,7 @@ committed. The second set is the spec folders, which go in `specs/` unless
 skills live in the user's home directory.
 
 In the git history, a run through the dashboard is visible: it pushes an `aide/<spec-folder>` branch, commits as the
-git user of the machine it runs on, and merges into the default branch. Run by hand, the person commits as
-themselves and nothing is pushed that they did not push.
+git user of the machine it runs on, and merges into the default branch.
 
 ## OpenSpec
 
@@ -584,8 +582,7 @@ service runs as, and every commit a run makes carries that machine's git user, w
   to become, and pushes only when it is green. A project that reviews every change keeps that review through `codeLanding: pr`.
 - **Disadvantage:** the dashboard needs write access to the repositories it merges into. A merge conflict with the
   default branch is resolved by the archive step itself, which means trusting an AI session with the resolution,
-  with the test run as the check behind it. Merge belongs to the dashboard, not to the skills: a person running
-  the skills by hand merges their own branches.
+  with the test run as the check behind it.
 
 ### One set of skills across four AI tools
 
@@ -597,11 +594,11 @@ service runs as, and every commit a run makes carries that machine's git user, w
   so tool-specific features go unused, each tool has its own installer to keep up to date, and support is not
   equal: everything is verified on Claude Code first and on Copilot last.
 
-### Four files per spec, and an archive step that writes back
+### Five files per spec, and an archive step that writes back
 
 - **Advantage:** the reasoning outlives the change. A later reader sees the problem and the criteria it was held to,
   what the code looked like, what was decided and what it cost, and the project's documentation stays current instead of
   falling behind a growing pile of finished specs.
-- **Disadvantage:** four files are more overhead than a single plan file for a small change. And unlike OpenSpec,
+- **Disadvantage:** five files are more overhead than a single plan file for a small change. And unlike OpenSpec,
   Aide has no capability document describing what the system does as a whole; the answer to "what does this
   system do today" is in the project's own documentation, and stays correct only for as long as the archive step keeps it there.

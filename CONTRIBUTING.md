@@ -18,7 +18,7 @@ structure is easier to steer before it's written than after.
 
 ## Two toolchains
 
-`core/` is Python (pytest, no lockfile, run from the repo root); `dashboard/` is a separate
+`core/` is bash, tested with Python (pytest, no lockfile, run from the repo root); `dashboard/` is a separate
 Bun + TypeScript project (`dashboard/bun.lock`). Keep changes to one or the
 other — see `AGENTS.md` for why they stay separate.
 
@@ -31,8 +31,8 @@ scripts/check-bash                  # shellcheck over every bash script git trac
 npx markdownlint-cli2 '**/*.md'     # markdown, from the repo root
 ```
 
-All of them must pass before a pull request is reviewed; CI runs the same
-four commands on every pull request (and only there — a merge made
+All of them must pass before a pull request is reviewed; CI runs these
+four commands, with agnix and biome, on every pull request (and only there — a merge made
 locally is gated by the merge's own run of the suite). The tools they need are listed in DEVELOPING.md, "Tools you
 need".
 

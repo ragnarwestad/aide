@@ -36,19 +36,17 @@ Seven pages sit beside this one:
 - [Branches and merging](landing.md) — how each step's branch is merged, and what stops one from merging
 
 
-The spec list runs Aide's workflow steps headless on this machine: each step is a
-`claude -p "/aide-<step> <spec>"` process started by Aide's `aide-run-spec`. A job is an ordered list of steps; a
+The spec list runs Aide's workflow steps headless on this machine: each step is an AI CLI process (Claude Code, Codex
+or OpenCode) started by Aide's `aide-run-spec`, told to read the step's `lib/steps/aide-<step>/SKILL.md`. A job is an ordered list of steps; a
 step that ends either advances the job or ends it, and several jobs run at once ([How many run at once](#how-many-run-at-once)).
 
 ## Making a spec from the page
 
 Every active spec is a row on the list, and every row can be run. A spec that does not exist yet has no row, so
 there is a **New spec** button, a link to `/new`, at the right-hand end of the search field's row on the Specs list.
-It is not offered when no project on the board may have a spec made in it. The page is the form and nothing else, on
-two tabs with Create above them. **Spec**, the tab it opens on, holds a
-project, a title, a description and a **Depends on** field naming a spec this one has to wait for. **Options**
-(`/new?tab=options`) holds the acceptance and approach settings. Switching tabs keeps what was
-typed, and Create posts both tabs from either. Create posts to `POST /api/queue/create`, writes and pushes the numbered
+It is not offered when no project on the board may have a spec made in it. The page is the form and nothing else, with
+Create above it: a project, a title, the acceptance and approach settings, a description and a **Depends on** field
+naming a spec this one has to wait for. Create posts to `POST /api/queue/create`, writes and pushes the numbered
 spec folder without starting a job, and opens its row on Specs (`/specs/<project>/<spec folder>`). A refused submission says why
 beside the form, where what was typed can be corrected. The browser holds Create at an empty project, title or
 description.
@@ -57,7 +55,7 @@ description.
 state. Run opens a dialog with the remaining phases and the board's default AI and model for each. Starting it opens
 the Jobs tab, where every round has its own row with phase information, steps, logs and Archive when it is ready.
 
-- **The project list is the raw allowlist**, `queue-config.json`'s `projects`, seeded from `QUEUE_PROJECTS`: a project
+- **The project list is the allowlist without its hidden projects**, `queue-config.json`'s `projects`, seeded from `QUEUE_PROJECTS`: a project
   whose FIRST spec does not exist yet appears here and in no other list. `/api/queue` still refuses a project with no
   discovered spec.
 **The number and slug are assigned while Create holds the specs checkout lock.** The dashboard writes with
@@ -68,13 +66,13 @@ A merge holds back two things and nothing else: the job being merged and another
 ([Branches and merging](landing.md)).
 
 **The list holds specs, not the machine's whole run history.** An archived spec stays on the list under the default
-**All** filter, and **Active** leaves it out. `/api/queue` still returns every job. A
+**All** filter, and **Not archived** leaves it out. `/api/queue` still returns every job. A
 project whose specs the server cannot read this time keeps the rows it already had.
 
 A job survives a restart: the result file is the contract, and a job left `running` is reconciled from the pid and the
 file. A step that hits its own time limit is `failed`; one a usage limit ended is `waiting` ([A job's states](job-states.md)).
 
-A group is one collapsed card on Running, with its members inside it in saved order. Start queues the first group member
+A group is one collapsed card on the Jobs tab, with its members inside it in saved order. Start queues the first group member
 that is not done, on the Analyze and Implement ticked on its row, or, with neither ticked, on the ones it has not done;
 a member whose analysis is done starts on Implement. A member that finishes Implement queues the next one. A group
 made from Run writes that dialog's AI and model choices for Analyze, Implement, plan review, Review and Verify to
@@ -143,7 +141,7 @@ first process actually starts, and later starts reuse both the identity and the 
 
 Creation and editing use the record's identity, not its display name. The save checks the current project, membership,
 queue state and that every dependency inside the group comes earlier in the execution order before it writes any
-member. A removed member keeps its spec and work and returns to the ordinary Running and Specs actions.
+member. A removed member keeps its spec and work and returns to the ordinary Jobs and Specs actions.
 
 The lifecycle is `prepared`, `queued`, `running`, `stopped`, `waiting-acceptance`, `archiving` and `completed`.
 A group paused by a provider limit with an automatic retry shows Waiting and the same retry time as its stopped member.
@@ -217,7 +215,7 @@ route:
   and OPTIONS, and the one GET that starts a test board (`?startTestServer=1`). Its `Origin`, when it has one, must
   equal its own `Host` (the scheme is ignored, because a proxy in front of it ends TLS), and its `Sec-Fetch-Site`, when
   it has one, must be `same-origin` or `none`. Anything else answers 403.
-- **A header that is absent passes.** `curl`, the run emitter and the round script send no `Origin`.
+- **An absent `Origin` or `Sec-Fetch-Site` passes; an absent `Host` is refused.** `curl`, the run emitter and the round script send no `Origin`.
 
 `headerAuth` in `queue-config.json` is read, and refused unless the server binds loopback.
 
@@ -408,7 +406,7 @@ records the id Claude Code names. `model-names.json` keeps the name Claude Code 
 the Models tab is opened.
 
 **The tool is a choice per PHASE, not per row.** Every phase's dropdown lists every configured model, grouped per CLI,
-`Claude Code` first, then `Codex`; a tool with nothing configured draws no group. A row can run analyze on one CLI and
+`Claude Code` first, then `Codex`, then `OpenCode`; a tool with nothing configured draws no group. A row can run analyze on one CLI and
 implement on another (`runnerArgv`, `src/serve/serve-helpers/runner-argv.ts` derives `--model` and `--tool` from that
 one entry). There is no row-wide AI select.
 
@@ -428,16 +426,18 @@ different browser shows the recorded pick, and a run started afterwards uses it.
 ran on instead. While a job runs, a pick for a phase the job can still take is written to that job; a phase the job was
 not queued with is recorded for the spec as well, so the next run of that phase uses it.
 
-The queue, the worktrees, the wall-clock timeout and all the git handling are one path for both tools. **The wall clock
-(`timeoutSec`) is the only thing that stops a runaway step**, and it is mandatory for every step. One thing differs:
+The queue, the worktrees, the wall-clock timeout and all the git handling are one path for every tool. **The wall clock
+(`timeoutSec`) is the only thing that stops a runaway step**, and it is mandatory for every step. Where they differ:
 
 - **A Codex step reports tokens, never dollars.** The Cost column shows the token count and a dash where the money would
   be, never `$0.00`. A job mixing both tools has a `spentUsd` covering its Claude steps only.
 
-A step's log works for both tools. Safety modes are stored as Claude's own names, per step, and
-`aide-run-spec` translates them for Codex: `bypassPermissions` becomes `--dangerously-bypass-approvals-and-sandbox`,
-`acceptEdits` becomes `--sandbox workspace-write`, and `plan` and `default` become `--sandbox read-only`. A mode with no
-entry in that table refuses the run.
+A step's log works for every tool. Safety modes are stored as Claude's own names, per step, and
+`aide-run-spec` translates them. Every Codex and OpenCode turn runs inside srt, whose settings say what each mode may
+write. Codex's own sandbox cannot start there, so every mode becomes `--dangerously-bypass-approvals-and-sandbox`.
+For OpenCode, `bypassPermissions` becomes `--agent build --auto`, `acceptEdits` becomes `--agent build`, and `plan`
+and `default` become `--agent plan` with editing, shell and subagents denied. A mode with no entry in that table
+refuses the run.
 
 ## How the board finds a CLI
 
@@ -602,7 +602,7 @@ equals (after trimming, collapsing spaces and lowercasing) a spec of the project
 Create job already queued, running or done; when its title is empty, runs over one line or is longer than 120
 characters; or when its description does not fit in 10,000 characters together with the source paragraph the board adds.
 Closing a proposed spec with a reason is how it is declined; its title keeps it from being created again. The board
-writes what it did to `proposed-specs-result.json` beside the report, and the entry's Overview tab lists it. A list that
+writes what it did to `proposed-specs-result.json` beside the report, and the entry's Report tab lists it under the run's report. A list that
 cannot be read, or a project whose specs the board cannot read, creates nothing and says so there.
 
 **Due is computed from the most recent fire time alone; there is no backfill.** If the dashboard is down across a
@@ -666,7 +666,7 @@ the board itself once the limit has reset. Nobody presses anything.
   that provider, earlier or later. A step on that provider that started after a stop and completed shows the limit has
   reset, and every stop made before it ends there, whatever time it was given.
   Those jobs stay `queued` and say so on their row. Steps on other providers start as before, and
-  OpenCode and Copilot, which report no usage limit, behave as always.
+  OpenCode, which reports no usage limit, behaves as always.
 - **Starting again.** At the reset time the stopped step is queued again — the same job, in its place in the queue —
   and the steps held behind it start as the slots allow. A step that hits the limit again is held and started again
   the same way, with no limit on how many times.
@@ -821,8 +821,7 @@ of its own and no shadow home the provider keeps its sessions apart. With a shad
    Codex step, so an entry added since is linked. A shadow home that already has a `sessions` folder or a `config.toml`
    of its own is refused; start from an empty folder and log in there again.
 
-The board's login check and the Usage tab read the tools' own logins only. A step on a provider that is not logged in
-ends with the tool's own error.
+A step on a provider that is not logged in ends with the tool's own error.
 
 ## Notifications
 
@@ -843,12 +842,12 @@ aide · 81-queue-and-runner · analyze done · $2.1 · https://github.com/…/co
 The dashboard also sends a push notification to each device that turned them on, when a spec needs a person:
 
 - a step **failed**, ran out of **time**, found its model **at capacity**, or was **cut off** (its process vanished, or the
-  server restarted under it) — the job entered `failed`; a tap opens the Running tab with
+  server restarted under it) — the job entered `failed`; a tap opens the Jobs tab with
   that spec's row unfolded and scrolled to, where its state and the buttons that act on it are. A stop on shared files names, by
   number, the specs it added to the analysis's record;
 - a step finished and its merge into main **did not finish**, or its **tests went red** on the merge — a tap opens the
-  Running tab with that spec's row unfolded and scrolled to;
-- an **archive is held back** on unticked acceptance criteria — a tap opens the Running tab with that spec's criteria
+  Jobs tab with that spec's row unfolded and scrolled to;
+- an **archive is held back** on unticked acceptance criteria — a tap opens the Jobs tab with that spec's criteria
   unfolded and scrolled to, where they are ticked;
 - a **create ends without a spec**: it failed, or its own merge failed.
 
@@ -884,7 +883,7 @@ send.
 - A title — with the project and the spec folder; for a failed create, its title.
 - One sentence — in the language the device had chosen when it turned notifications on (it keeps that language until
   it is turned off and on again); for a failed create, its reason.
-- The Running tab with the spec's row unfolded and scrolled to (or, for a held-back archive, its criteria) — which a tap
+- The Jobs tab with the spec's row unfolded and scrolled to (or, for a held-back archive, its criteria) — which a tap
   opens; for a failed create, New spec filled in.
 
 It leaves the machine as an encrypted message to the device's own push service (Google, Apple, Mozilla or
@@ -904,18 +903,18 @@ The Slack `notifyCommand` above is separate and unchanged.
 
 The Jobs tab is the board's first page, at `/`. It keeps running and finished work in one place: one row for every
 round of a spec, scheduled jobs, Close and Reopen jobs, the board's own deploys and execution groups.
-The Jobs tab shows how many jobs need the reader, as `Jobs (3)`, including zero, and the number updates live. Only
-the newest job of each spec, branch or schedule counts, and it counts when:
+The Jobs tab shows how many jobs are running or need the reader, as `Jobs (3)`, including zero, and the number
+updates live. Only the newest job of each spec, branch or schedule counts, and it counts when:
 
-- it failed;
-- it is held back on something only a person can settle, or waits for an approach to be chosen;
+- it is queued, running, merging or waiting on a usage limit;
+- it failed, or it is a cancelled Merge or a cancelled step on a spec that is still open;
+- it waits for an approach to be chosen;
 - its archive is held back on unticked acceptance criteria;
 - it ran a spec that is still open through Analyze or Implement and stopped short of Archive, so the next step
   waits for a press;
-- its execution group waits for acceptance, which counts once for the whole group.
+- its execution group is not completed and has a member that is still open, which counts once for the whole group.
 
-A job that waits on its own, such as a usage-limit wait, does not count, and neither does a member of a running
-group. On a phone the number stays beside the Jobs icon.
+A member of a group counts only through its group. On a phone the number stays beside the Jobs icon.
 
 A standalone spec appears on Jobs when its first job is queued. A spec with only its creation record stays on
 Specs, where Run starts its first job. Past work stays on Jobs even after the queue has forgotten its job records.
@@ -923,8 +922,8 @@ In the seconds after the board starts, before it has read every spec, Jobs shows
 no work leave once the specs are read.
 Prepared group cards and their members remain on Jobs so the group can be started there.
 
-The first view draws 50 cards. **Show more** adds the next 50 without reloading the page. Search, filters and
-sorting use the entire history, including cards not yet loaded. A card opened by its address is always drawn.
+The first view draws 100 cards. **Show more** adds the next 100 without reloading the page. Search and filters use
+the entire history, including cards not yet loaded. A card opened by its address is always drawn.
 
 A Merge job has its own Types entry and an icon showing two branches joining. Its title names the exact source branch,
 such as `Merge to main · fix/example`. Cancel stops a queued Merge, or interrupts merge or testing and keeps the source branch;
@@ -946,7 +945,7 @@ is running." Failed-create messages stay above the search row. The first job app
 
 A grouped spec appears inside its execution group's card instead of as a second ordinary Jobs row. The card shows
 the group's creation date, its progress and the one action allowed by its current state. Its top line ends with a …
-menu: Edit while the group can be changed, or Remove after it is completed.
+menu: Edit and Remove while the group is unfinished, each disabled while it is not allowed, and Remove alone once it is completed.
 The card opens with its own ›, when a member's spec is opened from its address, or when a state is chosen in the State
 dropdown; one shut by hand stays shut until the chosen state changes. Shut, it shows the group's name, and under
 it the creation date, one pip per member labelled with its spec number without the project, in the group's order, and the group's state. While the current member runs, is queued or waits for an automatic usage-limit retry, its number is followed by the phase's first letter, such as `825 I` for Implement. Each pip has the colour
@@ -1009,7 +1008,7 @@ newest 1000 jobs.
 
 The board's own deploy is a job under the tracking key `deploy`, a step the server runs itself, so it takes no slot
 (`takesSlot`, `queue/steps.ts`). The Deploy button on the board's own project queues it
-(`POST /api/queue/projects/<project>/deploy`). Its row is named "Deploy <project>", followed by the short sha its fetch
+(`POST /api/queue/projects/<project>/deploy`). Its row reads "<project>:Deploy", followed by the short sha its fetch
 reached once it has one, and it has a row while it is queued,
 held back or running, and once it has failed until a newer deploy of the project is queued. A second
 deploy is refused while one is queued or running. During that time, the header Deploy mark and the Deploy tab’s
@@ -1032,17 +1031,16 @@ with the project: "<project>:<name>". Every job row's second line holds when the
 one pip per step, the step's first letter above it, coloured done, running, failed or not started. It is shut by default, and its › opens it to show Cancel and a line per
 step its log has marked (Aide's preparing, the steps the model marks, Aide's commit of spec files or code and spec files, with Implement's tests), each with its state, its
 time and a › that unfolds the step's part of the log. A job that failed or stopped says why in a line
-under its state, ending with a Log link. A queued, running or merging job offers Cancel, asking first;
-a finished one has no action. Which scheduled jobs show is decided in
+under its state, ending with a Log link. A queued, running or merging job offers Cancel, asking first. Which scheduled jobs show is decided in
 `src/render/pages/jobs-page/rows.ts`.
 
 Running and merging rows come first. Then come the rows with a place in the queue, in the order the queue starts
 them, as their Queued n/N reads, including a finished step waiting for its turn to merge. Then come the rows waiting for
 you, and last the rest. Within each part except the queue, the most recent change comes first.
 
-The tab has the Specs list's search box, a State dropdown and, in brackets beside it, the number of rows the table shows. The dropdown first lists the states All, Running,
-Queued, Done, Waiting, Failed and Cancelled under a States heading, then lists the kinds All, Specs, Merge, Deploys,
-Scheduled, Cleanup and Groups under a Kind heading. All is the default in both filters and checks every option. None clears the selection and shows an empty list. Ticking several entries in one filter shows every row that matches any of
+The tab has the Specs list's search box, a Types dropdown, a States dropdown and, in brackets beside them, the number of rows the table shows. The States dropdown lists All, Running,
+Queued, Done, Waiting, Failed and Cancelled, and the Types dropdown lists All, Specs, Merge, Deploys,
+Scheduled, Cleanup and Groups. All is the default in both filters and checks every option. None clears the selection and shows an empty list. Ticking several entries in one filter shows every row that matches any of
 them; when both parts are narrowed, a row has to match both. Close and Reopen count as Specs. Done holds an archived or
 closed spec, and any other job that ended done. Queued holds everything the shared queue holds: a job with a place in
 it, whatever its row reads (one waiting for a usage limit to reset, or an Archive waiting for its criteria to be
@@ -1052,12 +1050,11 @@ archived: it waits for a person to start its next phase.
 Group members count under their own states. Each state entry counts the specs and jobs the rows the search lets through stand for, each by its own state:
 a grouped spec counts under its own state, and a group adds nothing of its own. A chosen state shows a group's card,
 with all its members, when at least one member has that state. The button shows when either part narrows the view.
-An old address naming Archived, Closed, Not archived or Waiting gets All. There is no Project dropdown: typing a project's
-name, or `name:`, narrows the tab to it. The second heading reads "Title", and every heading sorts by the Specs list's
-rules; a third press on a sorted heading returns to Created, newest first. A view that hides every row says "Nothing on
-this tab matches this filter."
+An old address naming Archived, Closed or Not archived gets All. There is no Project dropdown: typing a project's
+name, or `name:`, narrows the tab to it. The second heading reads "Title". The headings do not sort: the tab keeps the
+order above. A view that hides every row says "Nothing on this tab matches this filter."
 
-The tab remembers its search, filters and sorting in a cookie of its own, apart from the Specs list's. An address that
+The tab remembers its search and filters in a cookie of its own, apart from the Specs list's. An address that
 names any of `state`, `kind`, `sort`, `dir` or `q` is the whole view and becomes the memory; one that names none gets the view
 last chosen.
 
@@ -1075,11 +1072,10 @@ this server's own `POST /api/aide-run`, and the implement step's instructions ca
 TDD phase boundary, so a headless run's phases reach the row. A step started from a terminal or an AI session is queued
 with `aide` (see Queueing from a terminal).
 
-**`GET /api/aide-runs` is these runs in flight, as JSON.** No page renders it directly: the spec list shows every
-queued run per row, and interactive sessions are claude-usage's own page. Runs are kept in memory (LRU 512) and
+**`GET /api/aide-runs` is these runs in flight, as JSON.** No page renders it directly. Runs are kept in memory (LRU 512) and
 mirrored to `~/.aide/dashboard/aide-runs.json` so restarts keep them.
 `aide merge <project> <branch>` queues a Merge job for a branch that already exists on origin. Merge uses no AI slot. Its
 row shows merge, tests, push and source-branch deletion. The branch merges as one commit, and its copy in the
-checkout `aide merge` ran in is removed afterwards ([A merged branch is deleted](landing.md#a-merged-branch-is-deleted)).
+board's own checkout is removed afterwards when it is exactly the tip that merged ([A merged branch is deleted](landing.md#a-merged-branch-is-deleted)).
 Deploy remains a separate press after Merge has finished.
 

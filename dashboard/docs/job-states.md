@@ -2,7 +2,7 @@
 
 ## Table of contents
 
-- [The seven states](#the-seven-states)
+- [The six states](#the-six-states)
 - [The transitions](#the-transitions)
 - [Execution group states](#execution-group-states)
 - [Beside the state](#beside-the-state)
@@ -22,7 +22,7 @@ Three pages sit beside this one:
 - [How a spec moves between phases](spec-transitions.md) — which of the four phases a SPEC has reached
 - [Error sentences](error-sentences.md) — the rule a job's own `error` sentence follows
 
-## The seven states
+## The six states
 
 A job is an ordered list of steps with a `stepIndex`; its `state` says where the job as a whole is.
 
@@ -74,9 +74,9 @@ stateDiagram-v2
 **Into the queue.** A job is inserted as `queued` by a step button, Create, the schedule, Run now, the Close control
 and the Deploy button on the board's own project page.
 
-**The runner's tick**, every two seconds, takes the queued jobs in the order of `queuePriorityOrder()`: `create`,
-`archive` and `close` first, since they do no model work, then `analyze` and `implement`, oldest first within each
-group. For each queued job it uses this ordered list; the first hold that applies wins:
+**The runner's tick**, every two seconds, takes the queued jobs in the board's saved waiting order
+(`src/queue/waiting/`). For each queued job it uses this ordered list (`HOLDS` in `src/queue/runner/holds.ts`); the
+first hold that applies wins:
 
 - Waits until an automatic retry is due.
 - Leaves a job queued with a reason while its provider is switched off.
@@ -86,7 +86,6 @@ group. For each queued job it uses this ordered list; the first hold that applie
 - Skips a job whose spec already has a running job.
 - Leaves an `archive` queued, with the reason on it, while another `archive` in the same project is running or
   merging.
-- Leaves a `schedule` job queued, with a reason, while anything else in its project is running or merging.
 - Leaves a deploy queued, with a reason, while a merge is in flight.
 - Leaves a job queued with "held back: not analyzed yet — run Analyze first" until its spec's `analyze` has
   completed.
@@ -144,8 +143,9 @@ A held-back job keeps its state; the reason is on the row and clears on a later 
 - Success on the last step gives `done`. Success with steps left gives `queued` again, with `stepIndex` advanced.
   There is no stop between steps: every step merges its own work.
 
-**A job whose process died** is written `failed` when it was `running`, its process is gone and its result file is
-empty, while the server runs ("the run vanished without leaving a result") and on boot ("the server restarted while this step was running").
+**A job whose process died** is written `failed`, after its automatic second attempt, when it was `running`, its
+process is gone and its result file is empty, while the server runs ("the run vanished without leaving a result after
+two attempts") and on boot ("the server restarted during both attempts, and neither left a result").
 A job whose process is gone but whose result is on disk is completed from that file.
 
 **Cancelled** comes from `POST /api/queue/<id>/cancel` and from the test board's control, which cancels every queued
@@ -259,7 +259,8 @@ restart of the board keeps it.
 cancel while it fetches, installs or has committed its restart is refused (409). A running Deploy held back before
 the restart can be cancelled; its wait then ends without firing the restart. It writes `deploy.restartedAt`, restarts the server and is taken down with
 it, so the job is `running` in the stored queue with an old pid and no result. The process that starts finishes it at
-boot: `done` when it runs the fetched commit or one that contains it, `failed` otherwise or after three minutes. A
+boot: `done` when it runs the fetched commit or one that contains it, `failed` otherwise (after one more restart) or
+after three minutes. A
 deploy found `running` without `deploy.restartedAt` was cut before its restart and fails. While a merge is
 in flight a queued deploy is held back, and a running one carries the same `held-back` reason (the one case of
 `running` with an `errorReason`) until the wait ends.

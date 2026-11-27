@@ -93,8 +93,8 @@ open Test servers (⋯ menu) and stop one before starting another".
 
 **A spec in aide itself.** The test server is the dashboard, running your branch's own code. What
 it holds is not your work: it builds a throwaway project with its own repositories in a temporary
-directory, seeds eleven sample specs into it, and shows those. Your real projects and your real
-specs are not on it and cannot be reached from it — its own banner says so, "The specs shown are
+directory, seeds the sample specs in `dashboard/test/round/specs/` into it, and shows those. Your real projects and your real
+specs are not on it and cannot be reached from it — the spec page's banner says so, "The specs shown are
 from the test suite, not the ones on the prod dashboard". Press anything you like there. No model
 is used either: a stand-in script answers in place of one, so queueing a step or pressing Run on a
 test server costs nothing.
@@ -151,8 +151,7 @@ carries no start link, and a start reached directly for an archived spec is refu
 
 ## Cleaning up leftovers
 
-The board runs one cleanup every night, filed under the first project name in sorted order regardless of how the
-project list was read. It stops processes on the six test-server ports that
+The board runs one cleanup every night, filed under the first project name in sorted order that is not hidden. It stops processes on the six test-server ports that
 are not in the Test servers register, and old orphaned test processes from the board's temporary
 folders. Registered test servers and processes belonging to queued, running or merging jobs are
 left alone. It then removes the test suites' own temp folders (`aide-pytest-*`, `aide-bun-test-*`) that are older
@@ -161,7 +160,7 @@ belongs to a run that was stopped.
 
 The Test servers page also has a **Clean up** button that starts the same cleanup, once its question is answered
 OK. The cleanup is a
-job: it appears on the Running tab while it runs and remains in the job history; each operation's marks and details
+job: it appears on the Jobs tab while it runs and remains in the job history; each operation's marks and details
 are in that job's Log. Pressing the button while a cleanup is already queued or running starts no second job.
 
 ## Running the sample specs again
@@ -288,7 +287,7 @@ is caught here before anyone reads it on the real one.
 
 The board also has one scheduled job, `a-job-that-fails`, set in the queue config the script writes. Its prompt is
 `schedules/a-job-that-fails.md` in the throwaway project, and `claude-stub` ends it with an error. It runs once
-when the board comes up and again after each press of Run, so the Running tab always has a failed scheduled job's
+when the board comes up and again after each press of Run, so the Jobs tab always has a failed scheduled job's
 row. The script checks that the job ended `failed`.
 
 A sample spec's description is the real thing, not a sketch: where a fixture is about acceptance

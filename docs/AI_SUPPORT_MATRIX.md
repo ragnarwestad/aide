@@ -68,8 +68,7 @@ everyone believed was an E is how rules break silently.
 |-----------------------------------------------------------------|------------------------------------------------|------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------|
 | Rules (git, testing, communication, …)                          | **E** — auto-loaded from `~/.claude/rules/`    | **I** — text in `~/.copilot/copilot-instructions.md` | **I** — text in `~/.codex/AGENTS.md`                                                                                                                                                  | **I** — text in `~/.config/opencode/AGENTS.md`                 |
 | Skills (`/aide-to-pdf`, `/aide-explore`, …)                     | **H** — native, activated on description match | **H** — read from `~/.agents/skills/`                | **H** — read from `~/.agents/skills/`                                                                                                                                                 | **H** — scanned in `~/.agents/skills/` and `~/.claude/skills/` |
-| Hooks (markdownlint, `git add .` block, watch-mode block, Stop) | **E** — enforced via `settings.json`           | **—**                                                | **E** — via `~/.codex/hooks.json` (verified live against 0.147.0; needs one-time hook trust, which `codex exec` keeps through thread start and resume since 0.141)                    | **—**                                                          |
-| Agents (task-analyzer)                                          | **H** — invoked via the Agent tool             | **—**                                                | **—**                                                                                                                                                                                 | **—**                                                          |
+| Hooks (markdownlint, `git add .` block, watch-mode block, Stop) | **E** — `git add .` and watch-mode blocks only | **—**                                                | **E** — via `~/.codex/hooks.json` (verified live against 0.147.0; needs one-time hook trust, which `codex exec` keeps through thread start and resume since 0.141)                    | **—**                                                          |
 | Spec steps (create → … → archive)                               | **E** — the board runs it                      | **—**                                                | **E** — the board runs it                                                                                                                                                             | **E** — the board runs it                                      |
 
 Verified hands-on against Copilot CLI 1.0.79 (`copilot skill list`,
@@ -113,7 +112,7 @@ All three tools have skills, stable hooks, subagents and a plan/analysis mode.
 ## Open follow-up items
 
 - ⏳ **The Copilot cells that need a real model call are unverified:** repo `AGENTS.md` and project-level `.claude/agents/`, and the instructions files. The verified-stamped cells (skills and commands, read with `copilot skill list`) hold. Finish the sweep when a model call can be made from this machine.
-- The `effort` frontmatter on skills is in use (`low`/`medium`/`high`/`xhigh`) — Claude Code-specific.
+- The `effort` frontmatter on skills is in use (`medium`/`high`/`xhigh`) — Claude Code-specific.
 
 ---
 
@@ -235,8 +234,9 @@ Which files each tool reads automatically:
 ```text
 core/implementations/claude-code/
 ├── INSTALL.md
-├── setup.sh
-└── config/project/.claude/     ← copied to the target project
+├── README.md
+├── hooks.json                  ← the two command-rule hooks, merged into ~/.claude/settings.json
+└── install.sh / uninstall.sh   ← global install: ~/.claude/skills/, ~/.claude/rules/, hooks, shared scripts
 ```
 
 ---

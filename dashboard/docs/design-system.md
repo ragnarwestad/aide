@@ -26,7 +26,7 @@ through a variable, and a control has one class wherever it appears — never a 
 
 ## Tokens
 
-The stylesheet is the twenty `.css` files `src/render/ui/css/index.ts` lists in `SECTIONS`, read and joined in
+The stylesheet is the `.css` files `src/render/ui/css/index.ts` lists in `SECTIONS`, read and joined in
 that order into the one string inlined into every page. The foundation (`tokens.css`, `page.css`, `brand.css`,
 `text-roles.css`) sits beside `index.ts`, and the rest in folders named for what they style: `components/`, `list/`,
 `pages/` and `narrow/`. `tokens.css` declares every colour, type size, space and radius ONCE, as CSS
@@ -43,7 +43,7 @@ Ember, Black & White, Maroon, Grove, Ocean and Iris. Themes never set text, link
 running state colours. Ember is the default and carries the board's orange and copper colours; Black & White is
 neutral grey. In dark mode each coloured theme tints its background and surfaces clearly towards its own hue.
 
-Every rule in the other sixteen files uses `var(--…)`; none of them may contain a literal. The full set — and the type and space scales a font size or a gap has to come
+Every rule in the other files uses `var(--…)`; none of them may contain a literal. The full set — and the type and space scales a font size or a gap has to come
 from — is `tokens.css` itself; the names below are the ones a reader of the palette needs first.
 
 The palette is warm neutrals with zinc ink:
@@ -222,7 +222,7 @@ beside the next.
 
 One control is an exception, and its CSS says so: the specs list's state filter, `.menu.state`, carries
 `margin-left: var(--sp-3)` on a desktop screen — more room from the "(?)" beside it than the row's gap gives, because
-the two are easy to mis-click together — and `narrow.css` sets it back to 0 at phone width. A `margin-left: auto`
+the two are easy to mis-click together — and `narrow/narrow-rows.css` sets it back to 0 at phone width. A `margin-left: auto`
 that pushes a control to the row's far end, as the New spec button's does, is not a gap between two controls, and
 the rule does not cover it. `.actionform` declares no `margin`.
 
@@ -256,7 +256,7 @@ Render files keep to a closed class vocabulary (see [The class vocabulary](#the-
 change that needs to mark up a structural role — nothing to style, just something a test or a future render pass needs
 to find — should not grow that vocabulary for a class that carries no CSS rule. The per-phase caption row
 (`Phase` / `Model` above the phase lines' pickers) is marked `data-caption="1"` for exactly this reason. It has since
-grown rules of its own — two dozen of them, in the specs list's stylesheets and `narrow.css` — and stays a `data-*` regardless: the
+grown rules of its own, in the stylesheets under `list/` and `narrow/`, and stays a `data-*` regardless: the
 vocabulary covers the classes a render file emits, so CSS may select on an attribute freely. A marker that gains
 styling later is not a reason to convert it into a class.
 
@@ -280,7 +280,7 @@ script off is unchanged. A bounded field added later is covered by the selector 
 get no count until the selector is widened.
 
 The spans are drawn twice: once at load, over the whole document, and again over each row the specs list swaps in on
-its five-second refresh (`drawLimits`, called from `row-swap.ts`). A field already carrying them is left alone, so the
+a live update (`drawLimits`, called from `specs-client/row-swap/`). A field already carrying them is left alone, so the
 second pass costs nothing — and without it a bounded field inside a swapped row would lose its count the first time
 the row was redrawn.
 
@@ -330,11 +330,10 @@ and dark pairs, so changing the color scheme keeps the chosen theme.
 
 Applying the stored choice before first paint (no flash) needs a script that runs before body content, on every page, so `src/render/ui/shell.ts`'s
 `pageShell()` emits exactly one `<script>` tag in `<head>`, unconditional and shared. `theme-script.ts` is what it
-exists for, but the tag carries thirteen transpiled files in all — the unit setting, the "…" menu's close-on-outside-click,
-the service worker registration and the rest — each its own IIFE, concatenated into the one tag rather than one tag per
-file. Every file in it is transpiled raw by `Bun.Transpiler`, so none of them
-may `import` or `export`; `specs-client/index.ts` may, because it is bundled by `Bun.build({ format: "iife" })`
-instead. Both are tested the same way: transpile the file and run it against a fake DOM.
+exists for, but the tag carries every file `src/render/scripts/index.ts` imports — the unit setting, the "…" menu's
+close-on-outside-click, the service worker registration and the rest — bundled into the one tag by
+`Bun.build({ format: "iife" })` (`render/scripts/head-script.ts`), as `specs-client/index.ts` is bundled for the page
+script. Both are tested the same way: build the file and run it against a fake DOM.
 
 This is a separate mechanism from `opts.script`, which goes at the end of the body and is passed by whichever pages
 need it. A served page carries two `<script>` tags where its route passes one, so a test that locates "the" script by
@@ -364,7 +363,7 @@ one place these five names live.
 - `translations` — the registry (`{ en, nb, es, de, fr }`).
 - `LANGUAGES` — the list the header menu and `serve-helpers/http.ts`'s `?lang=`/cookie validation both iterate, so
   neither has to name a language by hand.
-Every other file that needs a per-language answer (`provider-limit.ts`'s locale table,
+Every other file that needs a per-language answer (`LOCALES` in `messages/usage-limit/get.ts`,
 `format/gerund.ts` and `format/step-label.ts`'s verb/name tables) is a `Record<Language, …>` lookup, with an
 English fallback for the two of those that are not required to cover every language.
 
@@ -403,7 +402,8 @@ and the bar. `shell.ts` builds `pageHeader()` — the wordmark, a line naming th
 theme, language and unit controls, and a "…" menu — and `siteTabs()`, which draws Running, Specs and Schedule. The "…"
 menu opens Projects, Providers, Settings, Test servers and About.
 There is no sidebar, and no reserved column standing empty for one. A page that passes `hideTabBar` draws no bar at
-all: the spec page, the Projects page, a project's page, Providers, Settings and Test servers. Those opened from the "…"
+all: the spec page, the New spec page, the Projects page, a project's page, the page that makes a schedule entry,
+Providers, Settings and Test servers. Those opened from the "…"
 menu have a Back link and their title on one line instead.
 
 The board line reads:

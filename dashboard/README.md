@@ -25,8 +25,8 @@ and where its settings are kept, is in [Projects](docs/projects.md).
 
 The Specs list has a row per spec, newest first. **New spec** writes a spec and starts nothing; **Run** on its row
 starts the phases still to go. A queued job shows its progress on the spec's row, and can be cancelled or given
-another phase from there. Opening a row shows the spec itself: its four files
-and every job that has run against it.
+another phase from there. Opening a row shows the spec itself: its description,
+analysis, solution and status, and every job that has run against it.
 
 [The specs list and the spec page](docs/the-specs-list.md) says what each row and each control does, and
 [A spec's lifecycle](docs/spec-lifecycle.md) covers writing a spec, the four phases and what stops one.
@@ -35,13 +35,14 @@ and every job that has run against it.
 
 ### Requirements
 
-The installer checks all of this on the serving machine before it changes anything, and stops with instructions
-for whatever is missing. It is listed here so you can have it ready:
+The installer checks this on the serving machine before it changes anything. It stops with instructions when git,
+Aide, jq or bun is missing, and only warns when no AI CLI is found or git has no `user.email`. It is listed here so you can
+have it ready:
 
 - **git**, with `user.name` and `user.email` set — a run commits as that user
 - **Aide itself**: `./install-all.sh` at the repository root, on that machine. Every phase the dashboard runs goes
   through Aide's own scripts, so they have to be there first
-- **An AI CLI, signed in**: run `claude` on that machine and sign in. Codex, OpenCode or Copilot work too
+- **An AI CLI, signed in**: run `claude` on that machine and sign in. Codex or OpenCode work too
 
 ### Installing
 
@@ -66,7 +67,7 @@ inside that login; without it, the job is installed and the port answers nothing
 
 `install.sh` does not support Linux: it says so and installs nothing. `dashboard/serve.sh` runs the dashboard in
 a terminal instead, queue included, with the same arguments and the same state under `~/.aide/dashboard` as the
-service, and checks the same requirements first. It runs until it is stopped and does not start again after a
+service, and checks first that bun, git, jq and Aide are there. It runs until it is stopped and does not start again after a
 reboot. `PORT`, `BIND`, `ROOT` and `QUEUE_PROJECTS` are given to it as `NAME=value` arguments. On Windows, all of
 this runs inside WSL.
 
@@ -84,7 +85,7 @@ do there is add a project, which [Projects](docs/projects.md) covers.
 - [Projects](docs/projects.md) — adding one, whether a run can start there, the project page
 - [A spec's lifecycle](docs/spec-lifecycle.md) — writing a spec, the four phases, what stops one and what moves it on
 - [How a spec moves between phases](docs/spec-transitions.md) — how each move is decided and recorded, holds, the row's button
-- [A job's states](docs/job-states.md) — the queue's state machine: the seven states, who moves a job, the flags beside it
+- [A job's states](docs/job-states.md) — the queue's state machine: the six states, who moves a job, the flags beside it
 - [Branches and merging](docs/landing.md) — how a step's branch is merged, conflicts, what stops a merge
 - [Test server](docs/test-server.md) — the link a requirements review offers to run a spec's branch, and what it shows you
 - [Error sentences](docs/error-sentences.md) — the one rule every error the board shows follows

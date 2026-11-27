@@ -22,7 +22,7 @@ What a run does to the repositories it touches: the clones the dashboard keeps o
 checkouts a step works in, what a finished step publishes — and, last, how to run one step by hand.
 
 **Where the code is.** `core/scripts/aide-run-spec` is the entry point and holds little else; the mechanics are in
-`core/scripts/lib/run-spec/`, twenty-nine files in five folders named for when they run. The ones this page describes:
+`core/scripts/lib/run-spec/`, in five folders named for when they run. The ones this page describes:
 
 | For a change to                                     | Open                                      |
 |-----------------------------------------------------|-------------------------------------------|
@@ -41,7 +41,7 @@ checkouts a step works in, what a finished step publishes — and, last, how to 
 | Ending an implement that sends its spec back        | `run-spec/record/sent-back-check.sh`      |
 | Reading and writing Tracking info bullets           | `lib/tracking-info.sh`                    |
 | The test gate an implement ends on                  | `run-spec/turn/step-tests.sh`             |
-| Where the specs root comes from                     | `run-spec/turn/spec-paths.sh`             |
+| Where the specs root comes from                     | `run-spec/setup/code-landing.sh`          |
 | The model turn, and reading what came back          | `run-spec/turn/model-turn/`               |
 | What the run reports, and the result JSON           | `run-spec/publish/result.sh`              |
 
@@ -119,7 +119,7 @@ code is in `run-spec/setup/invocation.sh`, and the review's name in `run-spec/tu
 
 A turn whose tool exits without a result, before the model has done anything, ends the step as `cli-error`. The
 job's `error` is the last 400 characters the tool wrote to stderr, followed by "press <step> again"
-(`run-spec/turn/model-turn/index.sh`), so the tool's own explanation reaches the board.
+(`run-spec/turn/model-turn/outcome.sh`), so the tool's own explanation reaches the board.
 
 A damaged `~/.claude.json` on the serving host is such a case. When the file is not valid JSON, `claude -p` exits 1
 without starting: it names the file, says to fix the JSON or move the file aside, and leaves it unchanged (Claude Code
@@ -302,7 +302,7 @@ fault and include git's line; `github` says GitHub had an error; `refused` and `
 git gave no error text.
 
 **A fetch of the base that fails is sorted the same way.** Before it cuts a new branch, the runner fetches the base
-from origin (`fetch_base_with_retry`, `run-spec/setup/gates.sh`, three retries) and refuses when it still fails, rather
+from origin (`fetch_base_with_retry`, `run-spec/setup/gates.sh`, one retry) and refuses when it still fails, rather
 than cut the branch from the checkout's own tip. The result carries the cause as `fetchFailure`, shaped as one entry
 of `pushFailures` with the base as `branch`, and the refusal's `error` keeps git's lines whole for the (?). The row names the repo and
 the base: `auth`, `no-write`, `https-auth`, `network` and `github` read as for a push; `other`, `refused` and `none` give git's first line, or say git gave
@@ -652,7 +652,7 @@ aide-run-spec --project-dir ~/develop/myproject --command analyze --spec 81 \
               --result-file /tmp/step.json
 ```
 
-`--command` takes any of the ten step names in `core/scripts/lib/workflow-steps.json`, not only the four phases,
+`--command` takes any of the eight steps marked `runBy: runner` in `core/scripts/lib/workflow-steps.json`, not only the four phases,
 and some of them need one more flag: `--title` and `--description` for a `create` whose `--spec` names no existing
 folder, `--prompt-file` for `schedule`, `--reason` for `close`. Beyond those: `--tool claude|codex|opencode`
 chooses the CLI, `--model` and `--effort` what it runs as, `--push none|branch|pr` what is published,
@@ -667,7 +667,7 @@ refused anywhere else, and `--no-sandbox` runs Claude without its sandbox, for t
 It refuses to start when the spec folder does not exist or when a required value is missing — but not over a dirty
 checkout: the work happens in a worktree cut from origin's default branch, so what somebody left uncommitted in the
 main checkout stops nobody. `--permission-mode` is never defaulted: the most dangerous flag has to be typed out. The queue passes
-`bypassPermissions` for the steps that run Aide's own git-writing scripts and `acceptEdits` for the rest. It enforces the step's own time limit (SIGTERM to the process group, then SIGKILL), commits
+`bypassPermissions` for `implement` and `acceptEdits` for the rest, unless the queue config says otherwise. It enforces the step's own time limit (SIGTERM to the process group, then SIGKILL), commits
 whatever the step managed to write in BOTH roots — the project and the specs repo — and writes one JSON line to
 stdout and to `--result-file`. `--worktree-base` relocates the worktrees; a base inside any of the repos is refused.
 The worktrees go when the run ends, and one left behind by a killed run is swept by the next run for that spec.

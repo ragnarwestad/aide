@@ -19,7 +19,7 @@ The same page setup runs for the new content, and the setup for the replaced con
 Successful actions that end on another dashboard page use the same page change. This includes creating a spec,
 adding or removing a project, saving project settings, completing an action dialog and saving a schedule.
 
-A row's › on the Running tab or the Specs list asks the page's own address for that one row. The server builds
+A row's › on the Jobs tab or the Specs list asks the page's own address for that one row. The server builds
 that row alone, so the answer does not take longer as the list grows, and the page replaces that row and nothing
 else. Repeated presses on the same › while its answer is on the way are ignored. Automatic row updates wait
 while a row is opening or closing, and overlapping automatic updates share one request followed by a catch-up.

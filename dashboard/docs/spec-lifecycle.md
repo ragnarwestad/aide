@@ -22,7 +22,7 @@ take it back or close it. How each move is decided and recorded is in
 
 | Phase       | Writes                                                                                                                   | Merges                                                                               |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
-| `create`    | The spec folder: `0-README.md`, `1-description.md` and empty `2-`, `3-`, `4-` files, via `core/scripts/aide-create-spec` | Merged into the specs repo's default branch at once; the branch is deleted on origin |
+| `create`    | The spec folder: `0-README.md`, `1-description.md` and placeholder `2-`, `3-`, `4-` files, via `core/scripts/aide-create-spec` | Committed on the specs repo's default branch and pushed; no branch |
 | `analyze`   | `2-analysis.md`, `3-solution.md`, `4-status.md`, in the specs repo only                                                  | Merged into the specs repo's default branch at once; the branch is deleted on origin |
 | `implement` | Code and tests in the project, the status rows in `4-status.md`, and `test-run.json` beside the spec                     | Nothing. The code waits on `aide/<folder>`                                           |
 | `archive`   | The `Archived:` stamp, moves the folder into `archive/`, feeds documentation back                                        | Merges the specs repo, then the code root, runs `AIDE_INSTALL_CMD`, then asks origin |
@@ -44,8 +44,7 @@ characters too many it holds, and Create does not submit. The Description tab sa
 server refuses a create or a save over the bound with a sentence that names it, so a page with script off is held to it
 too. In `1-description.md` the description is the text between the `## Description` line and the closing line the create
 step writes (or the template's closing note), acceptance criteria and all; a file with no `## Description` heading is
-not bounded. The create step may add acceptance criteria inside that part, so a description created close to the bound
-can come out over it and has to be shortened before its next Save. The Close reason keeps its own bound of 5000.
+not bounded. The Close reason keeps its own bound of 5000.
 
 **The description** says what is wrong and what should be true afterwards. It is markdown: `##` starts a heading and
 `**` makes bold, as in the parts below. Three parts of it are read by the runs that follow; everything else, headings
@@ -81,7 +80,7 @@ The three settings control how the spec is run:
 | Option                               | When the form opens | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 |--------------------------------------|---------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Acceptance ticking required          | Ticked              | Archive waits until every acceptance criterion is ticked on the spec. Cleared, every criterion is marked Not verified after analyze. Archive can proceed, and each row can be verified later.                                                                                                                                                                                                                                                                               |
-| Acceptance criteria checks           | Off                 | How strictly analyze checks the criteria: that the description has some, that each follows an EARS pattern, that each WHEN, WHILE or WHERE criterion has a scenario for when its condition does not hold, that no two contradict each other, and that each can be built. Off makes no checks; Warn lists what it finds and analyze completes; Stop holds analyze until the criteria are put right. Can be changed on its open row on the Running tab until analyze has run. |
+| Acceptance criteria checks           | Off                 | How strictly analyze checks the criteria: that the description has some, that each follows an EARS pattern, that each WHEN, WHILE or WHERE criterion has a scenario for when its condition does not hold, that no two contradict each other, and that each can be built. Off makes no checks; Warn lists what it finds and analyze completes; Stop holds analyze until the criteria are put right. Can be changed on its open row on the Specs list until analyze has run.   |
 | Let me choose the approach           | Cleared             | Analyze marks each approach it weighed as recommended, a real alternative or rejected. When it finds two or more real alternatives, implement waits, and the spec's row lists them with the recommended one picked: save it to go on, or pick another to have analyze plan that one instead. Cleared, analyze picks and implement builds it.                                                                                                                                |
 
 ## One spec, from first to last
@@ -170,7 +169,7 @@ a round that starts with Implement keeps them.
   planned again: the earlier round's code and tests for it stay on the branch, and the user checks it against the new
   code when they tick it again. Implement may rewrite an open row's Notes cell with what is still missing. No skill
   ticks a row.
-- **On the Running tab**, a spec held back this way offers Analyze and Implement unticked beside a ticked Archive: a
+- **On the Specs list**, a spec held back this way offers Analyze and Implement unticked beside a ticked Archive: a
   plain press archives, and another round is a choice made by ticking it.
 
 When the user is satisfied, they tick the rows on the spec's Status tab and press Archive.
@@ -183,7 +182,7 @@ Reopen keeps the spec, and discards a work round when it is asked to. It is a qu
 - **Reopen** takes an archived or closed spec back to the active list and asks one question in a dialog, opened
   from the Reopen button on the spec page and on the list row: also reset the analysis, the plan and the status? The
   box is unticked, and the job carries `resetFiles` only when it is ticked. Pressing OK queues the job and goes to the
-  Running tab, where the reopen is a row of its own and its open row lists every step of the job, each changing as
+  Jobs tab, where the reopen is a row of its own and its open row lists every step of the job, each changing as
   its log marks it.
   It deletes the branch the earlier round left behind in both modes.
   - **Keep (the default, also a bare `steps=reopen`).** `core/scripts/aide-reopen-spec` moves the folder out of
@@ -221,7 +220,7 @@ writes a
 `**Closed:** <date> — <reason>` stamp (the reason is required) and moves the folder into `archive/`, exactly as
 `aide-archive-spec` does — but its merge deletes the code root's branch instead of merging it, since Close records
 that the work will not be used, not that it was. **Whatever code that branch held is gone with it**, and a later
-reopen does not bring it back — the spec's four files return, the code does not. A closed spec reads `closed`, never `archived`, everywhere a spec's
+reopen does not bring it back — the spec's five files return, the code does not. A closed spec reads `closed`, never `archived`, everywhere a spec's
 state is shown, and only `reopen` is legal on it afterward — the same one-step exception `archived` already has.
 
 Close is available while a Merge runs in the project. Its merge waits for the repository merge lock when another

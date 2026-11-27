@@ -68,7 +68,7 @@ it in the words of that skill's last heading:
 
 - `--- Step 7 of 7: Merge spec files into main — started` when a create's merge begins
 - `— done` when every repo merged
-- `— stopped: <why> — the archive is not finished`, an error line, when it did not
+- `— stopped: <why> — the <step> is not finished`, an error line, when it did not
 
 Create, Analyze, Reopen and Close name spec files; Archive says `Test and merge code and spec files into main`.
 
@@ -166,8 +166,8 @@ touches the default branch; the dashboard merges the resolved branch afterwards.
 
 There is no `resolve` step and no Resolve button.
 
-- **It names `archive` and `implement` literally, never a denylist.** Another step carrying conflict markers into a
-  commit is worse than a refusal.
+- **Only `archive` and `implement` get it**, the steps marked `receivesConflict` in
+  `core/scripts/lib/workflow-steps.json`. Another step carrying conflict markers into a commit is worse than a refusal.
 - **It either finishes or puts the branch back.** Tests red, or a conflict the model will not decide, and the merge is
   undone to the commit the branch started on. That branch never reaches origin, since a root whose HEAD did not move is
   pushed only when the run ended `completed`.
@@ -226,11 +226,12 @@ last lines as the detail. The run on main alone sets up its own worktree the sam
 the gate runs in the live checkout, with no setup, and says so in its log. The gate (`src/serve/land-branch/test-gate.ts`) asks `aide-resolve-test-cmd` which
 commands the change calls for and runs them through `aide-record-test-run`.
 
-- A red run gets the whole command once more, unless it timed out. Green on the second run merges without a notice
+- A red run gets the whole command once more, unless it timed out or the landing repairs tests instead (`repairsTests`
+  in the merge policy: `archive` and Merge). Green on the second run merges without a notice
   on the archived row. The job keeps the lines the first run failed on (`testsGreenOnRetry`).
 - Red on both runs pushes nothing: the local merge is dropped, the branch stays where the step left it, and the job
   STOPS with `errorReason: tests-red` and `stopReason: tests-red`, amber and not red. The same commands then run once on
-  the default branch alone (`redOnDefaultBranch`); red there too, the sentence says main is red as well, and archive
+  the default branch alone (`resultOnDefaultBranch`); red there too, the sentence says main is red as well, and archive
   merges the work once main is green again.
 - Green on main alone, the sentence names the failing tests that `aide-record-test-run` read from the output and put on
   its answer (`failingTests`), the same reading a step's own run gets. The same tests on both runs: the merge broke them. Different tests on the
@@ -251,7 +252,7 @@ false}`) runs all its suites to the end, red or not, and asks for a subset by `A
 (`src/serve/land-branch/suite-rerun.ts`). The run on main alone then runs only the suites that were red. After a repair,
 with main where it was, the next attempt runs the red suites again, with `AIDE_TEST_ALSO_CHANGED_SINCE` set to the commit
 they were red on, so the command adds the suites the repair's own changes need; with main moved, it runs whole. A
-command that writes no report runs whole every time. Aide's own command is `scripts/testing/changed.py`; its suites,
+command that writes no report runs whole every time. Aide's own `AIDE_TEST_CHANGED_CMD` is `scripts/testing/changed.py`; its suites,
 by the names `AIDE_TEST_ONLY_SUITES` takes, are docs, contracts, python, runner (the runner script's pytest tests,
 which take most of pytest's time), dashboard and e2e.
 

@@ -58,6 +58,13 @@ writing, and say the reader in the page's first lines.
 - **Every sentence earns its place:** keep it only when it changes what the reader does or
   understands. A sentence that restates the heading, or narrates what the tool does on its own,
   goes.
+- **Every claim is checked against the code before it is written.** Who does a thing (the user,
+  the board, the AI tool), what a step does, a file or folder name, a count, a flag, a default:
+  read it in the source in the same change, not from memory or from another page. A claim that
+  cannot be checked is not written. Trimming or rewording a page re-checks every claim it keeps.
+- **Plain statements, no pitch.** Say what happens, in the words the program uses. A sentence
+  that sells ("so the reasoning a chat history loses is still there") is cut or replaced by the
+  fact under it.
 
 ---
 

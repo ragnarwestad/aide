@@ -19,17 +19,18 @@ This guide is for you who want to **contribute to or further develop** Aide.
 
 ## Tools you need
 
-Using Aide needs what each installer's own INSTALL.md lists. Developing it
-also needs the tools its checks run on — the same five commands CI runs on a
+Using Aide needs what each installer's own page lists. Developing it
+also needs the tools its checks run on — the same commands CI runs on a
 pull request:
 
 | Tool              | Used by                                                                                   | Install                                                                                                  |
 | ----------------- | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
 | Python 3.14       | `.venv/bin/pytest`, the root's gate                                                       | `brew install python@3.14`, then `python3.14 -m venv .venv && .venv/bin/pip install -r requirements.txt` |
-| bun               | `cd dashboard && make test`, the dashboard's gate                                         | `brew install oven-sh/bun/bun` (or mise; the version is `dashboard/bun.lock`'s)                          |
+| bun               | `cd dashboard && make test`, the dashboard's gate                                         | `brew install oven-sh/bun/bun` (or mise; CI's version is in `.github/workflows/ci.yml`)                  |
 | markdownlint-cli2 | `npx markdownlint-cli2 '**/*.md'`                                                         | fetched by `npx`, needs Node.js                                                                          |
 | shellcheck        | `scripts/check-bash`, over every bash script the repository tracks                        | `brew install shellcheck`                                                                                |
 | agnix             | `scripts/check-agents`, over skills, rules, CLAUDE.md, agents and hooks                   | fetched by `npx` at the version the script pins, needs Node.js                                           |
+| biome             | `cd dashboard && npx --yes @biomejs/biome lint src/`                                      | fetched by `npx`, needs Node.js                                                                          |
 
 `scripts/check-bash` refuses with the install command when shellcheck is
 missing, so a machine without it never reports a bash change as checked.
@@ -37,8 +38,7 @@ missing, so a machine without it never reports a bash change as checked.
 **A change to the documentation has its own command.** `scripts/check-docs` runs the tests that read a page where code
 depends on its text — the lifecycle diagram against `transitions.json`, the skills' frontmatter, step headings and the
 script names they call, the templates' placeholders — with `core/tests/specs/unit/core/validation` and
-`core/tests/specs/unit/core/skills`, and the dashboard's own guards with `test/guards` and `test/design`. That takes about
-ten seconds against the four minutes both full suites take.
+`core/tests/specs/unit/core/skills`, and the dashboard's own guards with `test/guards` and `test/design`.
 
 `.githooks/pre-push` runs it before a push that moves `main`, and nothing on a push to a working branch. Turn it on
 once per clone:
@@ -94,8 +94,8 @@ aide/
 │   └── tests/                     # pytest, run from the root (pytest.ini)
 │
 ├── dashboard/                     # THE BOARD — its own toolchain (Bun + TypeScript)
-│   ├── src/                       # Site generator + the Bun server behind /live and /queue
-│   ├── deploy/                    # rsync publish, launchd plist rendering
+│   ├── src/                       # The Bun server and the pages it renders
+│   ├── deploy/                    # launchd plist rendering, install checks
 │   ├── test/                      # bun test — NOT part of the pytest suite
 │   └── Makefile                   # test / test-slow / test-e2e / test-all / serve-local / install-serve / deploy-serve / install-local
 │
@@ -192,7 +192,6 @@ cd core/implementations/claude-code && ./uninstall.sh
 | -------------------- | ------------------------------------------ | ------------------------------------ |
 | Skills               | `core/skills/`                             | `~/.claude/skills/`                  |
 | Scripts              | `core/scripts/`                            | `~/.local/bin/`                      |
-| Agents               | `core/implementations/claude-code/agents/` | `~/.claude/agents/`                  |
 | Rules                | `core/rules/`                              | `~/.claude/rules/`                   |
 | Copilot instructions | `core/AGENTS.md`                           | `~/.copilot/copilot-instructions.md` |
 

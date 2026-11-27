@@ -109,13 +109,13 @@ current sentence and detail behavior.
 apart as `problem` and `solution` beside the one-line `text`:
 
 ```typescript
-const PUSH_ERROR_SENTENCE = errorSentence({
+const PUSH_ERROR_SENTENCE = getErrorMessage({
   what: "A step's push did not reach origin.",
   resolve: "Pull the branch in the checkout on the serving host, then push it again from a terminal.",
 });
 ```
 
-It throws if given neither `resolve` nor `exempt`. `writtenMessage(problem, solution)` stores a pair written in English
+It throws if given neither `resolve` nor `exempt`. `getWrittenMessage(problem, solution)` stores a pair written in English
 as the catalog's `message.written` message, which the composer draws as the two lines. A route answers a refusal with
 `error` for the problem and `solution` for the fix, and the page writes them as the two lines.
 

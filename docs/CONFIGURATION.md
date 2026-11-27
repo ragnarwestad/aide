@@ -80,9 +80,8 @@ The settings a run uses:
 
 ## Setting them from the dashboard
 
-The Config tab on a project's page shows one table per file, each with its own Edit, Save and Cancel. Edit turns
-that table alone into a form, and the other table's Edit is disabled until it is saved or cancelled. Save writes the
-table's values to its own file and leaves the other file untouched: `.aide/config` stays on the machine, while a
+The Config tab on a project's page shows one card per file, each its own form with Save and Cancel, and every field
+editable as the tab opens. Save writes the card's values to its own file and leaves the other file untouched: `.aide/config` stays on the machine, while a
 manifest value is committed and pushed where the project tracks its manifest, or written to the dashboard's
 `settings.yaml` where it does not.
 [dashboard/docs/projects.md](../dashboard/docs/projects.md) describes the tab.

@@ -78,7 +78,7 @@ far implement's cost spread: one replay cannot tell a steady result from a lucky
 
 A round runs on the machine that serves the board, `rw-macmini-m2`, from
 `~/develop/aide`, in a tmux session so it outlives the ssh connection. A round of
-eight specs with analyze and implement takes eight to ten hours.
+eight specs with analyze and implement takes about six hours.
 
 Check the board's queue first: a round shares the account's usage limit with the
 board's own jobs.
@@ -145,8 +145,8 @@ Each spec's folder holds a run folder, `<date>-<time>-<aide commit>/`, with:
 
 ## What a round costs
 
-Analyze and implement on Sonnet cost about $6–7 per spec, and analyze on Opus about
-twice that. An advisor adds about $1–2 per analysis. The judge costs cents. On a
+Analyze on Sonnet costs about $6 per spec and implement on Sonnet about $3, and
+analyze on Opus about twice what analyze on Sonnet costs. An advisor adds about $1–2 per analysis. The judge costs cents. On a
 subscription, the cost counts toward the account's usage limit, and a long round can
 reach the five-hour limit: a spec that hits it has no result and is run again.
 
@@ -195,10 +195,10 @@ $1–2 an analysis.
 specs with no analysis at all, was green at the first try on four of them, for less
 than the original implement runs cost, and saved the analysis on Opus, $7.89 to $15.57
 a spec. On the other two the implement skill refused to start, on its own judgement and
-not on size: one of them was smaller than a spec that ran. 199 of the 226 original tests
-passed; the round cannot tell whether the other 27 failed on behaviour or only on naming
+not on size: one of them was smaller than a spec that ran. 199 of the 227 original tests
+passed; the round cannot tell whether the other 28 failed on behaviour or only on naming
 and placing. That is why the short analysis still writes the files to change and where
-the tests go, and why the runner, not the model, decides when it is taken.
+the tests go, and why the runner, not the model, sets and checks the limits it must stay within.
 
 ## Measuring the review
 
@@ -228,8 +228,7 @@ On 26 October 2026, with 17 real, 13 false and 2 unclear findings labelled:
 | Verification on Opus (32 findings)   | 14 of 17 real kept, 13 of 13 false dropped, about $7 |
 | Verification on Sonnet (28 findings) | 9 of 16 real kept, 10 of 11 false dropped, $2.64     |
 
-That is why `model.review` is gpt-6.1-sol and `model.verify` Opus. The three real defects Opus dropped each turn on
-how the description is read.
+The three real defects Opus dropped each turn on how the description is read.
 
 On 26 November 2026, `probe` on gpt-6.1-sol found 9 of the 17 real defects and reported 25 findings that are not
 defects: 6 false and 1 unclear already labelled, and 18 new ones, all false. The code behaved as each of those

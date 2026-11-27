@@ -42,7 +42,7 @@ icon before the spec's name and title, followed by one status line.
 On the Specs list that line is when the spec was created (the date and the time to the minute, what the Created sort
 orders by), its state and its actions. The list has four headings: Created, Specification, State and Actions. It sorts
 by Created, Specification, State and Actions. Actions sorts by the localized name of the first action the row offers.
-On the Running tab the line is the Updated stamp — the newest time any of the row's jobs was made, started or finished,
+On the Jobs tab the line is the Updated stamp — the newest time any of the row's jobs was made, started or finished,
 which is what the tab orders by — with the phase pips at its right, the state, the time and the cost. A phone from
 430px shows the stamp without its year (none on a card with six or seven pips below 470px); a narrower one shows the
 pips alone. Under the row sit its notice lines, the `N not verified`
@@ -70,7 +70,7 @@ leave-page question is the one that guards an unsaved edit; Back to `/specs` wit
 back and loads the list, so the same question is asked. The criteria's › redraws that spec's rows alone: the
 page asks for `?rows=1&only=<project>/<spec>` and replaces just those rows, since the whole list runs to a megabyte once
 the archive is on it. That chevron is a spinner until they are back. The page asks its own address: `/specs?rows=1…`
-or `/specs/<project>/<spec>?rows=1…` here, and `/?rows=1…` on the Running tab, which draws the same rows for the specs it
+or `/specs/<project>/<spec>?rows=1…` here, and `/?rows=1…` on the Jobs tab, which draws the same rows for the specs it
 shows and folds its rows in place. Every other link on the page takes the folds from the address rather than from its
 own href, which was drawn before the last ›.
 
@@ -81,8 +81,8 @@ swapped away with the spec above it.
 
 Opening is a link to the spec's address, and the address is what says which row is open: `/specs` draws every row
 shut, and `/specs/<project>/<spec>` draws the list with that row open. `/specs?open=<project>/<folder>` (a link
-that bookmarks and other pages still use; a push notification opens the Running tab instead) answers a redirect to the spec's address, with the rest of the query, when there is such a spec;
-with several keys it goes to the first. The Running tab is the other page that draws these rows, and it keeps `?open=`
+that bookmarks and other pages still use; a push notification opens the Jobs tab instead) answers a redirect to the spec's address, with the rest of the query, when there is such a spec;
+with several keys it goes to the first. The Jobs tab is the other page that draws these rows, and it keeps `?open=`
 for its own folds.
 
 On the Specs list an open row is the spec: its title line, short state, description, settings, dependencies,
@@ -91,7 +91,7 @@ with every round of this spec and no other row. Run opens a dialog for choosing 
 model. When the job starts, alone or with other specs as a group, the dialog closes and the reader stays on the
 Specs tab, with the list's filters and scroll position as they were and the spec's row showing its new state.
 
-The Running tab's open row reveals the workflow phases underneath, always in that order, so how far a spec has got
+The Jobs tab's open row reveals the workflow phases underneath, always in that order, so how far a spec has got
 is readable without counting rows. The phase lines sit directly under the row; its message rows come after them.
 A phase never run shows a muted "not run yet". A phase run more than once shows its LATEST attempt with the count
 beside it, because a re-run is ordinary.
@@ -102,7 +102,7 @@ row keeps the detailed state for that run. A finished job says Done, including w
 An archive that did not merge says Failed and offers Archive again. Reopen is offered on Specs, never on Jobs.
 
 The header is two lines: the title, kept to one line and cut with an ellipsis where it does not fit, then the status
-line. On the Specs list an open row is drawn the same as a shut one. On the Running tab an open row drops the second
+line. On the Specs list an open row is drawn the same as a shut one. On the Jobs tab an open row drops the second
 line, and the caption line carries the spec's summed Time and Cost instead, over the phases' own figures. Each phase line says its own state, failed, stopped and held back included, so the badge and the pips would
 only say it twice. A phone lays the caption line out the same way: the captions, then the row's button in the state
 column at the phase badges' own size, then the total in the Time column.
@@ -136,11 +136,6 @@ wants to stop between steps chooses one phase at a time.
 archived nor closed and whose folder exists. It offers the specs the New spec form offers for the project, less the spec
 itself, with the ones the spec depends on ticked; a dependency since archived or closed is no longer offered but stays
 ticked until it is removed. The scan resolves each entry of the `Depends on:` line to its folder, so a bare number ticks
-
-Execution-group membership is created on Running, not on an individual Specs row. Every member keeps four progress
-pips on Specs and Jobs, but its Archive pip follows the group's shared Archive job. An active grouped member has no
-individual Archive phase line or action. Its Archive details name and link to the group. The combined card owns the
-shared Archive line, progress and Start, Cancel or Archive action on Jobs.
 the spec it names. Save posts the picker to `POST /api/queue/specs/<project>/<spec>/tracking` and the rows are redrawn
 in place; Cancel puts back what the server drew. A tick not yet saved outlives a redraw, each row's picker apart from
 the others. While a job of the spec is queued, running or merging the picker shows only what the spec depends on, with
@@ -155,6 +150,11 @@ whether Save and Cancel show, and what Cancel puts back are decided in one place
 row's drawing, its page script, New spec and the tracking route all ask. On a spec with an open `aide/<folder>` branch the picker and the row's own line show the branch's `Depends on:`
 line, since a save is written there; archive stays held on what the checkout names too, because the runner's own check
 reads the checkout.
+
+Execution-group membership is created on Running, not on an individual Specs row. Every member keeps four progress
+pips on Specs and Jobs, but its Archive pip follows the group's shared Archive job. An active grouped member has no
+individual Archive phase line or action. Its Archive details name and link to the group. The combined card owns the
+shared Archive line, progress and Start, Cancel or Archive action on Jobs.
 
 **A phase the running job has already passed is disabled; one still ahead of it is not.** The queue would refuse a
 duplicate of a phase the job already holds, so its box is shut. The phases in the job's tail are a different
@@ -193,7 +193,7 @@ guess is neither.
 
 A step whose newest run failed is not done, whatever an earlier run left in that line: the row reads Failed and
 offers the step again, and it reads Done once a later run of that step completes. A stop counts as a failure by
-`FAILED_STOPS` (`src/format/stop-reason.ts`); `timeout`, `provider-limit` and a cancel leave the earlier Done as it
+`leavesStepUndone` (`src/step-endings.ts`, read from `core/scripts/lib/step-endings/catalog.json`); `timeout`, `provider-limit` and a cancel leave the earlier Done as it
 was. A step stopped at `model-at-capacity` is not a failure either, but leaves its step to run again, as a stop on
 the acceptance criteria does. The state file itself is not rewritten, so the gates that read it are unchanged.
 
@@ -229,7 +229,7 @@ A spec title links to the Jobs tab, filtered to that spec, when the spec has job
 text title. The header row has no separate Jobs button.
 
 An analyze stopped on its acceptance criteria reads Failed, and its notice line names each fault the
-plan review found. Its phase counts as not done, even on a spec analyzed before, so the Running tab's button offers Analyze again.
+plan review found. Its phase counts as not done, even on a spec analyzed before, so the Jobs tab's button offers Analyze again.
 
 Analyze reviews shared file paths against the actual changes and completes its plan. Unrelated changes to the
 same file are independent. When its decisions require another spec to finish first, the board adds that dependency
@@ -324,7 +324,7 @@ for the rule that a new round needs at least one.
 
 ## A phase's own transcript
 
-**A phase that has run unfolds to its own transcript.** Every phase line of the Running tab's open row that has run or is running,
+**A phase that has run unfolds to its own transcript.** Every phase line of the Jobs tab's open row that has run or is running,
 or has something to explain about its state, starts with a ›. It adds or removes the phase's key, `<project>/<folder>:<step>`, in `?phases=<key>,…`, kept by
 every sort and filter link the way `?open=` is, and it is a plain link.
 
@@ -371,7 +371,7 @@ Above the Log the unfolded row lists the steps the attempt's log has marked, in 
 them, as the job row's step lines do (`stepRows`, `render/pages/specs-list/phase-messages/index.ts`): the state, the
 time once it ended or counting from its start while it runs, and the tokens, with a › to its own part of the Log. A
 step's › and name stand one level in under the phase's name, its › where the phase's name starts, while its state, time
-and tokens stay in their columns. On the Running tab, the step’s own unfolded log uses the same deeper level. The
+and tokens stay in their columns. On the Jobs tab, the step’s own unfolded log uses the same deeper level. The
 step's key in `?phases=` is the phase's key and the step's index, `aide/01-x:analyze.0`. An attempt that marked no
 step lists none.
 
@@ -399,7 +399,7 @@ no test names gets an amber line saying so, unless analyze's Notes cell already 
 
 ## Forms the page script posts
 
-Every control here is a real form, whose own fields are what a press sends, and the page script posts it: the Running tab's
+Every control here is a real form, whose own fields are what a press sends, and the page script posts it: the Jobs tab's
 button with the phases ticked, Cancel's OK, the checks' Save. Every action answers JSON, which the script reads (see
 [what the script adds](#what-the-script-adds)); expanding a row is a plain link.
 
@@ -434,7 +434,7 @@ motion at all. The signal is `.pip.now`, the running phase's marker: it already 
 it is alive" in the same mark instead of a second element. A pulse was rejected — on a 14×4 bar it reads as an alert,
 not as work in progress. Every running row animates on one shared timing rather than each starting when its row was
 drawn, so several at once move together instead of shimmering at random. `phaseChip` has no `busy` option and
-`css/index.ts` no `.phase.busy` — `SPINNER` is used by `btn()`'s busy variant and by `specs-client/index.ts`'s
+`css/index.ts` no `.phase.busy` — `SPINNER` is used by `btn()`'s busy variant and by `specs-client/press.ts`'s
 in-flight-press spinner, a different fact with a different lifetime (see [what the script adds](#what-the-script-adds)).
 
 `prefers-reduced-motion` is honoured here: `.pip.now` drops the animation and holds
@@ -513,7 +513,7 @@ row: its name as two links — the project to its page and the rest to its own `
 time, and Reopen. It draws no description — a locked row's description stays searchable but is not shown — and no
 archive date: the Time column holds a duration and never a date. Reopen opens a dialog over the list that asks
 whether to reset the analysis, the plan and the status as well; once the reopen has started the reader goes to the
-Running tab, where the reopen is a row of its own. No model select, no tick box and no Run — the server
+Jobs tab, where the reopen is a row of its own. No model select, no tick box and no Run — the server
 refuses every step but `reopen` for an archived spec (`ARCHIVE_ONLY_STEP`), and a control that would be refused is a
 control that should not be drawn. The list shows no creation date on any row; the spec's page does, as the
 Created line of its description's Tracking info.
@@ -554,7 +554,7 @@ alike; a search for the term the rows already show, an empty one included, chang
 
 ## Changing a running job's tail
 
-`POST /api/queue/<id>/steps`, posted from the Running tab's open row, edits a RUNNING job's tail: `step` plus a `checked` flag adds a phase the run has not
+`POST /api/queue/<id>/steps`, posted from the Jobs tab's open row, edits a RUNNING job's tail: `step` plus a `checked` flag adds a phase the run has not
 reached yet, or removes one it has not started. The running step and everything behind it are refused by name, as is
 any job that is not running — the decision is made against the job as it stands when the request arrives, never
 against what the page believed. This is deliberately NOT `POST /api/queue`: that route creates a job, and for a spec
@@ -569,10 +569,10 @@ tab's file, its stamp and the banner's facts about the description are read off 
 branch where one is open, as of its last fetch, and off the specs checkout where none is. The Status tab
 draws the acceptance criteria first, as real boxes with a Save of their own (each with its note and the tests that
 name it), then the rest of `4-status.md` rendered read-only; an archived spec, or one with a job in flight, shows the
-same criteria without boxes while a job is running or merging; a queued job does not lock the editor or the boxes.
+same criteria without boxes while a job is running or merging; a queued job does not lock the boxes, but the document tabs are drawn read-only while a job is queued too.
 An old `?tab=checks` link opens the Status tab. What a spec runs on and
 with — each phase's AI and model, its Depends on and the four settings it was created with — is chosen on its open row
-on the Running tab, not here (see [The row's controls](#the-rows-controls)). The banner holds what belongs to the spec
+on the Jobs tab, not here (see [The row's controls](#the-rows-controls)). The banner holds what belongs to the spec
 rather than to one document: whether it is closed, the test server's state and any error. A spec created before a
 choice was recorded runs with what a spec with nothing recorded runs with: AI formulated, checks Off, the approach not
 chosen, ticking required. `createChoicesIn` reads the four off the description's Tracking info; `aide-run-spec` writes
@@ -586,7 +586,7 @@ shared page-change mechanism; [Page changes](page-changes.md) describes what rem
 The page script puts the row the address names at the top of the list's own box, under its headings, and leaves the
 page at its top, wherever the row sits in the list.
 The spec is shown whole: the editor and the viewer grow with their text at every width, and the list scrolls around
-them. A direct load of the address (a reload, a link from the Running tab, Back or Forward) is streamed: the head and a loading line first,
+them. A direct load of the address (a reload, a link from the Jobs tab, Back or Forward) is streamed: the head and a loading line first,
 the list and the spec when the spec's view is ready. A press on a shut row of the Specs list does not load the address
 but asks for it with `?detail=1`, as "The row, open and shut" says.
 
@@ -648,9 +648,9 @@ and Tick both refuse while a job is running or merging, and both accept while a 
 `POST /api/queue/specs/<project>/<spec>/tracking` is the banner's own route: whether the spec requires acceptance
 ticking, merged into `1-description.md`'s Tracking info in one commit, refused once `analyze` has already decided the
 question, and refused with 409 while a job of the spec is queued, running or merging. A request that names `dependsOn` writes the Depends on line in the same commit, and an empty entry
-(`dependsOn=`) beside the boxes is how the Running tab's picker with every box cleared removes it; one that names no
+(`dependsOn=`) beside the boxes is how the Jobs tab's picker with every box cleared removes it; one that names no
 `dependsOn` at all, as the banner's form does not, leaves the line as it is. A refusal answers `{ error, spec }`, so the
-Running tab writes it under the row the save was pressed on. The Description tab's `/save` keeps the line too: the tab shows the description without
+Jobs tab writes it under the row the save was pressed on. The Description tab's `/save` keeps the line too: the tab shows the description without
 it, and the save puts back the one in the copy it overwrites.
 
 `POST /api/queue/specs/<project>/<spec>/tick` is the same for the checks form: `4-status.md` alone, its own
@@ -670,8 +670,8 @@ Both routes refuse, with nothing written, when the checkout is dirty, on another
 commit whose push fails is reset away, because an unpushed commit in the one shared specs checkout breaks the next
 fast-forward for every project in it. Beyond that:
 
-- `/save` — refuses an ARCHIVED spec, whose files are history — server-side, not by hiding a control. It is the only
-  route that accepts a body over 4096 bytes — a description is not an action post — and its own cap is 64 KiB.
+- `/save` — refuses an ARCHIVED spec, whose files are history — server-side, not by hiding a control. It accepts a
+  body over 4096 bytes — a description is not an action post — up to 64 KiB.
 - `/tick` — refuses a CLOSED spec whole, and an archived one row by row: the one move it allows there is settling a
   row that was marked Not verified.
 
@@ -692,21 +692,21 @@ The page's own browser code does one thing to the controls: it keeps the reader 
   unticked box that also resets the analysis, the plan and the status. Its button (`askButton()`) carries `data-ask="<dialog id>"`, and
   one click listener on `body` (`openAsk`, `specs-client/ask.ts`) opens whichever dialog a button names — on a row a
   later redraw drew too, and a Reopen beside a Failed criterion, inside the checks' own form, opens a dialog drawn
-  outside it. Close is on the spec page; Reopen is on an archived spec's page, on the Running tab's row for an archived spec whose branch has not
-  merged, and beside a Failed criterion under the › on either page; Cancel is on the Running tab's running row. Without script, or a browser without `<dialog>`, the
+  outside it. Close is on the spec page; Reopen is on an archived spec's page, on the Jobs tab's row for an archived spec whose branch has not
+  merged, and beside a Failed criterion under the › on either page; Cancel is on the Jobs tab's running row. Without script, or a browser without `<dialog>`, the
   buttons do nothing. The question before leaving a page with unsaved changes is the same dialog, opened by the
   unsaved-changes guard from the link that was clicked rather than from a button.
-- **OK goes to the Running tab once the queue has the job.** The dialog's posting form carries `data-progress`, and
+- **OK goes to the Jobs tab once the queue has the job.** The dialog's posting form carries `data-progress`, and
   one submit listener on `body` hands its OK on: the question closes and the page's loading cover shows "Reopening…"
   or "Closing…" (`coverWhile()`, `specs-client/progress-dialog/`), the form is posted, and once it is accepted the
-  page goes to the Running tab scrolled to the job's own row, shut (`/#spec-<project>/<spec>:<step>@<job>`). Any new
+  page goes to the Jobs tab scrolled to the job's own row, shut (`/#spec-<project>/<spec>:<step>@<job>`). Any new
   row a live redraw adds to the Jobs list is scrolled into sight the same way, unless it is already, and is then
   tinted in the theme's accent colour, fading out over five seconds, so the reader sees which row moved the page. Deploy and Remove
   project do the same with "Deploying…" and "Removing…". A refused post lifts the cover and opens the question again,
   with the reason in the dialog's own line and whatever was typed or ticked. While a Reopen dialog is open on the list, the live
   redraw waits, so the rows do not take it away.
-- **A Close or Reopen is a row of its own on the Running tab**, as a scheduled job is, never its spec's. A job
-  whose current step is `close` or `reopen` (`closeOrReopenStep`, `queue/steps.ts`) has a row while it is queued,
+- **A Close or Reopen is a row of its own on the Jobs tab**, as a scheduled job is, never its spec's. A job
+  whose current step is `close` or `reopen` (`jobKind`, `queue/steps.ts`) has a row while it is queued,
   running or merging, and while it waits for a person after failing or stopping, until a newer job of the spec is
   created (`jobsShown`, `render/pages/jobs-page/rows.ts`). The row is named for the step and the spec ("Reopen
   534-…"), its key is `<project>/<spec>:<step>` so it never folds with the spec's own row, and it has no links under
@@ -736,9 +736,9 @@ The page's own browser code does one thing to the controls: it keeps the reader 
   Fixed prompt headings are declared before the model turn; a free-form prompt declares its plan before acting.
   Older logs without declarations show only marked steps. The stream listens on its running step's key (`scheduleStreamKey`,
   `render/pages/jobs-page/rows.ts`). A reopen that has gone on to the spec's next step is the spec's again.
-- **A deploy is a row of its own on the Running tab** too, for the one project the board runs from. A job whose
-  step is `deploy` (`deployStep`, `queue/steps.ts`) has a row named "Deploy <project>", with the key
-  `<project>/deploy:deploy`; no spec row is drawn for its tracking key `deploy`, on the Running tab or the Specs list. It
+- **A deploy is a row of its own on the Jobs tab** too, for the one project the board runs from. A job whose
+  step is `deploy` (`jobKind`, `queue/steps.ts`) has a row named "Deploy <project>", with the key
+  `<project>/deploy:deploy`; no spec row is drawn for its tracking key `deploy`, on the Jobs tab or the Specs list. It
   offers Cancel while queued and nothing once it runs. The open row has a line per step (`deploySteps`,
   `serve/spec-views/job-marks.ts`), and the row draws its hold, or why it failed, as one message
   line under its state, open or shut. A deploy held back for a merge reads Queued before it has started and as
@@ -909,10 +909,5 @@ lets it survive
 `swapRows()` replacing `#jobrows` with no rebinding. It fetches nothing and touches no layout-affecting attribute, so
 the redraw rule above holds.
 
-**`formatElapsed` there is HAND-PAIRED with `durationLabel` in
-`src/render/ui/job-state/index.ts`** — the client file is transpiled into an inline `<script>` and can neither import nor export,
-so the wording rule exists twice. The test `test/specs-client/live/live-redraw.test.ts`
-holds them together: "the page words a duration exactly as the server does"
-runs a tick against the imported
-`durationLabel` over a table of spans and pins them; change one and change the other, or a phase changes its wording the
-first time the clock ticks over the figure the server drew.
+**`formatElapsed` there is `durationLabel` from `src/format/duration.ts`** (`src/specs-client/elapsed.ts`), the
+function the server words a duration with, so the wording rule exists once.

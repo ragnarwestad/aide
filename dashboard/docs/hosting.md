@@ -86,12 +86,12 @@ Share → "Add to Home Screen". It then opens in a window of its own, with the m
 background behind the title bar.
 
 The board opens on the Specs list, with the state filter and sort it last kept, when it starts with nothing running,
-however it is opened. An installed app is launched on `start_url`, `/app`, which opens on the Running tab when its saved
+however it is opened. An installed app is launched on `start_url`, `/app`, which opens on the Jobs tab when its saved
 filter leaves a row and on the Specs list when it leaves none. Any other start does the same in the page itself: a
 bookmark, a typed address, a new tab, a Home Screen app on `/`, the app icon's "Running" shortcut, or a notification that opens a new
-window. The first page a browser tab or window loads, when it is the Running tab with no row, replaces itself with the
-Specs list. A click on Running, a link to it and a reload later in the same tab show the Running tab, empty or not. A
-notification about a spec opens that spec's row, which is on the Running tab as long as the spec is Active.
+window. The first page a browser tab or window loads, when it is the Jobs tab with no row, replaces itself with the
+Specs list. A click on Jobs, a link to it and a reload later in the same tab show the Jobs tab, empty or not. A
+notification about a spec opens that spec's row, which is on the Jobs tab as long as the spec is Active.
 
 The manifest's `id` is `/`, so the browser keeps an app installed on `/` as the same app. An app on an iPhone's
 Home Screen keeps the address it was added with, and opens on `/` until it is added again.
@@ -139,12 +139,13 @@ one, and what is kept, is in [Running specs](running-specs.md#push-notifications
 receive them only where the worker can run, so the same HTTPS requirement applies, and on iOS only from the installed
 app.
 
-**Pages change with a fade, and the app's icon carries a number.** Going from one page of the board to another fades
-over with the browser's own view transition instead of blanking, and changes with no fade when the reader has asked for
+**Pages change with a fade, and the app's icon carries a number.** A full page load from one page of the board to another
+fades over with the browser's own view transition instead of blanking (a page change made in place,
+[page-changes.md](page-changes.md), has no fade), and changes with no fade when the reader has asked for
 reduced motion. A browser without view transitions changes pages as it always did. The live redraw of a page's rows is
 not a page load and is unchanged.
 
-The number on the app's icon is how many specs wait for a person: a spec counts when its latest job failed, stopped or
+The number on the app's icon is how many specs wait for a person: a spec counts when its latest job failed
 or is an archive held back on unticked acceptance criteria, in a project the board serves. With none,
 the icon carries no number. A page sets the number when it loads and on every live update that changes it, and every
 push sets it when it arrives, so the icon is current while the app is closed. Where the device has no badge support, no
@@ -188,7 +189,7 @@ without stopping Archive or Merge or firing its planned restart. Cancel is unava
 the restart is committed. A running step
 does not hold the restart back: it runs detached, in a process group of its own, outlives the restart, and the new
 process reads its result. A merge runs inside the process, so the restart waits for every step whose merge has not
-settled and for any merge in flight (two hours at most), and every page shows a warning line under the header naming
+settled and for any merge in flight, with no time limit, and every page shows a warning line under the header naming
 them until it fires. The queue keeps starting phases meanwhile. Point the job anywhere else and a restart
 reloads code the merge never touched — the served page then sits on old code with every row reporting
 success. `GET /api/version` answers the commit SHA the running process actually booted with, read once at start and
