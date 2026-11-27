@@ -2,79 +2,72 @@
 
 ## Table of contents
 
-- [What is installed](#what-is-installed)
-- [What is not installed, and why](#what-is-not-installed-and-why)
-- [How a model is named](#how-a-model-is-named)
-- [How a step runs](#how-a-step-runs)
+- [Install](#install)
+- [What it installs](#what-it-installs)
+- [Check it worked](#check-it-worked)
+- [What to know about OpenCode](#what-to-know-about-opencode)
 
 ---
 
-What aide installs for [OpenCode](https://opencode.ai), and what it
-deliberately does not.
+For a person installing Aide for [OpenCode](https://opencode.ai), or checking that install. The prerequisites, what
+every installer does, updating and uninstalling are in [docs/INSTALLATION.md](../../../docs/INSTALLATION.md); which
+files OpenCode reads, and how the board runs it, are in
+[docs/AI_SUPPORT_MATRIX.md](../../../docs/AI_SUPPORT_MATRIX.md#opencode).
 
-## What is installed
+## Install
 
-| Piece                   | Where                                                                  |
-|-------------------------|------------------------------------------------------------------------|
-| Global instructions     | `~/.config/opencode/AGENTS.md`, as a marked block beside your own text |
-| A project's `CLAUDE.md` | `"CLAUDE.md"` in `instructions` in `~/.config/opencode/opencode.json`  |
-| Shared CLI scripts      | `~/.local/bin/`                                                        |
+```bash
+mise use -g opencode@latest   # OpenCode, kept current by upgrade-ai-tools
 
-OpenCode reads only a project's `AGENTS.md` by itself. With `"CLAUDE.md"` in
-`instructions` it reads a project's `CLAUDE.md` too, beside `AGENTS.md` where
-the project has both. The installer adds the entry with `jq` and keeps the rest
-of the file; a config with comments (`opencode.jsonc`) is left alone.
+cd ~/develop/aide
+core/implementations/opencode/install.sh
+```
 
-Run `core/implementations/opencode/install.sh` to put these there, and
-`uninstall.sh` to take aide's part away again.
-
-## What is not installed, and why
-
-**The skills.** OpenCode scans `~/.agents/skills` and `~/.claude/skills`
-for `**/SKILL.md` itself, and those are where the Codex, Copilot and
-Claude Code installers already put aide's skills. A third copy would give
-one skill two locations, and OpenCode drops a duplicate name rather than
-loading both.
-
-## How a model is named
-
-OpenCode brings no model of its own. Every model belongs to a provider
-and is named `provider/model` — `opencode/gemini-3.1-pro`,
-`github-copilot/gemini-3.8-flash`, `google/gemini-3.5-flash`. Nothing is
-reachable until a provider is logged in:
+Then log in to a provider. OpenCode brings no model of its own: every model belongs to a provider and is named
+`provider/model`, such as `google/gemini-3.5-flash`, and **nothing is reachable until a provider is logged in**. The
+installer says whether one is.
 
 ```bash
 opencode auth login
 opencode models          # what the logged-in providers offer
 ```
 
-Claude Agent, one of the providers `opencode auth login` and `/connect`
-offer, uses the machine's Claude Code login (`claude auth login`) and
-needs no key of its own. `OPENCODE_CLAUDE_PATH` points it at another
-`claude` executable.
+Claude Agent, one of the providers offered there, uses the machine's Claude Code login and needs no key of its own.
+`OPENCODE_CLAUDE_PATH` points it at another `claude` executable.
 
-## How a step runs
+---
 
-The dashboard's runner drives it headless:
+## What it installs
+
+On top of [what every installer puts in place](../../../docs/INSTALLATION.md#what-every-installer-puts-in-place):
+
+| What                            | Where                                                                  |
+| ------------------------------- | ---------------------------------------------------------------------- |
+| Aide's rules (`core/AGENTS.md`) | `~/.config/opencode/AGENTS.md`, in a marked block                      |
+| A project's `CLAUDE.md`         | `"CLAUDE.md"` in `instructions` in `~/.config/opencode/opencode.json`  |
+
+No skills: OpenCode scans `~/.agents/skills` and `~/.claude/skills` for `SKILL.md` itself, and those are where the
+Codex, Copilot and Claude Code installers put Aide's skills. A third copy would give one skill two locations, and
+OpenCode drops a duplicate name rather than loading both. Install for at least one of the other tools too.
+
+---
+
+## Check it worked
 
 ```bash
-opencode run --standalone --format json --agent build
+aide-preflight opencode
+opencode run -m <provider>/<model> "List the skills you have whose names start with aide-"
 ```
 
-`--standalone` gives the turn a server of its own. Without it the turn goes to
-OpenCode's background service, which ignores the environment the runner sets
-for the turn, the read-only permission config included.
+The answer names Aide's skills, such as `aide-explore`. The spec steps (create, analyze and the rest) are not
+skills; they run on the board ([Where a spec's steps run](../../../docs/INSTALLATION.md#where-a-specs-steps-run)).
 
-The prompt arrives on stdin and one JSON event comes back per line. A
-step's totals are the SUM over every `step_finish` event, because
-OpenCode closes no turn with a single summary.
+---
 
-A permission mode reaches it as an agent rather than a sandbox flag:
-`plan` denies file edits except its own plan files but leaves shell
-commands allowed (see `docs/AI_SUPPORT_MATRIX.md`, OpenCode), `build`
-allows every tool, and `--auto` additionally answers what `build` would
-otherwise ask about.
+## What to know about OpenCode
 
-Aide's skills have no slash command here — the model reaches a skill
-through a `skill` tool, by name — so a headless step names its skill in
-words instead of writing `/aide-implement`.
+- **A skill has no slash command.** The model reaches a skill through a `skill` tool, by its name, so ask for it in
+  words: "use the aide-explore skill".
+- **It reads only a project's `AGENTS.md` by itself.** With `"CLAUDE.md"` in `instructions` it reads a project's
+  `CLAUDE.md` too, beside `AGENTS.md` where the project has both. The installer adds the entry with `jq` and keeps
+  the rest of the file; a config with comments (`opencode.jsonc`) is left alone, and you add the entry by hand.

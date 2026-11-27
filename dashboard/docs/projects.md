@@ -456,8 +456,7 @@ again. It goes in the project's `.aide/project.yaml` where the project tracks it
 and every teammate merges the same way — otherwise in the dashboard's own settings file, which reaches a run as a
 copy and is local to this machine. It is never read from `.aide/config`.
 
-It applies only to what the dashboard merges. `/aide-archive` run by hand in an AI assistant archives the spec and leaves
-the branches as they are; merging them or opening a pull request is then up to you.
+It applies only to what the dashboard merges.
 
 How the merge works inside, and what not to get backwards when changing it:
 [A project can ask for its code branch to stay open](landing.md#a-project-can-ask-for-its-code-branch-to-stay-open).

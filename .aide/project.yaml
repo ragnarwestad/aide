@@ -3,8 +3,8 @@
 # is unknown rather than guessing.
 name: aide
 description: Configuration and tooling for AI-assisted development — skills, rules, hooks and installers for Claude Code, Codex and Copilot, plus the dashboard that renders aide's own manifests and spec progress
-# The project's test command: the whole suite, run by a step, the landing
-# and /aide-implement. Read here and nowhere else.
+# The project's test command: the whole suite, run by a step and by the
+# merge. Read here and nowhere else.
 AIDE_TEST_CMD: export PATH="$HOME/.local/share/mise/shims:$PATH"; scripts/test-python && cd dashboard && make test && make test-e2e
 # The project's command for running the named test files once, used by
 # Implement's final isolated check of red files.

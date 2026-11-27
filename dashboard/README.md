@@ -13,16 +13,19 @@
 
 ## What it is
 
-Aide's dashboard lists every spec in every project it has been given, and runs the workflow itself: you queue a
-spec, and create, analyze, implement and archive run in order, on the AI CLI and the model chosen for each phase,
-with several specs running at once.
+Aide's dashboard, the board, lists every spec in every project it has been given, and is the one place a spec's
+steps run: you write a spec, press Run, and analyze, implement and archive run in order, on the AI CLI and the model
+chosen for each phase, with several specs running at once. The `aide` command makes the same requests from a
+terminal or an AI session ([Queueing from a terminal](docs/running-specs.md#queueing-from-a-terminal)).
 
-How a project gets in, and where its settings are kept, is in [Projects](docs/projects.md).
+What Aide is, and a first run from install to archive, are in [Aide's README](../README.md). How a project gets in,
+and where its settings are kept, is in [Projects](docs/projects.md).
 
 ## How it's used
 
-The front page lists every spec, grouped by phase. **New spec** writes a spec; a queued job shows its progress on the
-spec's row, and can be cancelled or given another phase from there. Opening a row shows the spec itself: its four files
+The Specs list has a row per spec, newest first. **New spec** writes a spec and starts nothing; **Run** on its row
+starts the phases still to go. A queued job shows its progress on the spec's row, and can be cancelled or given
+another phase from there. Opening a row shows the spec itself: its four files
 and every job that has run against it.
 
 [The specs list and the spec page](docs/the-specs-list.md) says what each row and each control does, and
@@ -74,7 +77,7 @@ do there is add a project, which [Projects](docs/projects.md) covers.
 ## Reference
 
 - [Developing the dashboard](docs/developing.md) — its tests, and running it from a checkout
-- [Running specs](docs/running-specs.md) — the queue: making a spec, time limits, which AI runs a step, schedules
+- [Running specs](docs/running-specs.md) — the queue: making a spec, the `aide` command, time limits, which AI runs a step, schedules
 - [The runner and its checkouts](docs/the-runner.md) — what a run does to the repositories, and what a step publishes
 - [The specs list and the spec page](docs/the-specs-list.md) — what a row says, what its controls do, the spec's own page
 - [Page changes](docs/page-changes.md) — what changes in place and which links the browser still handles

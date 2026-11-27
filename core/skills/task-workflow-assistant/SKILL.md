@@ -125,7 +125,7 @@ Use the API mapping to identify:
 ### Complexity
 
 Grade once the code is read, by the risk of the change: the criteria are
-in `aide-analyze`'s `complexity-and-analysis.md`, section "Classification", and what each
+in the analyze step's `complexity-and-analysis.md`, section "Classification", and what each
 grade means is in the workflows rules § Complexity detection.
 
 ---

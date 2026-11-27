@@ -160,7 +160,7 @@ continues to receive default-branch updates during the group's work.
 confined to the status files of the specs the run covers (its own, and a group's members) it settles itself: the
 default branch's `4-status.md` wins, and `4-status.json` is rebuilt from the merged `4-status.md`. A `4-status.json`
 that cannot be read is never used: the phase is read from `4-status.md` instead. The rest reaches the
-skill, which follows `core/scripts/lib/steps/aide-archive/references/resolve-conflict.md` before anything else: resolve it or
+model, which follows `core/scripts/lib/steps/aide-archive/references/resolve-conflict.md` before anything else: resolve it or
 decide not to, finish the merge with `git commit --no-edit`, run the project's own test command. The step never
 touches the default branch; the dashboard merges the resolved branch afterwards.
 
@@ -168,7 +168,7 @@ There is no `resolve` step and no Resolve button.
 
 - **It names `archive` and `implement` literally, never a denylist.** Another step carrying conflict markers into a
   commit is worse than a refusal.
-- **It either finishes or puts the branch back.** Tests red, or a conflict the skill will not decide, and the merge is
+- **It either finishes or puts the branch back.** Tests red, or a conflict the model will not decide, and the merge is
   undone to the commit the branch started on. That branch never reaches origin, since a root whose HEAD did not move is
   pushed only when the run ended `completed`.
 - **The test command is the gate.** A resolution that does not pass the project's own tests does not merge.
@@ -176,7 +176,7 @@ There is no `resolve` step and no Resolve button.
   ordinary re-run control.
 - **An interrupted `archive` or `implement` commits no markers.** `aide-run-spec` aborts a merge still open before
   it commits, at the end of the step and on a Cancel.
-- **`core/scripts/aide-archive-spec` decides and moves; the skill keeps only conflict resolution and doc feedback.**
+- **`core/scripts/aide-archive-spec` decides and moves; the step's model keeps only conflict resolution and doc feedback.**
   The script resolves the spec, asks `core/scripts/lib/transitions.json` whether it may move to `archived`, and moves
   the folder on the spec's branch. The move reaches the default branch only when the archive step completes and merges.
   `aide-run-spec` calls it once before the model: `not-implemented-yet` or `acceptance-criteria-unticked` skips the

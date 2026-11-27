@@ -2,354 +2,58 @@
 
 ## Table of contents
 
-- [Overview](#overview)
-- [Setup (first time)](#setup-first-time)
-  - [Per-project configuration](#step-0-optional-per-project-configuration)
-  - [Install script](#step-1-run-the-install-script)
-- [Daily use](#daily-use)
-  - [Starting work on a spec](#starting-work-on-a-spec)
-- [Troubleshooting](#troubleshooting)
-- [Files and structure](#files-and-structure)
-- [How it works](#how-it-works)
-- [Tips and tricks](#tips-and-tricks)
-- [Headless Mode](#headless-mode)
-- [Resources](#resources)
+- [Files in this folder](#files-in-this-folder)
+- [The command rules](#the-command-rules)
+- [The settings template](#the-settings-template)
+- [Denying direct edits of spec files](#denying-direct-edits-of-spec-files)
 
 ---
 
-This directory contains the Claude Code implementation with configuration files, skills and agents.
+For a person looking up what Aide sets up in Claude Code's `~/.claude/settings.json`, and what it leaves to them.
+Installing is in [INSTALL.md](INSTALL.md).
 
-**References:**
-- Generic workflows: See `../../core/skills/workflows/SKILL.md`
+## Files in this folder
 
----
-
-## Overview
-
-The skills let you:
-- Create structured documentation in the `specs/` directory
-- Analyze the codebase and generate solution proposals
-- Implement with a TDD workflow (RED → GREEN → VERIFY)
-
-**📦 Installation:** See **[INSTALL.md](./INSTALL.md)** for the complete guide (5 min)
-
-**Available skills:**
-```bash
-/aide-create "Move the forms off Redux Form" The forms still use Redux Form, which is unmaintained. Move them to React Hook Form, one form at a time, keeping the validation rules.
-# → specs/55-move-forms-off-redux-form/, say
-
-/aide-analyze 55                  # Analyze the codebase
-/aide-implement 55                # Implement with TDD
-
-# Utility
-/aide-to-pdf 55                   # Generate PDF document
-```
-
-**Result of /aide-create:**
-- ✅ Document structure created in specs/<NN>-slug/
-- ✅ 1-description.md filled in with the title and the description
-- ✅ Empty files: 2-analysis.md, 3-solution.md, 4-status.md
-
-**Result of /aide-analyze:**
-- ✅ Codebase analyzed
-- ✅ All 4 document files updated with analysis and solution proposals
-- ✅ Concrete files and line numbers identified
-
-**Architecture:**
-```text
-/aide-create "<title>" <description> → Creates the spec
-    ↓
-/aide-analyze 55 → the skill itself
-    ↓
-    Analyzes codebase
-    ↓
-    Updates documentation
-    ↓
-/aide-implement 55 → the skill itself
-    ↓
-    RED → GREEN → VERIFY, ending on a green test run
-```
+| File                         | What it is                                                                           |
+| ---------------------------- | ------------------------------------------------------------------------------------ |
+| `install.sh`, `uninstall.sh` | Install and remove Aide for Claude Code ([INSTALL.md](INSTALL.md))                   |
+| `hooks.json`                 | The two command-rule hooks the installer merges into `~/.claude/settings.json`       |
+| `settings.json`              | A template for the rest of `~/.claude/settings.json`; the installer does not copy it |
 
 ---
 
-## Setup (first time)
+## The command rules
 
-### Step 0: (Optional) Per-project configuration
+Two hooks refuse a shell command before it runs: `git add .` or `git add -A`, and a test runner started in watch
+mode. Each rule is one script in `core/scripts/lib/command-rules/`, installed to `~/.local/bin/lib/command-rules/`,
+and Codex runs the same scripts.
 
-#### AIDE_SPECS_PATH - Store specs outside the workspace
+The installer merges the two hook entries into `~/.claude/settings.json` and leaves every other key and hook there
+as it is; an inline copy of the rules from an earlier `settings.json` template is replaced. The merge rewrites the
+file through `jq`, so its indentation and key order may change. A file that is not valid JSON is left alone with a
+warning. `./uninstall.sh` takes the two entries out again.
 
-**Use this if you want to:**
-- Store specs in your own private git repo
-- Use cloud storage (Dropbox, iCloud, etc.)
-- Separate workspace code from user-specific specs
+---
 
-```text
-# <project>/.aide/config
-AIDE_SPECS_PATH=/Users/you/develop/my-specs-repo
-```
+## The settings template
 
-**If not set:** specs are written to `specs/` in the project root. The
-key is per-project configuration in `.aide/config`, not an environment
-variable.
+`settings.json` in this folder holds what Aide does not write into your settings, for you to copy by hand:
 
-### Step 1: Run the install script
+- a `PostToolUse` hook that runs `markdownlint-cli2` on a markdown file right after it is edited;
+- a `Stop` hook that refuses to end a turn where source code changed and no tests or type checks ran;
+- permissions that allow reading and editing under `~/develop/` and running shell commands without asking.
+
+---
+
+## Denying direct edits of spec files
+
+Aide's scripts write a spec's files; the `Write` and `Edit` tools never need to. A deny rule for the project's
+specs root therefore breaks nothing. The specs root is personal (`AIDE_SPECS_PATH` in the project's `.aide/config`),
+so the installer cannot write that rule for you. Run this from inside the project:
 
 ```bash
-cd aide/implementations/claude-code
-./install.sh
+aide-print-specs-guard
 ```
 
-**The script installs globally:**
-- ✅ Every `core/scripts/aide-*` script and `upgrade-ai-tools` → `~/.local/bin/`, with `~/.local/bin` put on PATH
-- ✅ The shared tools (markdownlint-cli2, jq, gh, bun, pandoc, md-to-pdf, yt-dlp) through mise
-- ✅ Skills, agents and rules → `~/.claude/`
-- ✅ The two command rules as PreToolUse Bash hooks → `~/.claude/settings.json` (needs `jq`)
-- ✅ LSP plugins (typescript, kotlin, jdtls)
-
-Run `./install.sh` again to update after changes.
-
-**The command rules.** Two hooks refuse a shell command before it runs:
-`git add .` / `git add -A`, and a test runner started in watch mode. Each rule
-is one script in `core/scripts/lib/command-rules/`, installed to
-`~/.local/bin/lib/command-rules/`, and Codex runs the same scripts. The
-installer merges the two hook entries into `~/.claude/settings.json` and
-leaves every other key and hook there as it is; an inline copy of the rules
-from an earlier `settings.json` template is replaced. The merge rewrites the
-file through `jq`, so its indentation and key order may change. A file that
-is not valid JSON is left alone with a warning. `./uninstall.sh` takes the two
-entries out again.
-
-
----
-
-## Daily use
-
-### Starting work on a spec
-
-1. **Start Claude Code** (in any project: my-app, Aide, my-api, etc.)
-
-2. **Create the spec** — a title and a description:
-   ```bash
-   /aide-create "Move the forms off Redux Form" The forms still use Redux Form, which is unmaintained. Move them to React Hook Form, one form at a time, keeping the validation rules.
-   ```
-   → Generates `specs/55-move-the-forms-off-redux-form/`, say.
-
-   A title that begins with an issue key (`PROJ-7637 …`) keeps the key in
-   the folder name, and every later command accepts that key in place of
-   the number.
-
-3. **Claude will automatically:**
-   - Create the document structure
-   - Fill in `1-description.md` with the title and the description
-   - Commit and push the new folder
-
-4. **Analyze the codebase:**
-   ```bash
-   /aide-analyze 55
-   ```
-
-5. **Read the documentation:**
-   ```bash
-   cat specs/55-*/2-analysis.md
-   cat specs/55-*/3-solution.md
-   ```
-
-6. **Implement the solution (optional):**
-   ```bash
-   /aide-implement 55
-   ```
-
----
-
-## Troubleshooting
-
-### Problem: `/aide-create` command not found
-
-**Cause:** Skill not loaded or misplaced
-
-**Solution:**
-1. Check that the directory exists: `~/.claude/skills/aide-explore/SKILL.md`
-2. Restart Claude Code
-3. Try again
-
-### Problem: Documentation already exists
-
-`/aide-create` refuses to overwrite an existing spec folder. Edit the existing spec instead, or
-create a new one.
-
-### Denying direct Write/Edit against spec files
-
-Since spec 282, every legitimate spec-file write goes through
-`aide-create-spec`, `aide-write-spec` or `aide-archive-spec` — never the
-`Write`/`Edit` tool directly. That means a `Write`/`Edit` permission rule
-scoped to a project's specs root can deny every such call outright, with
-no legitimate case left to break.
-
-A project's specs root is personal (`AIDE_SPECS_PATH` lives in the
-gitignored `.aide/config`), so `install.sh` cannot compute or write this
-rule for every contributor. Run `aide-print-specs-guard` from inside the
-project instead — it prints a ready-to-paste `deny` snippet scoped to
-that project's own specs root, for you to paste into the `"permissions":
-{ "deny": [...] }` array of `~/.claude/settings.json` (Aide writes nothing
-in that file but its own command-rule hooks).
-
----
-
-## Files and structure
-
-### Config files (source of truth in git)
-
-```text
-aide/
-├── core/                               # Shared (used by all AI tools)
-│   ├── rules/                          # Communication, git, LLM discipline, spec structure, testing
-│   ├── skills/                         # Skills (SKILL.md)
-│   ├── scripts/                        # CLI scripts (aide-generate-pdf etc.)
-│   └── templates/                      # Document templates
-│
-└── core/implementations/claude-code/        # Claude Code implementation
-    ├── README.md                       # This file
-    ├── INSTALL.md                      # Installation guide
-    ├── install.sh / uninstall.sh       # Global install/uninstall
-    ├── hooks.json                      # The command-rule hooks the installer merges into ~/.claude/settings.json
-    └── settings.json                   # Template for the rest of ~/.claude/settings.json
-```
-
-### Runtime files (installed locally, not in git)
-
-```text
-~/.local/bin/aide-*                     # Every core/scripts/aide-* script, plus upgrade-ai-tools
-~/.local/bin/lib/                       # The scripts' shared library, and the command rules in command-rules/
-~/.claude/settings.json                 # The command-rule hooks, merged beside your own settings
-~/.claude/skills/<skill>/SKILL.md       # Every skill in core/skills/ except spec-structure
-~/.claude/rules/*.md                    # The always-on rules
-```
-
-`~/.local/bin` is put on PATH in `~/.zshenv` and `~/.bashrc` by the installer.
-
-### Output files (generated by commands - AI-agnostic)
-
-```text
-aide/specs/
-├── 55-move-forms-off-redux-form/
-│   ├── 1-description.md     # Generated by /aide-create
-│   ├── 2-analysis.md         # Generated by /aide-analyze
-│   ├── 3-solution.md         # Generated by /aide-analyze
-│   └── 4-status.md          # Generated by /aide-analyze
-└── 56-<slug>/
-    └── [same structure]
-```
-
----
-
-## How it works
-
-### 1. Unified /aide-* skills
-
-**`/aide-create "<title>" <description>`**
-1. Creates the document structure (4 files)
-2. Fills in 1-description.md with the title and the description
-
-**`/aide-analyze <number>`**
-1. Analyzes the codebase
-2. Identifies affected files (with line numbers)
-3. Updates all 4 document files
-
-**`/aide-implement <number>`**
-1. Reads 2-analysis.md and 3-solution.md
-2. Implements with TDD (RED → GREEN → VERIFY)
-3. Updates 4-status.md along the way
-
-**`/aide-to-pdf <number>`**
-1. Combines all markdown files (1-4) into one document
-2. Adds a cover page with metadata
-3. Converts to PDF with header/footer
-4. Output: `<docs-folder>/<NN-slug>.pdf`
-
----
-
-## Tips and tricks
-
-### See all specs you have worked on
-
-```bash
-ls -lt ../aide/specs/
-```
-
-### Re-analyze when the codebase changes
-
-```bash
-# If the codebase has changed since the last analysis
-/aide-analyze 55
-```
-
----
-
-## Example flow
-
-```bash
-# 1. Create the spec
-/aide-create "Move the forms off Redux Form" The forms still use Redux Form, which is unmaintained. Move them to React Hook Form, one form at a time, keeping the validation rules.
-
-# Claude creates the document structure — number 55, say
-
-# 2. Analyze the codebase
-/aide-analyze 55
-
-# Claude analyzes the codebase and updates the documentation
-
-# 3. Read the documentation
-cat ../aide/specs/55-*/2-analysis.md
-cat ../aide/specs/55-*/3-solution.md
-
-# 4. Implement the solution (optional - TDD-assisted)
-/aide-implement 55
-
-# Or code manually based on the documentation
-
-# 5. Generate a PDF for sharing/archiving (optional)
-/aide-to-pdf 55
-
-# Open the PDF
-open ../aide/specs/55-*/55-*.pdf
-```
-
----
-
-## Headless Mode
-
-Claude Code supports headless mode (the `-p` flag) for non-interactive execution:
-
-```bash
-# Basic headless mode
-claude -p "Say hello"
-
-# With tool permissions (avoids confirmations)
-claude -p "List files" --allowedTools "Bash,Read,Write,Edit"
-
-# With JSON output for programmatic parsing
-claude -p "Analyze this code" --output-format json
-
-# With streaming JSON for multi-turn
-claude -p "Complex task" --output-format stream-json
-```
-
-**Important flags:**
-
-| Flag                          | Description                                     |
-|-------------------------------|-------------------------------------------------|
-| `-p "prompt"`                 | Headless mode - runs without the interactive UI |
-| `--allowedTools`              | Grants permissions without user input           |
-| `--output-format json`        | JSON output for parsing                         |
-| `--output-format stream-json` | Streaming JSON for multi-turn                   |
-
----
-
-## Resources
-
-**Official documentation and best practices:**
-
-- [Anthropic: Claude Code Best Practices](https://www.anthropic.com/engineering/claude-code-best-practices) - Official tips for effective use
-- [Claude Code Documentation](https://docs.anthropic.com/en/docs/claude-code) - Complete documentation
-- [CLI Reference](https://docs.anthropic.com/en/docs/claude-code/cli-usage) - All CLI flags including headless mode
-- [Anthropic Prompt Engineering](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering) - Prompting techniques
+It prints two `deny` entries scoped to that project's specs root, to paste into the `"permissions": { "deny": [...] }`
+array of `~/.claude/settings.json`.

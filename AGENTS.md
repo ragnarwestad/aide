@@ -138,9 +138,11 @@ machine that serves the board it reads the queue over ssh from
 `AIDE_BOARD_HOST`, set under `"env"` in that folder's
 `.claude/settings.local.json`.
 
-**The workflow steps are skills (slash commands), not CLI scripts.**
-`/aide-create`, `/aide-analyze`, `/aide-implement` etc. run inside the AI tool.
-`core/scripts/` holds the helper scripts (`aide-*`) those skills and the runner call.
+**A spec's steps run only on the board, not as skills.** The instructions
+for create, analyze, implement, archive, close and reopen live in
+`core/scripts/lib/steps/` and are read by the runner; a person starts a step
+from the board or with `aide <step>`. `core/scripts/` holds the helper
+scripts (`aide-*`) the steps and the runner call.
 
 The sections below hold the installation overview, the layout gotchas and
 how to add new functionality. The `/ai-tools-reference` skill holds
@@ -156,11 +158,12 @@ See `docs/ROADMAP.md` for the ideas being considered for Aide, and
 
 **Two parts side by side: `core/` is the method, `dashboard/` the board.**
 `core/` holds the skills, rules, templates and scripts, the installers in
-`core/implementations/` and their pytest suite in `core/tests/`; it works
-without the dashboard. `dashboard/` uses `core/`, never the other way
-round. The runner, `core/scripts/aide-run-spec`, is the board's engine but
-stays in `core/scripts/` with the scripts it calls, since it is installed
-beside them in `~/.local/bin/`.
+`core/implementations/` and their pytest suite in `core/tests/`; its
+skills and rules work without the dashboard, a spec's steps do not.
+`dashboard/` uses `core/`, never the other way round. The runner,
+`core/scripts/aide-run-spec`, is the board's engine but stays in
+`core/scripts/` with the scripts it calls, since it is installed beside
+them in `~/.local/bin/`.
 
 **`dashboard/` came in with `git subtree add`, and its history is only
 reachable through `git blame`.** `git log --follow -- dashboard/<file>`

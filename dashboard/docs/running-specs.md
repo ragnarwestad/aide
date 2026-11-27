@@ -1067,13 +1067,13 @@ folder `src/render/pages/jobs-page/`, the `jobs.*` words and the `aide_jobs_view
 
 ## Live runs
 
-A spec's row shows a live indicator (session id, liveness and cost so far) while an `/aide-*` command runs against it.
+A spec's row shows a live indicator (session id, liveness and cost so far) while a step runs against it.
 The queue side works with nothing configured.
 
 **The queue's own runner reports a run's phases.** When it spawns a step, it hands the child `AIDE_RUN_URL` pointing at
-this server's own `POST /api/aide-run`, and the implement skill calls `aide-emit-run --phase red|green|verify` at each
-TDD phase boundary, so a headless run's phases reach the row. A step started by hand in a project with a board is queued
-there instead (see Queueing from a terminal).
+this server's own `POST /api/aide-run`, and the implement step's instructions call `aide-emit-run --phase red|green|verify` at each
+TDD phase boundary, so a headless run's phases reach the row. A step started from a terminal or an AI session is queued
+with `aide` (see Queueing from a terminal).
 
 **`GET /api/aide-runs` is these runs in flight, as JSON.** No page renders it directly: the spec list shows every
 queued run per row, and interactive sessions are claude-usage's own page. Runs are kept in memory (LRU 512) and

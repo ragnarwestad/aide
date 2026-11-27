@@ -835,7 +835,7 @@ export const en = {
   "testServers.starting": "starting",
   "shell.aboutWhat": "{board} runs spec-driven development across every project on this machine. Write a spec, and the board takes it through create, analyze, implement and archive — each phase a real run of an AI you choose, in a worktree of its own, ending in a branch merged and the spec filed away.",
   "shell.aboutRepos": "A spec's own files live in a specs repository; the code it changes lives in the project's. The board owns neither: it keeps its own checkouts, runs the project's tests before anything merges, and stops rather than guess when they go red.",
-  "shell.aboutManifest": "Every project it knows about declares itself in an {manifest} manifest. What each page means is behind the \"?\" on that page.",
+  "shell.aboutManifest": "A project is added on the Projects page by its git address, and the board keeps its settings itself, unless the project tracks its own {manifest}, which then wins. What each page means is behind the \"?\" on that page.",
   "client.requestFailed": "the request failed",
   "client.requestFailedHttp": "{action} failed with HTTP {status}",
   "client.theAction": "the action",

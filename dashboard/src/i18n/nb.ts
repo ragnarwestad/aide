@@ -830,7 +830,7 @@ export const nb: Record<TranslationKey, string> = {
   "testServers.starting": "starter",
   "shell.aboutWhat": "{board} driver spec-drevet utvikling i alle prosjektene på denne maskinen. Skriv en spec, så tar boardet den gjennom opprett, analyser, implementer og arkiver — hver fase en ekte kjøring av en AI du velger, i et eget worktree, og til slutt en branch som er merget og en spec som er arkivert.",
   "shell.aboutRepos": "En specs egne filer ligger i et specs-repo; koden den endrer ligger i prosjektets eget. Boardet eier ingen av dem: det har sine egne utsjekker, kjører prosjektets tester før noe merges, og stopper heller enn å gjette når de blir røde.",
-  "shell.aboutManifest": "Hvert prosjekt det kjenner til, beskriver seg selv i et {manifest}-manifest. Hva hver side betyr, står bak «?» på den siden.",
+  "shell.aboutManifest": "Et prosjekt legges til på Prosjekter-siden med git-adressen sin, og boardet tar vare på innstillingene selv, med mindre prosjektet har sin egen {manifest} i git, som da gjelder. Hva hver side betyr, står bak «?» på den siden.",
   "client.requestFailed": "forespørselen feilet",
   "client.requestFailedHttp": "{action} feilet med HTTP {status}",
   "client.theAction": "handlingen",

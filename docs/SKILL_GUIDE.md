@@ -103,7 +103,7 @@ Missing: trigger phrases, "Do NOT use for", key features.
 
 We have two main types with different structures:
 
-### Workflow skills (aide-create, tdd-coach)
+### Workflow skills (tdd-coach, aide-to-pdf)
 
 Step-by-step recipes that Claude follows. The structure is:
 

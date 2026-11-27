@@ -39,7 +39,8 @@ or reads it.
 
 The details a step needs only in some runs — the Tracking info lines,
 approach marks, the lines the runner writes, the acceptance rows in a
-new round — are in the aide-analyze skill's `spec-files.md` reference.
+new round — are in the analyze step's `spec-files.md` reference
+(`~/.local/bin/lib/steps/aide-analyze/references/`).
 
 ---
 
@@ -82,7 +83,7 @@ new round — are in the aide-analyze skill's `spec-files.md` reference.
   change to it
 - Tracking info may carry `Depends on:`, `Acceptance criteria checks:`,
   `Let me choose the approach:` and `Sent back to a full analysis:` lines;
-  the aide-analyze skill's `spec-files.md`, section "1-description: Tracking info and acceptance criteria", says what each does
+  the analyze step's `spec-files.md`, section "1-description: Tracking info and acceptance criteria", says what each does
 
 #### Acceptance criteria in EARS
 
@@ -103,7 +104,7 @@ written after SHALL follows none of the five.
   refuses the push, THEN the runner SHALL keep the commit on the spec's
   branch."
 - **Optional feature:** `WHERE <feature>, the <system> SHALL <response>` —
-  "WHERE a project has a test command, /aide-implement SHALL run it before the commit."
+  "WHERE a project has a test command, the implement step SHALL run it before the commit."
 
 `<system>` is whatever the criterion is about — a script, a skill, a page.
 The keywords are written in capitals, as SHALL is.
@@ -127,16 +128,16 @@ given/when/then scenarios, Risk analysis, the implementation plan
 (RED, GREEN, VERIFY) and Testing.
 
 - The recommended approach IS the spec: every section below it describes
-  that approach, and `/aide-implement` builds the plan it finds
+  that approach, and the implement step builds the plan it finds
 - Each approach is a bold lead, `**Approach A: [Name] (recommended).**`,
   never a heading; on a spec whose `Let me choose the approach:` line
   says `yes`, every lead carries one of three marks
-  (the aide-analyze skill's `spec-files.md`, section "3-solution: approaches, parts and tests")
+  (the analyze step's `spec-files.md`, section "3-solution: approaches, parts and tests")
 - `### Where the tests sit` names, one line per place, the public
   interface where the behaviour is observed, its test file and the rules
-  tested there; `/aide-implement` writes its tests there
+  tested there; the implement step writes its tests there
 - Manual testing is a note, not a checklist: what no test covers, and why
-- A small spec may have a short analysis instead (the aide-analyze skill's `spec-files.md`, section "A short analysis"): `3-solution.md` holds the grade, the two
+- A small spec may have a short analysis instead (the analyze step's `spec-files.md`, section "A short analysis"): `3-solution.md` holds the grade, the two
   counts, a `## Short analysis` sentence, Scope and Testing, with no plan
   and no plan review
 
@@ -152,11 +153,11 @@ and no `## Plan review` section.
 - **The runner writes these lines; never edit them:** `Workflow steps
   completed:`, `Total progress:`, and each phase's `Repo`/`Model`/
   `Result`/`Time spent`/`Cost` record in that phase's own file
-- **No skill ever ticks a row under `## Acceptance criteria`**, and none
+- **No step or skill ever ticks a row under `## Acceptance criteria`**, and none
   writes `Not verified` or `Failed`: those are the user's judgment. The
   section has one row per `AC-n`, and archiving waits until every row is
   ticked. A new round on a held-back or reopened spec has its own rules
-  (the aide-analyze skill's `spec-files.md`, section "4-status: Acceptance criteria")
+  (the analyze step's `spec-files.md`, section "4-status: Acceptance criteria")
 
 ---
 

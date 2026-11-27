@@ -117,7 +117,7 @@ board's default AI and model. The runner queues each following step the moment t
 it once that step's merge has settled. Until then, that step's own phase line and
 duration read as still going, not as done — see [Beside the state](job-states.md#beside-the-state).
 
-**`analyze` to `implement`.** A spec that has not analyzed is refused — `not-analyzed-yet`, "run /aide-analyze
+**`analyze` to `implement`.** A spec that has not analyzed is refused — `not-analyzed-yet`, "run Analyze
 first" — by the run route at the press, with that sentence, and by the runner's own gate before the step starts.
 Both read the default branch's `4-status`, so they cannot disagree. Between the steps of one job, the queue holds
 an implement whose analyze has not merged yet. An `analyzed` or `implemented` spec takes the move,

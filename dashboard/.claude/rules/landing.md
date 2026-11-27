@@ -110,8 +110,8 @@ reads what a merge left.
   merge's test gate (`docs/landing.md`, "The tests run on the merge,
   once") is what stops a resolution that breaks the suite: red drops the
   merge, and nothing merges.
-- **`core/scripts/aide-archive-spec` decides and moves; the skill keeps
-  only conflict resolution and doc feedback.** It runs twice in one step
+- **`core/scripts/aide-archive-spec` decides and moves; the step's model
+  keeps only conflict resolution and doc feedback.** It runs twice in one step
   by design, and `already-archived` is the idempotent second answer.
 - **A re-run of `archive` finds a folder that has moved:** `aide-run-spec`
   resolves `--spec` against the active folder first and `archive/` second,

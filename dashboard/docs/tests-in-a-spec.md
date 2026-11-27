@@ -80,7 +80,7 @@ project. In short:
 - In implement the AI runs the tests it wrote and the tests covering its change, never the whole suite. The runner
   runs the whole suite once on the result, and a green run ticks the spec's "Run the full test suite" row.
 
-`/aide-implement` adds its own: at least one test per acceptance criterion, with the criterion's AC-id in the test's
+The implement step adds its own: at least one test per acceptance criterion, with the criterion's AC-id in the test's
 name, and none for a criterion an existing test already proves — that test gets the id in its name instead.
 
 ---

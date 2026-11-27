@@ -827,7 +827,7 @@ export const de: Record<TranslationKey, string> = {
   "testServers.starting": "startet",
   "shell.aboutWhat": "{board} betreibt Spec-getriebene Entwicklung für jedes Projekt auf diesem Rechner. Schreib eine Spec, und das Board führt sie durch Erstellen, Analysieren, Implementieren und Archivieren — jede Phase ein echter Lauf einer KI deiner Wahl, in einem eigenen Worktree, am Ende ein gemergter Branch und eine abgelegte Spec.",
   "shell.aboutRepos": "Die Dateien einer Spec liegen in einem Specs-Repository; der Code, den sie ändert, im Repository des Projekts. Das Board besitzt keines von beiden: Es hält eigene Checkouts, führt die Tests des Projekts aus, bevor etwas gemergt wird, und hält an, statt zu raten, wenn sie rot werden.",
-  "shell.aboutManifest": "Jedes Projekt, das es kennt, beschreibt sich in einem {manifest}-Manifest. Was jede Seite bedeutet, steht hinter dem „?“ auf dieser Seite.",
+  "shell.aboutManifest": "Ein Projekt wird auf der Seite Projekte über seine Git-Adresse hinzugefügt, und das Board verwaltet seine Einstellungen selbst, es sei denn, das Projekt hat ein eigenes {manifest} in Git, das dann gilt. Was jede Seite bedeutet, steht hinter dem „?“ auf dieser Seite.",
   "client.requestFailed": "die Anfrage ist fehlgeschlagen",
   "client.requestFailedHttp": "{action} ist mit HTTP {status} fehlgeschlagen",
   "client.theAction": "die Aktion",

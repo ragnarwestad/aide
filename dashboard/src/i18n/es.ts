@@ -827,7 +827,7 @@ export const es: Record<TranslationKey, string> = {
   "testServers.starting": "iniciando",
   "shell.aboutWhat": "{board} lleva el desarrollo guiado por specs en todos los proyectos de esta máquina. Escribe una spec y el board la lleva por crear, analizar, implementar y archivar — cada fase una ejecución real de una IA que eliges, en un worktree propio, y al final una rama fusionada y la spec archivada.",
   "shell.aboutRepos": "Los archivos de una spec viven en un repositorio de specs; el código que cambia vive en el del proyecto. El board no es dueño de ninguno: mantiene sus propios checkouts, ejecuta las pruebas del proyecto antes de fusionar nada y se detiene en vez de adivinar cuando fallan.",
-  "shell.aboutManifest": "Cada proyecto que conoce se declara en un manifiesto {manifest}. Lo que significa cada página está detrás del «?» de esa página.",
+  "shell.aboutManifest": "Un proyecto se añade en la página Proyectos con su dirección git, y el board guarda su configuración, salvo que el proyecto tenga su propio {manifest} en git, que entonces manda. Lo que significa cada página está detrás del «?» de esa página.",
   "client.requestFailed": "la solicitud falló",
   "client.requestFailedHttp": "{action} falló con HTTP {status}",
   "client.theAction": "la acción",

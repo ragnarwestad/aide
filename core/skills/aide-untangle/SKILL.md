@@ -9,8 +9,8 @@ description: >-
   Use when: "untangle", "kartlegg koden", "hvor er koden floket",
   "finn duplisert logikk", "sjekk filstørrelser", before a refactor, when
   agents keep missing a place a change has to touch.
-  Do NOT use for: making the changes (each spec goes through aide-analyze and
-  aide-implement), reviewing a diff, exploring an idea
+  Do NOT use for: making the changes (each spec goes through the analyze and
+  implement steps on the board), reviewing a diff, exploring an idea
   (use aide-explore).
 argument-hint: "[optional area or concern to focus on]"
 effort: high
@@ -141,4 +141,3 @@ specs, and which one you would start with and why.
 
 - `spec-handover` — the format each fix is handed over in
 - `aide-explore` — when a fix needs thinking through before it is a spec
-- `aide-analyze` — what each spec goes through next

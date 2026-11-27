@@ -119,7 +119,7 @@ installs files instead (verified 2026-11-22):
 | OpenCode    | TS module: skills, commands, system text  | yes, from code (`ctx.session.hook("context", ...)`)    | Still a `plugins` entry or a file in `~/.config/opencode/`   |
 
 Claude Code, Codex and Copilot name a plugin's skills `plugin:skill`, so
-`aide-implement` would be called by a new name. Plugins load headless in
+`aide-explore` would be called by a new name. Plugins load headless in
 `claude -p` (not `--bare`) and `copilot -p`; for `codex exec` and
 `opencode run` it is not documented. Revisit when Claude Code and Codex
 plugins can ship always-on instructions (`docs/ROADMAP.md`, item 8).

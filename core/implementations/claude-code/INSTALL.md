@@ -1,156 +1,65 @@
-# Installation Guide - aide-claude-code
+# Installation Guide - Claude Code
 
 ## Table of contents
 
-- [Quick Start](#quick-start)
-- [Prerequisites](#prerequisites)
-- [What does install.sh do?](#what-does-installsh-do)
-- [Per-project configuration](#per-project-configuration)
-- [LSP plugins (semantic code understanding)](#lsp-plugins-semantic-code-understanding)
-- [Available skills](#available-skills)
-- [Troubleshooting](#troubleshooting)
-- [Updating](#updating)
-- [Further reading](#further-reading)
+- [Install](#install)
+- [What it installs](#what-it-installs)
+- [Check it worked](#check-it-worked)
+- [LSP plugins](#lsp-plugins)
 
 ---
 
-## Quick Start
+For a person installing Aide for Claude Code, or checking that install. The prerequisites, what every installer
+does, updating and uninstalling are in [docs/INSTALLATION.md](../../../docs/INSTALLATION.md).
+
+## Install
 
 ```bash
-# 1. Clone Aide
-cd ~/develop
-git clone <repo-url> aide
-
-# 2. Run the installer
-aide/implementations/claude-code/install.sh
-
-# 3. Start Claude Code in a project
-cd ~/develop/my-app
-claude
+cd ~/develop/aide
+core/implementations/claude-code/install.sh
 ```
 
-**Test:** Run `/aide-create "A test spec" Just checking that the flow works.` in Claude Code.
+Start a new Claude Code session afterwards: it reads its rules and skills when a session starts.
 
 ---
 
-## Prerequisites
+## What it installs
 
-- **Claude Code CLI** installed (the `claude` command works)
-- **`jq`** (`brew install jq`) — every spec script needs it
-- **[mise](https://mise.jdx.dev)** with a node installed, for the shared tools the installer adds (optional: skipped with a warning)
-- **Mac/Linux** or **Windows with WSL** (bash scripts require a Unix shell)
+On top of [what every installer puts in place](../../../docs/INSTALLATION.md#what-every-installer-puts-in-place):
 
-> **Windows users:** The scripts are bash scripts and require [WSL (Windows Subsystem for Linux)](https://learn.microsoft.com/en-us/windows/wsl/install) or Git Bash. Run `wsl --install` in PowerShell to install WSL.
+| What                                                                    | Where                                           |
+| ----------------------------------------------------------------------- | ----------------------------------------------- |
+| Every skill in `core/skills/` except `spec-structure`                   | `~/.claude/skills/`                             |
+| Every rule in `core/rules/`, `spec-structure` included                  | `~/.claude/rules/`                              |
+| The two command-rule hooks                                              | `~/.claude/settings.json`, beside your own      |
+| The LSP plugins `typescript-lsp`, `kotlin-lsp` and `jdtls-lsp`          | Claude Code's plugins, when `claude` is on PATH |
 
----
+Claude Code is the one tool that gets the rules as separate files instead of a block in one instructions file.
+`spec-structure` is a rule here rather than a skill: its `paths` frontmatter makes Claude Code load it only when a
+spec file is read.
 
-## What does install.sh do?
-
-1. **Checks** which tools are on PATH (`aide-preflight`) — a missing one is reported, never fatal.
-2. **Installs the scripts** to `~/.local/bin/`: every `core/scripts/aide-*` script (`aide-run-spec`,
-   `aide-create-spec`, `aide-archive-spec`, `aide-generate-pdf`, `aide-generate-html`, …), their
-   library under `~/.local/bin/lib/`, the git hooks, and `upgrade-ai-tools`.
-3. **Installs the shared tools** through mise: markdownlint-cli2, jq, gh, bun, pandoc, md-to-pdf, yt-dlp.
-4. **Puts `~/.local/bin` on PATH** in `~/.zshenv` and `~/.bashrc`, so non-interactive shells (ssh,
-   launchd) find the scripts too.
-5. **Installs globally** to `~/.claude/`: every skill in `core/skills/` except `spec-structure` →
-   `skills/`, the agents →
-   `agents/`, the always-on rules → `rules/`, and the two command-rule hooks (`git add .` and
-   watch mode, the scripts Codex runs too) → `settings.json`, beside your own settings.
-6. **Installs the LSP plugins** (typescript, kotlin, jdtls) when the `claude` CLI is present.
-
-Run it again to update; it replaces what it installed and removes what it no longer ships.
-
-### Skills
-
-Every skill in `core/skills/` except `spec-structure` is installed (Claude Code gets it as the
-`spec-structure` rule instead): the `aide-*` workflow skills (`aide-create`,
-`aide-analyze`, `aide-implement`, `aide-archive`, `aide-explore`, `aide-reopen`,
-`aide-close`, `aide-to-pdf`, `aide-untangle`) and the expertise skills Claude Code activates by context
-(`tdd-coach`, `task-workflow-assistant`, `documentation`, `markdown-linting`,
-`tools-and-scripts`, `unit-tests`, `playwright-e2e`, `workflows`).
+What the hooks do, and the parts of `~/.claude/settings.json` Aide leaves to you, are in [README.md](README.md).
 
 ---
 
-## Per-project configuration
+## Check it worked
 
-### AIDE_SPECS_PATH (optional, per project)
-
-```text
-# <project>/.aide/config
-AIDE_SPECS_PATH=$HOME/develop/my-specs-repo
+```bash
+aide-preflight claude
 ```
 
-Where that project's specs are stored. If not set, `specs/` in the project root is used.
-Per-project configuration — not an environment variable.
+In a Claude Code session, type `/aide-`: the list shows Aide's skills, such as `/aide-explore`. The spec steps
+(`/aide-create`, `/aide-analyze` and the rest) are not among them; they run on the board
+([Where a spec's steps run](../../../docs/INSTALLATION.md#where-a-specs-steps-run)).
 
 ---
 
-## LSP plugins (semantic code understanding)
+## LSP plugins
 
-Claude Code has built-in support for LSP plugins that provide semantic code navigation
-(symbol search, find references, refactoring). These are installed automatically by `install.sh`.
-
-**Installed plugins:**
-
-| Plugin           | Language              |
-|------------------|-----------------------|
-| `typescript-lsp` | TypeScript/JavaScript |
-| `kotlin-lsp`     | Kotlin                |
-| `jdtls-lsp`      | Java                  |
-
-**Manual installation** (if needed):
+The installer installs them when the `claude` CLI is on PATH, and otherwise prints these commands:
 
 ```bash
 claude plugin install typescript-lsp@claude-plugins-official
 claude plugin install kotlin-lsp@claude-plugins-official
 claude plugin install jdtls-lsp@claude-plugins-official
 ```
-
-## Available skills
-
-### Slash commands (skills in Claude Code)
-
-| Command                                | Description        |
-|----------------------------------------|--------------------|
-| `/aide-create "<title>" <description>` | Create a spec      |
-| `/aide-analyze <number>`               | Analyze codebase   |
-| `/aide-implement <number>`             | Implement with TDD |
-
-### Terminal scripts
-
-| Script               | Description               |
-|----------------------|---------------------------|
-| `aide-generate-pdf`  | Generate PDF from a spec  |
-| `aide-generate-html` | Generate HTML from a spec |
-| `upgrade-ai-tools`   | Update the AI CLIs        |
-
-Document creation happens via the slash command `/aide-create` (not a terminal script).
-
----
-
-## Troubleshooting
-
-### "/aide-create command not found"
-
-```bash
-# Run install again, then restart Claude Code
-aide/implementations/claude-code/install.sh
-```
-
----
-
-## Updating
-
-```bash
-cd aide && git pull
-core/implementations/claude-code/install.sh
-```
-
----
-
-## Further reading
-
-- `README.md` - Overview
-- `core/skills/workflows/SKILL.md` - Workflows
-- `core/rules/git.md` - Git rules

@@ -415,7 +415,7 @@ The page is called Specs, not Queue. That a queue orders the runs is an implemen
 ## The create line, and the pips
 
 The first line is `create` — history, not a control. It reads done once `4-status.md` records it, which is
-what `/aide-create`
+what the create step
 writes into a new spec; a spec with a create job in the queue's history additionally shows that run (state, model, time,
 cost, link), and a spec made by hand shows the line inert, the same way any phase run outside the
 queue does. It has no checkbox. It has a pip like the other four, but not on their rule: `done` comes from the git

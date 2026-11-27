@@ -26,7 +26,7 @@ effort: high
 Write one failing test, then the least code that makes it pass, then the
 next test. RED and GREEN below are one turn of that loop; the quality
 gate and REFACTOR come after the last test. Inside a spec's
-/aide-implement run, the plan's Task 0 and implement's own steps set the
+implement step, the plan's Task 0 and implement's own steps set the
 order of tests and code.
 
 ---
@@ -95,7 +95,7 @@ pnpm test -- --run <test-file>
 
 The project's own type check and lint, and its tests as its rules say
 (Merge verifies the merged result in a board-backed session, and the runner
-verifies a spec's /aide-implement run). In a board-backed session,
+verifies a spec's implement step). In a board-backed session,
 run only the test files covering the change, plus the relevant type and lint checks:
 
 ```bash

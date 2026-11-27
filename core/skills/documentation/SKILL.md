@@ -1,10 +1,12 @@
 ---
 name: documentation
 description: >-
-  The documentation standard for markdown documents: title, table of
-  contents, headings, separators, code blocks, numbered lists, emojis,
-  and the practices that make a document useful to an AI assistant.
-  Use when: writing or restructuring any markdown document, adding a
+  The documentation standard for markdown documents: what a page is for
+  and who reads it, then title, table of contents, headings, separators,
+  code blocks, numbered lists, emojis, and the practices that make a
+  document useful to an AI assistant.
+  Use when: writing, trimming or restructuring any markdown document,
+  deciding what belongs on a page or in a README, adding a
   table of contents, formatting code examples, referencing files or
   screenshots in a document.
   Do NOT use for: linter errors specifically (use the markdown-linting
@@ -16,6 +18,7 @@ effort: medium
 
 ## Table of contents
 
+- [What a page is for](#what-a-page-is-for)
 - [General rules for all documents](#general-rules-for-all-documents)
   - [Document structure](#document-structure)
   - [Table of contents](#table-of-contents-1)
@@ -29,6 +32,32 @@ effort: medium
   - [Specific instructions](#specific-instructions)
   - [File references](#file-references)
 - [See also](#see-also)
+
+---
+
+## What a page is for
+
+A page has one reader and one kind, after [Diátaxis](https://diataxis.fr). Decide both before
+writing, and say the reader in the page's first lines.
+
+| Kind        | The reader wants to …                 | It holds                                      |
+| ----------- | ------------------------------------- | --------------------------------------------- |
+| Tutorial    | learn by doing it once, start to end  | one path that works, no options or detours    |
+| How-to      | get one task done                     | the steps for that task, and nothing else     |
+| Reference   | look a fact up                        | every key, route, state or command, terse     |
+| Explanation | understand why it is the way it is    | the reasoning and the trade-offs, no steps    |
+
+- **A page that mixes kinds is split, or loses the part that belongs elsewhere.** A how-to that
+  explains, or a reference that teaches, is what makes a page long without making it useful.
+- **A fact stands in one place.** Every other page links to it instead of restating it, so a
+  change is made once and no copy is left saying the old thing.
+- **A README is the front door:** what the project is and why, how to install it, the first run,
+  and links onward. It does not list what the pages behind it already describe.
+- **A user's page says what to do and what happens, not how the code does it.** Implementation
+  detail belongs on the pages for whoever changes the code.
+- **Every sentence earns its place:** keep it only when it changes what the reader does or
+  understands. A sentence that restates the heading, or narrates what the tool does on its own,
+  goes.
 
 ---
 

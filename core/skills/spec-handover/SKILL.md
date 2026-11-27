@@ -8,7 +8,7 @@ description: >-
   Use when: a spec has been agreed in the conversation and its text is to be
   handed over, "skriv spec-teksten", "gi meg specen", proposing a new spec.
   Do NOT use for: creating the spec (`aide create`, and only when the user
-  asks), analysing an existing spec (use aide-analyze).
+  asks), analysing an existing spec (`aide analyze`).
 effort: medium
 ---
 

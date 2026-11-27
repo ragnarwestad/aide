@@ -21,7 +21,7 @@
 
 How Aide uses AI agents when the board runs a spec: which sessions run in each step, which agents start others, the
 loops that send work back, and who decides that a step is done. The details of each part are in
-[the runner's page](../dashboard/docs/the-runner.md) and in the skills under `core/skills/`.
+[the runner's page](../dashboard/docs/the-runner.md) and in the step instructions under `core/scripts/lib/steps/`.
 
 ## The strategy
 

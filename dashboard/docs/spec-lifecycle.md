@@ -177,8 +177,8 @@ When the user is satisfied, they tick the rows on the spec's Status tab and pres
 
 ## Going backwards: reopen
 
-Reopen keeps the spec, and discards a work round when it is asked to. It is a skill (`/aide-reopen`) at a keyboard and a
-queue step the dashboard presses, never a step the runner decides on its own.
+Reopen keeps the spec, and discards a work round when it is asked to. It is a queue step, started from the dashboard or with
+`aide reopen`, never a step the runner decides on its own.
 
 - **Reopen** takes an archived or closed spec back to the active list and asks one question in a dialog, opened
   from the Reopen button on the spec page and on the list row: also reset the analysis, the plan and the status? The
@@ -197,8 +197,7 @@ queue step the dashboard presses, never a step the runner decides on its own.
   - **Reset (`resetFiles`, runner flag `--reset-files`).** No model here either: `aide-reopen-spec --reset-files`
     moves the folder back, writes `2-analysis.md`, `3-solution.md` and `4-status.md` from the templates (through
     `aide-reset-spec`), keeping `0-README.md`, `1-description.md` and the `**Archived:**`/`**Closed:**` trail, and records
-    `- **Reopened:** <date> (history before <sha> does not count)` in `4-status.md`, the same call `/aide-reopen` makes
-    at a keyboard. The sha is the boundary
+    `- **Reopened:** <date> (history before <sha> does not count)` in `4-status.md`. The sha is the boundary
     `completed_steps_for` counts from: runner commits before it are the old round's and no longer put a step on the
     line. It drops the spec's recorded phase choice too: those ticks belonged to the round just discarded.
 

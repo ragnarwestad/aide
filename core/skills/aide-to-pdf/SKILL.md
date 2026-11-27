@@ -3,7 +3,7 @@ name: aide-to-pdf
 description: >-
   Generate PDF from a spec.
   Use when: exporting documentation to PDF, generating a print-friendly spec.
-  Do NOT use for: creating documentation (use aide-create)
+  Do NOT use for: creating a spec (`aide create`)
 argument-hint: "[ISSUE_ID]"
 effort: medium
 ---

@@ -110,7 +110,7 @@ aide/
 
 ### New skill
 
-All skills (both expert skills and aide-* workflow skills) live in `core/skills/`.
+All skills live in `core/skills/`. A spec's step instructions are not skills and live in `core/scripts/lib/steps/`.
 
 Example: Adding `database-expert`
 
@@ -200,4 +200,4 @@ cd core/implementations/claude-code && ./uninstall.sh
 
 - **Aide:** `AGENTS.md`, `CLAUDE.md` and `.claude/settings.json` are git-tracked and never overwritten by install.sh
 - **The AI installations are global** and apply to all your projects
-- **aide-* skills:** Are slash commands (skills) in Claude Code/Copilot — not standalone CLI scripts
+- **A spec's steps are not skills:** create, analyze, implement, archive, close and reopen are installed beside the runner in `~/.local/bin/lib/steps/` and run only on the board

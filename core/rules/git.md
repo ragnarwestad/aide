@@ -18,7 +18,7 @@
 
 Pull the specific repo before creating anything new in it — a file, a spec, a branch — right
 before writing the first new file, not once at the start of the session. Another session, another
-machine, or an automated job (a queued `/aide-analyze`, another person's IDE, a CI step) committing
+machine, or an automated job (an analyze step queued on the board, another person's IDE, a CI step) committing
 to the same repo while you work is the normal case, not an edge case — specs repos especially, since
 the dashboard, other sessions and the user's own IDE all write to them continuously.
 

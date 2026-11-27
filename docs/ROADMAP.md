@@ -424,9 +424,9 @@ What it could take:
   description), the active voice, one word for one thing, and one topic in each sentence. The approved dictionary of
   about 900 words is left out, since words like branch, worktree and merging would have to be declared as technical
   names one by one.
-- **The analyze skill first:** the rules added to what `/aide-analyze` writes, and a few specs compared before and
+- **The analyze step first:** the rules added to what the analyze step writes, and a few specs compared before and
   after, before they are used anywhere else.
-- **Diagrams drawn on the spec page:** the analyze skill asks for one where a picture says more than the text, and
+- **Diagrams drawn on the spec page:** the analyze step asks for one where a picture says more than the text, and
   the spec page draws Mermaid, which it shows as a code block today.
 
 Open questions:
