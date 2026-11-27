@@ -77,6 +77,26 @@ for (const state of ["queued", "running", "done"] as const) {
 }
 
 
+test("a branch built on a branch still waiting to merge is refused and not queued", async () => {
+  const { ctx, queue, cleanup } = context(true);
+  try {
+    const first = queue.enqueue({ project: "aide", specFolder: "land", steps: ["land"], branch: "first" });
+    if (!first.ok) throw new Error(first.error);
+    // Each branch's tip is its own name; `second` contains `first`, main does not.
+    ctx.gitRun = async (_dir: string, args: string[]) => {
+      if (args[0] === "ls-remote") return { code: 0, stdout: `${args.at(-1)!.replace("refs/heads/", "")}\trefs/heads/x\n`, stderr: "" };
+      if (args[0] === "merge-base") return { code: args[2] === "first" && args[3] === "second" ? 0 : 1, stdout: "", stderr: "" };
+      return { code: 0, stdout: "", stderr: "" };
+    };
+    const res = await handleLandSteps(ctx as never, new Request("http://board/api/queue/projects/aide/land", {
+      method: "POST", body: JSON.stringify({ branch: "second" }),
+    }), "/api/queue/projects/aide/land");
+    expect(res?.status).toBe(400);
+    expect(String((await res?.json()).error)).toContain("built on first");
+    expect(queue.list().map((job) => job.branch)).toEqual(["first"]);
+  } finally { cleanup(); }
+});
+
 test("Merge retries a cancelled job with the same branch and kind (AC-1)", async () => {
   const { ctx, queue, cleanup } = context(true);
   try {

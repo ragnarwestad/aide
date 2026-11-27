@@ -104,6 +104,8 @@ A request to merge or push to main authorizes this sequence:
 
 1. Keep the changes on a working branch and run only the tests covering the change, plus relevant
    type, lint or documentation checks. Merge verifies the merged result with the project's configured tests.
+   Base the branch on origin's default branch, never on a branch still waiting in the Merge queue:
+   Merge puts each branch on the default branch as one new commit, and refuses a branch built on one.
 2. Commit and push that working branch to origin.
 3. Run `aide merge <project> <branch>`. The board tests the merged result, pushes the default branch
    only when the tests pass, and deletes the source branch.

@@ -3,6 +3,7 @@ import { enqueueRequest } from "../../../queue/request/index.ts";
 import { inFlight, jobKind, LAND_KEY } from "../../../queue/queue.ts";
 import { json, logRefusal, readObjectBody } from "../../serve-helpers";
 import type { RoutesContext } from "../";
+import { stackedOn } from "./stacked.ts";
 
 const LAND_ROUTE = /^\/api\/queue\/projects\/([^/]+)\/land$/;
 const SAFE_BRANCH = /^(?!-)(?!.*(?:\.\.|@\{|[~^:?*\\\[]))[A-Za-z0-9][A-Za-z0-9._\/-]*$/;
@@ -26,6 +27,11 @@ async function queueLand(ctx: RoutesContext, req: Request, project: string): Pro
   if (found.code !== 0) return refuse(`origin could not be checked for branch ${branch}`);
   const running = ctx.queue.list().find((job) => job.project === project && jobKind(job) === "land" && job.branch === branch && inFlight(job));
   if (running) return refuse(`a Merge job for ${branch} is already ${running.state} in ${project}`);
+  const waiting = ctx.queue.list().filter((job) => job.project === project && jobKind(job) === "land" && inFlight(job) && job.branch).map((job) => job.branch!);
+  const under = await stackedOn(ctx.gitRun, root, branch, base, waiting);
+  if (under) {
+    return refuse(`${branch} is built on ${under}, which is still waiting to merge, and Merge puts ${under} on ${base} as one new commit; rebase ${branch} onto ${base} once ${under} has merged`);
+  }
   const result = enqueueRequest(ctx.queue, { project, specFolder: LAND_KEY, steps: ["land"], branch }, "manual");
   if (!result.ok) return refuse(result.error);
   await ctx.tickRunner();
