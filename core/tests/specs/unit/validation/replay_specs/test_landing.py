@@ -78,6 +78,18 @@ def test_a_squash_landing_gives_the_first_parent_of_the_commit_gh_names(code, tm
     assert (found.before, found.landed) == (before, squash)
 
 
+def test_a_landing_the_board_squashed_is_the_one_parent_commit_named_after_the_spec(code, tmp_path):
+    title = "Read Codex final messages only from the current turn"
+    before = git(code, "rev-parse", "HEAD")
+    squash = commit(code, {"stream.sh": "x"}, f"{title}\n\n- Add the failing test\n- Read the current turn only")
+    commit(code, {"later.txt": "y"}, "Later work")
+    archived = archive_spec(tmp_path / "specs", "12-squashed", extra={"1-description.md": f"# {title} - Description\n"})
+
+    found = landing.find_landing(str(code), "main", "12-squashed", str(archived))
+
+    assert (found.before, found.landed) == (before, squash)
+
+
 def test_a_spec_none_of_the_rules_finds_says_no_landing_of_its_code_was_found(code, tmp_path):
     archived = archive_spec(tmp_path / "specs", "11-lost")
 

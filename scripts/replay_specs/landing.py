@@ -1,7 +1,8 @@
 """Where a spec's code landed in its project's code repository, and the commit just before that.
 
 The board lands a code branch with a merge (a first-parent commit that names the branch), a pull request's squash
-commit, or a fast-forward that leaves no trace but the archived spec's own `Repo` lines.
+commit, one squashed commit named after the spec, or a fast-forward that leaves no trace but the archived spec's own
+`Repo` lines.
 """
 import json
 import re
@@ -68,6 +69,25 @@ def by_squash(code, folder):
     return None
 
 
+def spec_title(archived):
+    """The title on the first line of the archived spec's 1-description.md."""
+    path = Path(archived) / "1-description.md"
+    first = (path.read_text().splitlines() or [""])[0] if path.exists() else ""
+    return re.sub(r"\s+-\s+Description\s*$", "", re.sub(r"^#\s*", "", first)).strip()
+
+
+def by_board_squash(code, default, folder, archived):
+    """The newest one-parent commit on the default branch whose subject is the spec's title: the board squashes a
+    spec's code into one commit named after it."""
+    title = spec_title(archived)
+    if not title:
+        return None
+    for sha, parents, subject in first_parent_commits(code, default, "--fixed-strings", f"--grep={title}"):
+        if subject == title and len(parents) == 1:
+            return Landing(parents[0], sha)
+    return None
+
+
 def by_fast_forward(code, default, folder, archived):
     """The landed tip is the archived `Repo` line that is on the default branch; the commit before is what the
     branch last caught up with."""
@@ -92,7 +112,7 @@ def find_landing(code, default, folder, archived, code_landing="merge"):
     found = by_merge(code, default, folder)
     if not found and code_landing == "pr":
         found = by_squash(code, folder)
-    found = found or by_fast_forward(code, default, folder, archived)
+    found = found or by_board_squash(code, default, folder, archived) or by_fast_forward(code, default, folder, archived)
     if not found:
         raise NoLanding(NOT_FOUND)
     return found
