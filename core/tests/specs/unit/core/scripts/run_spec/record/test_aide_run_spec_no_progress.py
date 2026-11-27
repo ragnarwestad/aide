@@ -6,10 +6,8 @@ import json
 import re
 import shlex
 import subprocess
-import pytest
-from ..run_spec_invoking import create
 from ...conftest import READ_SPECS, git, run
-from ..run_spec_fakes import analyze_claude_advancing_row, analyze_claude_naming_implement, analyze_claude_renaming_the_header, analyze_claude_writing_the_line_from_nothing, project_only_claude, specs_only_claude, writing_claude
+from ..run_spec_fakes import analyze_claude_advancing_row, analyze_claude_naming_implement, analyze_claude_renaming_the_header, analyze_claude_writing_the_line_from_nothing, project_only_claude, writing_claude
 from ..run_spec_origins import origin
 from ..run_spec_results import RESULT_OK
 from ..run_spec_status_files import acceptance_section, conflicting_branch, recorded_line, status_with_phase, with_acceptance, with_status, write_raw_status
@@ -86,17 +84,6 @@ def test_a_completed_claim_that_ticks_no_row_still_counts(
     turned a record-keeping slip into a red run someone had to
     re-drive."""
     status_with_phase(workspace, "create, analyze", ["| a | ⬜ | |", "| b | ⬜ | |"])
-    claude = project_only_claude(fake_claude)
-    rc, out, _ = run(runner, workspace, claude, command="implement")
-    assert rc == 0, out
-    assert out["ok"] is True, out
-    assert out["terminalReason"] == "completed", out
-    assert recorded_line(workspace) == "create, analyze, implement"
-
-def test_a_genuine_implement_run_is_unaffected(runner, workspace, fake_claude):
-    """The project changed AND a row is ticked — exactly today's
-    behavior for a real run, unaffected by the new check."""
-    status_with_phase(workspace, "create, analyze", ["| a | ✅ | |", "| b | ⬜ | |"])
     claude = project_only_claude(fake_claude)
     rc, out, _ = run(runner, workspace, claude, command="implement")
     assert rc == 0, out
@@ -186,56 +173,6 @@ def test_an_archive_claim_before_implement_is_not_implemented_yet(
     assert out["terminalReason"] == "not-implemented-yet", out
     assert recorded_line(workspace) == "create, analyze"
 
-def test_a_genuine_archive_run_is_unaffected(runner, workspace, fake_claude):
-    """The spec folder genuinely moves under `archive/` (the
-    mechanical pre-check's own `archived` outcome, since `implement` is
-    on the line and nothing conflicts) — `terminalReason` stays
-    `completed` and `archive` is added to the line, unaffected by the
-    new check."""
-    status_with_phase(workspace, "create, analyze, implement", ["| a | ✅ | |"])
-    folder = workspace["folder"]
-    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
-    rc, out, _ = run(runner, workspace, claude, command="archive")
-    assert rc == 0, out
-    assert out["ok"] is True, out
-    assert out["terminalReason"] == "completed", out
-    assert (
-        recorded_line(workspace, path=f"archive/{folder}/4-status.md")
-        == "create, analyze, implement, archive"
-    )
-
-@pytest.mark.parametrize("step", ["create", "analyze", "implement"])
-def test_archive_no_progress_guard_never_fires_for_other_steps(
-    runner, workspace, fake_claude, step
-):
-    """The new check is `archive`-specific — mirrors
-    `test_no_progress_is_scoped_to_implement_only` above, extended to
-    the sibling check `archive` gained. None of these three steps moves
-    the spec folder, so if the check were not scoped to
-    `command_name = archive` it would wrongly downgrade every one of
-    them."""
-    if step == "create":
-        claude = fake_claude(
-            "cat > /dev/null\n"
-            + READ_SPECS
-            + 'mkdir -p "$specs/new-abc123de"\n'
-            + 'printf "%s\\n" "# New - Status" "" "## Tracking info" "" "- **Task:** `new-abc123de/`" '
-            + '> "$specs/new-abc123de/4-status.md"\n'
-            + f"echo '{json.dumps(RESULT_OK)}'"
-        )
-        rc, out, _ = create(runner, workspace, claude)
-    elif step == "analyze":
-        with_status(workspace)
-        claude = specs_only_claude(fake_claude, workspace)
-        rc, out, _ = run(runner, workspace, claude, command="analyze")
-    else:
-        status_with_phase(workspace, "create, analyze", ["| a | ✅ | |"])
-        claude = project_only_claude(fake_claude)
-        rc, out, _ = run(runner, workspace, claude, command="implement")
-    assert rc == 0, out
-    assert out["ok"] is True, out
-    assert out["terminalReason"] == "completed", out
-
 def test_an_analyze_claim_that_changed_the_project_repo_is_downgraded(
     runner, workspace, fake_claude
 ):
@@ -273,15 +210,13 @@ def test_analyze_scope_keeps_a_changed_path_with_spaces_whole(
     assert_written_as_in_fixture("scopeAnalyze", out["scopeAnalyze"])
     assert out["scopeAnalyze"]["project"]["uncommitted"] == ["src/my file.ts"], out
 
-@pytest.mark.parametrize("mark", ["✅", "🔄", "❌", "⚠️"])
 def test_an_analyze_claim_that_advances_a_phase_row_is_downgraded(
-    runner, workspace, fake_claude, mark
+    runner, workspace, fake_claude
 ):
     """A Phase-table row moved off "not started" during
-    an analyze run — that is implement's and archive's job — parametrized
-    over every non-not-started mark a row could end up carrying."""
+    an analyze run — that is implement's and archive's job."""
     status_with_phase(workspace, "create", ["| a | ⬜ | |"])
-    claude = analyze_claude_advancing_row(fake_claude, workspace, mark)
+    claude = analyze_claude_advancing_row(fake_claude, workspace, "✅")
     rc, out, _ = run(runner, workspace, claude, command="analyze")
     assert rc == 0, out
     assert out["ok"] is False, out

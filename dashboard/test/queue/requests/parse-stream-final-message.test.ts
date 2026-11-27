@@ -1,7 +1,7 @@
 // `linesWithFinalMessage`: a step's log lines, the last of them the whole
 // final message. A last line that only repeats the message is replaced by
-// it; otherwise the message is appended. The rule is proven here, on the
-// three transcript schemas, and nowhere else.
+// it; otherwise the message is appended. The rule is proven here, and
+// nowhere else; it does not depend on the transcript schema.
 
 import { describe, expect, test } from "bun:test";
 import { linesWithFinalMessage } from "../../../src/queue/parse-stream";
@@ -16,32 +16,12 @@ const claude = (entries: unknown[], result: string): string =>
 const say = (text: string) => ({ type: "text", text });
 const bash = (command: string) => ({ type: "tool_use", id: "t1", name: "Bash", input: { command } });
 
-const codex = (items: unknown[]): string =>
-  items.map((item) => line({ type: "item.completed", item })).join("\n");
-const opencode = (parts: unknown[]): string =>
-  parts.map((part) => line({ type: "text", part })).join("\n");
-
 describe("linesWithFinalMessage: a last entry that repeats the final message", () => {
   test("Claude: the whole message is the last line and appears once", () => {
     expect(linesWithFinalMessage(claude([bash("bun test"), say("All done.")], "All done."))).toEqual([
       "Bash bun test",
       "All done.",
     ]);
-  });
-
-  test("Codex: the whole message is the last line and appears once", () => {
-    const lines = linesWithFinalMessage(
-      codex([
-        { type: "command_execution", command: "bun test", exit_code: 0 },
-        { type: "agent_message", text: "All done." },
-      ]),
-    );
-    expect(lines).toEqual(["bun test", "All done."]);
-  });
-
-  test("opencode: the whole message is the last line and appears once", () => {
-    const lines = linesWithFinalMessage(opencode([{ type: "tool", tool: "read" }, { type: "text", text: "All done." }]));
-    expect(lines).toEqual(["tool read", "All done."]);
   });
 
   test("escaped characters and a line break do not hide the repeat", () => {

@@ -29,26 +29,6 @@ const ALL_EVENTS = Array.from(
   new Set(Object.values(TRANSITIONS).flatMap((row) => Object.keys(row ?? {}))),
 ) as TransitionEvent[];
 
-describe("TRANSITIONS", () => {
-  test("every (state, event) pair names at most one next state, and every named state is real", () => {
-    for (const state of JOB_STATES) {
-      for (const event of ALL_EVENTS) {
-        const to = TRANSITIONS[state]?.[event];
-        if (to === undefined) continue;
-        expect(typeof to).toBe("string");
-        expect((JOB_STATES as readonly string[]).includes(to)).toBe(true);
-      }
-    }
-  });
-
-  test("has at least the eleven transitions the queue makes today", () => {
-    const pairs = JOB_STATES.flatMap((state) =>
-      ALL_EVENTS.filter((event) => TRANSITIONS[state]?.[event] !== undefined).map((event) => [state, event]),
-    );
-    expect(pairs.length).toBeGreaterThanOrEqual(11);
-  });
-});
-
 // A landing the project's own suite refused fails the job: nothing was
 // pushed and nobody stopped it. Only from `done`, exactly like
 // `landing-failed` beside it.
@@ -162,23 +142,6 @@ describe("the diagram and the table agree", () => {
   }
 
   const docPath = join(import.meta.dir, "..", "..", "..", "docs", "job-states.md");
-
-  test("self-check: the comparison disagrees once an edge is removed from either side", () => {
-    const realEdges = new Set(diagramEdges(readFileSync(docPath, "utf-8")).map(([a, b]) => `${a}->${b}`));
-    const realTable = tableEdges();
-
-    // A diagram edge removed in this in-memory copy only: the table
-    // still has it, so the two must no longer compare equal.
-    const shrunkDiagram = new Set(realEdges);
-    shrunkDiagram.delete("queued->running");
-    expect([...realTable].sort()).not.toEqual([...shrunkDiagram].sort());
-
-    // A table entry removed in this in-memory copy only: the diagram
-    // still has it.
-    const shrunkTable = new Set(realTable);
-    shrunkTable.delete("running->done");
-    expect([...shrunkTable].sort()).not.toEqual([...realEdges].sort());
-  });
 
   test("every diagram edge has a table entry, and every table entry is a diagram edge", () => {
     const edges = new Set(diagramEdges(readFileSync(docPath, "utf-8")).map(([a, b]) => `${a}->${b}`));

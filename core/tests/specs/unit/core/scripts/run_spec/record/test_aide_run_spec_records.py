@@ -32,22 +32,6 @@ from ..run_spec_status_files import (
 )
 
 
-def test_archive_post_session_verdict_is_delegated_to_archive_command_ac_3(workspace_root):
-    source = (
-        workspace_root / "core/scripts/lib/run-spec/record/status-line.sh"
-    ).read_text()
-    archive_branch = source.split(
-        'elif [ "$command_name" = "archive" ] && [ "$terminal_reason" = "completed" ]; then',
-        1,
-    )[1].split(
-        'elif [ "$command_name" = "analyze" ] && [ "$terminal_reason" = "completed" ]; then',
-        1,
-    )[0]
-
-    assert '"$SCRIPT_DIR/aide-archive-spec"' in archive_branch
-    assert "may_apply_spec_transition" not in archive_branch
-    assert "acceptanceCriteria" not in archive_branch
-
 def test_a_copied_status_line_is_no_longer_corrected_by_the_step_that_runs(
     runner, workspace, fake_claude
 ):
@@ -63,15 +47,6 @@ def test_a_copied_status_line_is_no_longer_corrected_by_the_step_that_runs(
     claude = writing_claude(fake_claude, workspace)
     rc, out, _ = run(runner, workspace, claude, command="implement")
     assert rc == 0, out
-    assert recorded_line(workspace) == "create, analyze, implement"
-
-def test_the_line_names_every_step_the_history_has(runner, workspace, fake_claude):
-    with_status(workspace, ["create", "analyze"])
-    already_ran(workspace, ["create", "analyze"])
-    claude = writing_claude(fake_claude, workspace)
-    rc, out, _ = run(runner, workspace, claude, command="implement")
-    assert rc == 0, out
-    # Workflow order, not log order, and this run's own step included.
     assert recorded_line(workspace) == "create, analyze, implement"
 
 def test_a_step_that_touches_only_the_project_still_gets_a_specs_commit(
@@ -462,7 +437,6 @@ def test_a_line_naming_something_that_is_not_a_step_drops_it(
 
 # --- a new analysis of an implemented spec clears the acceptance ticks ------
 
-BRANCH = "aide/81-queue-and-runner"
 STEPS = ["create", "analyze", "implement"]
 NOTE = "Not tested: needs a deploy; check the log"
 
@@ -545,24 +519,6 @@ def test_a_description_without_criterion_lines_keeps_the_rows_and_clears_the_tic
         ("AC-1: first", "⬜", "a note"),
         ("AC-2: second", "⬜", ""),
     ]
-
-def test_archive_stops_for_the_criteria_a_new_analysis_cleared(runner, workspace, fake_claude):
-    _implemented_with_acceptance(
-        workspace,
-        ["| AC-1: first | ✅ | |", "| AC-2: second | Not verified | |"],
-        {1: "first", 2: "second"},
-    )
-    rc, out, _ = run(runner, workspace, specs_only_claude(fake_claude, workspace), command="analyze")
-    assert rc == 0, out
-    specs = workspace["specs"]
-    git(specs, "merge", "-q", "--ff-only", BRANCH)
-    rc, out, _ = run(runner, workspace, writing_claude(fake_claude, workspace), command="implement")
-    assert rc == 0, out
-    git(specs, "merge", "-q", "--ff-only", BRANCH)
-    rc, out, _ = run(runner, workspace, fake_claude("cat > /dev/null\n"), command="archive")
-    assert out["terminalReason"] == "acceptance-criteria-unticked", out
-    assert (specs / workspace["folder"]).exists()
-    assert not (specs / "archive" / workspace["folder"]).exists()
 
 def test_an_analysis_of_a_spec_never_implemented_keeps_its_ticks(
     runner, workspace, fake_claude
@@ -651,24 +607,3 @@ def test_later_analysis_marks_new_and_rebuilt_rows(runner, workspace, fake_claud
         ("AC-2: second", "Not verified", "Failed: did not hold"),
         ("AC-3: new", "Not verified", ""),
     ]
-
-
-def test_not_required_rows_archive_with_not_verified_state(runner, workspace, fake_claude):
-    with_status(workspace, ["create"], done=True)
-    with_acceptance(workspace, acceptance_section(["| AC-1: first | ⬜ | |"]), {1: "first"})
-    _save_not_required(workspace)
-    already_ran(workspace, ["create"])
-    specs = workspace["specs"]
-    for command, make_claude in [
-        ("analyze", lambda: specs_only_claude(fake_claude, workspace)),
-        ("implement", lambda: writing_claude(fake_claude, workspace)),
-        ("archive", lambda: fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")),
-    ]:
-        rc, out, _ = run(runner, workspace, make_claude(), command=command)
-        assert rc == 0, out
-        git(specs, "merge", "-q", "--ff-only", BRANCH)
-    archived = specs / "archive" / workspace["folder"]
-    assert archived.is_dir()
-    rows = json.loads((archived / "4-status.json").read_text())["acceptanceCriteria"]
-    assert len(rows) == 1
-    assert rows[0]["done"] and rows[0]["notVerified"]

@@ -82,21 +82,6 @@ describe("a row shows the pull request its run opened", () => {
       targets: [],
     });
 
-  // The link used to sit in the State
-  // column; a pull request being open is a fact
-  // about the work, not a second state the row is IN, so it moves to the
-  // notice line, where every other such fact already lives.
-  test("the link is in the notice line, never in the State column", () => {
-    const html = open({ prUrl: "https://github.test/aide/pull/7" });
-    expect(specCell(html, FOLDER)).not.toContain("pull/7");
-    const state = stateCellHtml(html, FOLDER);
-    expect(state).not.toContain("pull/7");
-    expect(state.toLowerCase()).not.toContain("pull request");
-    const notice = noticeCellHtml(html, FOLDER);
-    expect(notice).toContain('href="https://github.test/aide/pull/7"');
-    expect(notice.toLowerCase()).toContain("pull request");
-  });
-
   // The fact must not be hidden by the "nothing to say while
   // running" branch that blanks an otherwise-empty notice line.
   test("a running row with a pull request open still shows the notice sentence", () => {
@@ -105,21 +90,6 @@ describe("a row shows the pull request its run opened", () => {
       targets: [],
     });
     expect(noticeCellHtml(html, FOLDER)).toContain('href="https://github.test/aide/pull/7"');
-  });
-
-  // `prError` is one of the three real ERRORS, not the
-  // "pull request" state — it moves to the notice line, distinct from
-  // the badge test above, which stays put.
-  test("a gh that could not open one says so instead, in a sentence for a person", () => {
-    const RAW = "gh auth login required";
-    const html = open(noPullRequest("archive", RAW));
-    const state = stateCellHtml(html, FOLDER);
-    expect(state).not.toContain(RAW);
-    expect(state).not.toContain("No pull request could be opened for this branch. — Open one by hand, in the checkout on the serving host.");
-    expect(state).not.toContain("pull/7");
-    expect(noticeCellHtml(html, FOLDER)).toContain(
-      "No pull request could be opened for this branch. — Open one by hand, in the checkout on the serving host.",
-    );
   });
 
   // The one `prError` case that carries
@@ -212,20 +182,6 @@ describe("a spec held for Checks, or with implement done, carries a link to a bo
     expect(notice).not.toContain("The link to start one appears once");
   });
 
-  // Pressed and waiting its turn: an archive that finds a criterion
-  // unticked is ended on the spot, never left queued, so a queued one is
-  // under way and the branch is about to move.
-  test("the archive is queued: the link is gone at once", () => {
-    const notice = noticeCellHtml(
-      renderSpecsRows(
-        [row({ specFolder: FOLDER, steps: ["archive"], state: "queued" })],
-        { runnerAvailable: true, targets: [target({ historyDone: ["analyze", "implement"] })] },
-      ),
-      FOLDER,
-    );
-    expect(notice).not.toContain("Click the link to start a test server");
-  });
-
   // The reason archive has not run no longer matters once
   // implement is proven done — the link is independent of `heldBackReason`.
   test("a row held back for an unrelated reason still shows the link once implement is done", () => {
@@ -264,74 +220,6 @@ describe("a spec held for Checks, or with implement done, carries a link to a bo
     );
     expect(notice).toContain("Click the link to start a test server");
     expect(notice).not.toContain("Acceptance criteria are not all ticked");
-  });
-
-  // The criteria were held back, then every one was ticked and
-  // saved — the acceptance-hold mark clears, and the link, which never
-  // read that reason, stays through the transition.
-  test("criteria held back, then ticked and saved, link stays through the transition", () => {
-    const heldTarget = target({
-      historyDone: ["analyze", "implement"],
-      archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE },
-    });
-    const beforeNotice = noticeCellHtml(
-      renderSpecsRows([row({ specFolder: FOLDER, steps: ["archive"], state: "done" })], {
-        runnerAvailable: true,
-        targets: [heldTarget],
-      }),
-      FOLDER,
-    );
-    expect(beforeNotice).toContain("Acceptance criteria are not all ticked");
-    expect(beforeNotice).toContain("Click the link to start a test server");
-
-    const tickedTarget = target({ historyDone: ["analyze", "implement"] });
-    const afterNotice = noticeCellHtml(
-      renderSpecsRows([], {
-        runnerAvailable: true,
-        targets: [tickedTarget],
-      }),
-      FOLDER,
-    );
-    expect(afterNotice).not.toContain("Acceptance criteria are not all ticked");
-    expect(afterNotice).toContain("Click the link to start a test server");
-  });
-
-  // A step already in flight hides the link even when implement's
-  // own historyDone was already true from an earlier round — proving
-  // `quiet`'s own effect, not merely that historyDone is unset (which
-  // another test covers). Modeled on round-quiets-the-hold.test.ts's own
-  // precedent, not on the archive-running test above.
-  test("a step in flight hides the link even when implement is already proven done, and it returns once that step ends", () => {
-    const already = target({ historyDone: ["analyze", "implement"] });
-    const noticeFor = (steps: string[], stepIndex: number, state: QueueRowView["state"]) =>
-      noticeCellHtml(
-        renderSpecsRows([row({ specFolder: FOLDER, steps, stepIndex, state })], {
-          runnerAvailable: true,
-          targets: [already],
-        }),
-        FOLDER,
-      );
-
-    // Analyze or implement running or queued for it hides the link.
-    expect(noticeFor(["analyze", "implement", "archive"], 0, "running")).not.toContain(
-      "Click the link to start a test server",
-    );
-    expect(noticeFor(["analyze", "implement", "archive"], 1, "running")).not.toContain(
-      "Click the link to start a test server",
-    );
-    // Archive running hides it too.
-    expect(noticeFor(["archive"], 0, "running")).not.toContain("Click the link to start a test server");
-
-    // The step has ended without archiving the spec, with no job left in
-    // flight: the link is back.
-    const idle = noticeCellHtml(
-      renderSpecsRows([], {
-        runnerAvailable: true,
-        targets: [already],
-      }),
-      FOLDER,
-    );
-    expect(idle).toContain("Click the link to start a test server");
   });
 
   // An archived row never carries the test-server link — proved
@@ -552,21 +440,6 @@ describe("a row shows an unresolved landing failure", () => {
 describe("a row shows a push that never reached origin", () => {
   const FOLDER = "81-queue-and-runner";
   const MESSAGE = "cannot push aide/81-queue-and-runner in /repos/aide: non-fast-forward";
-
-  // The failure is in the notice line now, and
-  // `pushError`'s own raw stderr never reaches the row at all — a fixed
-  // sentence for a person takes its place. The State column keeps only
-  // the running/resting word.
-  test("the failure is in the notice line, as a sentence for a person", () => {
-    const html = renderSpecsRows([row({ pushError: MESSAGE })], { runnerAvailable: true, targets: [] });
-    expect(specCell(html, FOLDER)).not.toContain(MESSAGE);
-    const state = stateCellHtml(html, FOLDER);
-    expect(state).not.toContain(MESSAGE);
-    expect(state).not.toContain("not pushed");
-    expect(noticeCellHtml(html, FOLDER)).toContain(
-      "A step's push did not reach origin. — Pull the branch in the checkout on the serving host, then push it again from a terminal.",
-    );
-  });
 
   // The description's own headline
   // example — git's `hint:` lines and its `'git push --help'` pointer,

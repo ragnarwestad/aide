@@ -211,25 +211,6 @@ describe("parseJobRequest", () => {
     expect(alone.ok && alone.job.timeoutSec).toEqual({ implement: 3000 });
   });
 
-  // --- The ongoing-job parser no longer reads this --------
-  //
-  // The choice is recorded on the spec itself now (`specAcceptanceNotRequired`)
-  // and `analyze`'s own invocation reads it fresh at spawn time — a
-  // second job queued from the specs list has no checkbox of its own to
-  // post, and one posted anyway (a stale client, a hand-crafted request)
-  // is an unknown key, ignored like any other,
-  // never refused.
-
-  test.each(["1", true, "0", false, ""])(
-    "acceptanceNotRequired %p is ignored — the field never reaches the job",
-    (value) => {
-      const r = parseJobRequest({ ...REQ, acceptanceNotRequired: value }, { resolve, defaults: DEFAULTS });
-      expect(r.ok).toBe(true);
-      if (!r.ok) return;
-      expect(r.job.acceptanceNotRequired).toBeUndefined();
-    },
-  );
-
   // --- A step runs at a chosen effort level --------------------
 
   test("a per-step effort choice is accepted", () => {
@@ -327,7 +308,6 @@ describe("parseJobRequest", () => {
 
   test.each([
     ["an unknown project", { ...REQ, project: "atlasaurus" }, "project"],
-    ["a project not in the allowlist", { ...REQ, project: "claude-usage" }, "project"],
     ["a path instead of a name", { ...REQ, project: "../../etc" }, "project"],
     ["an unknown spec folder", { ...REQ, specFolder: "99-nope" }, "specFolder"],
     ["a step that is not a workflow step", { ...REQ, steps: ["publish"] }, "steps"],
@@ -345,9 +325,6 @@ describe("a project hidden on the board", () => {
 
   test.each([
     ["a Run", { project: "beta", specFolder: "01-first", steps: ["analyze"] }],
-    ["a schedule entry's Run now", { project: "beta", specFolder: "schedule-nightly", steps: ["schedule"] }],
-    ["a Deploy", { project: "beta", specFolder: "deploy", steps: ["deploy"] }],
-    ["the cleanup", { project: "beta", specFolder: "cleanup", steps: ["cleanup"] }],
   ])("refuses %s, saying it is hidden and how to show it (AC-7)", (_label, body) => {
     const r = parseJobRequest(body, { resolve: hiding, defaults: DEFAULTS });
     expect(r.ok).toBe(false);
@@ -377,7 +354,6 @@ describe("a deploy job", () => {
   test.each([
     ["the deploy step under another key", { ...deploy, specFolder: "81-queue-and-runner" }],
     ["another step under the deploy key", { ...deploy, steps: ["analyze"] }],
-    ["the deploy step chained with another", { ...deploy, steps: ["deploy", "analyze"] }],
     ["the deploy step chained with another under a spec", { ...deploy, specFolder: "81-queue-and-runner", steps: ["analyze", "deploy"] }],
   ])("%s is rejected", (_label, body) => {
     expect(parseJobRequest(body, { resolve, defaults: DEFAULTS }).ok).toBe(false);

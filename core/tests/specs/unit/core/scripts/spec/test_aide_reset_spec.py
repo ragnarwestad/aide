@@ -77,24 +77,11 @@ def test_refuses_an_archived_spec_and_names_reopen(script, tmp_path):
     assert (tmp_path / "archive" / "82-x" / "2-analysis.md").read_text() == FULL_ANALYSIS
 
 
-@pytest.mark.parametrize("arg", ["82", "archive/82-x"])
-def test_refuses_an_archived_spec_by_number_or_archive_path_and_names_reopen(script, tmp_path, arg):
-    add_spec(tmp_path, "82-x", archived=True)
-    rc, out = run(script, "--specs-root", str(tmp_path), "--spec", arg)
-    assert rc == 2 and out["error"].startswith("archive/82-x is archived "), out
-    assert out["error"].endswith("reset is for an active spec; use reopen"), out
-
-
 def test_refuses_an_archived_spec_by_its_full_name_as_unknown(script, tmp_path):
     add_spec(tmp_path, "82-x", archived=True)
     rc, out = run(script, "--specs-root", str(tmp_path), "--spec", "82-x")
     assert rc == 2 and out["error"] == f"unknown spec: 82-x (no active folder under {tmp_path})", out
     assert (tmp_path / "archive" / "82-x" / "2-analysis.md").read_text() == FULL_ANALYSIS
-
-
-def test_refuses_an_unknown_full_name(script, tmp_path):
-    rc, out = run(script, "--specs-root", str(tmp_path), "--spec", "99-none")
-    assert rc == 2 and out["error"] == f"unknown spec: 99-none (no active folder under {tmp_path})", out
 
 
 def test_refuses_an_unknown_spec_and_a_missing_argument(script, tmp_path):

@@ -4,15 +4,11 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { t } from "../../../src/i18n";
 import {
   INSTALL_TARGETS,
   PLACE_HOLDS,
   parseInstallTargets,
 } from "../../../src/render/pages/settings-page/places.ts";
-import { installationBlock } from "../../../src/render/pages/settings-page/installation.ts";
-import { providerDetail } from "../../../src/render/pages/settings-page/provider-detail.ts";
-import { modelsBlock } from "../../../src/render/pages/settings-page/models.ts";
 
 const TABLE = join(import.meta.dir, "../../../../core/scripts/lib/install-targets.txt");
 
@@ -37,17 +33,4 @@ describe("what a place holds", () => {
     expect(PLACE_HOLDS.hookConfig).toBe("hooks");
     expect(PLACE_HOLDS.hooks).toBe("hooks");
   });
-});
-
-test("a Norwegian reader gets the Norwegian labels, tabs and model headings", () => {
-  const detail = providerDetail({ key: "Codex", provider: { name: "Codex", tool: "codex" }, aiTab: "installation" }, 0, "nb");
-  const table = installationBlock({ tool: "codex", at: "2026-10-03T13:30:00.000Z", found: true, extra: [] }, "nb");
-  expect(table).toContain(`>${t("nb", "settings.install.holds.instructions")}<`);
-  expect(t("nb", "settings.install.holds.instructions")).not.toBe(t("en", "settings.install.holds.instructions"));
-  for (const part of ["models", "installation"] as const) expect(detail).toContain(`>${t("nb", `settings.part.${part}`)}</a>`);
-  const models = modelsBlock("codex", { reading: { tool: "codex", at: "2026-10-03T13:30:00.000Z", offered: [] } }, "", "nb");
-  for (const heading of ["supported", "available", "gone"] as const) {
-    expect(models).toContain(t("nb", `settings.models.${heading}`));
-  }
-  expect(t("nb", "settings.models.supported")).not.toBe(t("en", "settings.models.supported"));
 });

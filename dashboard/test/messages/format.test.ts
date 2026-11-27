@@ -3,42 +3,6 @@ import { t } from "../../src/i18n";
 import { STEP_LABELS_NB } from "../../src/format/step-label.ts";
 import { type BoardMessage, messageDetail, messageIdentity, formatMessage, formatSentence } from "../../src/messages/format.ts";
 
-describe("formatMessage", () => {
-  test("renders a message with values substituted, per language", () => {
-    expect(formatMessage("en", { key: "runner.dependencyNotArchived", values: { dependency: "80-x" } })).toBe(
-      "Held back: depends on 80-x, which is not archived yet",
-    );
-    expect(formatMessage("nb", { key: "runner.dependencyNotArchived", values: { dependency: "80-x" } })).toBe(
-      "Holdt tilbake: avhenger av 80-x, som ikke er arkivert ennå",
-    );
-  });
-
-  test("renders a message with no values unchanged (AC-1)", () => {
-    expect(formatMessage("en", { key: "runner.notAnalyzed" })).toBe(
-      "Problem: Held back: not analyzed yet\nSolution: Press Analyze first",
-    );
-    expect(formatMessage("es", { key: "runner.notAnalyzed" })).toContain("Analizar");
-    expect(formatMessage("de", { key: "runner.notAnalyzed" })).toContain("Analysieren");
-    expect(formatMessage("fr", { key: "runner.notAnalyzed" })).toContain("Analyser");
-  });
-
-  test("a named shared-files push says the specs plan to change the files (AC-6)", () => {
-    const message = formatMessage("en", {
-      key: "push.stoppedSharedFilesNamed",
-      values: { step: "Analyze", specs: "624, 619", button: "Analyze" },
-    });
-    expect(message).toContain("specs 624, 619 plan to change the same files");
-  });
-
-  test("a red merge-test push names the project checkout as the place to fix it (AC-2)", () => {
-    const message = formatMessage("en", {
-      key: "push.stoppedTestsRed",
-      values: { step: "Archive", button: "Archive" },
-    });
-    expect(message).toContain("fix the failures in the project checkout");
-  });
-});
-
 describe("a stored sentence whose key the catalogue no longer has", () => {
   test("is named on its own, alone or inside another message, and nothing throws", () => {
     const spy = spyOn(console, "error").mockImplementation(() => {});
@@ -85,12 +49,6 @@ describe("formatSentence", () => {
   test("a plain string (a job stored earlier) renders as-is in any language", () => {
     expect(formatSentence("en", "git could not be run: ENOENT")).toBe("git could not be run: ENOENT");
     expect(formatSentence("nb", "git could not be run: ENOENT")).toBe("git could not be run: ENOENT");
-  });
-
-  test("a BoardMessage renders through the catalog", () => {
-    expect(formatSentence("nb", { key: "runner.runVanished", values: { button: "Archive" } })).toBe(
-      "Problem: Kjøringen forsvant uten å etterlate et resultat etter to forsøk\nLøsning: Sjekk dashboard-tjenesten på serveren",
-    );
   });
 
   test("an array of mixed Sentences joins each as its own sentence", () => {

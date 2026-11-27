@@ -42,13 +42,6 @@ describe("automatic step retries", () => {
     expect(spawns).toHaveLength(2);
   });
 
-  test("a later press gets a fresh retry allowance (AC-10)", () => {
-    const first = enqueue();
-    const second = enqueue({ specFolder: "91-parallel-spec-runs" });
-    expect(first.retry).toBeUndefined();
-    expect(second.retry).toBeUndefined();
-  });
-
   test("queues one more run with evidence and keeps the selected model (AC-1, AC-7, AC-9, AC-11)", () => {
     const job = enqueue({ steps: ["implement"] });
     const runner = makeRunner({

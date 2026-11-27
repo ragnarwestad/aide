@@ -10,43 +10,11 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import type { GitRunner } from "../../src/git/process/index.ts";
-import { SPEC, DESCRIPTION, FILE_SHA, createSpecSaveHarness, fillAnalysisAndSolution, specFilePath, descriptionPath, savable, post, answer, ARCHIVED, ARCHIVED_TEXT, archivedDescriptionPath } from "./spec-save-fixtures.ts";
+import { SPEC, DESCRIPTION, FILE_SHA, createSpecSaveHarness, fillAnalysisAndSolution, specFilePath, descriptionPath, savable, post, answer } from "./spec-save-fixtures.ts";
 import { branchAwareGitRunner, BRANCH_FILE_SHA } from "./spec-checks-fixtures.ts";
 
-const { harness, start, startArchived } = createSpecSaveHarness();
+const { harness, start } = createSpecSaveHarness();
 afterEach(() => harness.cleanup());
-
-// --- A Save on Analysis, Solution and Status ------------------------
-
-describe("POST the Save action on the newly-editable tabs", () => {
-  // Status is not among them any more: `4-status.md` is the run's own
-  // record, and its Save is refused (see the block at the end of this
-  // file). The two files a person corrects before implement reads them
-  // are the ones left.
-  for (const [tab, file] of [
-    ["analysis", "2-analysis.md"],
-    ["solution", "3-solution.md"],
-  ] as const) {
-    test(`${tab}: writes the file, commits it and pushes it`, async () => {
-      const { base, dir } = start(savable("/host"));
-      fillAnalysisAndSolution(dir);
-      const { status, body } = await answer(await post(base, { text: "new text\n", baseSha: FILE_SHA, file }));
-      expect(status).toBe(200);
-      expect(body.ok).toBe(true);
-      expect(readFileSync(specFilePath(dir, file), "utf-8")).toBe("new text\n");
-    });
-
-    test(`${tab}: a stale baseSha is refused, and nothing is written`, async () => {
-      const { base, dir } = start(savable("/host"));
-      fillAnalysisAndSolution(dir);
-      const before = readFileSync(specFilePath(dir, file), "utf-8");
-      const { status, body } = await answer(await post(base, { text: "new text\n", baseSha: "0000000ffffff", file }));
-      expect(status).toBe(400);
-      expect(body.error).toContain("changed since");
-      expect(readFileSync(specFilePath(dir, file), "utf-8")).toBe(before);
-    });
-  }
-});
 
 // --- The file comes in with the request, and is checked against -----
 // --- the allowlist -----------------------------------------------------------
@@ -61,14 +29,6 @@ describe("the save route's own file allowlist", () => {
       expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(DESCRIPTION);
     });
   }
-
-  test("a request with no file field at all still defaults to the description", async () => {
-    const { base, dir } = start(savable("/host"));
-    const { status, body } = await answer(await post(base, { text: "new description\n", baseSha: FILE_SHA }));
-    expect(status).toBe(200);
-    expect(body.ok).toBe(true);
-    expect(readFileSync(descriptionPath(dir), "utf-8")).toBe("new description\n");
-  });
 });
 
 // --- The staleness guard is per file, not global --------------------
@@ -166,61 +126,5 @@ describe("a save writes onto the spec's own open branch when one exists", () => 
     expect(status).toBe(200);
     expect(body.ok).toBe(true);
     expect(readFileSync(specFilePath(dir, "3-solution.md"), "utf-8")).toBe("new solution\n");
-  });
-});
-
-// --- An archived spec stays read-only on every tab -------------------
-
-describe("Save against an archived spec is refused on every tab", () => {
-  for (const file of ["2-analysis.md", "3-solution.md", "4-status.md"] as const) {
-    test(`${file}: writes nothing, and says why`, async () => {
-      const { base, dir } = startArchived(savable("/host"));
-      const { status, body } = await answer(await post(
-        base,
-        { text: "new text\n", baseSha: FILE_SHA, file },
-        `/api/queue/specs/aide/${ARCHIVED}/save`,
-      ));
-      expect(status).toBe(400);
-      expect(body.error).toContain("archived");
-      expect(readFileSync(archivedDescriptionPath(dir), "utf-8")).toBe(ARCHIVED_TEXT);
-    });
-  }
-});
-
-// --- A running job gates a save on every tab --------------
-
-describe("a running job gates a save on the newly-editable tabs too", () => {
-  test("solution: refused with the same wording the tick route already gives", async () => {
-    const running = {
-      id: "running", project: "aide", specFolder: SPEC, steps: ["analyze"], stepIndex: 0,
-      state: "running", createdAt: "2026-11-09T10:00:00Z", spentUsd: 0,
-      model: {}, effort: {}, timeoutSec: {}, permissionMode: {}, results: [],
-    };
-    const active = harness.start({
-      description: DESCRIPTION, queueMirror: JSON.stringify([running]),
-      extra: { gitRun: savable("/host") },
-    });
-    fillAnalysisAndSolution(active.dir);
-    const { status, body } = await answer(await post(active.base, { text: "new solution\n", baseSha: FILE_SHA, file: "3-solution.md" }));
-    expect(status).toBe(409);
-    expect(body.error).toContain("another job for this spec is still running");
-    expect(readFileSync(specFilePath(active.dir, "3-solution.md"), "utf-8")).toContain("One must-fix.");
-  });
-});
-
-// `4-status.md` is a record, not a document to write: the tracking block
-// is the run's own stamp and the phase tables are its log of what it
-// did. The one thing in it a person decides — the acceptance checks —
-// is the Status tab's, which now takes a check back off as well as
-// putting one on, so a hand edit is no longer the only way to undo one.
-describe("4-status.md is refused by the save route", () => {
-  test("nothing is written, and the refusal says where the checks live", async () => {
-    const { base, dir } = start(savable("/host"));
-    fillAnalysisAndSolution(dir);
-    const before = readFileSync(specFilePath(dir, "4-status.md"), "utf-8");
-    const { status, body } = await answer(await post(base, { text: "rewritten\n", baseSha: FILE_SHA, file: "4-status.md" }));
-    expect(status).toBe(400);
-    expect(body.error).toContain("Status tab");
-    expect(readFileSync(specFilePath(dir, "4-status.md"), "utf-8")).toBe(before);
   });
 });

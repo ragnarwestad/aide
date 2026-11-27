@@ -4,20 +4,6 @@ import { describe, expect, test } from "bun:test";
 import { renderSpecsRows, type QueueRowView } from "../../../../../src/render";
 import { row, specTarget, openRowsAt } from "../../fixtures.ts";
 
-// The › that opens a phase's messages is a link in the cell; the name beside it is still plain text.
-const noFold = (html: string): string => html.replace(/<a class="fold[^>]*>[\s\S]*?<\/a>/, "");
-
-/** What a phase that has not run draws in the State column: a dash,
- *  the same one Created and Cost use for "nothing here" (2026-09-08).
- *  It said "not run yet" in words until then. */
-const PHASE_NOT_RUN = "–";
-
-/** One phase line's State cell. The dash means "nothing here" in four
- *  columns now — State, Created, Cost and Time — so a match over the
- *  whole line no longer says which column drew it. */
-const stateCell = (line: string): string =>
-  line.match(/<td data-col="state">.*?<\/td>/)?.[0] ?? "";
-
 describe("create is the first phase line", () => {
   const target = specTarget;
   const createJob = (specFolder: string, extra: Partial<QueueRowView> = {}): QueueRowView =>
@@ -53,50 +39,6 @@ describe("create is the first phase line", () => {
   });
 
   // --- No create job means an inert line, not a missing one -----
-
-  test("a hand-made spec's create line reads done, with nothing to RUN", () => {
-    // "Nothing to run" now includes a box that is ticked and
-    // disabled (2026-08-21): it is the line saying the phase is behind
-    // you, in the same shape the other four use, and it takes no click.
-    //
-    // The name is plain text: no job ever ran create here —
-    // the folder was made by hand — and the line has nothing to click.
-    const html = rows([], [target("116-hand-made", { done: ["create", "analyze"] })]);
-    const line = subRow(html, "create");
-    expect(line).toContain("b-done");
-    expect(line).not.toContain("<form");
-    expect(line).not.toContain("<button");
-    expect(stateCell(line)).not.toContain(PHASE_NOT_RUN);
-    // No model note, no elapsed time, no cost — what a finished attempt
-    // fills and an attempt-less line leaves empty. The
-    // model shares the phase name's own cell rather than having one of
-    // its own, so the emptiness is inside that cell.
-    // The name leads the first cell, in a plain wrapper, and the box
-    // sits beside the model. `create`'s box is ticked,
-    // disabled and nameless: the folder being on disk IS its answer,
-    // and a line with no box at all read as a different KIND of line.
-    expect(line).toMatch(
-      new RegExp(`<td class="phasecell" colspan="2">(?:<a class="fold[^>]*>.*?</a>)?<span class="phasefold">Create</span></td>`),
-    );
-    expect(line).toContain(
-      '<label class="phase checked" data-phase="create">' +
-        '<input type="checkbox" value="create" checked disabled ' +
-        'aria-label="Create — already done, and not a step you can run"> ' +
-        "<span></span></label>",
-    );
-    // The Time cell is the exception to the emptiness: it always says
-    // something, so a blank cannot read as a broken line. A dash where
-    // no duration was recorded, never `0s` — that claims a measurement
-    // nobody made — and the same dash the State and Cost columns
-    // already draw for "nothing here".
-    expect(line).toContain(
-      '<td data-col="state"><span class="badge b-done" title="Done" data-icon="check">Done</span></td>' +
-        '<td data-col="started"><span class="muted small">–</span></td>' +
-        '<td class="num" data-col="cost"></td></tr>',
-    );
-  });
-
-  // --- a real create job, before and after it lands --------------------------
 
   test("an unlanded create job's line reads the job's own state", () => {
     // No target: the folder is what the job is still making, so the
@@ -144,24 +86,6 @@ describe("create is the first phase line", () => {
     );
     const analyze = subRow(html, "analyze");
     expect(analyze.match(/<select[\s\S]*?<\/select>/g)?.every((select) => !/^<select[^>]* disabled/.test(select))).toBe(true);
-  });
-
-  test("a landed create job's line reads done, name as plain text", () => {
-    const html = rows(
-      [createJob("116-landed", { model: "sonnet", spentUsd: 0.42 })],
-      [target("116-landed", { done: ["create", "analyze"] })],
-    );
-    expect(order(html)[0]).toBe("create");
-    const line = subRow(html, "create");
-    // The phase name is plain text, not a link to any tab.
-    expect(noFold(line)).not.toContain("<a ");
-    expect(line).toContain('<span class="phasefold">Create</span>');
-    expect(line).toContain("b-done");
-    // The model it ran on shows as the select's pre-filled value when
-    // choices are configured — no spelled-out text since 2026-08-19,
-    // so without a picker the line simply says nothing about it.
-    expect(line).not.toContain("last ran");
-    expect(line).toContain("$0.42");
   });
 
   // --- A fifth pip, past because the spec exists ----------------

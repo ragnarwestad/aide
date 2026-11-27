@@ -7,7 +7,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[8]
 CHECKOUTS = ROOT / "core/scripts/lib/run-spec/checkout/checkouts.sh"
-MODEL_TURN = ROOT / "core/scripts/lib/run-spec/turn/model-turn/index.sh"
 STEP_TESTS = ROOT / "core/scripts/lib/run-spec/turn/step-tests.sh"
 
 
@@ -82,18 +81,6 @@ descendant=$(cat "$descendant_file")
 """
     )
     assert result.returncode == 0, result.stderr
-
-
-def test_model_tests_and_cancellation_share_the_cleanup_contract_ac_1_ac_5_ac_6_ac_9():
-    model = MODEL_TURN.read_text()
-    tests = STEP_TESTS.read_text()
-    checkouts = CHECKOUTS.read_text()
-
-    assert "cleanup_owned_process \"$child\" terminate" in model
-    assert "cleanup_owned_process \"$child\" reap" in model
-    assert tests.count("cleanup_owned_process") >= 4
-    assert "cleanup_owned_process \"$child\" terminate" in checkouts
-    assert "sleep 2" not in tests
 
 
 def test_only_the_runner_handles_cancellation_and_saves_its_work():

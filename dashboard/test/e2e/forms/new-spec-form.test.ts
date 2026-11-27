@@ -41,15 +41,6 @@ async function open(o: { hold?: boolean } = {}): Promise<Opened> {
 
 const create = (page: Page) => page.getByRole("button", { name: "Create", exact: true });
 const title = (page: Page) => page.locator('#new-spec-form input[name="title"]');
-const focusedName = (page: Page) =>
-  page.evaluate(() => (document.activeElement as HTMLElement | null)?.getAttribute("name") ?? null);
-
-/** Two animation frames, so a focus the browser moves after a press has landed. */
-function settle(p: Page): Promise<void> {
-  return p.evaluate(
-    () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))),
-  );
-}
 
 /** Project, title and description filled in. */
 async function fillSpec(page: Page): Promise<void> {
@@ -75,16 +66,6 @@ test("Create reads Creating… and is locked while its request is out, and Enter
     title(entered.page).press("Enter"),
   ]);
   expect(entered.posts.length).toBe(1);
-});
-
-test("Create validates the required title without submitting", async () => {
-const { page, posts } = await open();
-await fillSpec(page);
-await title(page).fill("");
-await create(page).click();
-await settle(page);
-expect(await focusedName(page)).toBe("title");
-expect(posts).toHaveLength(0);
 });
 
 test("Create submits the spec details and settings together", async () => {

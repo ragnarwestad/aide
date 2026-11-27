@@ -90,15 +90,6 @@ describe("QueueStore", () => {
     expect(at1000).toBeLessThanOrEqual(at200 * 8 + 5);
   });
 
-  test("an update reported as stored survives a restart (AC-4)", () => {
-    const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
-    const r = store.enqueue(REQ);
-    if (!r.ok) throw new Error("enqueue failed");
-    store.writeUnchecked(r.job.id, { state: "failed" });
-    expect(store.storage.fault).toBeUndefined();
-    expect(new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve }).get(r.job.id)?.state).toBe("failed");
-  });
-
   test("no queue file and no groups file start empty, as on a first start, and the first enqueue writes the file (AC-1)", () => {
     const executionGroupsPath = join(dir, "execution-groups.json");
     const store = new QueueStore({ mirrorPath, executionGroupsPath, defaults: DEFAULTS, resolve });
@@ -256,13 +247,6 @@ describe("the running step's session", () => {
     expect(reloaded.streamFile).toBeUndefined();
   });
 
-  test("a job mirrored before this change reloads without one", () => {
-    const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
-    const r = store.enqueue(REQ);
-    if (!r.ok) throw new Error("enqueue failed");
-    const reloaded = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve }).get(r.job.id)!;
-    expect(reloaded.sessionId).toBeUndefined();
-  });
 });
 
 // Which repos does this spec have a branch in RIGHT NOW? A

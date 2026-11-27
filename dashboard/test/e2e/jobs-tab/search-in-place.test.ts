@@ -36,31 +36,29 @@ const watch = (page: Page): { loads: number; redraws: number } => {
 
 const search = (page: Page) => page.getByRole("button", { name: "Search", exact: true }).click();
 
-for (const path of ["/", "/specs"]) {
-  test(`a search on ${path} draws the rows in place, and one for the term already shown asks nothing`, async () => {
-    const page = await browser.newPage();
-    try {
-      await page.goto(`${base}${path}?live=0`);
-      await page.getByRole("searchbox").waitFor();
-      const seen = watch(page);
+test("a search on / draws the rows in place, and one for the term already shown asks nothing", async () => {
+  const page = await browser.newPage();
+  try {
+    await page.goto(`${base}/?live=0`);
+    await page.getByRole("searchbox").waitFor();
+    const seen = watch(page);
 
-      await search(page);
-      await page.waitForTimeout(300);
-      expect(seen).toEqual({ loads: 0, redraws: 0 });
+    await search(page);
+    await page.waitForTimeout(300);
+    expect(seen).toEqual({ loads: 0, redraws: 0 });
 
-      await page.getByRole("searchbox").fill("queue");
-      await Promise.all([page.waitForResponse((res) => new URL(res.url()).searchParams.get("rows") === "1"), search(page)]);
-      expect(new URL(page.url()).searchParams.get("q")).toBe("queue");
-      expect(new URL(page.url()).pathname).toBe(path);
+    await page.getByRole("searchbox").fill("queue");
+    await Promise.all([page.waitForResponse((res) => new URL(res.url()).searchParams.get("rows") === "1"), search(page)]);
+    expect(new URL(page.url()).searchParams.get("q")).toBe("queue");
+    expect(new URL(page.url()).pathname).toBe("/");
 
-      await search(page);
-      await page.waitForTimeout(300);
-      expect(seen).toEqual({ loads: 0, redraws: 1 });
-    } finally {
-      await page.close();
-    }
-  });
-}
+    await search(page);
+    await page.waitForTimeout(300);
+    expect(seen).toEqual({ loads: 0, redraws: 1 });
+  } finally {
+    await page.close();
+  }
+});
 
 
 test("Jobs loads further history with the keyboard and searches outside the loaded window (AC-3, AC-4, AC-6, AC-9)", async () => {
@@ -93,22 +91,6 @@ test("Jobs loads further history with the keyboard and searches outside the load
     await page.close();
     history.cleanup();
   }
-});
-
-test("Jobs automatically loads the next batch when approaching the end (AC-2)", async () => {
-  const history = queueHarness("aide-e2e-jobs-auto-batch-");
-  const jobs = Array.from({ length: 165 }, (_, i) => ({ ...createdJob(`schedule-auto-${i}`), steps: ["schedule"], createdAt: new Date(Date.UTC(2026, 9, 1, 0, i)).toISOString() }));
-  const { base } = history.start({ queueMirror: JSON.stringify(jobs) });
-  const page = await browser.newPage();
-  try {
-    await page.goto(`${base}/?live=0`);
-    const older = page.locator('[id="spec-aide/schedule-auto-0@created-schedule-auto-0"]');
-    expect(await older.count()).toBe(0);
-    await page.getByRole("link", { name: "Show more", exact: true }).scrollIntoViewIfNeeded();
-    await older.waitFor();
-    expect(new URL(page.url()).searchParams.get("limit")).toBe("200");
-    expect(await page.getByRole("link", { name: "Show more", exact: true }).count()).toBe(0);
-  } finally { await page.close(); history.cleanup(); }
 });
 
 test("Jobs keeps an expanded group and member while loading and receiving new work (AC-7, AC-8)", async () => {

@@ -25,11 +25,10 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import { writing } from "../../src/queue/queue.ts";
 import { stateSaying } from "../helpers/queue-server.ts";
 import type { GitRunner } from "../../src/git/process/index.ts";
 import { PAGE, TICK, SAVE, FILE_SHA, DESCRIPTION, NEW_TEXT, createSpecSaveHarness, descriptionPath, savable } from "./spec-save-fixtures.ts";
-import { PHASE, OPEN_ROW, SECOND_OPEN_ROW, DONE_ROW, EARLIER_DONE_ROW, WORDED, CHECKLIST_PHASE, CHECKLIST_OPEN_ROW, CHECKLIST_STATUS, STATUS, HELD_BACK_REASON, ticked, heldBack, statusPath, startWithChecks as start, tick, save, answer, recording, NV_ROW, NV_STATUS, ACCEPTANCE_PHASE, ACCEPTANCE_OPEN_ROW, STATUS_WITH_OPEN_ACCEPTANCE, TDD_OPEN_ROW } from "./spec-checks-fixtures.ts";
+import { PHASE, OPEN_ROW, SECOND_OPEN_ROW, DONE_ROW, EARLIER_DONE_ROW, WORDED, CHECKLIST_STATUS, STATUS, HELD_BACK_REASON, ticked, heldBack, statusPath, startWithChecks as start, tick, save, answer, recording, NV_ROW, NV_STATUS, ACCEPTANCE_PHASE, ACCEPTANCE_OPEN_ROW, STATUS_WITH_OPEN_ACCEPTANCE, TDD_OPEN_ROW } from "./spec-checks-fixtures.ts";
 
 /** The page's markup, without its inline scripts: the client bundle the spec
  *  page carries holds strings that look like the markup these tests count. */
@@ -129,21 +128,6 @@ describe("the checks on the Overview tab", () => {
     expect(git.calls.find((c) => c[0] === "add")!.join(" ")).not.toContain("1-description.md");
   });
 
-  // The real end-to-end route, not just the parser — a
-  // `## Checklist` row's tick must flip it to done on disk exactly as a
-  // `## Phase` row's already does.
-  test("a ## Checklist row's tick flips it to done on disk through the real /tick route", async () => {
-    const git = recording();
-    const { base, dir } = startWithChecks(git.run, CHECKLIST_STATUS);
-    const { status, body } = await answer(await tick(base, { ticks: [CHECKLIST_OPEN_ROW], phase: CHECKLIST_PHASE }));
-    expect(status).toBe(200);
-    expect(body.ok).toBe(true);
-    expect(readFileSync(statusPath(dir), "utf-8")).toBe(
-      CHECKLIST_STATUS.replace(CHECKLIST_OPEN_ROW, ticked(CHECKLIST_OPEN_ROW)),
-    );
-    expect(git.calls.filter((c) => c[0] === "commit")).toHaveLength(1);
-  });
-
   // The real end-to-end route: ticking an
   // Acceptance criteria row must work even while implement's own TDD
   // phase still has open rows of its own.
@@ -178,13 +162,6 @@ describe("the checks on the Overview tab", () => {
     expect(status).toBe(200);
     expect(body.ok).toBe(true);
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS.replace(OPEN_ROW, ticked(OPEN_ROW)));
-  });
-
-  test("writing: running or landing blocks a tick, queued and done do not", () => {
-    expect(writing({ state: "running" })).toBe(true);
-    expect(writing({ state: "done", landing: true })).toBe(true);
-    expect(writing({ state: "queued" })).toBe(false);
-    expect(writing({ state: "done" })).toBe(false);
   });
 
   test("a description save commits 1-description.md alone, and never the status", async () => {

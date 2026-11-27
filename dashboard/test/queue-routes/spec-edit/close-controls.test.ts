@@ -48,18 +48,6 @@ describe("Close POST refuses an empty reason", () => {
     });
     expect(res.status).toBe(400);
   });
-
-  test("a form post with an empty reason refuses the same way, in JSON", async () => {
-    const { base } = start();
-    const res = await fetch(`${base}/api/queue/specs/aide/${folder}/close`, {
-      method: "POST",
-      redirect: "manual",
-      headers: { "content-type": "application/x-www-form-urlencoded" },
-      body: "reason=",
-    });
-    expect(res.status).toBe(400);
-    expect(((await res.json()) as { error: string }).error).toBe("type a reason to close this spec");
-  });
 });
 
 describe("Close POST with a reason enqueues a close job", () => {

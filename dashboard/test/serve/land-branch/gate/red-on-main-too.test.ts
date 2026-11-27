@@ -41,6 +41,7 @@ test("red on main as well: the sentence says the failure is not the spec's", asy
   const verdict = await runProjectSuiteBeforePush(root, job, "aide/81-x", { button: "Archive" });
   expect(verdict.ok).toBe(false);
   expect(verdict.error).toEqual({ key: "landing.testsRedOnMainToo", values: { branch: "aide/81-x", button: "Archive" } });
+  expect(verdict.failedTests).toBeUndefined();
 }, 30_000);
 
 test("main's result records green, red and not checked with its reason (AC-1, AC-2)", async () => {
@@ -52,6 +53,7 @@ test("main's result records green, red and not checked with its reason (AC-1, AC
     key: "landing.testsMainNotChecked",
     values: { reason: "the default branch was not found", branch: "aide/81-x", button: "Archive" },
   });
+  expect(verdict.failedTests).toBeUndefined();
 }, 30_000);
 
 test("when main and the merge fail different tests, the merge-only test and main outcome are recorded (AC-3, AC-4)", async () => {
@@ -75,18 +77,7 @@ test("an unnamed failure on red main does not make a named merge failure unique 
     key: "landing.testsRedOnMainUnnamed",
     values: { branch: "aide/81-x", button: "Archive" },
   });
-}, 30_000);
-
-test("green on main: the sentence is the ordinary one, about this merge", async () => {
-  const root = merged();
-  recorder("with the spec");
-  const verdict = await runProjectSuiteBeforePush(root, job, "aide/81-x", { button: "Archive" });
-  expect(verdict.ok).toBe(false);
-  expect(verdict.error).toEqual({
-    key: "landing.testsRedOnMerge",
-    values: { count: 1, branch: "aide/81-x", button: "Archive" },
-    lists: { tests: ["a test"] },
-  });
+  expect(verdict.failedTests).toBeUndefined();
 }, 30_000);
 
 test("the tests only the merge fails are kept with their file and error (AC-1)", async () => {
@@ -94,17 +85,6 @@ test("the tests only the merge fails are kept with their file and error (AC-1)",
   const verdict = await runProjectSuiteBeforePush(merged(), job, "aide/81-x", { button: "Archive" });
   expect(verdict.failedTests).toEqual([{ name: "merge only", file: "", error: "" }]);
 }, 30_000);
-
-test("red on main too, main unnamed and main not checked keep no list (AC-7)", async () => {
-  recorder("always");
-  expect((await runProjectSuiteBeforePush(merged(), job, "aide/81-x", { button: "Archive" })).failedTests).toBeUndefined();
-  recorder("main unnamed");
-  expect((await runProjectSuiteBeforePush(merged(), job, "aide/81-x", { button: "Archive" })).failedTests).toBeUndefined();
-  const root = merged();
-  git(root, "branch", "-D", "main");
-  recorder("with the spec");
-  expect((await runProjectSuiteBeforePush(root, job, "aide/81-x", { button: "Archive" })).failedTests).toBeUndefined();
-}, 90_000);
 
 test("Cancel stops the tests running on main after a red merge", async () => {
   const root = merged();

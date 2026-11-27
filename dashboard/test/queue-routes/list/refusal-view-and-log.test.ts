@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { JOB, setupQueueRoutesHarness } from "../fixtures.ts";
+import { setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness();
 
@@ -48,21 +48,5 @@ describe("a refusal names its spec and reaches the log", () => {
     expect(res.status).toBe(400);
     expect(await res.json()).toMatchObject({ spec: SPEC });
     expect(lines.join("\n")).toContain(SPEC);
-  });
-
-  // The page stopped navigating on a refusal, so the row it
-  // belongs to is now picked out from the JSON body rather than from a
-  // redirect the server built. Merge already said which spec; Run and
-  // approve said only why, which left three of the four actions with no
-  // row to land on.
-  test("a refused Run says which spec it was for, to a JSON caller too", async () => {
-    const { base } = start();
-    const res = await fetch(`${base}/api/queue`, {
-      method: "POST",
-      headers: { "content-type": "application/json", accept: "application/json" },
-      body: JSON.stringify({ ...JOB, steps: ["nonsense"] }),
-    });
-    expect(res.status).toBe(400);
-    expect(await res.json()).toMatchObject({ spec: SPEC });
   });
 });

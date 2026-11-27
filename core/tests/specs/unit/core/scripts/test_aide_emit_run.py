@@ -192,28 +192,3 @@ class TestThereIsNoPromptHook:
         assert result.returncode == 0
         assert result.stdout == ""
         assert listener.wait(timeout=0.7) == []
-
-    def test_the_reference_settings_call_aide_emit_run_from_no_hook_AC_6(self, workspace_root):
-        settings = json.loads(
-            (workspace_root / "core" / "implementations" / "claude-code" / "settings.json").read_text()
-        )
-        commands = [
-            hook["command"]
-            for groups in settings["hooks"].values()
-            for group in groups
-            for hook in group["hooks"]
-            if hook["type"] == "command"
-        ]
-        assert not [c for c in commands if "aide-emit-run" in c]
-
-    def test_the_installer_prints_no_settings_block_for_a_hook_AC_6(self, workspace_root, tmp_path):
-        result = subprocess.run(
-            [str(workspace_root / "core" / "implementations" / "claude-code" / "install.sh")],
-            capture_output=True, text=True, timeout=300,
-            env={"HOME": str(tmp_path / "home"), "PATH": "/usr/bin:/bin"},
-        )
-
-        assert result.returncode == 0, result.stderr
-        assert "UserPromptSubmit" not in result.stdout
-        assert "AIDE_RUN_URL" not in result.stdout
-        assert "aide-emit-run" in result.stdout, "the script is still installed, for phase mode"

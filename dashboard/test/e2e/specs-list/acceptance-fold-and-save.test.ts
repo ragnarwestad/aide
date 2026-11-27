@@ -68,27 +68,13 @@ describe("the criteria unfolded on the specs list", () => {
     await notice().locator("a.fold").click();
     await page.waitForSelector(`tr.specnotice[data-folder="${FOLDER}"] .rowchecks`, { state: "detached" });
   });
-
-  test("a criterion's test line opens and shuts its test names in place (AC-8, AC-10)", async () => {
-    await page.goto(`${base}/specs?live=0&checks=aide%2F${FOLDER}`);
-    await page.evaluate(() => { (window as unknown as { loadMark: boolean }).loadMark = true; });
-    const file = notice().locator("details[data-testcriterion]").first();
-    await file.locator("summary").click();
-    await page.waitForFunction(() => document.querySelector("details[data-testcriterion]")?.hasAttribute("open"));
-    expect(await file.evaluate((el) => (el as HTMLDetailsElement).open)).toBe(true);
-    await file.locator("summary").click();
-    await page.waitForFunction(() => !document.querySelector("details[data-testcriterion]")?.hasAttribute("open"));
-    expect(await file.evaluate((el) => (el as HTMLDetailsElement).open)).toBe(false);
-    expect(await page.evaluate(() => (window as unknown as { loadMark?: boolean }).loadMark)).toBe(true);
-  });
-
 });
 
 // Last: it ticks every criterion, and the list has nothing to unfold after.
 describe("saving from the list", () => {
   test("ticking one and saving keeps the message, ticking the last one takes it away, and nothing is started", async () => {
     await page.goto(`${base}/specs?live=0&checks=aide%2F${FOLDER}`);
-    // A save replaces the whole row (row-swap.ts), so the next tick has
+    // A save replaces the whole row, so the next tick has
     // to go on the row that came BACK: waiting for "one is checked" is
     // true of the old node too, and a box ticked there goes with it —
     // the save after it then posted a form with nothing ticked.

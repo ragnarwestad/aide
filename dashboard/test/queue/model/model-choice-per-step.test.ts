@@ -79,16 +79,6 @@ describe("per-step model choice", () => {
     expect(r.error).toContain("gpt-9");
   });
 
-  test("with no choices configured, a per-step map is refused rather than ignored", () => {
-    const r = parseJobRequest(
-      { ...REQ, steps: ["analyze"], model: { analyze: "fable" } },
-      { resolve, defaults: DEFAULTS },
-    );
-    expect(r.ok).toBe(false);
-    if (r.ok) return;
-    expect(r.error).toContain("model");
-  });
-
   test("a step left on 'default' falls back to the config, without refusing the rest", () => {
     const r = parseJobRequest(
       { ...REQ, steps: ["analyze", "implement"], model: { analyze: "fable", implement: "" } },
@@ -116,19 +106,6 @@ describe("per-step model choice", () => {
       { resolve, defaults: WITH_CHOICES },
     );
     expect(r.ok).toBe(false);
-  });
-
-  // The whole-job string is the shape every API caller written before
-  // this spec still posts. It must behave byte for byte as it did.
-  test("a legacy single-string model still applies to every step, unchanged", () => {
-    const r = parseJobRequest(
-      { ...REQ, steps: ["analyze", "implement"], model: "fable" },
-      { resolve, defaults: WITH_CHOICES },
-    );
-    expect(r.ok).toBe(true);
-    if (!r.ok) return;
-    expect(r.job.model).toEqual({ analyze: "fable", implement: "fable" });
-    expect(r.job.modelChoice).toBe("fable");
   });
 
   // An empty string has always meant "use the configuration" rather

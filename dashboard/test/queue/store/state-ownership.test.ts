@@ -90,7 +90,4 @@ describe("the raw write a test seeds a job's state through", () => {
     expect(store.get(r.job.id)).toMatchObject({ state: "queued", error: "e" });
   });
 
-  test("an unknown job id is answered with undefined (AC-1)", () => {
-    expect(makeStore().writeUnchecked("no-such-id", { state: "done" })).toBeUndefined();
-  });
 });

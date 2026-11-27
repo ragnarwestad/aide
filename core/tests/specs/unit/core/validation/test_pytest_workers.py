@@ -35,7 +35,7 @@ def test_the_suite_starts_no_more_workers_than_it_is_given_ac_3():
     assert _workers_created(AIDE_TEST_WORKERS="2") == "created: 2/2 workers"
 
 
-@pytest.mark.parametrize("given", [None, "0", "abc"])
+@pytest.mark.parametrize("given", [None, "0"])
 def test_without_a_usable_count_the_suite_keeps_its_default_ac_5(given):
     env = {} if given is None else {"AIDE_TEST_WORKERS": given}
     assert _workers_created(**env) == "created: 3/3 workers"

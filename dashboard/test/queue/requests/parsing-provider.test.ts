@@ -55,10 +55,4 @@ describe("a create request's provider", () => {
     const r = create({ model: { implement: "gpt-6" }, provider: { implement: "Claude" } });
     expect(!r.ok && r.error).toContain("gpt-6 is a Codex model and Claude is a Claude Code provider");
   });
-
-  test("an unknown provider keeps the refusal solution", () => {
-    const r = create({ provider: { analyze: "Gone" } });
-    expect(!r.ok && r.error).toContain("unknown or not-allowed provider: Gone");
-    expect(!r.ok && r.solution).toBe("Reload the page and try again");
-  });
 });

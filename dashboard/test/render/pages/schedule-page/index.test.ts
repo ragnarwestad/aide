@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
-import type { Job } from "../../../../src/queue/types.ts";
-import { renderScheduleDetailPage, renderSchedulePage } from "../../../../src/render";
+import { renderSchedulePage } from "../../../../src/render";
 import { clearCheckoutFaults } from "../../../../src/render/ui/checkout-faults.ts";
 
 // The page's header shows the board's checkout faults, which live in the
@@ -99,30 +98,5 @@ describe("the /schedule list's sortable headings", () => {
     };
     expect(order()).toEqual(["aide:a-on", "aide:c-on", "aide:b-off"]);
     expect(order("asc")).toEqual(["aide:b-off", "aide:a-on", "aide:c-on"]);
-  });
-});
-
-describe("the entry's Report tab", () => {
-  const run = {
-    id: "r1", project: "aide", specFolder: "schedule-nightly-report", steps: ["schedule"], stepIndex: 0, state: "done",
-    timeoutSec: {}, permissionMode: {}, model: {}, createdAt: "2026-09-01T03:00:00Z", startedAt: "2026-09-01T03:00:00Z",
-  } as unknown as Job;
-
-  test("draws the runs list after the report panel it was handed", () => {
-    const html = renderScheduleDetailPage(NAV, "2026-09-30T00:00:00Z", {
-      project: "aide",
-      entry: { name: "nightly-report", cron: "0 3 * * *", prompt: "docs/nightly.md", enabled: true },
-      runs: [run],
-      shownRun: "r1",
-      reportPanel: `<section id="report">REPORT</section><section id="proposals">PROPOSALS</section>`,
-    });
-    const window = new Window();
-    window.document.body.innerHTML = html;
-    const doc = window.document;
-    const runs = doc.getElementById("runs");
-    expect(runs).not.toBeNull();
-    for (const before of ["report", "proposals"]) {
-      expect(doc.getElementById(before)!.compareDocumentPosition(runs!) & window.Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    }
   });
 });

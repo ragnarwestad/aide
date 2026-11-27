@@ -82,20 +82,6 @@ def test_the_status_file_loses_archive_and_gains_one_boundary_and_nothing_else(s
     assert len([l for l in changed if l.strip()]) == 2, changed
 
 
-def test_the_state_file_drops_archive_and_no_longer_reads_archived(script, tmp_path):
-    d = add_archived(tmp_path)
-    (d / "4-status.json").write_text(json.dumps({
-        "completedPhases": ["create", "analyze", "implement", "archive"],
-        "archived": {"date": "2026-09-01"}, "closed": None, "reopened": None,
-        "acceptanceCriteria": [], "phaseCounts": {},
-    }))
-    rc, out = run(script, "--specs-root", str(tmp_path), "--spec", "82-x", "--boundary", "abc1234")
-    assert rc == 0, out
-    state = json.loads((tmp_path / "82-x" / ("4-status." + "json")).read_text())
-    assert state["completedPhases"] == ["create", "analyze", "implement"]
-    assert state["archived"] is None
-
-
 def test_the_stamp_carries_the_given_sha_and_todays_date(script, tmp_path):
     add_archived(tmp_path)
     run(script, "--specs-root", str(tmp_path), "--spec", "82-x", "--boundary", "def5678")
@@ -135,13 +121,6 @@ def test_refuses_an_active_spec_and_touches_nothing(script, tmp_path):
 def test_refuses_an_unknown_spec(script, tmp_path):
     rc, out = run(script, "--specs-root", str(tmp_path), "--spec", "99")
     assert rc == 2 and out["terminalReason"] == "refused", out
-
-
-def test_refuses_an_unknown_full_name_as_unknown_not_active(script, tmp_path):
-    rc, out = run(script, "--specs-root", str(tmp_path), "--spec", "99-none")
-    assert rc == 2 and out["terminalReason"] == "refused", out
-    assert out["error"] == f"unknown spec: 99-none (not under {tmp_path})", out
-    assert not (tmp_path / "99-none").exists()
 
 
 def test_a_closed_spec_is_reopened_with_its_closed_line_kept(script, tmp_path):

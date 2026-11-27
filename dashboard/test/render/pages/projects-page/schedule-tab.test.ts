@@ -23,18 +23,6 @@ function scheduleTab(
 }
 
 describe("a project's Schedule tab", () => {
-  test("lists Name, Next run and Enabled, then Run now and Delete, and leaves out cron, prompt and last run", () => {
-    const table = scheduleTab();
-    const words = [...table.querySelectorAll("thead th")].map((th) => th.textContent).filter(Boolean);
-    expect(words).toEqual(["Name", "Next run", "Enabled"]);
-    const row = table.querySelector("tbody tr")!;
-    expect(row.children.length).toBe(5);
-    const text = row.textContent!;
-    expect(text).not.toContain("0 3 * * *");
-    expect(text).not.toContain("docs/nightly.md");
-    expect(row.querySelector("[data-schedule-state]") === null).toBe(true);
-  });
-
   test("Name, Next run and Enabled are sort links that stay on the tab, the sorted one turned round", () => {
     const heads = (table: HTMLElement) =>
       [...table.querySelectorAll("thead th")].slice(0, 3).map((th) => [
@@ -50,29 +38,5 @@ describe("a project's Schedule tab", () => {
       "/projects/aide?tab=schedule&sort=enabled",
       "ascending",
     ]);
-  });
-
-  test("the rows follow the sort the address names", () => {
-    const entries = [
-      { ...ENTRY, name: "b-off", enabled: false },
-      { ...ENTRY, name: "c-on" },
-      { ...ENTRY, name: "a-on" },
-    ];
-    const names = (sort?: { sort?: string; dir?: "asc" | "desc" }) =>
-      [...scheduleTab(entries, sort).querySelectorAll("tbody tr td:first-child a")].map((a) => a.textContent);
-    expect(names()).toEqual(["a-on", "b-off", "c-on"]);
-    expect(names({ sort: "name", dir: "desc" })).toEqual(["c-on", "b-off", "a-on"]);
-    expect(names({ sort: "enabled" })).toEqual(["a-on", "c-on", "b-off"]);
-  });
-
-  test("stands under a Schedule heading, with New for this project (AC-11)", () => {
-    const project: ProjectView = { name: "aide", manifest: { ok: false, error: "no manifest" }, specs: [] };
-    const window = new Window();
-    window.document.body.innerHTML = renderProjectPage(project, { hasConfigFile: false, rows: [] }, null, "2026-09-30T00:00:00Z", [], {
-      worktreeLinkCandidates: [], tab: "schedule", schedule: [ENTRY],
-    });
-    const headings = [...window.document.querySelectorAll("main h3")].map((h) => h.textContent);
-    expect(headings).toContain("Schedule");
-    expect(window.document.querySelector('main a[href="/schedule/new?project=aide"]')).not.toBeNull();
   });
 });

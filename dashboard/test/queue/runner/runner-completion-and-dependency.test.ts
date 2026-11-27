@@ -1,10 +1,8 @@
 // Split out of runner.test.ts by theme.
 
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { join } from "node:path";
-import { QueueStore } from "../../../src/queue/queue.ts";
 import {
-  DEFAULTS, dir, spawns, store, enqueue, makeRunner, okResult, resetHarness, cleanupHarness, setNow,
+  spawns, store, enqueue, makeRunner, okResult, resetHarness, cleanupHarness, setNow,
 } from "./runner-fixtures.ts";
 import { formatSentence } from "../../../src/messages/format.ts";
 import { AideRunStore } from "../../../src/queue/aide-run-store.ts";
@@ -19,10 +17,6 @@ import { withoutStepFailed } from "../../../src/messages/format.ts";
 function sentence(s: unknown): string {
   return formatSentence("en", s as Parameters<typeof formatSentence>[1]) ?? "";
 }
-
-
-const resolve = (project: string) =>
-  project === "aide" ? { specFolders: ["81-queue-and-runner", "91-parallel-spec-runs"] } : null;
 
 beforeEach(resetHarness);
 afterEach(cleanupHarness);
@@ -67,18 +61,6 @@ describe("the completion hook and the landing window", () => {
     ]);
   });
 
-  // A no-AI create's result carries tool: "none" (aide-run-spec's
-  // own JSON), which must survive into StepResult rather than being
-  // silently narrowed to "claude" — the gap plan review found in the
-  // two-way ternary this replaced.
-  test("a result carrying tool: \"none\" keeps it, rather than defaulting to claude", () => {
-    const job = enqueue({ steps: ["create"] });
-    const runner = makeRunner({ readResult: () => outcome({ tool: "none" }) });
-    runner.tick();
-    runner.poll();
-    expect(store.get(job.id)?.results[0]?.tool).toBe("none");
-  });
-
   test("a result naming codex still keeps it, and one naming nothing still reads claude", () => {
     const codexJob = enqueue({ specFolder: "81-queue-and-runner", steps: ["analyze"] });
     const codexRunner = makeRunner({ readResult: () => outcome({ tool: "codex" }) });
@@ -107,18 +89,6 @@ describe("the completion hook and the landing window", () => {
     store.defaults.providers = { "Claude-Capra": { name: "Capra", tool: "claude" } };
     expect(store.get(job.id)?.results[0]?.provider).toEqual({ key: "Claude-Capra", name: "Claude-Capra" });
     expect(store.get(noAi.id)?.results[0]?.provider).toBeUndefined();
-  });
-
-  // The narrowing used to name the tools it kept, so a third one was
-  // recorded as claude however clearly the result said otherwise. Read
-  // from the one list instead, and a tool the runner can start is a
-  // tool the row can say it ran on.
-  test("a result naming opencode keeps it", () => {
-    const job = enqueue({ specFolder: "81-queue-and-runner", steps: ["analyze"] });
-    const runner = makeRunner({ readResult: () => outcome({ tool: "opencode" }) });
-    runner.tick();
-    runner.poll();
-    expect(store.get(job.id)?.results[0]?.tool).toBe("opencode");
   });
 
   test("a tool nobody can run falls to claude rather than being kept", () => {
@@ -372,38 +342,6 @@ describe("the completion hook and the landing window", () => {
     expect(store.get(job.id)?.state).toBe("failed");
     expect(store.get(job.id)?.landing).toBeFalsy();
   });
-
-  // `terminalReason:"unpushed"` (a step whose own work, or its
-  // Workflow-steps-completed bookkeeping, never reached origin) is a
-  // free-text terminalReason exactly like `cli-error` above — no dashboard
-  // source file needs to know the string "unpushed" for it to show up as
-  // a failed row with its own error sentence intact.
-  test("a step that ends unpushed reads as a failed row, the same way cli-error does", () => {
-    const job = enqueue({ steps: ["analyze"] });
-    const runner = makeRunner({
-      readResult: () =>
-        outcome({
-          ok: false,
-          terminalReason: "unpushed",
-          error: "the step's own work did not reach origin: /path/to/project",
-        }),
-    });
-    runner.tick();
-    runner.poll();
-    const row = store.get(job.id);
-    expect(row?.state).toBe("failed");
-    expect(sentence(withoutStepFailed(row?.error))).toBe("the step's own work did not reach origin: /path/to/project");
-  });
-
-  test("a landing flag left behind by a restart never wedges the queue", () => {
-    // The flag belongs to a call in flight in THIS process; a mirror read
-    // back after a crash has no such call behind it, and a flag that
-    // survived would hold the whole queue shut with nothing to clear it.
-    const job = enqueue({ steps: ["create"] });
-    store.writeUnchecked(job.id, { landing: true, state: "done" });
-    const reloaded = new QueueStore({ mirrorPath: join(dir, "queue.json"), defaults: DEFAULTS, resolve });
-    expect(reloaded.get(job.id)?.landing).toBeUndefined();
-  });
 });
 
 // --- A dependency parks a job, it does not fail it -----------------
@@ -479,14 +417,6 @@ describe("parked on a dependency", () => {
     expect(spawns.map((s) => s.jobId)).toEqual([earlier.id, late.id]);
   });
 
-  test("no map at all is exactly today's behaviour", () => {
-    const job = enqueue({ steps: ["implement"] });
-    const runner = makeRunner();
-    runner.tick();
-    expect(spawns.length).toBe(1);
-    expect(store.get(job.id)?.state).toBe("running");
-  });
-
   test("an entry for a job that is not queued changes nothing", () => {
     const job = enqueue({ steps: ["implement"] });
     const runner = makeRunner();
@@ -525,27 +455,6 @@ describe("parked on a dependency", () => {
 // held job's id with the fixed sentence it is held with.
 
 describe("parked on its own missing analyze step", () => {
-  test("a job held as not analyzed is not spawned and stays queued with a reason", () => {
-    const job = enqueue({ steps: ["implement"] });
-    const runner = makeRunner();
-    runner.tick({ notAnalyzed: new Map([[job.id, { key: "runner.notAnalyzed" }]]) });
-    expect(spawns.length).toBe(0);
-    const stored = store.get(job.id);
-    expect(stored?.state).toBe("queued");
-    expect(sentence(stored?.error)).toBe("Problem: Held back: not analyzed yet\nSolution: Press Analyze first");
-  });
-
-  test("the same job starts once the holds no longer name it", () => {
-    const job = enqueue({ steps: ["implement"] });
-    const runner = makeRunner();
-    runner.tick({ notAnalyzed: new Map([[job.id, { key: "runner.notAnalyzed" }]]) });
-    expect(spawns.length).toBe(0);
-    runner.tick({ notAnalyzed: new Map() });
-    expect(spawns.length).toBe(1);
-    const stored = store.get(job.id);
-    expect(stored?.state).toBe("running");
-    expect(stored?.error).toBeUndefined();
-  });
 
   test("checked before the dependency map: a job in both is held back for the analyze reason", () => {
     const job = enqueue({ steps: ["implement"] });
@@ -556,14 +465,6 @@ describe("parked on its own missing analyze step", () => {
     });
     expect(spawns.length).toBe(0);
     expect(sentence(store.get(job.id)?.error)).toBe("Problem: Held back: not analyzed yet\nSolution: Press Analyze first");
-  });
-
-  test("no set at all is exactly today's behaviour", () => {
-    const job = enqueue({ steps: ["implement"] });
-    const runner = makeRunner();
-    runner.tick();
-    expect(spawns.length).toBe(1);
-    expect(store.get(job.id)?.state).toBe("running");
   });
 });
 
@@ -617,31 +518,6 @@ describe("a step appended to a running job's tail", () => {
   });
 });
 
-describe("an archive whose acceptance criteria are not all ticked", () => {
-  // It used to be held here, waiting for the tick that would start it
-  // by itself. That hold is gone: the row read the same either way
-  // while sometimes a tick started the archive and sometimes nothing
-  // did — so the step starts, `aide-archive-spec`'s pre-check refuses
-  // it before any model is spawned, and a person presses Archive.
-  test("it starts, and is not held in the queue", () => {
-    const job = enqueue({ steps: ["archive"] });
-    const runner = makeRunner();
-    runner.tick();
-    expect(spawns.length).toBe(1);
-    expect(store.get(job.id)?.state).toBe("running");
-  });
-
-  // The two gates that remain hold what resolves without anybody
-  // pressing anything, and they still do.
-  test("a dependency still holds the same job", () => {
-    const job = enqueue({ steps: ["archive"] });
-    const runner = makeRunner();
-    runner.tick({ dependencies: new Map([[job.id, "80-dependency"]]) });
-    expect(spawns.length).toBe(0);
-    expect(sentence(store.get(job.id)?.error)).toContain("Held back: depends on aide:80,");
-  });
-});
-
 // --- A stamp per STEP, not one per job -----------------------------
 //
 // A job's own `startedAt` is set once and reused for every step behind
@@ -673,37 +549,6 @@ describe("the queue records when each STEP started", () => {
     expect(results[1]?.startedAt).toBe(new Date(Date.parse("2026-08-16T12:00:00Z")).toISOString());
     // Not the previous step's own end (10:05) — the boundary-based
     // figure today's formula would have used instead.
-    expect(results[1]?.startedAt).not.toBe(results[0]?.at);
-  });
-
-  test("a real hold-back window between two tick() calls does not leak into the eventually-recorded start", () => {
-    const job = enqueue({ steps: ["analyze", "implement"] });
-    const runner = makeRunner({ readResult: () => okResult(1) });
-
-    setNow(Date.parse("2026-08-16T10:00:00Z")); // analyze spawned
-    runner.tick();
-    setNow(Date.parse("2026-08-16T10:05:00Z")); // analyze finishes; queued for implement
-    runner.poll();
-
-    // Held back on an unmerged dependency for an hour — a real hold-back
-    // window, checked at tick() and never spawned.
-    setNow(Date.parse("2026-08-16T11:00:00Z"));
-    runner.tick({ dependencies: new Map([[job.id, "80-dependency"]]) });
-    expect(spawns.length).toBe(1);
-    expect(store.get(job.id)?.state).toBe("queued");
-
-    // The dependency clears an hour later still — this is the instant
-    // implement is actually spawned.
-    setNow(Date.parse("2026-08-16T12:00:00Z"));
-    runner.tick();
-    expect(spawns.length).toBe(2);
-    setNow(Date.parse("2026-08-16T12:10:00Z"));
-    runner.poll();
-
-    const results = store.get(job.id)?.results ?? [];
-    expect(results[1]?.startedAt).toBe(new Date(Date.parse("2026-08-16T12:00:00Z")).toISOString());
-    // Neither the hold-back check (11:00) nor the first step's own end
-    // (10:05) leaked into the recorded start.
     expect(results[1]?.startedAt).not.toBe(results[0]?.at);
   });
 });

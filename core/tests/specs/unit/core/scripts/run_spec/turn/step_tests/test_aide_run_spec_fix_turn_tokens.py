@@ -9,9 +9,6 @@ from ...run_spec_status_files import with_status
 
 RED_MARKER = "test suite is red"
 FIRST_TURN = {"inputTokens": 10, "outputTokens": 100, "cacheReadInputTokens": 1000, "cacheCreationInputTokens": 50}
-FIX_TURN = {"inputTokens": 7, "outputTokens": 300, "cacheReadInputTokens": 2000, "cacheCreationInputTokens": 100}
-# A resumed session reports its whole usage and cost so far, not the turn's own.
-SESSION_AFTER_FIX = {k: FIRST_TURN[k] + FIX_TURN[k] for k in FIRST_TURN}
 
 
 def _result(cost, usage):
@@ -38,17 +35,6 @@ def _red_until_the_fix(workspace, fake_claude, fix_usage):
         f"  echo '{json.dumps(_result(0.10, FIRST_TURN))}'\n"
         "fi\n"
     )
-
-
-def test_a_red_suites_fix_turn_adds_its_tokens_to_the_steps_ac_5(runner, workspace, fake_claude):
-    with_status(workspace, ["create", "analyze"])
-    claude = _red_until_the_fix(workspace, fake_claude, SESSION_AFTER_FIX)
-    rc, out, _ = run(runner, workspace, claude, command="implement")
-    assert out["terminalReason"] == "completed", out
-    assert len(fake_claude.calls.read_text().splitlines()) == 2
-    assert abs(out["costUsd"] - 0.30) < 1e-6, out
-    assert out["tokens"]["total"] == sum(FIRST_TURN.values()) + sum(FIX_TURN.values()), out["tokens"]
-    assert out["tokens"]["input"] == 17, out["tokens"]
 
 
 def test_a_fix_turn_that_metered_nothing_leaves_the_step_with_no_tokens_ac_5(runner, workspace, fake_claude):

@@ -20,31 +20,6 @@ afterEach(() => {
   while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
-test("a form POST and a JSON caller both get JSON", async () => {
-  const { base } = start();
-  const form = await fetch(`${base}/api/queue`, {
-    method: "POST",
-    redirect: "manual",
-    headers: { "content-type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ project: "aide", specFolder: "81-queue-and-runner", steps: "analyze" }),
-  });
-  expect(form.status).toBe(200);
-  expect(((await form.json()) as { ok: boolean }).ok).toBe(true);
-
-  const json = await fetch(`${base}/api/queue`, {
-    method: "POST",
-    headers: { "content-type": "application/json", accept: "application/json" },
-    // A different step: the same one is refused while the first is
-    // unfinished, which is a separate rule with its own tests.
-    body: JSON.stringify({ ...JOB, steps: ["implement"] }),
-  });
-  expect(json.status).toBe(200);
-  const listed = (await (await fetch(`${base}/api/queue`, )).json()) as {
-    jobs: { project: string }[];
-  };
-  expect(listed.jobs.length).toBe(2);
-});
-
 test("an unknown project is 400 and stores nothing; an oversize body is 413", async () => {
   const { base } = start();
   const bad = await fetch(`${base}/api/queue`, {

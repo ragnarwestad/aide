@@ -56,13 +56,6 @@ describe("an analyze stopped on its acceptance criteria", () => {
     expect(nb).not.toBe(en);
   });
 
-  test("words the new kinds on their own in the board's sentence", () => {
-    const after = stopped({ missing: false, notEars: [], noScenario: [], contradictions: ["AC-1/AC-3"], cannotBuild: [] });
-    expect(after?.error).not.toBe(SCRIPT_SENTENCE);
-    expect(formatSentence("nb", after?.error as Sentence) ?? "").toContain("1");
-    expect(messageDetail(after?.error as Sentence)).toBe("AC-1/AC-3");
-  });
-
   test("keeps the runner's own sentence when the result lists no faults", () => {
     const after = stopped();
     expect(after?.state).toBe("failed");

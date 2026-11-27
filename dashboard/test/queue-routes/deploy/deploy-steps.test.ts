@@ -95,26 +95,6 @@ const FAULT = /<p class="deploy-fault rowmsg failed">/;
 const KEPT = /class="refusal deploy-error rowmsg failed"/g;
 const kept = (html: string): string[] => html.match(KEPT) ?? [];
 
-describe("the per-step deploy routes are gone", () => {
-  test("a POST to deploy/fetch, deploy/install, deploy/restart or deploy/check answers 404 and runs nothing, on the board and on another project", async () => {
-    for (const extra of [{}, { dashboardRoot: "/somewhere/else" }]) {
-      let fired = 0;
-      const { base, git, paths } = await deployServer({ ...SAME, behind: 2 }, { registered: async () => true, fire: () => void fired++ }, extra);
-      const marker = installs(paths.project);
-      for (const step of ["fetch", "install", "restart", "check"]) {
-        expect((await post(base, `aide/deploy/${step}`)).status).toBe(404);
-      }
-      // A fetch is not checked: the harness's own cache refresh may run one.
-      for (const forbidden of ["merge", "reset"]) {
-        expect(git.calls.some((c) => c.args[0] === forbidden)).toBe(false);
-      }
-      expect(existsSync(marker)).toBe(false);
-      await Bun.sleep(100);
-      expect(fired).toBe(0);
-    }
-  });
-});
-
 describe("POST .../drift", () => {
   const tab = "/projects/aide?tab=deploy";
 

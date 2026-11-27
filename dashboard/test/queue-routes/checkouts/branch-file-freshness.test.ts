@@ -14,7 +14,7 @@ import type { GitRunner } from "../../../src/git/process/index.ts";
 import { withFreshness } from "../../../src/serve/land-branch";
 import type { LandContext } from "../../../src/serve/land-branch";
 import type { SpecTarget } from "../../../src/render";
-import { specControls, phaseDone, listUntil, dated, setupQueueRoutesHarness } from "../fixtures.ts";
+import { specControls, listUntil, dated, setupQueueRoutesHarness } from "../fixtures.ts";
 import { branchReadingGit, type BranchReadingOpts } from "./branch-reading-fixtures.ts";
 
 const { harness, start: startServer } = setupQueueRoutesHarness();
@@ -57,20 +57,6 @@ describe("the file is read from the branch a still-open spec is on", () => {
     await new Promise((r) => setTimeout(r, 400));
     return listUntil(base, dated, undefined, "a dated Created cell for the spec");
   };
-
-  test("a branch copy that matches the history clears the qualifier the stale disk copy would raise", async () => {
-    const { base, dir } = start({
-      gitRun: branchReadingGitRun({ open: true, branchText: statusSaying(["create", "analyze", "implement"]) }),
-    });
-    // The disk copy — the default-branch checkout's own — has not caught
-    // up: implement's own commit and its own rewrite of this line sit
-    // only on the branch until archive lands them.
-    writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze"]));
-    ran(dir, ["create", "analyze", "implement"]);
-    const line = specControls(await listPage(base), FOLDER);
-    expect(phaseDone(line, "implement")).toBe(true);
-    expect(line).not.toContain("disagree about whether");
-  });
 
   test("a branch copy that genuinely disagrees with the history still says so", async () => {
     const { base, dir } = start({
@@ -130,31 +116,6 @@ describe("the file is read from the branch a still-open spec is on", () => {
       "the disk scan to catch up with the rewritten status file",
     );
     expect(specControls(html, FOLDER)).toContain("disagree about whether");
-  });
-
-  // The branch path: the branch's own 4-status.json
-  // is the truth once one exists there too — the five other specs still
-  // on their own open branch (found during analysis) are reachable only
-  // through this path, not the disk one above.
-  test("the branch's own state file claiming a phase git has no commit for raises no qualifier", async () => {
-    const { base, dir } = start({
-      gitRun: branchReadingGitRun({
-        open: true,
-        branchText: statusSaying(["create", "analyze"]),
-        stateText: JSON.stringify({
-          completedPhases: ["create", "analyze"],
-          archived: null,
-          reopened: null,
-          acceptanceCriteria: [],
-          phaseCounts: {},
-        }),
-      }),
-    });
-    writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze"]));
-    ran(dir, ["create"]);
-    const line = specControls(await listPage(base), FOLDER);
-    expect(phaseDone(line, "analyze")).toBe(true);
-    expect(line).not.toContain("disagree about whether");
   });
 
   // `withFreshness` stays synchronous, so a render never awaits

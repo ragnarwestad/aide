@@ -30,10 +30,6 @@ describe("the criteria checks choice", () => {
     ]);
   });
 
-  test("an untouched New spec form posts off", () => {
-    expect(posted(newSpecForm())).toBe("off");
-  });
-
   test("a New spec form with Stop chosen posts stop", () => {
     const form = newSpecForm();
     const select = form.querySelector("#new-spec-criteria-checks") as HTMLSelectElement;

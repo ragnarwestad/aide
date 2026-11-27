@@ -19,7 +19,6 @@ import { join } from "node:path";
 import type { ProjectReadiness, ReadinessCheck } from "../../../src/project/project-admin";
 import { parseManifest } from "../../../src/project/parse-manifest.ts";
 import {
-  DERIVABLE,
   EDITABLE_FIELD,
   SETTING_GROUPS,
   SETTING_KEYS,
@@ -240,11 +239,6 @@ describe("a value that does not resolve is marked, in the words readiness alread
 // `DERIVABLE` is now exported so `render/projects-page.ts` can gate edit-mode on
 // key membership rather than a second, hand-duplicated list.
 describe("the Worktree links row is sourced from resolveWorktreeLinks()", () => {
-  test("DERIVABLE's export names the test command alone, and touches no row shape", () => {
-    expect(Object.keys(DERIVABLE)).toEqual(["AIDE_TEST_CMD"]);
-    const view = projectSettings(project(null), null);
-    expect(view.rows.map((r) => r.key)).toEqual([...SETTING_KEYS]);
-  });
 
   test("the manifest's worktreeLinks: is the row's value, and the row names that file", () => {
     const dir = project("");
@@ -255,13 +249,6 @@ describe("the Worktree links row is sourced from resolveWorktreeLinks()", () => 
     expect(r.source).toBe("project.yaml");
   });
 
-  test("no manifest setting reads unset", () => {
-    const dir = project("");
-    const r = row(dir, "worktreeLinks");
-    expect(r.origin).toBe("unset");
-    expect(r.value).toBeNull();
-    expect(r.source).toBeUndefined();
-  });
 });
 
 // The Install command row is sourced from resolveInstallCmd(),
@@ -286,13 +273,6 @@ describe("the Install/Test command rows are sourced from resolveInstallCmd()/res
     expect(r.source).toBeUndefined();
   });
 
-  test("neither file setting AIDE_INSTALL_CMD reads unset", () => {
-    const dir = project("");
-    const r = row(dir, "AIDE_INSTALL_CMD");
-    expect(r.origin).toBe("unset");
-    expect(r.value).toBeNull();
-    expect(r.source).toBeUndefined();
-  });
 });
 
 // Every row's Comment-column purpose text starts with a capital

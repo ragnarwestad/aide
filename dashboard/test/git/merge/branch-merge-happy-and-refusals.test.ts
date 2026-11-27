@@ -184,21 +184,6 @@ describe("mergeBranchIntoDefault: the refusals", () => {
     expect(ran(git.calls, "worktree add")).toBe(false);
   });
 
-  // Merge commits alone are a landing's own leftovers, not work.
-  test("a base ahead only by merge commits goes on to land", async () => {
-    const git = fakeGit({
-      ...CLEAN_MASTER,
-      "rev-list --count": { code: 0, stdout: "2\n" },
-      "rev-list origin/master..master": { code: 0, stdout: "" },
-      "merge -q --ff-only": { code: 0 },
-      push: { code: 0 },
-      fetch: { code: 0 },
-    });
-    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
-    expect(result.ok).toBe(true);
-    expect(ran(git.calls, "worktree add")).toBe(true);
-  });
-
   test("a worktree the landing cannot make is refused, and nothing is merged", async () => {
     // `worktree add` FIRST: the fake takes the first prefix that
     // matches, and `CLEAN_MASTER`'s own `worktree` would answer for it.

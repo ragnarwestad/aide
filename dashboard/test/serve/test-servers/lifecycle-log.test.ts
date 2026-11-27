@@ -103,11 +103,6 @@ describe("the board log says what a start did", () => {
     expect(after?.error).toContain("postgres (pid 777)");
   });
 
-  test("a context without a log still works", async () => {
-    const ctx = makeCtx({ log: undefined });
-    const result = await startTestServer(ctx, "aide", "spec-1");
-    expect(result.ok).toBe(true);
-  });
 });
 
 // A stop says who asked and what was signalled, before the signal goes

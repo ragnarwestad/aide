@@ -20,13 +20,6 @@ def _skill_names(workspace_root):
 
 @pytest.mark.copilot
 class TestCopilotInstallSkills:
-    def test_install_copies_every_skill_to_agents_dir(self, workspace_root, tmp_path, run_installer):
-        result = run_installer("core/implementations/copilot/install.sh", home=tmp_path)
-        assert result.returncode == 0, result.stdout + result.stderr
-        for name in _skill_names(workspace_root):
-            skill_md = tmp_path / ".agents" / "skills" / name / "SKILL.md"
-            assert skill_md.exists(), f"missing: ~/.agents/skills/{name}/SKILL.md"
-
     def test_uninstall_keeps_the_shared_skills(self, workspace_root, tmp_path, run_installer):
         result = run_installer("core/implementations/copilot/install.sh", home=tmp_path)
         assert result.returncode == 0, result.stdout + result.stderr

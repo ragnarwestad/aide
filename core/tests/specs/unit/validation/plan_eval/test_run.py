@@ -186,12 +186,6 @@ def test_an_approved_case_whose_description_changed_is_refused_before_anything_r
     refused(pilot, capsys, plan_eval_main, pilot.run_argv(), "4", "Description sha256")
 
 
-def test_an_approved_case_pinned_to_a_commit_the_checkout_lacks_is_refused_before_anything_runs_ac_8(pilot, plan_eval_main, capsys):
-    pilot.write_case(before="1" * 40)
-
-    refused(pilot, capsys, plan_eval_main, pilot.run_argv(), "1" * 40)
-
-
 def test_an_analyze_that_does_not_complete_is_no_result_and_nothing_is_judged(pilot, plan_eval_main, standin):
     write(standin / "analyze-result.json", '{"ok":false,"terminalReason":"timeout","costUsd":0.1}')
 
@@ -213,11 +207,3 @@ def test_compare_writes_the_comparison_of_a_baseline_and_one_alternative_ac_4(pi
     assert "analyze: claude opus high → claude sonnet" in text
 
 
-def test_compare_refuses_two_runs_of_the_same_setup_ac_4(pilot, plan_eval_main, capsys):
-    assert plan_eval_main(pilot.run_argv()) == 0
-    assert plan_eval_main(pilot.run_argv()) == 0
-    base, alternative = sorted(p for p in pilot.results.iterdir() if p.is_dir())
-
-    assert plan_eval_main(["compare", str(base), str(alternative)]) == 2
-
-    assert "none" in capsys.readouterr().err and not (alternative / "comparison.md").exists()

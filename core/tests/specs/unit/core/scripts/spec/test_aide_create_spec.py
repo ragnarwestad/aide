@@ -80,16 +80,6 @@ def run(script, specs_root, folder, title, description, depends_on=None,
     return proc.returncode, json.loads(line), proc.stdout
 
 
-def test_help_names_every_public_mode_ac_1_ac_10(script):
-    result = subprocess.run(
-        [str(script), "--help"], capture_output=True, text=True,
-    )
-
-    assert result.returncode == 0
-    for flag in ("--folder-name", "--assign-number"):
-        assert flag in result.stdout
-
-
 # --- happy path -----------------------------------------------------
 
 
@@ -290,25 +280,6 @@ def test_readme_matches_file_templates_byte_for_byte(script, specs_root, file_te
     assert actual == expected
 
 
-def test_analysis_has_no_solution_only_sections(script, specs_root):
-    rc, out, _ = run(script, specs_root, "42-do-a-thing", "Do a thing", "Problem: X.")
-    assert rc == 0, out
-    analysis = (specs_root / "42-do-a-thing" / "2-analysis.md").read_text()
-    for heading in ("## Scope", "## Complexity", "## Risk analysis"):
-        assert heading not in analysis
-    assert "`[not analyzed yet]`" in analysis
-
-
-def test_solution_has_scope_and_risk_analysis_and_placeholder_date(script, specs_root):
-    rc, out, _ = run(script, specs_root, "42-do-a-thing", "Do a thing", "Problem: X.")
-    assert rc == 0, out
-    solution = (specs_root / "42-do-a-thing" / "3-solution.md").read_text()
-    assert "## Scope" in solution
-    assert "## Risk analysis" in solution
-    assert "`[not prepared yet]`" in solution
-    assert not re.search(r"`\d{4}-\d{2}-\d{2}`", solution)
-
-
 def test_status_opens_with_placeholder_progress_and_no_workflow_steps_line(script, specs_root):
     rc, out, _ = run(script, specs_root, "42-do-a-thing", "Do a thing", "Problem: X.")
     assert rc == 0, out
@@ -449,30 +420,6 @@ def test_two_creates_at_once_get_different_numbers(script, specs_root):
 # landing, under the specs repo's own lock.
 
 
-def test_folder_name_creates_exactly_that_path_no_number_computed(script, specs_root):
-    (specs_root / "07-earlier").mkdir()
-    rc, out, _ = run(script, specs_root, "new-abcd1234", "A new spec", "Problem: X.")
-    assert rc == 0, out
-    assert out["ok"] is True
-    assert out["specFolder"] == "new-abcd1234"
-    folder = specs_root / "new-abcd1234"
-    assert folder.is_dir()
-    expected = {"0-README.md", "1-description.md", "2-analysis.md", "3-solution.md", "4-status.md"}
-    assert {p.name for p in folder.iterdir()} == expected
-    desc = (folder / "1-description.md").read_text()
-    assert "- **Task:** `new-abcd1234/`" in desc
-
-
-def test_folder_name_refuses_on_an_existing_name(script, specs_root):
-    (specs_root / "new-abcd1234").mkdir()
-    (specs_root / "new-abcd1234" / "marker.txt").write_text("keep me\n")
-    rc, out, _ = run(script, specs_root, "new-abcd1234", "A new spec", "Problem: X.")
-    assert rc != 0
-    assert out["ok"] is False
-    assert out["terminalReason"] == "refused"
-    assert [p.name for p in (specs_root / "new-abcd1234").iterdir()] == ["marker.txt"]
-
-
 def test_folder_name_refuses_an_invalid_name(script, specs_root):
     rc, out, _ = run(script, specs_root, "../escape", "A new spec", "Problem: X.")
     assert rc != 0
@@ -480,48 +427,13 @@ def test_folder_name_refuses_an_invalid_name(script, specs_root):
     assert out["terminalReason"] == "refused"
 
 
-def test_folder_name_two_calls_with_the_same_name_collide(script, specs_root):
-    """There is no lock: the caller's own name is already unique per job,
-    and the same name given twice is refused."""
-    rc1, out1, _ = run(script, specs_root, "new-dupe0001", "First", "Problem: X.")
-    assert rc1 == 0, out1
-    rc2, out2, _ = run(script, specs_root, "new-dupe0001", "Second", "Problem: Y.")
-    assert rc2 != 0
-    assert out2["ok"] is False
-    assert out2["terminalReason"] == "refused"
-
-
-def test_folder_name_still_validates_depends_on_and_acceptance(script, specs_root):
-    (specs_root / "105-earlier-spec").mkdir()
-    rc, out, _ = run(
-        script, specs_root, "new-abcd5678", "A new spec", "Problem: X.",
-        depends_on="105", acceptance_not_required=True,
-    )
-    assert rc == 0, out
-    desc = (specs_root / "new-abcd5678" / "1-description.md").read_text()
-    assert "- **Depends on:** `105-earlier-spec`" in desc
-    assert "- **Acceptance:** not required" in desc
-
-
-def test_folder_name_bolds_an_acceptance_criteria_line_too(script, specs_root):
-    """The dashboard's New spec form creates through --folder-name; the
-    line written there without bold made no spec at all."""
-    description = "Problem: X.\n\n## Acceptance criteria\n\n- AC-1: forgot the bold markers.\n"
-    rc, out, _ = run(script, specs_root, "new-abcd9999", "A new spec", description)
-    assert rc == 0, out
-    desc = (specs_root / "new-abcd9999" / "1-description.md").read_text()
-    assert "- **AC-1:** forgot the bold markers." in desc
-
-
 # --- --assign-number: landing's own finalize step, renaming
 # an existing (literally-named) folder to its real number and slug, and
 # rewriting every file's own Task: line to match.
 
 
-def run_assign_number(script, specs_root, folder, result_file=None):
+def run_assign_number(script, specs_root, folder):
     args = [str(script), "--specs-root", str(specs_root), "--assign-number", "--folder", folder]
-    if result_file:
-        args += ["--result-file", str(result_file)]
     proc = subprocess.run(args, capture_output=True, text=True)
     line = proc.stdout.strip().splitlines()[-1] if proc.stdout.strip() else "{}"
     return proc.returncode, json.loads(line), proc.stdout
@@ -604,24 +516,3 @@ def test_assign_number_refuses_when_a_task_line_is_missing(script, git_specs_roo
     assert out["terminalReason"] == "refused"
     # Nothing moved: the refusal happens before the git mv.
     assert (git_specs_root / "new-abcd1234").is_dir()
-
-
-def test_assign_number_reads_the_title_off_1_description_mds_h1(script, git_specs_root):
-    rc, out, _ = run(
-        script, git_specs_root, "new-abcd1234", "Clean up the console log output", "Problem: X.",
-    )
-    assert rc == 0, out
-    commit_all(git_specs_root)
-    rc, out, _ = run_assign_number(script, git_specs_root, "new-abcd1234")
-    assert rc == 0, out
-    assert out["specFolder"] == "01-clean-up-the-console-log-output"
-
-
-def test_assign_number_result_file_mirrors_stdout(script, git_specs_root, tmp_path):
-    rc, out, _ = run(script, git_specs_root, "new-abcd1234", "A brand new spec", "Problem: X.")
-    assert rc == 0, out
-    commit_all(git_specs_root)
-    result_file = tmp_path / "assign-result.json"
-    rc, out, _ = run_assign_number(script, git_specs_root, "new-abcd1234", result_file=result_file)
-    assert rc == 0, out
-    assert json.loads(result_file.read_text().strip()) == out

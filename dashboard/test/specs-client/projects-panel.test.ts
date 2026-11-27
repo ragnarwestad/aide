@@ -8,14 +8,6 @@ import { makeFakeFormData } from "./fixtures-runtime.ts";
 // --- The Projects panel --------------------------------------------
 
 describe("Remove", () => {
-  // The button was off until the project's name had been typed back
-  // into a field. The page asks the question in a sentence instead
-  // (2026-09-08), so the press is live from the moment it is drawn —
-  // and nothing in the browser turns it off.
-  test("the button is live from the moment the page loads", () => {
-    const h = harness(() => ({ ok: true }));
-    expect(h.removeButton.disabled).toBe(false);
-  });
 
   test("a removal hands the current view to the shared page change", async () => {
     const h = harness(

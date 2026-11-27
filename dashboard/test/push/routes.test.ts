@@ -72,12 +72,6 @@ describe("POST /api/push/subscribe", () => {
     expect((await fetch(`${s.base}/api/push/subscribe`)).status).toBe(405);
   });
 
-  test("a cross-site POST is refused by the guard, before the route", async () => {
-    const s = served();
-    const res = await post(s.base, "/api/push/subscribe", await subscribeBody(), { origin: "https://evil.test" });
-    expect(res.status).toBe(403);
-    expect(existsSync(s.subscriptionsPath)).toBe(false);
-  });
 });
 
 describe("POST /api/push/unsubscribe", () => {

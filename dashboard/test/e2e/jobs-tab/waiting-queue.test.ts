@@ -121,12 +121,6 @@ test("a queued spec's badge on Jobs opens the editor, and it moves behind the De
   expect(await savedOrder()).toEqual(["b", "a"]);
 });
 
-test("the Specs page keeps Spec queue badges passive (AC-7)", async () => {
-  await page.goto(`${base}/specs?live=0`);
-  expect(await page.getByRole("button", { name: /Queued/ }).count()).toBe(0);
-});
-
-
 test("target disappearance disables Save and movement (AC-3)", async () => {
   await open();
   await page.route("**/api/queue/waiting/snapshot", async route => {

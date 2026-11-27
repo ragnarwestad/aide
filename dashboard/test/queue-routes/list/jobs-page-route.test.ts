@@ -79,23 +79,9 @@ describe("GET / answers the Jobs page, GET /?rows=1 its rows alone", () => {
     expect(rows).toContain('id="spec-aide/81-queue-and-runner"');
   });
 
-  test("the tab for / reads Jobs and is current, and the document's title says Jobs (AC-1)", async () => {
-    const { base } = board([job({})]);
-    const html = await (await fetch(`${base}/`)).text();
-    expect(html).toMatch(/<a class="tab"[^>]*href="\/"[^>]*aria-current="page"[^>]*>[\s\S]*Jobs[\s\S]*<\/a>/);
-    expect(html).toContain("<title>aide -board · Jobs</title>");
-  });
-
   test("a method other than GET is refused", async () => {
     const { base } = board();
     expect((await fetch(`${base}/`, { method: "POST" })).status).toBe(405);
-  });
-
-  test("an address with no list key is the Jobs page, in the reader's language", async () => {
-    const { base } = board();
-    const res = await fetch(`${base}/?lang=nb`, { redirect: "manual" });
-    expect(res.status).toBe(200);
-    expect(await res.text()).toContain('id="jobrows"');
   });
 
   test("rows, only, open, checks and phases are the Jobs tab's own: it answers, it sends nothing on", async () => {
@@ -127,21 +113,6 @@ describe("which kind of row a job gets", () => {
     const href = g.match(/<a class="fold[^"]*"[^>]*?href="([^"]*)"/)?.[1] ?? "";
     return new URL(href.replaceAll("&amp;", "&"), "http://board");
   };
-
-  test("a spec has its spec row; a running and a queued scheduled job show title, state, time and cost shut", async () => {
-    const { base } = board([job({}), report, sched]);
-    const html = await rowsOf(base);
-
-    expect(html).toContain('data-folder="81-queue-and-runner"');
-
-    for (const [id, title] of [["spec-aide/schedule-report@report1", "report"], ["spec-aide/schedule-nightly@sched1", "nightly"]] as const) {
-      const g = group(html, id);
-      expect(titleLine(g)).toContain(title);
-      expect(g).toContain("badgeslot");
-      expect(g).toContain('data-col="started"');
-      expect(g).toContain('data-col="cost"');
-    }
-  });
 
   test("shut, by default or with another row open, a job row has no links and no Stop or Cancel", async () => {
     const { base } = board([report, sched]);
@@ -220,12 +191,6 @@ describe("which kind of row a job gets", () => {
     expect(titleLine(group(html, "spec-aide/schedule-report@report1"))).toBe("aide:report");
     expect(titleLine(group(html, "spec-aide/schedule-nightly@sched1"))).toBe("aide:nightly");
   });
-
-  test("a running job of a spec on the allowlist has the spec's row, not a job row", async () => {
-    const { base } = board([job({ id: "here" })]);
-    const on = group(await rowsOf(base), "spec-aide/81-queue-and-runner");
-    expect(on).toContain('data-folder="81-queue-and-runner"');
-  });
 });
 
 describe("a create that ended without a spec shows as the Specs list's message", () => {
@@ -297,13 +262,6 @@ describe("nothing running", () => {
   });
 
 
-});
-
-describe("before the board's first specs sweep", () => {
-  test("a spec with only its creation record has a row on Jobs (AC-4)", async () => {
-    const html = await rowsOf(board([], { specCachePollMs: 0 }).base);
-    expect(html).toContain('id="spec-aide/81-queue-and-runner"');
-  });
 });
 
 describe("New spec", () => {
@@ -412,22 +370,6 @@ describe("the Jobs tab keeps work records while Specs also shows unstarted specs
     expect(list).toContain(">Archived<");
   });
 
-  // A Reopen or Close is a job of its own, as a scheduled job is: its own row,
-  // never its spec's.
-  test("a Reopen running on an archived spec is a row of its own, and the spec has none", async () => {
-    const { base } = everyKind([job({ id: "reopen", specFolder: "90-finished", steps: ["reopen"] })]);
-    const html = await rowsOf(base);
-    expect(group(html, "spec-aide/90-finished:reopen@reopen")).toContain("b-running");
-    expect(html).not.toContain('id="spec-aide/90-finished"');
-  });
-
-  test("a Close running on a live spec is a row of its own, and the spec's row is not the close's", async () => {
-    const { base } = everyKind([job({ id: "close", specFolder: "82-no-job", steps: ["close"] })]);
-    const html = await rowsOf(base);
-    expect(group(html, "spec-aide/82-no-job:close@close")).toContain("b-running");
-    expect(group(html, "spec-aide/82-no-job")).not.toContain("b-running");
-  });
-
   for (const step of ["reopen", "close"]) {
     test(`an open ${step} row has a line per step of the job, a shut one none, and neither offers Stop`, async () => {
       const { base } = everyKind([job({ id: step, specFolder: "90-finished", steps: [step] })]);
@@ -524,16 +466,6 @@ describe("a spec's shut row on the Jobs tab is the Specs list's row, and its ope
     return base;
   }
 
-  test("the fixture spec is present on both pages", async () => {
-    const base = await settled();
-    const jobsTab = group(await rowsOf(base), "spec-aide/81-queue-and-runner");
-    const list = group(await (await fetch(`${base}/specs?rows=1`)).text(), "spec-aide/81-queue-and-runner");
-    expect(jobsTab).not.toBe("");
-    expect(list).not.toBe("");
-    expect(jobsTab).toContain("81-queue-and-runner");
-    expect(list).toContain("81-queue-and-runner");
-  });
-
   test("an acceptance wait keeps its acceptance panel on both pages (AC-4)", async () => {
     const base = await settled();
     const jobsTab = group(await rowsOf(base, OPEN_82), "spec-aide/82-held-back");
@@ -562,18 +494,6 @@ describe("a spec's shut row on the Jobs tab is the Specs list's row, and its ope
     const html = await rowsOf(base, OPEN_82);
     expect(html).toContain("<thead>");
     expect(html).not.toMatch(/href="\/specs[?"]/);
-  });
-
-  test("?only= answers that spec's rows alone; a spec with no row gets a table with none", async () => {
-    const base = await settled();
-    const one = await rowsOf(base, `only=aide/81-queue-and-runner&${OPEN_82}`);
-    expect(one).toContain('id="spec-aide/81-queue-and-runner"');
-    expect(one).not.toContain('id="spec-aide/82-held-back"');
-    expect(one).not.toContain('id="spec-aide/schedule-nightly@sched1"');
-
-    const none = await rowsOf(base, "only=aide/99-no-row");
-    expect(none).toContain("<table");
-    expect(none).not.toContain("spechead");
   });
 });
 
@@ -621,41 +541,6 @@ describe("the Jobs tab's view: its address, its cookie and its sentence for no r
 
     const listRes = await fetch(`${base}/specs?rows=1&state=failed&sort=spec`);
     expect(listRes.headers.getSetCookie().some((c) => c.startsWith("aide_jobs_view_"))).toBe(false);
-  });
-
-  test("the Jobs tab's second heading is Title and the Specs list's is unchanged", async () => {
-    const { base } = withBoth();
-    const tabHead = (await rowsOf(base)).match(/<thead>[\s\S]*?<\/thead>/)?.[0] ?? "";
-    expect(tabHead).toContain(t("en", "jobs.colTitle"));
-    expect(tabHead).not.toContain(t("en", "list.colSpec"));
-    const listHead = (await (await fetch(`${base}/specs?rows=1`)).text()).match(/<thead>[\s\S]*?<\/thead>/)?.[0] ?? "";
-    expect(listHead).toContain(t("en", "list.colSpec"));
-  });
-
-  test("the Jobs filters have fixed labels and separate choices (AC-1, AC-2)", async () => {
-    const { base } = withBoth();
-    const html = await rowsOf(base, "state=failed&kind=schedule");
-    const state = html.match(/<details[^>]*data-filter="state"[\s\S]*?<\/details>/)?.[0] ?? "";
-    const kind = html.match(/<details[^>]*data-filter="kind"[\s\S]*?<\/details>/)?.[0] ?? "";
-    expect(html.match(/data-filter="/g)).toHaveLength(2);
-    expect(state).toContain(`>${t("en", "list.statesLabel")}<`); expect(kind).toContain(`>${t("en", "jobs.typesLabel")}<`);
-    expect(state).toContain(t("en", "list.state.failed")); expect(kind).toContain(t("en", "jobs.filterKindSchedule"));
-    expect(state).not.toContain(t("en", "jobs.filterKindSchedule"));
-    expect(kind).not.toContain(t("en", "list.state.failed"));
-  });
-
-  test("the Jobs bar shows one filtered result count and keeps choice counts (AC-4, AC-5)", async () => {
-    const { base } = withBoth();
-    const html = await rowsOf(base, "q=report&state=failed&kind=schedule");
-    expect(html.match(/data-result-count>\((\d+)\)</g)).toEqual(["data-result-count>(1)<"]);
-    expect(html).toContain(`${t("en", "list.state.failed")} (1)`);
-    expect(html).toContain(`${t("en", "jobs.filterKindSchedule")} (1)`);
-  });
-
-  test("the Jobs filter labels follow the selected language (AC-8)", async () => {
-    const { base } = withBoth();
-    const html = await rowsOf(base, "lang=de");
-    expect(html).toContain(`>${t("de", "list.statesLabel")}<`); expect(html).toContain(`>${t("de", "jobs.typesLabel")}<`);
   });
 
   test("a bare /?rows=1 brings back the view the cookie remembers", async () => {

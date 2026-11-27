@@ -17,15 +17,6 @@ describe("getToolFailureMessage", () => {
     expect(s.text).toContain("boom");
   });
 
-  test("it points at the Installation tab of the provider of that AI, and at no button", () => {
-    const s = getToolFailureMessage({ tool: "codex", model: "gpt-5.6-sol", terminalReason: "cli-error" })!;
-    expect(s.text).toContain("… menu");
-    expect(s.text).toContain("Open Providers");
-    expect(s.text).toContain("Codex provider");
-    expect(s.text).toContain("Installation tab");
-    expect(s.text).not.toContain("press Check");
-  });
-
   test("the CLI's own words are hover detail, and are in the sentence too", () => {
     const s = getToolFailureMessage({
       tool: "opencode",

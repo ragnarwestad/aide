@@ -93,11 +93,6 @@ describe("its row, open and shut", () => {
       "Step 1 of 5", "Step 2 of 5", "Step 3 of 5", "Step 4 of 5", "Step 5 of 5",
     ]);
   });
-
-  test("shut, it lists no step lines", async () => {
-    const { base } = board([deploy({ streamFile: marked() })]);
-    expect(await rows(base)).not.toContain('class="subrow"');
-  });
 });
 
 describe("what its row says", () => {

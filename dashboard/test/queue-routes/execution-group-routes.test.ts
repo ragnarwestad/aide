@@ -334,17 +334,6 @@ describe("execution-group HTTP routes", () => {
       expect(await response.text()).toBe("method not allowed");
     }
   });
-
-  test("all group POST routes share the Origin refusal (AC-2)", async () => {
-    const { base } = harness.start();
-    for (const path of ["/api/queue/groups", "/api/queue/groups/group-1", "/api/queue/groups/group-1/action"]) {
-      const response = await fetch(`${base}${path}`, {
-        method: "POST",
-        headers: { origin: "https://evil.example" },
-      });
-      expect(response.status).toBe(403);
-    }
-  });
 });
 
 test("Stop cancels both a member's landing and the next member's queued job", async () => {

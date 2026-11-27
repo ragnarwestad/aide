@@ -99,9 +99,3 @@ class TestPreflightReadsTheTable:
         assert "~/.elsewhere/skills/" in result.stdout, result.stdout
         assert "~/.claude/skills/" not in result.stdout, result.stdout
 
-    def test_names_opencode_instructions_under_xdg_config_home(self, workspace_root, tmp_path):
-        script = workspace_root / "core" / "scripts" / "aide-preflight"
-        xdg = tmp_path / "xdg"
-        result = _preflight(script, "opencode", tmp_path, env={"XDG_CONFIG_HOME": str(xdg)})
-        assert result.returncode == 0, result.stderr
-        assert str(xdg / "opencode" / "AGENTS.md") in result.stdout, result.stdout

@@ -57,12 +57,6 @@ describe("the ID a provider is stored under", () => {
     expect(queueDefaults.providers?.opencode_work?.name).toBe("Open Code (work)");
   });
 
-  test("with no ID given, one is made from the name", async () => {
-    const { base, queueDefaults } = serve();
-    await post(base, ADD, { tool: "opencode", name: "Open Code (work)" });
-    expect(queueDefaults.providers?.["open-code-work"]?.name).toBe("Open Code (work)");
-  });
-
   test("an ID with another character, or one another provider has, is refused and nothing is written", async () => {
     const { base, file } = serve();
     const before = readFileSync(file, "utf-8");
@@ -104,14 +98,6 @@ describe("auto-compact", () => {
     expect((await post(base, EDIT, { key: "Claude", name: "Claude", autoCompact: "200000" })).status).toBe(200);
     expect(queueDefaults.providers?.Claude?.autoCompact).toBe(200000);
     expect((await post(base, EDIT, { key: "Claude", name: "Claude", autoCompact: "" })).status).toBe(200);
-    expect(queueDefaults.providers?.Claude?.autoCompact).toBeUndefined();
-  });
-
-  test("a number outside 100000 to 1000000, or no number, is refused", async () => {
-    const { base, queueDefaults } = serve();
-    for (const autoCompact of ["99999", "1000001", "lots"]) {
-      expect((await post(base, EDIT, { key: "Claude", name: "Claude", autoCompact })).status).toBe(400);
-    }
     expect(queueDefaults.providers?.Claude?.autoCompact).toBeUndefined();
   });
 });

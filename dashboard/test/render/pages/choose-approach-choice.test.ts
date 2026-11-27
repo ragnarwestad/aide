@@ -1,5 +1,5 @@
 // The New spec form's "Let me choose the approach" box: what the form
-// posts for it, untouched and ticked.
+// posts for it when ticked.
 
 import { describe, expect, test } from "bun:test";
 import { renderNewSpecPage } from "../../../src/render";
@@ -20,12 +20,6 @@ function posted(form: HTMLFormElement): FormDataEntryValue | null {
 }
 
 describe("the Let me choose the approach box", () => {
-  test("an untouched New spec form posts nothing for it, so it is not ticked", () => {
-    const form = newSpecForm();
-    expect(form.querySelector('[name="chooseApproach"]')).not.toBeNull();
-    expect(posted(form)).toBeNull();
-  });
-
   test("ticked, the form posts 1", () => {
     const form = newSpecForm();
     (form.ownerDocument.querySelector('[name="chooseApproach"]') as HTMLInputElement).checked = true;

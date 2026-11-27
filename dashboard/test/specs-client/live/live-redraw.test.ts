@@ -263,11 +263,6 @@ describe("the rows are redrawn on a push, not on a timer", () => {
 // point of it is that the browser's own tools can be used on a page
 // that holds still.
 describe("?live=0 declines the live connection", () => {
-  test("an ordinary load connects", () => {
-    const h = harness(() => ({ ok: true }));
-    h.visibility("visible");
-    expect(h.sources).toHaveLength(1);
-  });
 
   test("with live=0 nothing is opened", () => {
     const h = harness(() => ({ ok: true }), "actionform", "?live=0");

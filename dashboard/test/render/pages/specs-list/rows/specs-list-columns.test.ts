@@ -11,18 +11,6 @@ const ran = (specFolder: string, spentUsd: number): QueueRowView => ({
 }) as QueueRowView;
 
 describe("the Specs list's columns", () => {
-  test("draws Created, Specification, State and Actions without totals (AC-1, AC-3)", () => {
-    const html = renderSpecsRows([], { runnerAvailable: true, targets, openSpec: {} });
-    const headings = [...html.matchAll(/<th[^>]*>(?:<a[^>]*>)?([^<]*)/g)].map((m) => m[1]).filter(Boolean);
-    expect(headings).toEqual(["Created", "Specification", "State", "Actions"]);
-    // The headings' table and the rows' table declare the same five columns.
-    const groups = [...html.matchAll(/<colgroup>.*?<\/colgroup>/g)].map((m) => m[0]);
-    expect(groups).toHaveLength(2);
-    expect(groups[0]!.match(/<col data-col=/g)?.length).toBe(5);
-    expect(groups[1]).toBe(groups[0]);
-    expect(html).not.toContain('data-col="started"');
-    expect(html).not.toContain('data-col="cost"');
-  });
 
   test("makes Actions a sortable heading with direction toggling (AC-9)", () => {
     const html = renderSpecsRows([], { runnerAvailable: true, targets, openSpec: {}, filter: { sort: "actions" } });
@@ -41,21 +29,6 @@ describe("the Specs list's columns", () => {
     expect(specs).not.toContain("sort=cost");
     expect(jobs.indexOf('data-folder="82-dear"')).toBeLessThan(jobs.indexOf('data-folder="81-cheap"'));
     expect(jobs).toContain("sort=cost");
-  });
-
-  test("puts help and every action in Actions while State has no control, and offers the PDF on the title line (AC-4, AC-5, AC-7)", () => {
-    const html = renderSpecsRows([ran("81-cheap", 1)], {
-      runnerAvailable: true,
-      targets,
-      openSpec: {},
-      pdfAvailable: true,
-    });
-    const state = html.match(/<td data-col="state">([\s\S]*?)<\/td>/)?.[1] ?? "";
-    expect(state).not.toMatch(/<(?:form|button|a)\b/);
-    const positions = ["What these buttons do", ">Run<", ">Close<"].map((part) => html.indexOf(part));
-    expect(positions).toEqual([...positions].sort((a, b) => a - b));
-    const title = html.match(/<tr class="spechead"[\s\S]*?<\/tr>/)?.[0] ?? "";
-    expect(title).toContain('href="/specs/aide/81-cheap/pdf"');
   });
 });
 

@@ -14,20 +14,12 @@ describe("the count", () => {
     expect(limitState(120, 120)).toBe("near");
   });
 
-  test("the warning starts at 4,500 of 5,000", () => {
-    expect(limitState(4499, 5000)).toBe("ok");
-    expect(limitState(4500, 5000)).toBe("near");
-  });
 });
 
 describe("a field that is counted and never cut", () => {
   test("is over only above the bound; at the bound it is near (AC-4)", () => {
     expect(limitState(10000, 10000)).toBe("near");
     expect(limitState(10001, 10000)).toBe("over");
-  });
-
-  test("the count reads against the bound (AC-3)", () => {
-    expect(countText(37, 10000)).toBe("37 of 10000 characters");
   });
 
   test("the sentence says how many characters too many, and the bound (AC-4)", () => {

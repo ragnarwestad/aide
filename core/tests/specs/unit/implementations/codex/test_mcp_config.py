@@ -109,11 +109,6 @@ class TestMcpConfig:
         assert parsed["model"] == "gpt-5"
         assert sorted(parsed["mcp_servers"]) == ["chrome-devtools", "context7", "node_repl", "playwright"]
 
-    def test_installer_has_no_old_mcp_form(self, workspace_root):
-        install = (_codex(workspace_root) / "install.sh").read_text()
-        assert not re.search(r"\[\[?mcp[.\]]", install), "the old [mcp] / [[mcp.servers]] form is back"
-
-
 @pytest.mark.codex
 class TestInstallerOfferings:
     def test_both_offerings_go_through_the_one_routine_AC_1(self, workspace_root):

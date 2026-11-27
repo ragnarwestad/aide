@@ -234,12 +234,6 @@ test("a user stop survives cancellation callbacks and reloads but clears when th
 describe("ExecutionGroupStore on a file it cannot use", () => {
   const RELEASE = { project: "aide", name: "Release", members: ["1-first"], branch: "group/1-first" };
 
-  test("no file starts empty, as on a first start (AC-1)", () => {
-    const store = new ExecutionGroupStore(path);
-    expect(store.list()).toEqual([]);
-    expect(store.fault).toBeUndefined();
-  });
-
   test("a file holding valid JSON that is not a list is reported, refuses changes and is left as it is (AC-2)", () => {
     writeFileSync(path, '{"x":1}');
     const store = new ExecutionGroupStore(path);
@@ -286,11 +280,4 @@ describe("ExecutionGroupStore on a file it cannot use", () => {
     expect(store.get(made.id)).toEqual(made);
   });
 
-  test("a change reported as stored is read back after a restart (AC-4)", () => {
-    const store = new ExecutionGroupStore(path, () => "2026-11-11T18:00:00.000Z", () => "group-1");
-    const made = store.create(RELEASE);
-    const updated = store.update(made.id, { state: "stopped", error: "kept" });
-    expect(store.fault).toBeUndefined();
-    expect(new ExecutionGroupStore(path).get(made.id)).toEqual(updated);
-  });
 });

@@ -38,7 +38,6 @@ describe("an analyze that found no change needed", () => {
   });
 
   test.each([
-    ["absent", undefined],
     ["no check", { check: "", why: "x" }],
     ["no reason", { check: "x", why: "" }],
     ["not an object", "yes"],

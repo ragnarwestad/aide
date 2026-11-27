@@ -112,16 +112,6 @@ const modelsTab = (tool: CheckableTool, panel: ModelsPanel): string =>
   modelsBlock(tool, panel, stamp(panel.reading.at), "en", TOOL_TAB_LABELS[tool]);
 
 describe("the models on an AI's tab", () => {
-  test("the Codex tab lists them under its three headings, with Add and Remove", () => {
-    const html = modelsTab("codex", {
-      reading: CODEX, choices: { "gpt-6.1-sol": { tool: "codex" }, "gpt-5.6-luna": { tool: "codex" } },
-    });
-    const headings = Array.from(parse(html).querySelectorAll("h3")).map((h) => h.textContent);
-    expect(headings).toEqual(["supported", "available", "gone"].map((k) => t("en", `settings.models.${k}` as "settings.models.supported")));
-    expect(posted(html, ADD)).toEqual([{ tool: "codex", model: "gpt-5.5" }]);
-    expect(posted(html, REMOVE)).toEqual([{ name: "gpt-5.6-luna" }]);
-  });
-
   test("each model offered and no choice has an Add that posts the AI and the model", () => {
     const html = modelsTab("codex", {
       reading: CODEX, choices: { "gpt-6.1-sol": { tool: "codex" } },

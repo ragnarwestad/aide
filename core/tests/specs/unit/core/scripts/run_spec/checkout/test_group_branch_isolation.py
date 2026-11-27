@@ -9,9 +9,16 @@ from ..run_spec_status_files import with_status
 GROUP = "81-queue-and-runner"
 
 
-@pytest.mark.parametrize("prefix", ["aide/", "work/"])
-@pytest.mark.parametrize("command", ["analyze", "implement"])
-@pytest.mark.parametrize("own_code", [True, False])
+@pytest.mark.parametrize(
+    ("own_code", "command", "prefix"),
+    [
+        (True, "analyze", "aide/"),
+        (False, "analyze", "aide/"),
+        (True, "implement", "aide/"),
+        (False, "implement", "aide/"),
+        (True, "implement", "work/"),
+    ],
+)
 def test_group_analysis_keeps_its_code_and_refreshes_separate_specs(
     runner, workspace, fake_claude, own_code, command, prefix, tmp_path
 ):

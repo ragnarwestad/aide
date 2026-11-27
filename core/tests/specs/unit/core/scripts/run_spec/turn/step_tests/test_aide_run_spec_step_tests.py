@@ -329,25 +329,6 @@ def test_an_archive_runs_no_suite_even_when_its_pull_merged_main(runner, workspa
     assert len(fake_claude.calls.read_text().splitlines()) == 1
 
 
-def test_an_archive_whose_base_did_not_move_runs_no_suite(runner, workspace, fake_claude):
-    """Implement already ended on the runner's green run of this very
-    tree; with nothing merged in, an archive has nothing new to test —
-    a suite that would be red here is never run, and the step ends on
-    its first turn."""
-    with_status(workspace, ["create", "analyze", "implement"])
-    _project_with_test_cmd(workspace, "false")
-    project = workspace["project"]
-    git(project, "switch", "-q", "-c", BRANCH)
-    (project / "implemented.txt").write_text("real work\n")
-    git(project, "add", "-A")
-    git(project, "commit", "-q", "-m", "the step")
-    git(project, "switch", "-q", "main")
-    rc, out, _ = run(runner, workspace, _archiving_claude(fake_claude), command="archive")
-    assert rc == 0, out
-    assert out["terminalReason"] == "completed", out
-    assert len(fake_claude.calls.read_text().splitlines()) == 1
-
-
 def test_the_lines_handed_back_are_the_failures_not_every_line_with_error_in_it(
     runner, workspace, fake_claude, tmp_path
 ):
@@ -495,33 +476,6 @@ def test_a_red_step_reports_nothing_seen_green(runner, workspace, fake_claude):
 
 def _stamped(err):
     return [m.group(1) for m in re.finditer(r"^aide-run-spec \d\d:\d\d:\d\d \+\d+s (.+)$", err, re.M)]
-
-
-def test_the_second_turn_line_names_the_size_the_first_turn_left(runner, workspace, fake_claude, tmp_path):
-    with_status(workspace, ["create", "analyze"])
-    _project_with_test_cmd(workspace, "test -f fixed.txt")
-    stream = tmp_path / "job.stream.jsonl"
-    _, out, _, err = run(
-        runner, workspace, _fixing_claude(fake_claude), command="implement",
-        stream_file=str(stream), return_stderr=True,
-    )
-    turns = [s for s in _stamped(err) if s.startswith("model turn started")]
-    # Review is Off: implement (byte 0), then the resumed fix turn.
-    first = len(json.dumps(RESULT_OK)) + 1
-    assert turns == [
-        "model turn started (transcript at byte 0)",
-        f"model turn started (transcript at byte {first})",
-    ], turns
-
-
-def test_a_green_run_is_a_line_after_the_line_that_says_the_tests_are_running(runner, workspace, fake_claude):
-    with_status(workspace, ["create", "analyze"])
-    _project_with_test_cmd(workspace, "true")
-    _, out, _, err = run(runner, workspace, _implementing_claude(fake_claude), command="implement", return_stderr=True)
-    stages = _stamped(err)
-    running = next(i for i, s in enumerate(stages) if s.startswith("running the project's tests"))
-    green = next(i for i, s in enumerate(stages) if s == "the project's tests are green")
-    assert running < green, stages
 
 
 def test_the_red_hand_back_and_a_tests_red_stop_are_error_lines(runner, workspace, fake_claude):

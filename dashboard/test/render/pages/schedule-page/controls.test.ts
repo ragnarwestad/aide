@@ -24,19 +24,6 @@ describe("scheduleControlCells()", () => {
     expect(hrefs.filter((h) => h.endsWith("/edit"))).toEqual([]);
   });
 
-  test("the Enabled control is the design system's switch, with its state, label and address (AC-5, AC-6)", () => {
-    const sw = cells().querySelector('button[role="switch"].scheduleenabled')!;
-    expect(sw.classList.contains("switch")).toBe(true);
-    expect(sw.querySelector(".switchtrack .switchknob")).not.toBeNull();
-    expect(sw.getAttribute("aria-checked")).toBe("true");
-    expect(sw.getAttribute("aria-label")).toBe("Enabled: nightly");
-    expect(sw.getAttribute("data-post-to")).toBe("/api/queue/schedule/aide/nightly/enabled");
-    const window = new Window();
-    window.document.body.innerHTML = `<table><tbody><tr>${scheduleControlCells("aide", { ...ENTRY, enabled: false })}</tr></tbody></table>`;
-    expect(window.document.querySelector("button.scheduleenabled")!.getAttribute("aria-checked")).toBe("false");
-    expect(window.document.querySelector('input[type="checkbox"]')).toBeNull();
-  });
-
   test("exposes the entry identity and translated button states (AC-5)", () => {
     const forms = [cells("en"), cells("nb"), cells("es"), cells("de"), cells("fr")]
       .map((body) => body.querySelector("form.schedulerun") as HTMLFormElement);

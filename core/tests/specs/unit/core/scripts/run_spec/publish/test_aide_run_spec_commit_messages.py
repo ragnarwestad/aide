@@ -29,8 +29,6 @@ READ_MESSAGE_PATH = (
 WRITE_CODE = 'echo "written by the step" > "$PWD/new-code.txt"\n'
 
 
-
-
 def run(runner, workspace, claude, **kwargs):
     """An implement: the one step that is meant to change the code."""
     return run_step(runner, workspace, claude, command="implement", **kwargs)
@@ -52,13 +50,10 @@ def message_writing_claude(fake_claude, message=MESSAGE):
     )
 
 
-def silent_claude(fake_claude, then="", prompt_seen="/dev/null"):
-    """A step that changes the code and writes no message at all.
-    Appends rather than overwrites `prompt_seen`: an implement step's own
-    turn is followed by a review turn, so more than one prompt reaches
-    this same fake."""
+def silent_claude(fake_claude, then=""):
+    """A step that changes the code and writes no message at all."""
     return fake_claude(
-        f"cat >> {prompt_seen}\n" + READ_SPECS + WRITE_CODE + then + f"echo '{json.dumps(RESULT_OK)}'"
+        "cat > /dev/null\n" + READ_SPECS + WRITE_CODE + then + f"echo '{json.dumps(RESULT_OK)}'"
     )
 
 
@@ -80,15 +75,6 @@ def test_without_a_message_the_code_commit_is_the_spec_s_title(runner, workspace
     assert rc == 0, out
     assert out["terminalReason"] == "completed", out
     assert git(workspace["project"], "log", "-1", "--pretty=%B", BRANCH).strip() == "Queue"
-
-
-def test_the_prompt_says_where_the_message_goes_and_what_it_leaves_out(runner, workspace, fake_claude):
-    seen = fake_claude.calls.parent / "prompt-seen.txt"
-    rc, out, _ = run(runner, workspace, silent_claude(fake_claude, prompt_seen=seen))
-    assert rc == 0, out
-    prompt = seen.read_text()
-    assert "write the commit message for that change to " in prompt
-    assert "Do not mention the spec, the workflow step, Aide, or any AI tool or model." in prompt
 
 
 @pytest.mark.usefixtures("origin")
@@ -115,19 +101,12 @@ def test_a_stopped_step_folds_into_its_own_code_commit_without_a_note(runner, wo
     assert git(workspace["project"], "show", f"{BRANCH}:left-behind.txt")
 
 
-def test_a_stopped_step_s_own_code_commit_is_marked_unfinished(runner, workspace, fake_claude):
-    claude = silent_claude(fake_claude, then="trap '' TERM\nwhile true; do sleep 0.2; done\n")
-    rc, out, _ = run(runner, workspace, claude, timeout_sec=STOP_DEADLINE_SEC, kill_grace_sec="2")
-    assert out["terminalReason"] == "timeout"
-    assert git(workspace["project"], "log", "-1", "--pretty=%B", BRANCH).strip() == "WIP: Queue"
-
-
 def test_a_later_attempt_that_completes_takes_the_unfinished_mark_off(runner, workspace, fake_claude):
     """The attempt that finished had nothing more to commit, so the
     stopped attempt's commit is the whole change, and it is done."""
     stopped = silent_claude(fake_claude, then="trap '' TERM\nwhile true; do sleep 0.2; done\n")
     run(runner, workspace, stopped, timeout_sec=STOP_DEADLINE_SEC, kill_grace_sec="2")
-    assert git(workspace["project"], "log", "-1", "--pretty=%s", BRANCH) == "WIP: Queue"
+    assert git(workspace["project"], "log", "-1", "--pretty=%B", BRANCH).strip() == "WIP: Queue"
 
     finishing = fake_claude("cat > /dev/null\n" + READ_SPECS + f"echo '{json.dumps(RESULT_OK)}'")
     rc, out, _ = run(runner, workspace, finishing)

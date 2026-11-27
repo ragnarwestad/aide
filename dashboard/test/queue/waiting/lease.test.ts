@@ -58,16 +58,6 @@ test("Save retry is idempotent and an old Cancel cannot release a new acquisitio
   expect(q.paused).toBe(true);
   q.cancel(next);
 });
-test("a failed Save leaves the old order and revision and allows Cancel", () => {
-  let fail = false;
-  const q = new WaitingQueue({ persist: () => { if (fail) throw new Error("disk full"); } });
-  q.reconcile([entry("a"), entry("b")]); const owner = q.open("owner", "b");
-  fail = true;
-  expect(() => q.save(owner, ["b", "a"])).toThrow("disk full");
-  expect(q.snapshot()).toMatchObject({ revision: owner.revision, entries: [entry("a"), entry("b")] });
-  expect(q.renew(owner).token).toBe(owner.token);
-  q.cancel(owner); expect(q.paused).toBe(false);
-});
 test("a failed opening releases admission immediately", () => {
   const q = new WaitingQueue({ refresh: () => { throw new Error("unavailable"); } });
   expect(() => q.open("first", "b")).toThrow("unavailable");

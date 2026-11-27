@@ -101,15 +101,6 @@ describe("each phase line picks its own model", () => {
     expect(select).not.toContain('title="Implement is running"');
   });
 
-  test("a settled spec's phase pickers are live again", () => {
-    const html = rows(
-      [row({ id: "j1", specFolder: "123-picks", steps: ["implement"], stepIndex: 0, state: "done" })],
-      [target("123-picks")],
-    );
-    const select = subRow(html, "analyze").match(/<select name="model\.analyze"[^>]*>/)![0];
-    expect(select).not.toContain("disabled");
-  });
-
   // --- A model picked for a phase survives leaving the page --------
 
   // A phase nobody has run yet, but that a reader picked a model

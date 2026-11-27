@@ -2,7 +2,7 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import type { GitRunner } from "../../src/git/process/index.ts";
-import { ARCHIVED_VIEW, SAME_DAY, STAMPED, UNSTAMPED, blockFor, gitDated, harness, listUntil, specsList, start } from "./archived-specs-fixtures.ts";
+import { ARCHIVED_VIEW, STAMPED, UNSTAMPED, blockFor, gitDated, harness, listUntil, specsList, start } from "./archived-specs-fixtures.ts";
 
 // The reason a not-landed row carries is in the notice line beneath it,
 // not in the badge: the sentence to poll and assert on is that sentence,
@@ -37,12 +37,6 @@ describe("an archived spec whose branch is still on origin", () => {
     const { base } = start({ gitRun: gitWithBranches([STAMPED]) });
     const html = await listUntil(base, STILL_ON_ORIGIN, ARCHIVED_VIEW);
     expect(blockFor(html, STAMPED).toLowerCase()).toContain(STILL_ON_ORIGIN);
-  });
-
-  test("and one whose branch is gone carries none", async () => {
-    const { base } = start({ gitRun: gitWithBranches([STAMPED]) });
-    const html = await listUntil(base, STILL_ON_ORIGIN, ARCHIVED_VIEW);
-    expect(blockFor(html, SAME_DAY).toLowerCase()).not.toContain(STILL_ON_ORIGIN);
   });
 
   test("a repo origin cannot be asked about marks nothing", async () => {

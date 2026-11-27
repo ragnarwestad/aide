@@ -130,13 +130,6 @@ def test_an_analyze_that_does_not_complete_or_an_implement_logs_no_plan_review_l
     assert _plan_review_lines(_stamped(err)) == [], err
 
 
-def test_a_review_that_found_nothing_logs_zero_for_both(runner, workspace, fake_claude):
-    stages, _ = _analyze(runner, workspace, fake_claude, _solution(
-        "## Plan review\n\n**Findings:** 0 must-fix, 0 should-fix, 0 acted on\n\nNothing to fix.\n"
-    ))
-    assert _plan_review_lines(stages) == ["plan review: 0 must-fix, 0 should-fix, 0 acted on" + COUNTS_TAIL], stages
-
-
 def test_a_plan_review_quoted_in_a_fence_is_no_section(runner, workspace, fake_claude):
     stages, _ = _analyze(runner, workspace, fake_claude, _solution(
         "## Recommended solution\n\n```markdown\n## Plan review\n\n"

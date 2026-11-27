@@ -23,9 +23,8 @@ def _settings(argv):
     return json.loads(argv[argv.index("--settings") + 1])
 
 
-@pytest.mark.parametrize("mode", ["bypassPermissions", "acceptEdits", "plan"])
-def test_every_claude_step_runs_in_the_sandbox_with_no_way_out(runner, workspace, mode):
-    rc, out, _ = run(runner, workspace, permission_mode=mode, dry_run=True)
+def test_every_claude_step_runs_in_the_sandbox_with_no_way_out(runner, workspace):
+    rc, out, _ = run(runner, workspace, permission_mode="bypassPermissions", dry_run=True)
     assert rc == 0, out
     sandbox = _settings(out["argv"])["sandbox"]
     assert sandbox["enabled"] is True
@@ -63,11 +62,7 @@ def test_every_path_is_written_from_home_or_from_the_root_never_as_a_single_slas
         assert rule.split("(", 1)[1].startswith(("~/", "//")), rule
 
 
-@pytest.mark.parametrize("path", ["~/.zshrc", "~/.zshenv", "~/.bashrc", "~/Library/LaunchAgents",
-                                  "~/.local/bin", "~/.gitconfig", "~/.claude/settings.json",
-                                  "~/.claude/hooks", "~/.claude/skills", "~/.agents",
-                                  "~/.aide/dashboard/queue-config.json"])
-def test_what_runs_outside_the_sandbox_may_be_read_but_not_written(runner, workspace, path):
+def test_what_runs_outside_the_sandbox_may_be_read_but_not_written(runner, workspace):
     """A login shell, launchd, PATH, git and the AI tools run these outside
     the sandbox, and the board's queue settings may turn it off for a
     schedule entry; a step that wrote them would get out."""
@@ -75,9 +70,13 @@ def test_what_runs_outside_the_sandbox_may_be_read_but_not_written(runner, works
     settings = _settings(out["argv"])
     fs = settings["sandbox"]["filesystem"]
     rules = settings["permissions"]["deny"]
-    assert path in fs["denyWrite"] and path not in fs["denyRead"]
-    assert f"Edit({path})" in rules and f"Edit({path}/**)" in rules
-    assert f"Read({path})" not in rules
+    for path in ("~/.zshrc", "~/.zshenv", "~/.bashrc", "~/Library/LaunchAgents",
+                 "~/.local/bin", "~/.gitconfig", "~/.claude/settings.json",
+                 "~/.claude/hooks", "~/.claude/skills", "~/.agents",
+                 "~/.aide/dashboard/queue-config.json"):
+        assert path in fs["denyWrite"] and path not in fs["denyRead"], path
+        assert f"Edit({path})" in rules and f"Edit({path}/**)" in rules, path
+        assert f"Read({path})" not in rules, path
 
 
 def test_the_steps_own_checkouts_keep_their_git_hooks_and_settings(runner, workspace):

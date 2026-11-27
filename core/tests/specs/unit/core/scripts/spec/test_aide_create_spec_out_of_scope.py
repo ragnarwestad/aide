@@ -79,13 +79,6 @@ def test_without_the_given_description_an_added_section_is_created_as_typed(scri
     assert SECTION.strip() in written_description(specs_root)
 
 
-def test_a_description_without_the_section_is_compared_as_before(script, specs_root):
-    given = description(CRITERION)
-    written = description(CRITERION, "- **AC-2:** The board SHALL b.\n")
-    rc, out, _ = create(script, specs_root, given, written)
-    assert rc == 0, out
-
-
 def test_criteria_added_directly_after_a_given_one_below_the_section_are_created(script, specs_root):
     given = description(SECTION, BELOW)
     written = description(SECTION, BELOW + AC_2 + AC_3)

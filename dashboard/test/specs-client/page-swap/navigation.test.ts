@@ -85,21 +85,6 @@ test("does not show a copy for an address not remembered or for an action swap (
   expect(document.querySelector("main")?.textContent).toBe("Fresh");
 });
 
-test("binds a remembered copy before the answer so its controls can post (AC-7)", async () => {
-  install();
-  let mounts = 0;
-  bindPageSwap(document, { mount: () => { mounts += 1; } });
-  const jobs = heldAnswer(`<html><head><title>Jobs</title></head><body><header>Board</header><main>Jobs</main></body></html>`);
-  const there = swapPage("/jobs", { history: "push" }); jobs(); await there;
-  const settings = heldAnswer();
-  const away = swapPage("/settings", { history: "push" }); settings(); await away;
-  const fresh = heldAnswer();
-  const back = swapPage("/jobs", { history: "push", remembered: true });
-  await turn();
-  expect(mounts).toBe(3);
-  fresh(); await back;
-});
-
 test("reloads the target when a remembered page gets a non-board answer (AC-8, AC-9)", async () => {
   install();
   bindPageSwap(document);

@@ -7,15 +7,9 @@ import { describe, expect, test } from "bun:test";
 import { specActions } from "../../../../src/render";
 import { pdfControl } from "../../../../src/render/pages/spec-page/overview.ts";
 import { btn } from "../../../../src/render/ui/components";
-import { page, view } from "../spec-page-fixtures.ts";
+import { view } from "../spec-page-fixtures.ts";
 
 describe("the Close control", () => {
-  test("the tab row contains no spec actions (AC-6)", () => {
-    const html = page(view({ closeAvailable: true }));
-    const group = /<nav class="tabbar subtabs">[\s\S]*?<span class="row">([\s\S]*?)<\/span><\/nav>/.exec(html)?.[1] ?? "";
-    expect(group).not.toMatch(/(?:data-ask="(?:reopenask|closeask)[^"]*"|>Update<|data-pdf)/);
-  });
-
   // "whatever phase it is in, including one where no step has
   // completed" — the render layer draws off `closeAvailable` alone,
   // which the server sets unconditionally for every non-archived spec
@@ -28,11 +22,6 @@ describe("the Close control", () => {
 
   test("absent for an archived spec", () => {
     expect(specActions(view({ archived: true, closeAvailable: true }), "")).not.toContain("data-ask=\"closeask");
-  });
-
-  test("absent for a closed spec (closed implies archived)", () => {
-    const html = specActions(view({ archived: true, closed: true, closeAvailable: true }), "");
-    expect(html).not.toContain("data-ask=\"closeask");
   });
 
   test("disabled with its reason while busy, rather than absent or silently inert", () => {

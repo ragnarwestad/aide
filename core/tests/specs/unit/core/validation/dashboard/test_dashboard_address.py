@@ -1,18 +1,12 @@
-"""Where the documented dashboard answers, written down without naming a machine.
+"""No file that writes down where the dashboard answers names one machine.
 
 The dashboard binds loopback and answers at `http://127.0.0.1:8788` on the
 serving host; HTTPS and other devices are an optional proxy, documented on
-its own page (`dashboard/docs/tailscale.md`), which carries the HTTPS
-placeholder address.
+its own page (`dashboard/docs/tailscale.md`).
 
-The dashboard's address is written down in several places that no single
-test could see at once: the dashboard's own README, the root manifest and
-the ROADMAP. When the address changes, one of them would be left behind.
-
-`dashboard/test/no-hardcoded-host.test.ts` guards the same files against
-naming ONE operator's machine, but it only scans inside `dashboard/`, so
-`docs/ROADMAP.md` has no guard at all. Both rules are checked here, across
-both toolchains' trees.
+`dashboard/test/no-hardcoded-host.test.ts` guards files inside `dashboard/`
+against naming ONE operator's machine, but `docs/ROADMAP.md` and the tailnet
+host name are outside it, so they are checked here.
 """
 import re
 
@@ -28,22 +22,6 @@ ADDRESS_FILES = (
     ".aide/project.yaml",
 )
 
-# The page for the optional HTTPS proxy is the one that writes out the
-# HTTPS address, and it must use the placeholder form.
-EXAMPLE_FILES = (
-    "dashboard/docs/tailscale.md",
-)
-
-# A plain-HTTP URL naming the dashboard's port. `PORT ?= 8788`, the
-# variable table's default column and serve.ts's own fallback are not
-# URLs and stay as they are. The one plain-HTTP address that is still
-# correct is the loopback one the TLS proxy forwards to — everything a
-# READER is pointed at has to be the HTTPS address.
-# noinspection HttpUrlsUsage
-PLAIN_HTTP_DASHBOARD_URL = re.compile(
-    r"http://(?!127\.0\.0\.1|localhost)[^\s\"'`)]*:8788"
-)
-
 # The two ways the serving host's real address has been written down:
 # the Tailscale IP the dashboard used to answer on, and the tailnet host
 # name the new certificate is issued for. Both identify one machine, and
@@ -55,37 +33,6 @@ OPERATOR_ADDRESS = (
     re.compile(r"100\.115\.106\.17"),
     re.compile(r"[A-Za-z0-9-]\.ts\.net", re.IGNORECASE),
 )
-
-
-@pytest.mark.validation
-class TestDocumentedAddressIsHttps:
-    """No file still sends a reader to the retired plain-HTTP address."""
-
-    @pytest.mark.parametrize("relative_path", ADDRESS_FILES)
-    def test_no_plain_http_dashboard_url_remains(self, workspace_root, relative_path):
-        # Arrange
-        text = (workspace_root / relative_path).read_text(encoding="utf-8")
-
-        # Act
-        found = PLAIN_HTTP_DASHBOARD_URL.findall(text)
-
-        # Assert
-        assert not found, (
-            f"{relative_path} documents the dashboard over plain HTTP at a "
-            f"host other than loopback ({found}); it binds 127.0.0.1 alone"
-        )
-
-    @pytest.mark.parametrize("relative_path", EXAMPLE_FILES)
-    def test_the_example_address_is_https(self, workspace_root, relative_path):
-        # Arrange
-        text = (workspace_root / relative_path).read_text(encoding="utf-8")
-
-        # Act & Assert
-        assert "https://<serving-host>" in text, (
-            f"{relative_path} should show the dashboard's address as "
-            f"https://<serving-host>... — the placeholder form, since no "
-            f"real host name may land in the repo"
-        )
 
 
 @pytest.mark.validation

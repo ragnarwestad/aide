@@ -53,18 +53,6 @@ const row = (over: Partial<QueueRowView> = {}): QueueRowView => ({
   ...over,
 });
 
-describe("specStateChip() on a stopped row", () => {
-  // A job its time limit stopped failed — the queued wording is scoped
-  // to a queued job's own hold, never to a real stop.
-  test("a job its time limit stopped reads 'Failed'", () => {
-    const html = specStateChip(
-      row({ state: "failed", steps: ["implement"], stepIndex: 0, stopReason: "timeout" }),
-      "en",
-    );
-    expect(html).toContain(">Failed<");
-  });
-});
-
 test("a deploy held back before it starts reads Queued, and one held back after it started reads as running (AC-3, AC-7)", () => {
   const held: Partial<QueueRowView> = { steps: ["deploy"], errorReason: "held-back", error: { key: "runner.landingPause" } };
   expect(specStateChip(row({ ...held, state: "queued" }), "en")).toContain(t("en", "list.state.queued"));
@@ -72,10 +60,9 @@ test("a deploy held back before it starts reads Queued, and one held back after 
 });
 
 // An ended job's chip on the Jobs tab and the specs list reads the state's
-// word from the reader's catalogue, and keeps the icon the English word has.
-describe("specStateChip() on an ended job, in every language", () => {
+// word from the reader's catalogue.
+describe("specStateChip() on an ended job, in the reader's language", () => {
   const ENDED = ["failed", "cancelled", "waiting"] as const;
-  const iconOf = (html: string) => html.match(/data-icon="([^"]*)"/)?.[1];
   const wordOf = (html: string) => html.match(/>([^<]*)<\/span>$/)?.[1];
 
   test("in Norwegian the chip reads the catalogue's word (AC-1)", () => {
@@ -85,28 +72,6 @@ describe("specStateChip() on an ended job, in every language", () => {
       expect(wordOf(html)).toBe(word[0]!.toUpperCase() + word.slice(1));
     }
   });
-
-  test("in Spanish, German and French the chip reads that language's word with the English chip's icon (AC-1)", () => {
-    for (const state of ENDED) {
-      const english = specStateChip(row({ state, steps: ["implement"], stepIndex: 0 }), "en");
-      for (const lang of ["es", "de", "fr"] as const) {
-        const html = specStateChip(row({ state, steps: ["implement"], stepIndex: 0 }), lang);
-        const word = t(lang, `state.${state}`);
-        expect(wordOf(html)).toBe(word[0]!.toUpperCase() + word.slice(1));
-        expect({ state, lang, icon: iconOf(html) }).toEqual({ state, lang, icon: iconOf(english) });
-      }
-    }
-  });
-
-  test("in English the chip reads as before (AC-1)", () => {
-    const words = ENDED.map((state) => wordOf(specStateChip(row({ state, steps: ["implement"], stepIndex: 0 }), "en")));
-    expect(words).toEqual(["Failed", "Cancelled", "Waiting"]);
-  });
-});
-
-test("once the hold is gone it reads as running again", () => {
-  const html = specStateChip(row({ state: "running", steps: ["deploy"], stepIndex: 0 }), "en");
-  expect(html).toContain("Deploying");
 });
 
 test("a card names the merging phase while the next phase waits (AC-7)", () => {

@@ -72,18 +72,6 @@ describe("tickRunner with a used-up usage limit", () => {
     expect(store.get(queued.id)?.error).toBeUndefined();
     expect(spawns.map((s) => s.step).sort()).toEqual(["analyze", "implement"]);
   });
-
-  test("a scheduled run due during the hold is held, and is let go when the hold ends (AC-12)", async () => {
-    limitStop();
-    const run = enqueue({ specFolder: "schedule-nightly", steps: ["schedule"] });
-    const runner = makeRunner({ maxConcurrent: 3 });
-    await tickRunner(ctxAt("13:00", runner));
-    expect(store.get(run.id)?.state).toBe("queued");
-    await tickRunner(ctxAt("14:00", runner));
-    // Still queued behind the restarted implement, which is the schedule's
-    // own rule for a project with other work in flight — not the limit's.
-    expect((store.get(run.id)?.error as { key: string } | undefined)?.key).not.toBe("runner.usageLimitHeld");
-  });
 });
 
 describe("a person's press during the hold", () => {

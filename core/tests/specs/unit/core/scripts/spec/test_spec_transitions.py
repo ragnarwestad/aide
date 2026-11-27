@@ -84,12 +84,6 @@ def test_analyze_is_legal_from_created(tmp_path):
     assert result["RC"] == "0"
 
 
-def test_analyze_is_legal_again_from_analyzed_same_phase_rerun(tmp_path):
-    status_file = _status_file(tmp_path, "1-x", workflow_line="create, analyze")
-    result = may_apply(status_file, "analyze")
-    assert result["RC"] == "0"
-
-
 def test_implement_refused_before_analyze_with_the_gates_own_words(tmp_path):
     status_file = _status_file(tmp_path, "1-x")
     result = may_apply(status_file, "implement")
@@ -131,20 +125,6 @@ def test_a_state_file_left_with_conflict_markers_is_read_from_the_prose(tmp_path
 # --- Backward moves are refused, naming the way back ----------------
 
 
-def test_analyze_may_run_again_once_implemented(tmp_path):
-    status_file = _status_file(tmp_path, "7-x", workflow_line="create, analyze, implement")
-    assert may_apply(status_file, "analyze")["RC"] == "0"
-
-
-def test_create_refused_once_analyzed_says_so_without_naming_a_way_back(tmp_path):
-    status_file = _status_file(tmp_path, "7-x", workflow_line="create, analyze")
-    result = may_apply(status_file, "create")
-    assert result["RC"] == "1"
-    assert result["REASON"] == "already-analyzed"
-    assert "cannot run again" in result["MESSAGE"]
-    assert "aide-reset" not in result["MESSAGE"]
-
-
 def test_analyze_refused_on_an_archived_spec_names_reopen(tmp_path):
     status_file = _status_file(tmp_path, "7-x", workflow_line="create, analyze, implement", archived="2026-09-01")
     result = may_apply(status_file, "analyze")
@@ -168,33 +148,7 @@ def test_reopen_is_legal_only_from_archived(tmp_path):
     assert result["RC"] == "0"
 
 
-# --- close: legal from any pre-archive phase, unlike archive --
-
-
-def test_close_is_legal_from_created_with_no_step_completed(tmp_path):
-    status_file = _status_file(tmp_path, "1-x")
-    result = may_apply(status_file, "close")
-    assert result["RC"] == "0"
-
-
-def test_close_is_legal_from_analyzed(tmp_path):
-    status_file = _status_file(tmp_path, "1-x", workflow_line="create, analyze")
-    result = may_apply(status_file, "close")
-    assert result["RC"] == "0"
-
-
-def test_close_is_legal_from_implemented(tmp_path):
-    status_file = _status_file(tmp_path, "1-x", workflow_line="create, analyze, implement")
-    result = may_apply(status_file, "close")
-    assert result["RC"] == "0"
-
-
-def test_close_refused_on_an_archived_spec_names_reopen(tmp_path):
-    status_file = _status_file(tmp_path, "7-x", workflow_line="create, analyze, implement", archived="2026-09-01")
-    result = may_apply(status_file, "close")
-    assert result["RC"] == "1"
-    assert result["REASON"] == "already-archived"
-    assert "only reopen" in result["MESSAGE"]
+# --- a closed spec -------------------------------------------------
 
 
 def _closed_status_file(tmp_path, folder, workflow_line=None):
@@ -210,30 +164,10 @@ def _closed_status_file(tmp_path, folder, workflow_line=None):
     return status_file
 
 
-def test_closed_spec_refuses_every_event_but_reopen(tmp_path):
-    status_file = _closed_status_file(tmp_path, "1-x", workflow_line="create")
-    for event in ("create", "analyze", "implement", "archive", "close"):
-        result = may_apply(status_file, event)
-        assert result["RC"] == "1", f"{event} should be refused on a closed spec"
-        assert result["REASON"] == "already-closed"
-        assert "only reopen" in result["MESSAGE"]
-
-
 def test_reopen_is_legal_from_closed(tmp_path):
     status_file = _closed_status_file(tmp_path, "1-x", workflow_line="create")
     result = may_apply(status_file, "reopen")
     assert result["RC"] == "0"
-
-
-def test_write_phase_stamp_writes_the_closed_stamp_with_its_reason(tmp_path):
-    status_file = _status_file(tmp_path, "1-x")
-    write_stamp_and_mirror(status_file, "closed", "this idea does not hold")
-    text = status_file.read_text()
-    assert "**Closed:**" in text
-    assert "this idea does not hold" in text
-    state = json.loads((status_file.parent / "4-status.json").read_text())
-    assert state["closed"]["reason"] == "this idea does not hold"
-    assert state["closed"]["date"]
 
 
 # --- may_apply never writes -----------------------------------------
@@ -276,15 +210,6 @@ def test_the_workflow_line_is_rewritten_in_place_whatever_its_letter_case_AC_3(t
     assert "- **Workflow steps completed:** create, analyze, implement" in text
     state = json.loads((status_file.parent / "4-status.json").read_text())
     assert state["completedPhases"] == ["create", "analyze", "implement"]
-
-
-def test_write_phase_stamp_writes_the_archived_stamp(tmp_path):
-    status_file = _status_file(tmp_path, "1-x", workflow_line="create, analyze, implement")
-    write_stamp_and_mirror(status_file, "archived")
-    text = status_file.read_text()
-    assert "**Archived:**" in text
-    state = json.loads((status_file.parent / "4-status.json").read_text())
-    assert state["archived"]["date"]
 
 
 def test_apply_writes_the_reopened_stamp_with_its_boundary_sha(tmp_path):

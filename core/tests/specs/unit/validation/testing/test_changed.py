@@ -57,9 +57,9 @@ def test_a_test_is_a_contract_test_when_its_code_names_the_dashboard_folder(tmp_
     assert module.contract_tests(tmp_path) == ["core/tests/test_joined.py", "core/tests/test_path.py"]
 
 
-def test_the_runner_test_that_reads_the_dashboards_source_is_a_contract_test():
+def test_the_runner_test_that_names_the_dashboard_folder_is_a_contract_test():
     selected = module.contract_tests(ROOT)
-    assert "core/tests/specs/unit/core/scripts/run_spec/setup/test_aide_run_spec_gates.py" in selected
+    assert "core/tests/specs/unit/core/scripts/run_spec/turn/test_aide_run_spec_screenshots.py" in selected
     assert "core/tests/specs/unit/core/scripts/run_spec/checkout/test_aide_run_spec_time_limit_and_cancel.py" not in selected
 
 

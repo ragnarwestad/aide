@@ -83,10 +83,6 @@ def _aide(workspace_root, tool):
 
 @pytest.mark.parametrize("tool", sorted(TOOLS))
 class TestBothTools:
-    def test_a_new_file_holds_aides_hooks_AC_3(self, workspace_root, tmp_path, tool):
-        cfg, _ = _run(workspace_root, tmp_path, tool, "install_aide_hooks")
-        assert _commands(cfg) == _aide(workspace_root, tool)
-
     def test_the_users_hooks_are_kept_beside_aides_AC_3(self, workspace_root, tmp_path, tool):
         cfg, _ = _run(workspace_root, tmp_path, tool, "install_aide_hooks", USER)
         assert _commands(cfg) == sorted(_aide(workspace_root, tool) + [USER_HOOK, "say done"])
@@ -101,15 +97,24 @@ class TestBothTools:
         cfg, _ = _run(workspace_root, tmp_path, tool, "uninstall_aide_hooks")
         assert _commands(cfg) == [USER_HOOK, "say done"]
 
-    def test_uninstall_removes_a_file_that_held_only_aides_hooks_AC_3(self, workspace_root, tmp_path, tool):
-        _run(workspace_root, tmp_path, tool, "install_aide_hooks")
-        cfg, _ = _run(workspace_root, tmp_path, tool, "uninstall_aide_hooks")
-        assert not cfg.exists()
 
-    def test_a_file_that_is_not_json_is_left_as_it_is_AC_3(self, workspace_root, tmp_path, tool):
-        cfg, result = _run(workspace_root, tmp_path, tool, "install_aide_hooks", "{ not json,\n")
-        assert cfg.read_text() == "{ not json,\n"
-        assert "⚠️" in result.stdout
+# These take the copy, the remove-on-match and the unreadable-file branches,
+# which never read the tool's pattern, so one tool proves them.
+def test_a_new_file_holds_aides_hooks_AC_3(workspace_root, tmp_path):
+    cfg, _ = _run(workspace_root, tmp_path, "claude", "install_aide_hooks")
+    assert _commands(cfg) == _aide(workspace_root, "claude")
+
+
+def test_uninstall_removes_a_file_that_held_only_aides_hooks_AC_3(workspace_root, tmp_path):
+    _run(workspace_root, tmp_path, "claude", "install_aide_hooks")
+    cfg, _ = _run(workspace_root, tmp_path, "claude", "uninstall_aide_hooks")
+    assert not cfg.exists()
+
+
+def test_a_file_that_is_not_json_is_left_as_it_is_AC_3(workspace_root, tmp_path):
+    cfg, result = _run(workspace_root, tmp_path, "claude", "install_aide_hooks", "{ not json,\n")
+    assert cfg.read_text() == "{ not json,\n"
+    assert "⚠️" in result.stdout
 
 
 def test_an_earlier_codex_install_has_its_entries_replaced_AC_3(workspace_root, tmp_path):

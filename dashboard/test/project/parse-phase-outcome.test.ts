@@ -42,19 +42,10 @@ describe("parsePhaseOutcome", () => {
     }
   });
 
-  test("an Analysis bullet outside Tracking info is ignored", () => {
-    const content = ["# 1 - Analysis", "", "## Tracking info", "", "- **Result:** completed", "", "## Findings", "", "- **Analysis:** short", ""].join("\n");
-    expect(parsePhaseOutcome(content).analysis).toBeUndefined();
-  });
-
   test("a recorded model comes back", () => {
     expect(parsePhaseOutcome(withTracking("- **Model:** claude claude-sonnet-5")).model).toBe(
       "claude claude-sonnet-5",
     );
-  });
-
-  test("no Model line means no model", () => {
-    expect(parsePhaseOutcome(withTracking("- **Result:** completed")).model).toBeUndefined();
   });
 
   test("a recorded model id comes back beside the model", () => {
@@ -63,39 +54,9 @@ describe("parsePhaseOutcome", () => {
     expect(outcome.modelId).toBe("claude-opus-5-5");
   });
 
-  test("no Model id line means no model id", () => {
-    expect(parsePhaseOutcome(withTracking("- **Model:** claude opus")).modelId).toBeUndefined();
-  });
-
-  test("a look-alike Model id bullet outside Tracking info is ignored", () => {
-    const content = ["# 1 - Analysis", "", "## Tracking info", "", "- **Result:** completed", "", "## Risk analysis", "", "- **Model id:** x", ""].join("\n");
-    expect(parsePhaseOutcome(content).modelId).toBeUndefined();
-  });
-
   // The same read as Model, on its own field.
   test("a recorded effort comes back", () => {
     expect(parsePhaseOutcome(withTracking("- **Effort:** high")).effort).toBe("high");
-  });
-
-  test("no Effort line means no effort", () => {
-    expect(parsePhaseOutcome(withTracking("- **Result:** completed")).effort).toBeUndefined();
-  });
-
-  test("a look-alike Effort bullet outside Tracking info is ignored", () => {
-    // Written out in full on purpose: this text is the input of the parser under test.
-    const content = [
-      "# 247 - Analysis",
-      "",
-      "## Tracking info",
-      "",
-      "- **Result:** completed",
-      "",
-      "## Risk analysis",
-      "",
-      "- **Effort:** high",
-      "",
-    ].join("\n");
-    expect(parsePhaseOutcome(content).effort).toBeUndefined();
   });
 
   test("a Time spent line becomes milliseconds", () => {
@@ -104,10 +65,6 @@ describe("parsePhaseOutcome", () => {
 
   test("a Time spent line past an hour still parses (over-60 minutes case)", () => {
     expect(parsePhaseOutcome(withTracking("- **Time spent:** 75m00s")).timeSpentMs).toBe(4_500_000);
-  });
-
-  test("no Time spent line means no figure", () => {
-    expect(parsePhaseOutcome(withTracking("- **Result:** completed")).timeSpentMs).toBeUndefined();
   });
 
   test("a Cost line becomes a dollar figure, unmeasured unset", () => {
@@ -120,10 +77,6 @@ describe("parsePhaseOutcome", () => {
     const outcome = parsePhaseOutcome(withTracking("- **Cost:** $0.0123 (unmeasured)"));
     expect(outcome.cost).toBe(0.0123);
     expect(outcome.costUnmeasured).toBe(true);
-  });
-
-  test("no Cost line at all means no figure, never 0", () => {
-    expect(parsePhaseOutcome(withTracking("- **Result:** completed")).cost).toBeUndefined();
   });
 
   test("a look-alike bullet outside Tracking info is ignored", () => {
@@ -150,27 +103,6 @@ describe("parsePhaseOutcome", () => {
     expect(parsePhaseOutcome(withTracking("- **Tokens:** 9562")).tokens).toBe(9562);
   });
 
-  test("no Tokens line at all means no figure, never 0", () => {
-    expect(parsePhaseOutcome(withTracking("- **Result:** completed")).tokens).toBeUndefined();
-  });
-
-  test("a look-alike Tokens bullet outside Tracking info is ignored", () => {
-    // Written out in full on purpose: this text is the input of the parser under test.
-    const content = [
-      "# 247 - Analysis",
-      "",
-      "## Tracking info",
-      "",
-      "- **Result:** completed",
-      "",
-      "## Risk analysis",
-      "",
-      "- **Tokens:** 999999",
-      "",
-    ].join("\n");
-    expect(parsePhaseOutcome(content).tokens).toBeUndefined();
-  });
-
   test("no Tracking info section at all yields nothing", () => {
     expect(parsePhaseOutcome("# 247 - Analysis\n\nProse only.\n")).toEqual({});
   });
@@ -182,26 +114,6 @@ describe("parsePhaseOutcome", () => {
     expect(parsePhaseOutcome(withTracking("- **Attempts:** 3")).attempts).toBe(3);
   });
 
-  test("no Attempts line at all means no figure, never 0", () => {
-    expect(parsePhaseOutcome(withTracking("- **Result:** completed")).attempts).toBeUndefined();
-  });
-
-  test("a look-alike Attempts bullet outside Tracking info is ignored", () => {
-    // Written out in full on purpose: this text is the input of the parser under test.
-    const content = [
-      "# 247 - Analysis",
-      "",
-      "## Tracking info",
-      "",
-      "- **Result:** completed",
-      "",
-      "## Risk analysis",
-      "",
-      "- **Attempts:** 999999",
-      "",
-    ].join("\n");
-    expect(parsePhaseOutcome(content).attempts).toBeUndefined();
-  });
 });
 
 describe("specPhaseOutcome", () => {

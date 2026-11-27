@@ -20,11 +20,6 @@ import pytest
 CODEX_PROJECT_DOC_MAX_BYTES = 32768
 
 
-# A string that appears in core/rules/spec-structure.md and in no other
-# rule — the marker for "this rule's body was concatenated in".
-SPEC_STRUCTURE_MARKER = "Workflow steps completed"
-
-
 def _build_agents_md(workspace_root, tmp_path):
     """Runs build-agents-md.sh on a copy of core/ under `tmp_path` — the
     script, the rules and the intro it reads — asserts that it succeeded,
@@ -94,20 +89,6 @@ class TestBuildAgentsMd:
                 "so. Move a rule out to core/skills/ rather than raising "
                 "this number."
             )
-
-    def test_output_leaves_the_path_scoped_rule_out(self, workspace_root, tmp_path):
-        """The shrink must come from real extraction, not incidental trimming.
-
-        spec-structure.md is the largest rule and is path-scoped for Claude
-        Code already; the generator used to inline it unconditionally.
-        Codex gets it as a skill instead (core/skills/spec-structure/).
-        """
-        rebuilt = self._build(workspace_root, tmp_path)
-        assert SPEC_STRUCTURE_MARKER not in rebuilt, (
-            f"AGENTS.md still carries spec-structure.md's body ({SPEC_STRUCTURE_MARKER!r}) "
-            "— drop it from build-agents-md.sh's RULE_FILES; Codex reads it "
-            "from ~/.agents/skills/spec-structure/ instead"
-        )
 
     @staticmethod
     def _build(workspace_root, tmp_path):

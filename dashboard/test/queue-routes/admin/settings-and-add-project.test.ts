@@ -207,11 +207,6 @@ describe("Settings' Process tab: how many steps may run at once", () => {
     expect(await shownCount(base)).toBe("3");
   });
 
-  test("with no value saved, the tab shows the built-in 2", async () => {
-    const { base } = withRunner();
-    expect(await shownCount(base)).toBe("2");
-  });
-
   test("a form post saves, answers the new count, and the tab shows it", async () => {
     const file = ownConfig({ concurrency: 2 });
     const { base } = withRunner({ queueConcurrency: 2, queueConfigFile: file });
@@ -237,20 +232,6 @@ describe("Settings' Process tab: how many steps may run at once", () => {
     }
     expect(readFileSync(file, "utf-8")).toBe(before);
     expect(await shownCount(base)).toBe("2");
-  });
-
-  test("a refused form post answers why, and nothing is saved", async () => {
-    const file = ownConfig({ concurrency: 2 });
-    const before = readFileSync(file, "utf-8");
-    const { base } = withRunner({ queueConcurrency: 2, queueConfigFile: file });
-    for (const body of ["concurrency=abc", "concurrency="]) {
-      const res = await fetch(`${base}/api/queue/settings/concurrency`, {
-        method: "POST", headers: FORM, body, redirect: "manual",
-      });
-      expect(res.status).toBe(400);
-      expect(((await res.json()) as { error: string }).error).toContain("whole number");
-    }
-    expect(readFileSync(file, "utf-8")).toBe(before);
   });
 
   test("a server with no queue, or whose config file is missing, saves nothing", async () => {

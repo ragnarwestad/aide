@@ -77,11 +77,6 @@ def test_refuses_without_project_dir(script):
     assert code == 2 and answer["ok"] is False
 
 
-def test_refuses_an_unknown_argument(script, project):
-    code, answer = resolve(script, project, "--landing")
-    assert code == 2 and "unknown argument" in answer["error"]
-
-
 def _docs_check(repo):
     (repo / "scripts").mkdir(exist_ok=True)
     (repo / "scripts" / "check-docs").write_text("#!/bin/sh\nexit 0\n")

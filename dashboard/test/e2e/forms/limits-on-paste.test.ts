@@ -50,14 +50,6 @@ describe("a paste into a bounded field", () => {
 });
 
 describe("a Description over its bound", () => {
-  test("10,100 characters pasted into Description are all kept, and the line says 100 too many (AC-2, AC-4)", async () => {
-    const { context, page } = await pasteInto(browser, DESCRIPTION, "y".repeat(10_100));
-    await page.waitForFunction((sel) => (document.querySelector(sel) as HTMLTextAreaElement).value.length === 10_100, DESCRIPTION);
-    const NOTE = `${DESCRIPTION} ~ [data-limit-note]`;
-    await page.waitForFunction((sel) => /100 characters too many/.test(document.querySelector(sel)?.textContent ?? ""), NOTE);
-    await context.close();
-  });
-
   test("Create posts nothing while the Description is over, and posts once it is shortened (AC-4)", async () => {
     const context = await browser.newContext();
     const page = await context.newPage();

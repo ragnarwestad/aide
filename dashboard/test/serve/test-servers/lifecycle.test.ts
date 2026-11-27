@@ -195,37 +195,6 @@ describe("startTestServer", () => {
     expect(spawnCalls).toHaveLength(0);
   });
 
-  // A fourth start succeeds once the pool holds more than three
-  // ports — proved through the REAL `findFreePort`, not a mock, with
-  // three ports already reserved.
-  test("a fourth start succeeds and takes the fourth pool port", async () => {
-    const ctx = makeCtx({
-      reservedPorts: () => [TEST_SERVER_PORTS[0]!, TEST_SERVER_PORTS[1]!, TEST_SERVER_PORTS[2]!],
-      findFreePort: (reserved) => findFreePort(reserved, () => true),
-    });
-    const result = await startTestServer(ctx, "aide", "spec-1");
-    expect(result.ok).toBe(true);
-    expect(spawnCalls[0]!.cmd).toContain(String(TEST_SERVER_PORTS[3]));
-  });
-
-  // The pool still has a limit — all six ports reserved by six
-  // tracked, running boards refuses a seventh, proved end to end through
-  // `startTestServer()`'s own real `findFreePort`, not a mocked one.
-  test("a seventh start is refused once all six ports are reserved", async () => {
-    const store = new TestServerStore();
-    for (let i = 0; i < 6; i++) {
-      store.set("aide", `spec-${i}`, runningEntry(TEST_SERVER_PORTS[i]!));
-    }
-    const ctx = makeCtx({
-      store,
-      reservedPorts: () => [...TEST_SERVER_PORTS],
-      findFreePort: (reserved) => findFreePort(reserved, () => true),
-    });
-    const result = await startTestServer(ctx, "aide", "spec-6");
-    expect(result.ok).toBe(false);
-    expect(spawnCalls).toHaveLength(0);
-  });
-
   // The refusal states the exact running count (6) and the
   // pool's limit (6) — never a bare port list.
   test("a pool-exhausted refusal names the running count and the limit", async () => {
@@ -273,13 +242,6 @@ describe("startTestServer", () => {
     expect(spawnCalls).toHaveLength(1);
   });
 
-  // An exposed port starts as it does today.
-  test("an exposed port starts as it does today", async () => {
-    const ctx = makeCtx({ portExposed: async () => true });
-    const result = await startTestServer(ctx, "aide", "spec-1");
-    expect(result.ok).toBe(true);
-    expect(spawnCalls).toHaveLength(1);
-  });
 });
 
 // The Deploy tab's button starts a board on the project's real

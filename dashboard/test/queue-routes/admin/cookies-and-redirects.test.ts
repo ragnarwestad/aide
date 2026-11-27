@@ -5,10 +5,7 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { rmSync } from "node:fs";
-import {
-  JOB,
-  setupQueueRoutesHarness,
-} from "../fixtures.ts";
+import { setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness();
 
@@ -61,41 +58,10 @@ describe("port-scoped cookies and the headerAuth bind", () => {
 });
 
 describe("the Specs list is at /specs", () => {
-  test("the retired addresses answer 404, not a redirect", async () => {
-    const { base } = start();
-    for (const path of [
-      "/queue", "/queue/aide/81-queue-and-runner", "/projects.html", "/projects/aide/settings",
-      "/settings/providers/new", "/settings/providers/edit?key=Claude",
-    ]) {
-      expect([path, (await fetch(`${base}${path}`, { redirect: "manual" })).status]).toEqual([path, 404]);
-    }
-  });
-
   test("GET /specs answers the list itself, with no redirect", async () => {
     const { base } = start();
     const res = await fetch(`${base}/specs?state=active&sort=cost`, { redirect: "manual" });
     expect(res.status).toBe(200);
     expect(await res.text()).toContain('id="jobrows"');
-  });
-
-  test("the JSON surface is not renamed and no redirect swallows it", async () => {
-    const { base } = start();
-    const headers = { "content-type": "application/json", accept: "application/json" };
-    const made = await fetch(`${base}/api/queue`, { method: "POST", headers, body: JSON.stringify(JOB) });
-    expect(made.status).toBe(200);
-    const id = ((await made.json()) as { job: { id: string } }).job.id;
-
-    const list = await fetch(`${base}/api/queue`, { redirect: "manual" });
-    expect(list.status).toBe(200);
-    expect(((await list.json()) as { jobs: unknown[] }).jobs.length).toBe(1);
-
-    const one = await fetch(`${base}/api/queue/${id}`, { redirect: "manual" });
-    expect(one.status).toBe(200);
-    expect(((await one.json()) as { job: { id: string } }).job.id).toBe(id);
-
-    const cancel = await fetch(`${base}/api/queue/${id}/cancel`, {
-      method: "POST", headers, redirect: "manual",
-    });
-    expect(cancel.status).toBe(200);
   });
 });

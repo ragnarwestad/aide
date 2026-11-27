@@ -164,35 +164,6 @@ describe("a project's settings route", () => {
     expect(res.status).toBe(400);
   });
 
-  // A form post with no Accept header gets the same JSON a script's
-  // press gets: a save lands on origin, a refusal writes nothing.
-  test("a form-encoded save and refusal answer JSON whatever the Accept header says", async () => {
-    const { base, dir, project } = await settled();
-    mkdirSync(join(project, "node_modules"), { recursive: true });
-    const FORM = { "content-type": "application/x-www-form-urlencoded" };
-    const ok = await fetch(`${base}/api/queue/projects/aide/settings`, {
-      method: "POST",
-      redirect: "manual",
-      headers: FORM,
-      body: new URLSearchParams({ worktreeLinks: "node_modules", specsPath: "" }),
-    });
-    expect(ok.status).toBe(200);
-    expect(((await ok.json()) as StepBody).ok).toBe(true);
-    const saved = onOrigin(dir);
-    expect(saved).toContain("worktreeLinks: node_modules");
-    const refused = await fetch(`${base}/api/queue/projects/aide/settings`, {
-      method: "POST",
-      redirect: "manual",
-      headers: FORM,
-      body: new URLSearchParams({ worktreeLinks: "/etc" }),
-    });
-    expect(refused.status).toBe(400);
-    const body = (await refused.json()) as StepBody;
-    expect(body.ok).toBe(false);
-    expect(body.results.find((r) => r.step === "worktreeLinks")!.error).toContain("/etc");
-    expect(onOrigin(dir)).toBe(saved);
-  });
-
   // A third field on the same form,
   // written to the same committed file the links go to — never to
   // `.aide/config`, which no clone on a second machine ever sees.

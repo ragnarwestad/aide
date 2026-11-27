@@ -34,9 +34,8 @@ describe("render, queue, git, project and i18n never import from serve", () => {
     expect(SOURCES.length).toBeGreaterThan(80);
   });
 
-  for (const file of SOURCES) {
-    test(`${file} does not import src/serve`, () => {
-      expect(serveImportsIn(file)).toEqual([]);
-    });
-  }
+  test("no source in those layers imports src/serve", () => {
+    const offenders = SOURCES.flatMap((file) => serveImportsIn(file).map((spec) => `${file}: ${spec}`));
+    expect(offenders).toEqual([]);
+  });
 });

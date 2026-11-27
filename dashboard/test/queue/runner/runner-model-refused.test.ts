@@ -3,7 +3,6 @@
 
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { store, enqueue, makeRunner, okResult, resetHarness, cleanupHarness } from "./runner-fixtures.ts";
-import { formatSentence } from "../../../src/messages/format.ts";
 import { withoutStepFailed } from "../../../src/messages/format.ts";
 
 beforeEach(resetHarness);
@@ -28,18 +27,5 @@ describe("a step the model refused", () => {
     expect(after?.state).toBe("failed");
     expect(withoutStepFailed(after?.error)).toEqual({ key: "runner.modelRefused", values: { button: "Analyze" } });
     expect(after?.errorDetail).toBe(SCRIPT_SENTENCE);
-  });
-
-  test("names Analyze and says the model declined to continue", () => {
-    const text = formatSentence("en", refused()?.error as Parameters<typeof formatSentence>[1]) ?? "";
-    expect(text).toContain("Analyze");
-    expect(text).toContain("declined to continue");
-  });
-
-  test("suggests running the step again or another model, and never install, login or Settings", () => {
-    const text = formatSentence("en", refused()?.error as Parameters<typeof formatSentence>[1]) ?? "";
-    expect(text).toContain("then press Analyze");
-    expect(text).toContain("another model");
-    expect(text).not.toMatch(/install|log ?in|logged in|Settings|Check/i);
   });
 });

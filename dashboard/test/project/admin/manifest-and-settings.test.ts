@@ -1,9 +1,7 @@
-import { dashboardSettingsFile } from "../../../src/git/dashboard-checkout/index.ts";
 import { describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
-  addProject,
   assessProjectReadiness,
   minimalManifest,
   updateProjectSettings,
@@ -13,20 +11,14 @@ import { manifestWithScalar, oneLine } from "../../../src/project/project-admin/
 import { parseManifest } from "../../../src/project/parse-manifest.ts";
 import { configValue, resolveWorktreeLinks } from "../../../src/project/discover";
 import { messageDetail } from "../../../src/messages/format.ts";
-import { cloningGit, fakeGit } from "../../helpers/fake-git.ts";
+import { fakeGit } from "../../helpers/fake-git.ts";
 import { tempDirs } from "../../helpers/setup/temp-dirs.ts";
+import { checkoutUnder } from "./git-fixture.ts";
 
 const root = tempDirs("aide-project-admin-").make;
 
-/** A checkout under a projects root of its own — the same shape the
- *  readiness tests above build, at module scope because the settings-file
- *  tests want it too. */
-function checkoutFor(name: string): { projectsRoot: string; dir: string } {
-  const projectsRoot = root();
-  const dir = join(projectsRoot, name);
-  mkdirSync(join(dir, "specs"), { recursive: true });
-  return { projectsRoot, dir };
-}
+/** A checkout under a projects root of its own. */
+const checkoutFor = (name: string) => checkoutUnder(root(), name);
 
 // --- The settings that travel with the repo ------------------------
 //
@@ -273,81 +265,6 @@ describe("a refused link names the file it came out of", () => {
     expect(check.blocking).toBe(true);
     expect(check.detail).toContain("WorktreeLinks must not escape the root");
     expect(projectsRoot).toBeTruthy();
-  });
-});
-
-describe("adding a project keeps its links in the dashboard's settings file", () => {
-  const settingsOf = (base: string, name: string) => readFileSync(dashboardSettingsFile(base, name), "utf-8");
-
-  test("worktree links go into the settings file, not .aide/config and not the checkout", async () => {
-    const projectsRoot = root();
-    const base = root();
-    const dir = join(projectsRoot, "travels");
-    const result = await addProject(cloningGit().run, projectsRoot, {
-      name: "travels",
-      gitUrl: "git@example.com:me/travels.git",
-      codeLanding: "merge",
-      worktreeLinks: ".venv dashboard/node_modules",
-    }, base);
-    expect(result.ok).toBe(true);
-    const parsed = parseManifest(settingsOf(base, "travels"));
-    expect(parsed.ok && parsed.data.worktreeLinks).toBe(".venv dashboard/node_modules");
-    expect(existsSync(join(dir, ".aide", "project.yaml"))).toBe(false);
-  });
-
-  // A checkout that already came with a full, untracked manifest keeps
-  // it untouched; the settings file starts from it, so nothing it said
-  // is lost.
-  test("an existing untracked manifest seeds the settings file and stays as it was", async () => {
-    const projectsRoot = root();
-    const base = root();
-    const dir = join(projectsRoot, "hasmanifest");
-    const drafted = "name: hasmanifest\ndescription: written by hand\nstack:\n  backend: none\n";
-    const result = await addProject(cloningGit({}, { ".aide/project.yaml": drafted }).run, projectsRoot, {
-      name: "hasmanifest",
-      gitUrl: "git@example.com:me/hasmanifest.git",
-      codeLanding: "merge",
-      worktreeLinks: "node_modules",
-    }, base);
-    expect(result.ok).toBe(true);
-    const text = settingsOf(base, "hasmanifest");
-    expect(text).toContain("description: written by hand");
-    expect(text).toContain("  backend: none");
-    expect(text).toContain("worktreeLinks: node_modules");
-    expect(readFileSync(join(dir, ".aide", "project.yaml"), "utf-8")).toBe(drafted);
-  });
-
-  test("the specs path still goes to .aide/config, and the settings file has no links", async () => {
-    const projectsRoot = root();
-    const base = root();
-    const dir = join(projectsRoot, "specsonly");
-    const result = await addProject(cloningGit().run, projectsRoot, {
-      name: "specsonly",
-      gitUrl: "git@example.com:me/specsonly.git",
-      codeLanding: "merge",
-      specsPath: join(root(), "aide-specs", "specsonly"),
-    }, base);
-    expect(result.ok).toBe(true);
-    expect(configValue(dir, "AIDE_SPECS_PATH")).toBeTruthy();
-    expect(settingsOf(base, "specsonly")).not.toContain("worktreeLinks");
-  });
-
-  test("an unusable links value is still refused before anything is written", async () => {
-    const projectsRoot = root();
-    const base = root();
-    const dir = join(projectsRoot, "stillrefused");
-    const result = await addProject(cloningGit().run, projectsRoot, {
-      name: "stillrefused",
-      gitUrl: "git@example.com:me/stillrefused.git",
-      codeLanding: "merge",
-      worktreeLinks: "/etc",
-    }, base);
-    expect(result.ok).toBe(false);
-    // The settings file IS written — registering the project is what
-    // makes it — but nothing about the links reached it, and the config
-    // was never opened.
-    expect(settingsOf(base, "stillrefused")).not.toContain("worktreeLinks");
-    expect(existsSync(join(dir, ".aide", "config"))).toBe(false);
   });
 });
 

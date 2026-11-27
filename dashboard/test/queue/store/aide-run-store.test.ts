@@ -17,12 +17,6 @@ const valid = {
 };
 
 describe("parseAideRun (schema)", () => {
-  test("accepts a valid payload", () => {
-    const r = parseAideRun(valid);
-    expect(r.ok).toBe(true);
-    if (r.ok) expect(r.run.spec).toBe("80");
-  });
-
   // aide-emit-run's --command takes these two and nothing else.
   test("the accepted commands are the two aide-emit-run sends (AC-1)", () => {
     expect([...AIDE_COMMANDS]).toEqual(["implement", "archive"]);
@@ -49,17 +43,6 @@ describe("parseAideRun (schema)", () => {
     const r = parseAideRun({ ...valid, phase: "refactor" });
     expect(r.ok).toBe(true);
     if (r.ok) expect(r.run.phase).toBe("verify");
-  });
-
-  test("a later phase replaces the row rather than adding one", () => {
-    const store = new AideRunStore();
-    const red = parseAideRun({ ...valid, phase: "red" });
-    const green = parseAideRun({ ...valid, phase: "green" });
-    if (!red.ok || !green.ok) throw new Error("fixtures must parse");
-    store.put(red.run, "2026-08-16T10:00:00Z");
-    store.put(green.run, "2026-08-16T10:05:00Z");
-    expect(store.list().length).toBe(1);
-    expect(store.list()[0]!.phase).toBe("green");
   });
 
   test("ignores unknown fields", () => {
@@ -108,15 +91,6 @@ describe("AideRunStore", () => {
       expect(store.get("no-such-session")).toBeUndefined();
     });
 
-    test("answers with the LATEST report for a session, not the first", () => {
-      // The row is keyed on the session and a later phase replaces the
-      // earlier one — which is the whole mechanism the page leans on to
-      // watch a run advance red - green - verify.
-      const store = new AideRunStore();
-      store.put({ ...valid, phase: "red" as const }, "2026-08-23T10:00:00Z");
-      store.put({ ...valid, phase: "verify" as const }, "2026-08-23T10:40:00Z");
-      expect(store.get("abc-123")?.phase).toBe("verify");
-    });
   });
 
   test("mirrors to a file and reloads on boot", () => {

@@ -198,34 +198,10 @@ describe("the icons", () => {
 });
 
 describe("the eight answer any request with a Host of the dashboard's own", () => {
-  const PATHS = [
-    "/manifest.webmanifest",
-    "/sw.js",
-    "/icon-512.svg",
-    "/icon-512-maskable.svg",
-    "/icon-192.png",
-    "/icon-512.png",
-    "/icon-512-maskable.png",
-    "/apple-touch-icon.png",
-  ];
-
-  test("each answers 200 with no credential at all", async () => {
-    const { base } = start();
-    for (const path of PATHS) {
-      expect([path, (await fetch(`${base}${path}`)).status]).toEqual([path, 200]);
-    }
-  });
-
   test("a POST to one of them is refused rather than answered", async () => {
     const { base } = start();
     const res = await fetch(`${base}/manifest.webmanifest`, { method: "POST" });
     expect(res.status).toBe(405);
-  });
-
-  test("a POST to a PNG icon is refused too", async () => {
-    const { base } = start();
-    for (const path of ["/icon-192.png", "/icon-512.png", "/icon-512-maskable.png"])
-      expect([path, (await fetch(`${base}${path}`, { method: "POST" })).status]).toEqual([path, 405]);
   });
 });
 

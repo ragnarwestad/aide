@@ -32,15 +32,14 @@ def _spec(workspace, analysis=ANALYSIS_SHORT, tracking=(CREATED,)):
     git(workspace["specs"], "commit", "-qm", "the spec before implement")
 
 
-def _claude(fake_claude, sentence=SENTENCE, code=False, seen=None):
+def _claude(fake_claude, sentence=SENTENCE, code=False):
     """A session that writes `sentence` to the file the prompt names (nothing
     when `sentence` is None), and a code file when `code`."""
-    keep = f'printf "%s" "$prompt" > {seen}\n' if seen else ""
     write = ""
     if sentence is not None:
         write = f'[ -n "$file" ] && cat > "$file" <<\'SENTENCEEOF\'\n{sentence}\nSENTENCEEOF\n'
     body = (
-        'prompt="$(cat)"\n' + keep
+        'prompt="$(cat)"\n'
         + 'file="$(printf "%s\\n" "$prompt" | grep -oE "[^ ]+/sent-back" | head -1)"\n'
         + READ_SPECS + write
         + ('echo "written by the step" > "$PWD/new-code.txt"\n' if code else "")
@@ -94,15 +93,6 @@ def test_a_sentence_that_is_empty_once_cleaned_is_no_sentence(runner, workspace,
     assert _recorded(workspace) == []
 
 
-def test_every_implement_prompt_names_the_sentence_file_and_the_limits(runner, workspace, fake_claude, tmp_path):
-    _spec(workspace, analysis="- **Analysis:** full")
-    seen = tmp_path / "implement-prompt.txt"
-    _implement(runner, workspace, _claude(fake_claude, sentence=None, seen=seen))
-    prompt = seen.read_text()
-    [line] = [l for l in prompt.splitlines() if "sent-back" in l]
-    assert "more than 3 source files to change (tests and documentation are not counted)" in line and "LOW" in line, line
-
-
 def test_an_analyze_prompt_does_not_name_a_sentence_file(runner, workspace, fake_claude, tmp_path):
     status_with_phase(workspace, "create", ["| a | ⬜ | |"])
     seen = tmp_path / "analyze-prompt.txt"
@@ -145,12 +135,6 @@ def test_a_sentence_on_a_full_analysis_is_refused_and_names_analyze_ac_1_ac_2(ru
     assert _description(workspace) == before
     subject = git(workspace["specs"], "log", "-1", "--pretty=%s", BRANCH)
     assert subject.endswith("(stopped: sent-back-refused)"), subject
-
-
-def test_a_sentence_with_no_analysis_line_is_refused(runner, workspace, fake_claude):
-    _spec(workspace, analysis=None)
-    out = _implement(runner, workspace, _claude(fake_claude))
-    assert out["terminalReason"] == "sent-back-refused", out
 
 
 def test_a_description_that_cannot_hold_the_line_is_refused(runner, workspace, fake_claude):

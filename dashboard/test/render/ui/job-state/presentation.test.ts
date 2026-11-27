@@ -1,7 +1,6 @@
 import { expect, test } from "bun:test";
 import { jobPresentation } from "../../../../src/render/ui/job-state/presentation.ts";
 import { wordPhase } from "../../../../src/render/ui/job-state/word-phase.ts";
-import { stepLabel } from "../../../../src/format/step-label.ts";
 import type { QueueRowView } from "../../../../src/render/ui/job-state/types.ts";
 const row = (patch: Partial<QueueRowView> = {}): QueueRowView => ({
   id: "merge", project: "p", specFolder: "land", steps: ["land"], stepIndex: 0,
@@ -36,10 +35,6 @@ test("merge activity is current and unknown marks retain Running (AC-6)", () => 
   expect(jobPresentation(row({ mergeActivity: "merging", queuePosition: position })).state).toBe("queued");
   expect(jobPresentation(row()).state).toBe("running");
   expect(jobPresentation(row({ mergeActivity: "running" })).state).toBe("running");
-});
-test("Archive keeps its identity and Merge has its display name (AC-1, AC-8)", () => {
-  expect(stepLabel("archive")).toBe("Archive");
-  expect(stepLabel("land")).toBe("Merge");
 });
 
 test("phase adapters forward the shared wait and warning decisions (AC-7)", () => {

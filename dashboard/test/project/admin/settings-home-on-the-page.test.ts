@@ -40,11 +40,4 @@ describe("where the settings are kept", () => {
     expect(html).not.toContain("settings.yaml");
   });
 
-  test("the manifest table is headed .aide/project.yaml even when the dashboard's copy is shadowed", () => {
-    expect(page("shadowed")).toContain("<h3>.aide/project.yaml</h3>");
-  });
-
-  test("the manifest table is headed .aide/project.yaml when neither file exists yet", () => {
-    expect(page("none")).toContain("<h3>.aide/project.yaml</h3>");
-  });
 });

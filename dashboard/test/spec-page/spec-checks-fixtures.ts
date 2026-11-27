@@ -86,9 +86,7 @@ export const STATUS_WITH_OPEN_ACCEPTANCE = [
 export const WORDED = STATUS.replace(/\| ⬜ \|/g, "| Waiting |");
 
 /** A LOW-complexity spec's `4-status.md` uses `## Checklist`
- *  instead of `## Phase N: ...` — must offer the same box on Overview
- *  and accept the same real tick. */
-export const CHECKLIST_PHASE = "Checklist";
+ *  instead of `## Phase N: ...`: the run's own record, not a box. */
 export const CHECKLIST_OPEN_ROW = "| Run the manual browser check | ⬜ | |";
 export const checklistSection = (rows: string[]) => ["## Checklist", "", ...HEADER, ...rows, ""].join("\n");
 export const CHECKLIST_STATUS = [

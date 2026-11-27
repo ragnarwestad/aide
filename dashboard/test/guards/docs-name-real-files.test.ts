@@ -23,13 +23,13 @@ const PAGES = [
 const PATH_IN_BACKTICKS = /`(?:dashboard\/)?((?:src|test)\/[A-Za-z0-9_./-]+\.ts)`/g;
 
 describe("every source file the docs name exists", () => {
-  for (const page of PAGES) {
-    test(page, () => {
-      const text = readFileSync(join(ROOT, page), "utf-8");
-      const missing = [...text.matchAll(PATH_IN_BACKTICKS)]
+  test("no page names a src/ or test/ file that is not there", () => {
+    const missing = PAGES.flatMap((page) =>
+      [...readFileSync(join(ROOT, page), "utf-8").matchAll(PATH_IN_BACKTICKS)]
         .map((m) => m[1]!)
-        .filter((p) => !existsSync(join(ROOT, p)));
-      expect(missing).toEqual([]);
-    });
-  }
+        .filter((p) => !existsSync(join(ROOT, p)))
+        .map((p) => `${page}: ${p}`),
+    );
+    expect(missing).toEqual([]);
+  });
 });

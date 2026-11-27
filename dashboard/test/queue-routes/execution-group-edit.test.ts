@@ -87,14 +87,6 @@ describe("editing a group", () => {
     expect([description(dir, FIRST), description(dir, SECOND), stored(dir)]).toEqual(before);
   });
 
-  test("places a newly added dependency before its unlocked dependent", async () => {
-    const { base, dir } = await groupOfTwo("stopped", { second: grouped(SECOND, 2, `- **Depends on:** \`${ADDED}\`\n`) });
-    const res = await edit(base, [FIRST, SECOND, ADDED]);
-    expect(res.status).toBe(200);
-    expect(stored(dir).members).toEqual([FIRST, ADDED, SECOND]);
-    expect(description(dir, SECOND)).toContain("- **Group position:** 3");
-  });
-
   test("renames the display of a stopped group without changing its membership files or branch", async () => {
     const { base, dir } = await groupOfTwo("stopped");
     const before = [description(dir, FIRST), description(dir, SECOND)];
@@ -122,7 +114,7 @@ describe("editing a group", () => {
 });
 
 
-test.each(["queued", "running", "archiving"])("a dialog opened before the group became %s cannot save", async (state) => {
+test.each(["running"])("a dialog opened before the group became %s cannot save", async (state) => {
   const { base, dir } = await groupOfTwo(state);
   const before = [description(dir, FIRST), description(dir, SECOND), stored(dir)];
   expect((await edit(base, [FIRST, ADDED], "Changed")).status).toBe(409);

@@ -157,11 +157,6 @@ describe("the discarded-text line", () => {
     expect(note(h.body).textContent).toBe("");
   });
 
-  test("the Close reason reports an overflowing paste the way the Description does", async () => {
-    const h = load();
-    await paste(h.win, h.reason, "y".repeat(5100), "y".repeat(5000));
-    expect(note(h.reason).textContent).toContain("100 characters did not fit");
-  });
 });
 
 describe("a field bounded by data-bound is counted and never cut", () => {

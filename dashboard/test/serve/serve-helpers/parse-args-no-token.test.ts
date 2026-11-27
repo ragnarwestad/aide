@@ -16,12 +16,6 @@ const configFile = (contents: Record<string, unknown>): string => {
   return file;
 };
 
-describe("--token-file", () => {
-  test("is an unknown argument", () => {
-    expect(() => parseArgs(["--token-file", "x"])).toThrow("unknown argument: --token-file");
-  });
-});
-
 describe("allowedHosts in queue-config.json", () => {
   test("a list of names is read, lower-cased", () => {
     const opts = parseArgs(["--queue-config", configFile({ allowedHosts: ["Board.Example.com", "b.example"] })]);

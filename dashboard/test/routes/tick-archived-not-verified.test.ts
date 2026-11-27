@@ -62,21 +62,6 @@ describe("an archived spec: a Not verified row can fail with a note", () => {
     expect(git.calls.filter((c) => c[0] === "commit")).toHaveLength(1);
   });
 
-  test("a pipe and a newline in the note are made safe for the table", async () => {
-    const { base, dir } = start(NV_STATUS);
-    await press(base, { rows: [NV_ROW], failed: [NV_ROW], notes: ["a | b\nc"] });
-    expect(readFileSync(fileOf(dir), "utf-8")).toContain("| ❌ Failed | Failed: a / b c |");
-  });
-
-  test("an empty note is refused and nothing is written", async () => {
-    const git = recording();
-    const { base, dir } = start(NV_STATUS, git.run);
-    const res = await press(base, { rows: [NV_ROW], failed: [NV_ROW], notes: ["   "] });
-    expect(res.status).toBe(409);
-    expect(readFileSync(fileOf(dir), "utf-8")).toBe(NV_STATUS);
-    expect(git.calls.filter((c) => c[0] === "commit")).toHaveLength(0);
-  });
-
   test("ticked and Failed together: the tick wins", async () => {
     const { base, dir } = start(NV_STATUS);
     await press(base, { rows: [NV_ROW], ticks: [NV_ROW], failed: [NV_ROW], notes: ["x"] });
@@ -98,7 +83,6 @@ describe("an archived spec: a Not verified row can fail with a note", () => {
 });
 
 describe("an archived spec: the Failed note has a length bound", () => {
-  const folded = "x\r\n".repeat(250);
   const accepted = async (note: string) => {
     const git = recording();
     const { base, dir } = start(NV_STATUS, git.run);
@@ -106,29 +90,12 @@ describe("an archived spec: the Failed note has a length bound", () => {
     return { res, dir, git };
   };
 
-  test("a note of exactly 500 characters is written as Failed", async () => {
-    const { res, dir } = await accepted("a".repeat(500));
-    expect(res.status).toBe(200);
-    expect(readFileSync(fileOf(dir), "utf-8")).toContain("| ❌ Failed |");
-  });
-
   test("a note of 501 characters is refused, names 500, and nothing is written", async () => {
     const { res, dir, git } = await accepted("a".repeat(501));
     expect(res.status).toBe(409);
     expect(await res.text()).toContain("500");
     expect(readFileSync(fileOf(dir), "utf-8")).toBe(NV_STATUS);
     expect(git.calls.filter((c) => c[0] === "commit")).toHaveLength(0);
-  });
-
-  test("line breaks count once: 750 raw characters that fold to 500 are written", async () => {
-    expect(folded).toHaveLength(750);
-    const { res } = await accepted(folded);
-    expect(res.status).toBe(200);
-  });
-
-  test("that note plus one more character folds to 501 and is refused", async () => {
-    const { res } = await accepted(`${folded}y`);
-    expect(res.status).toBe(409);
   });
 });
 

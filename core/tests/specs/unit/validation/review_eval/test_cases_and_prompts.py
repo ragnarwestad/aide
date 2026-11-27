@@ -38,28 +38,6 @@ def test_the_verify_prompt_carries_the_numbered_defects(review_eval, tmp_path):
     assert "git diff abc123" in text
 
 
-def test_every_review_prompt_counts_a_weakened_existing_test_as_a_defect_ac_1_ac_2(review_eval, tmp_path):
-    plain = tmp_path / "plain.md"
-    plain.write_text("# x\n\nA change.\n")
-    scoped = tmp_path / "scoped.md"
-    scoped.write_text("# x\n\n## Out of scope\n\n- The settings page.\n")
-
-    for description in (plain, scoped):
-        text = review_eval.prompt("review_prompt", str(description), "abc123", "main", "", "(headless)").lower()
-
-        for term in ("deleted", "assertion", "loosened", "skipped", "disabled", "replaces or removes"):
-            assert term in text, (description.name, term)
-
-
-def test_the_verify_prompt_keeps_a_weakened_test_defect_only_when_the_description_keeps_its_behaviour_ac_3(review_eval, tmp_path):
-    text = review_eval.prompt(
-        "verify_prompt", str(tmp_path / "d.md"), "abc123", "main", "1. one\n2. two", "(headless)"
-    ).lower()
-
-    for term in ("skipped", "assertion", "replace or remove"):
-        assert term in text, term
-
-
 @pytest.mark.parametrize("function", ["review_prompt", "verify_prompt"])
 def test_review_and_verify_include_the_shared_design_instruction(review_eval, tmp_path, function):
     description = tmp_path / "description.md"
@@ -199,18 +177,6 @@ def test_a_threat_section_asks_the_review_for_each_security_finding_and_the_veri
         assert term in review, term
     assert THREAT_MARKER in verify and analysis in verify
     assert review.rstrip().endswith("(headless)") and verify.rstrip().endswith("(headless)")
-
-
-@pytest.mark.parametrize("analysis", [None, THREATS])
-def test_every_review_prompt_tries_a_security_fix_against_a_variant_and_the_default_branch_ac_4(review_eval, tmp_path, analysis):
-    description = _spec_folder(tmp_path, analysis)
-
-    text = review_eval.prompt("review_prompt", str(description), "abc123", "main", "", "(headless)")
-
-    assert "fixes a security flaw" in text
-    assert "at least one variant" in text
-    assert "git diff abc123 main" in text and "git show main:" in text
-    assert "still being there on main is expected" in text
 
 
 @pytest.mark.parametrize("analysis", [

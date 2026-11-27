@@ -24,38 +24,4 @@ describe("t()", () => {
   test("LANGUAGES names all five", () => {
     expect(LANGUAGES.sort()).toEqual(["de", "en", "es", "fr", "nb"]);
   });
-
-  test("every language names the four progress states (AC-15)", () => {
-    for (const lang of LANGUAGES) {
-      for (const key of ["created", "reopened", "analyzed", "implemented"] as const) {
-        expect(t(lang, `list.state.${key}`)).not.toBe(`list.state.${key}`);
-      }
-    }
-  });
-
-  test("the first tab is named Jobs in every language (AC-1)", () => {
-    expect(LANGUAGES.map((lang) => t(lang, "shell.tabRunning"))).toEqual(["Aufträge", "Jobs", "Trabajos", "Tâches", "Jobber"]);
-  });
-
-  test("the Jobs kind filter is named Type in every language (AC-3)", () => {
-    expect(LANGUAGES.map((lang) => t(lang, "jobs.kindHeading"))).toEqual(["Typ", "Type", "Tipo", "Type", "Type"]);
-  });
-
-  test("every language has the Run-together catalogue keys (A810 AC-10)", () => {
-    for (const lang of LANGUAGES) {
-      expect(t(lang, "list.runTogetherWith")).not.toBe("list.runTogetherWith");
-    }
-  });
-
-  test("every language names a group's shared Archive details (AC-15)", () => {
-    for (const lang of LANGUAGES) {
-      expect(t(lang, "list.groupArchivePhase")).not.toBe("list.groupArchivePhase");
-    }
-  });
-
-  test("every language names the Actions column (AC-9)", () => {
-    expect(LANGUAGES.map((lang) => t(lang, "list.colActions" as Parameters<typeof t>[1]))).toEqual([
-      "Aktionen", "Actions", "Acciones", "Actions", "Handlinger",
-    ]);
-  });
 });

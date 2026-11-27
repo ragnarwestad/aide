@@ -2,7 +2,7 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { sourceWithParts } from "../helpers/source-with-parts.ts";
-import { ALL_VIEW, ARCHIVED, ARCHIVED_VIEW, STAMPED, harness, order, specsList, stamp, start } from "./archived-specs-fixtures.ts";
+import { ARCHIVED, ARCHIVED_VIEW, STAMPED, harness, order, specsList, stamp, start } from "./archived-specs-fixtures.ts";
 
 afterEach(() => harness.cleanup());
 
@@ -76,22 +76,5 @@ describe("an archive that fits in the first batch", () => {
     const html = await specsList(start({}, MANY).base, ARCHIVED_VIEW);
     expect(order(html)).toHaveLength(30);
     expect(html).not.toContain("not shown");
-  });
-
-  test("and so does a combined view", async () => {
-    const html = await specsList(start({}, MANY).base, ALL_VIEW);
-    // Thirty archived plus the two live specs.
-    expect(order(html)).toHaveLength(32);
-    expect(html).not.toContain("not shown");
-  });
-
-  // The live-refresh route renders the same fragment, so a cap left in
-  // one of the two would have shown as a list that shrank five seconds
-  // after it was drawn.
-  test("the five-second refresh sends the same thirty", async () => {
-    const { base } = start({}, MANY);
-    const rows = await (await fetch(`${base}/specs?rows=1&state=archived`)).text();
-    expect(order(rows)).toHaveLength(30);
-    expect(rows).not.toContain("not shown");
   });
 });

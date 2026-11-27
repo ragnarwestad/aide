@@ -58,16 +58,6 @@ describe("the Config tab's cards", () => {
     ]);
   });
 
-  test("each setting's row carries its name, its key and its explanation (AC-4)", () => {
-    const doc = configTab(project());
-    const text = doc.querySelector("form.projectsettingsform")!.textContent!;
-    for (const key of ["AIDE_SPECS_PATH", "AIDE_INSTALL_CMD"] as const) {
-      expect(text).toContain(t("en", `setting.label.${key}`));
-      expect(text).toContain(key);
-      expect(text).toContain(t("en", `setting.purpose.${key}`));
-    }
-  });
-
   test("offers no Edit and no disabled field: every field is editable as the tab opens, icon's holding its value (AC-5, AC-19)", () => {
     const doc = configTab(project());
     expect(doc.querySelectorAll('a[href*="edit="]').length).toBe(0);

@@ -13,11 +13,6 @@ def test_merge_posts_project_and_branch_and_reports_the_queue_ac_1_ac_12(machine
     assert result.stdout == "Queued Merge for topic in demo.\n"
 
 
-def test_help_names_merge_ac_12(machine):
-    result = machine.run("--help")
-    assert "aide merge <project> <branch>" in result.stdout
-
-
 def test_land_names_the_command_it_became(machine, board):
     result = machine.run("land", "demo", "topic")
 

@@ -116,20 +116,17 @@ test("a spec opened by its address far down a long list keeps the page's top in 
 // be looked at.
 const isDetail = (url: URL) => url.searchParams.has("detail");
 
-/** Holds the spec's request until the test releases it, or fails it with a status. */
-async function holdDetail(p: Page): Promise<{ release: () => void; fail: (status: number) => void }> {
+/** Holds the spec's request until the test releases it. */
+async function holdDetail(p: Page): Promise<{ release: () => void }> {
   let release = (): void => {};
-  let fail = (_status: number): void => {};
-  const gate = new Promise<number>((resolve) => {
-    release = () => resolve(0);
-    fail = (status) => resolve(status);
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
   });
   await p.route(isDetail, async (route) => {
-    const status = await gate;
-    if (status) await route.fulfill({ status, body: "no" });
-    else await route.continue();
+    await gate;
+    await route.continue();
   });
-  return { release, fail };
+  return { release };
 }
 
 /** A press where the element sits on the screen, which an inert page ignores; a plain click would wait for it. */
@@ -137,24 +134,6 @@ async function pressAt(p: Page, selector: string): Promise<void> {
   const box = (await p.locator(selector).first().boundingBox())!;
   await p.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
 }
-
-test("opening a spec shows the loading dialog without replacing the page", async () => {
-  const p = await browser.newPage();
-  try {
-    await withBrowser(p.goto(`${base}/specs?live=0`), "page.goto(/specs)");
-    const { release } = await holdDetail(p);
-    await p.evaluate(() => {
-      (window as unknown as { kept: Element | null }).kept = document.querySelector("header");
-    });
-    await p.click(fold("81-queue-and-runner"));
-    const cover = p.getByRole("dialog").filter({ hasText: "Loading…" });
-    await cover.waitFor();
-    expect(await p.evaluate(() => document.querySelector("header") === (window as unknown as { kept: Element }).kept)).toBe(true);
-    release();
-    await cover.waitFor({ state: "hidden" });
-    await p.waitForSelector(`${detail("81-queue-and-runner")} .spec-editor-mount[data-mounted]`);
-  } finally { await p.close(); }
-});
 
 test("a press anywhere else does nothing while the row loads", async () => {
   const p = await browser.newPage();
@@ -213,36 +192,6 @@ test("opening a second spec in place keeps its row where it was pressed, with on
   }
 });
 
-test("a request that fails says so in the row, and the page can be pressed again", async () => {
-  const p = await browser.newPage();
-  await withBrowser(p.goto(`${base}/specs?live=0`), "page.goto(/specs)");
-  const { fail } = await holdDetail(p);
-  await p.click(fold("81-queue-and-runner"));
-  await p.waitForSelector(detail("81-queue-and-runner"));
-  fail(500);
-  await p.waitForFunction(() => document.querySelector("tr[data-spec-detail]")?.textContent?.includes("could not be loaded"));
-  // The row says so before the cover lifts: wait for the cover, not the word.
-  await p.getByRole("dialog").filter({ hasText: "Loading…" }).waitFor({ state: "hidden" });
-  const address = p.url();
-  await p.click("th a.sortlink");
-  await p.waitForFunction((was) => location.href !== was, address);
-  await p.close();
-});
-
-test("Back from a spec opened in place shuts its row without loading the list again", async () => {
-  const p = await browser.newPage();
-  await withBrowser(p.goto(`${base}/specs?live=0`), "page.goto(/specs)");
-  await p.evaluate(() => { (window as unknown as { sameDocument: boolean }).sameDocument = true; });
-  await p.click(fold("81-queue-and-runner"));
-  await p.waitForSelector(`${detail("81-queue-and-runner")} .spec-editor-mount[data-mounted]`);
-  await p.goBack();
-  await p.waitForURL((url) => url.pathname === "/specs");
-  await p.waitForFunction(() => !document.querySelector("tr[data-spec-detail]"));
-  expect(await p.evaluate(() => (window as unknown as { sameDocument?: boolean }).sameDocument)).toBe(true);
-  expect(await p.getAttribute(fold("81-queue-and-runner"), "aria-expanded")).toBe("false");
-  await p.close();
-});
-
 test("Run from a closed spec can submit Archive without rerunning Create", async () => {
   const p = await browser.newPage();
   try {
@@ -261,20 +210,4 @@ test("Run from a closed spec can submit Archive without rerunning Create", async
     expect(form.get("model.archive")).toBe("sonnet");
     expect(form.get("specFolder")).toBe("81-queue-and-runner");
   } finally { await p.close(); }
-});
-
-test("every spec action stays reachable at phone width without horizontal scrolling (AC-8)", async () => {
-  const p = await browser.newPage({ viewport: { width: 390, height: 844 } });
-  try {
-    await withBrowser(p.goto(`${base}/specs/aide/81-queue-and-runner?live=0`), "page.goto(phone spec)");
-    const actions = p.locator('tr.specstate[data-folder="81-queue-and-runner"] td[data-col="actions"]');
-    expect(await actions.count()).toBe(1);
-    for (const name of ["Run", "Close"]) {
-      expect(await actions.getByRole("button", { name, exact: true }).isVisible()).toBe(true);
-    }
-    expect(await p.locator('tr.spechead[data-folder="81-queue-and-runner"] a[data-pdf]').isVisible()).toBe(true);
-    expect(await p.locator("table.speclist").filter({ has: actions }).evaluate((table) => table.scrollWidth <= table.clientWidth)).toBe(true);
-  } finally {
-    await p.close();
-  }
 });

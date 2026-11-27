@@ -117,30 +117,6 @@ describe("the job list sorts and filters", () => {
     expect(link(newestFirst)).toContain("dir=asc");
   });
 
-  // The Created heading sorts like every other — a click turns it
-  // round. Folder numbers run the OPPOSITE way from creation date here,
-  // so a sort that silently fell back to folder order would fail this
-  // exactly as it would pass the default-order test above by accident.
-  test("the Created heading sorts ascending on request, oldest first", () => {
-    const html = page([], { sort: "created", dir: "asc" }, [
-      target("109-earlier", { createdAt: "2026-08-10T09:00:00Z" }),
-      target("104-later", { createdAt: "2026-08-16T09:00:00Z" }),
-    ]);
-    expect(html.indexOf("109-earlier")).toBeLessThan(html.indexOf("104-later"));
-  });
-
-  // The cell reads "–" because git has not caught up with a folder
-  // made moments ago, so the spec that is certainly the newest would be
-  // sent to the bottom if an undated spec sorted as the epoch. It sorts
-  // as the newest, and still never crashes the sort.
-  test("a spec with no creation date sorts as the newest", () => {
-    const html = page([], { sort: "created" }, [
-      target("50-dated", { createdAt: "2026-08-10T09:00:00Z" }),
-      target("51-undated"),
-    ]);
-    expect(html.indexOf("51-undated")).toBeLessThan(html.indexOf("50-dated"));
-  });
-
   // The exact gap plan review's must-fix 1 found: an
   // archived row's `createdAt` has to reach the same sort key a live
   // row's does, or every archived row ties at "unknown" regardless of

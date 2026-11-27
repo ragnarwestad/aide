@@ -9,16 +9,12 @@ import type { GitRunner } from "../../../src/git/process/index.ts";
 import { configValue, resolveCodeLanding } from "../../../src/project/discover";
 import { fakeGit } from "../../helpers/fake-git.ts";
 import { tempDirs } from "../../helpers/setup/temp-dirs.ts";
+import { checkoutUnder } from "./git-fixture.ts";
 
 const root = tempDirs("aide-project-admin-").make;
 
 /** A checkout under a projects root of its own. */
-function checkoutFor(name: string): { projectsRoot: string; dir: string } {
-  const projectsRoot = root();
-  const dir = join(projectsRoot, name);
-  mkdirSync(join(dir, "specs"), { recursive: true });
-  return { projectsRoot, dir };
-}
+const checkoutFor = (name: string) => checkoutUnder(root(), name);
 
 
 // The checks answer for the checkout a RUN will use.

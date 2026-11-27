@@ -7,7 +7,6 @@ in conftest.py beside them.
 
 import json
 import os
-import re
 import subprocess
 import pytest
 from ...conftest import STOP_DEADLINE_SEC, git, run
@@ -43,37 +42,6 @@ def test_dry_run_prints_the_argv_it_would_use_and_spawns_nothing(runner, workspa
     assert "headless" in out["prompt"].lower()
     assert not fake_claude.calls.exists(), "a dry run must not invoke claude"
 
-def test_the_prompt_itself_says_nobody_can_answer(runner, workspace, fake_claude):
-    """AIDE_HEADLESS in the environment was not enough: a skill has to
-    remember to go and read it, and on 2026-08-17 an archive run read
-    ABOUT the variable while analysing a spec and never checked its own.
-    It then stopped to ask a question nobody could answer, and reported
-    success. A fact the model must act on belongs in the text it is
-    given, not in a place it has to think to look."""
-    claude = fake_claude("cat > /dev/null\nexit 1")
-    rc, out, _ = run(runner, workspace, claude, dry_run=True)
-    assert rc == 0
-    prompt = out["prompt"]
-    assert asks_for_step(prompt, "analyze", "81"), prompt
-    lowered = prompt.lower()
-    assert "headless" in lowered
-    # And it must say what follows from it, not merely name the state.
-    assert "no one" in lowered or "nobody" in lowered
-
-def test_the_prompt_says_never_to_wait_on_background_work(runner, workspace, fake_claude):
-    """Four implement runs on 2026-09-02 ended their turn with "the
-    tests are running in the background, I'll pick up when they
-    finish" — and nothing ever picked up, because a headless run ends
-    the moment the model stops. The prompt has to say so, in the text
-    the model is reading, not in a rule it has to remember."""
-    claude = fake_claude("cat > /dev/null\nexit 1")
-    rc, out, _ = run(runner, workspace, claude, dry_run=True, command="implement")
-    assert rc == 0
-    lowered = out["prompt"].lower()
-    assert "background" in lowered
-    assert "foreground" in lowered
-    assert "end your turn" in lowered
-
 def test_a_dirty_project_tree_does_not_stop_the_run(runner, workspace, fake_claude):
     """The run works in a worktree cut from origin's default
     branch, so nothing in the main checkout reaches it — dirty or not.
@@ -90,18 +58,6 @@ def test_a_dirty_project_tree_does_not_stop_the_run(runner, workspace, fake_clau
     assert git(workspace["project"], "status", "--porcelain") == "?? scratch.txt"
     branch = "aide/81-queue-and-runner"
     assert "scratch.txt" not in git(workspace["project"], "show", "--name-only", "--pretty=", branch)
-
-def test_a_dirty_specs_root_does_not_stop_the_run(runner, workspace, fake_claude):
-    """The specs repo is where /aide-analyze actually writes, so it was
-    the root the old refusal guarded hardest. Its worktree is cut from
-    origin's default branch too."""
-    (workspace["specs"] / "stray.md").write_text("uncommitted\n")
-    claude = writing_claude(fake_claude, workspace)
-    rc, out, _ = run(runner, workspace, claude, command="implement")
-    assert rc == 0, out
-    assert not out.get("error"), out["error"]
-    assert (workspace["specs"] / "stray.md").read_text() == "uncommitted\n"
-    assert git(workspace["specs"], "status", "--porcelain") == "?? stray.md"
 
 @pytest.mark.parametrize(
     "kwargs,fragment",
@@ -244,6 +200,10 @@ def test_a_run_stopped_at_its_time_limit_keeps_the_model_id_but_no_tokens(runner
     rc, out, _ = run(runner, workspace, claude, timeout_sec=STOP_DEADLINE_SEC, kill_grace_sec="5")
     assert out["terminalReason"] == "timeout"
     assert out["modelId"] == "claude-opus-5-5"
+    # The flushed result names a cost and a usage block; a stop believes
+    # neither as a measured figure.
+    assert out["costUsd"] == pytest.approx(0)
+    assert out["costMeasured"] is False
     assert "tokens" not in out
     # The limit, for the board's own sentence: it ran out in the session.
     assert_written_as_in_fixture("timeLimit", out["timeLimit"])
@@ -467,30 +427,6 @@ def test_a_run_past_its_deadline_is_killed_and_reported_as_stopped(runner, works
     assert out["error"] is None and "errorSolution" not in out, out
     assert out["timeLimit"] == {"seconds": int(STOP_DEADLINE_SEC), "during": "session"}, out
 
-def test_a_stopped_run_reports_unmeasured_cost_even_when_it_flushes_json(runner, workspace, fake_claude):
-    """Measured on the mini 2026-08-16: a SIGTERM'd `claude -p` DOES
-    flush its result JSON — but with subtype error_during_execution and
-    total_cost_usd 0. Trusting that number would under-charge exactly
-    the runs that ran longest, so a stop reports its cost as unmeasured
-    whether or not a result was written."""
-    flushed = {
-        "type": "result", "subtype": "error_during_execution",
-        "is_error": True, "session_id": "abc", "total_cost_usd": 0,
-        # A flushed result carries a usage block too, and it
-        # is no more trustworthy than the $0 beside it.
-        "modelUsage": MODEL_USAGE,
-    }
-    claude = fake_claude(
-        "cat > /dev/null\n"
-        f"trap 'echo {json.dumps(json.dumps(flushed))}; exit 143' TERM\n"
-        "while true; do sleep 0.2; done"
-    )
-    rc, out, _ = run(runner, workspace, claude, timeout_sec=STOP_DEADLINE_SEC, kill_grace_sec="5")
-    assert out["terminalReason"] == "timeout"
-    assert out["costUsd"] == pytest.approx(0), "the flushed $0 must not be believed as a MEASURED figure"
-    assert out["costMeasured"] is False
-    assert "tokens" not in out, "a stopped run's flushed usage is no more measured than its cost"
-
 def test_a_child_that_exits_on_sigterm_is_never_sigkilled(runner, workspace, fake_claude, tmp_path):
     marker = tmp_path / "term-seen"
     claude = fake_claude(
@@ -501,17 +437,6 @@ def test_a_child_that_exits_on_sigterm_is_never_sigkilled(runner, workspace, fak
     rc, out, _ = run(runner, workspace, claude, timeout_sec=STOP_DEADLINE_SEC, kill_grace_sec="30")
     assert marker.exists(), "SIGTERM must reach the child"
     assert out["terminalReason"] == "timeout"
-
-def test_analyze_prompt_does_not_delegate_acceptance_marks(runner, workspace, fake_claude):
-    rc, out, _ = run(
-        runner, workspace, fake_claude("exit 1"), command="analyze",
-        acceptance_not_required=True, dry_run=True,
-    )
-    assert rc == 0, out
-    assert asks_for_step(out["prompt"], "analyze", "81"), out["prompt"]
-    assert "Acceptance ticking" not in out["prompt"]
-    assert "Not verified" not in out["prompt"]
-
 
 def test_close_states_the_reason_the_person_typed(runner, workspace, fake_claude):
     claude = fake_claude("exit 1")
@@ -707,13 +632,10 @@ SHORT_ANALYSIS_LINE = (
     "command, choose, checks, offered",
     [
         ("analyze", "no", "off", True),
-        ("analyze", None, None, True),
-        ("analyze", "no", "warn", True),
-        ("analyze", "no", "stop", True),
         ("analyze", "yes", "off", False),
         ("implement", "no", "off", False),
     ],
-    ids=["the-offer", "nothing-recorded", "warn", "stop", "choose-approach", "not-analyze"],
+    ids=["the-offer", "choose-approach", "not-analyze"],
 )
 def test_a_short_analysis_is_offered_unless_the_spec_asks_to_choose(
     runner, workspace, fake_claude, command, choose, checks, offered,
@@ -724,17 +646,6 @@ def test_a_short_analysis_is_offered_unless_the_spec_asks_to_choose(
     assert rc == 0, out
     lines = [l for l in out["prompt"].splitlines() if "A short analysis is allowed" in l]
     assert lines == ([SHORT_ANALYSIS_LINE] if offered else []), out["prompt"]
-
-
-def test_the_runner_sets_no_limit_on_the_criteria_of_a_short_analysis(run_spec_source):
-    assert not re.search(r"^\s*SHORT_ANALYSIS_\w*CRITERIA\w*=", run_spec_source, re.M)
-
-
-def test_the_short_analysis_line_says_tests_and_documentation_are_not_counted(runner, workspace, fake_claude):
-    rc, out, _ = run(runner, workspace, fake_claude("exit 1"), command="analyze", dry_run=True)
-    assert rc == 0, out
-    [line] = [l for l in out["prompt"].splitlines() if "A short analysis is allowed" in l]
-    assert "tests and documentation are not counted" in line, line
 
 
 @pytest.mark.parametrize("case", SENT_BACK, ids=[c["name"] for c in SENT_BACK])

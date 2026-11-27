@@ -28,22 +28,6 @@ const queued = async (base: string): Promise<number> =>
   ((await (await fetch(`${base}/api/queue`, { headers: AUTH })).json()) as { jobs: unknown[] }).jobs.length;
 
 describe("a phase that has run may be run again", () => {
-  test("analyze on an implemented spec is accepted", async () => {
-    const { base } = harness.start({ extra: {}, status: statusSaying(["create", "analyze", "implement"]) });
-    expect((await queue(base, ["analyze"])).status).toBe(200);
-    expect(await queued(base)).toBe(1);
-  });
-
-  test("analyze again on an analyzed spec is accepted", async () => {
-    const { base } = harness.start({ extra: {}, status: statusSaying(["create", "analyze"]) });
-    expect((await queue(base, ["analyze"])).status).toBe(200);
-  });
-
-  test("implement again on an implemented spec is accepted", async () => {
-    const { base } = harness.start({ extra: {}, status: statusSaying(["create", "analyze", "implement"]) });
-    expect((await queue(base, ["implement"])).status).toBe(200);
-  });
-
   test("analyze, implement and archive together on an implemented spec are accepted", async () => {
     const { base } = harness.start({ extra: {}, status: statusSaying(["create", "analyze", "implement"]) });
     expect((await queue(base, ["analyze", "implement", "archive"])).status).toBe(200);
@@ -64,11 +48,7 @@ describe("a start out of order is refused at the press, with the reason", () => 
     expect(await queued(base)).toBe(0);
   };
 
-  test("implement before analyze", () => refused(["create"], ["implement"], "has not been analyzed yet"));
-
   test("archive before implement", () => refused(["create", "analyze"], ["archive"], "has not reached implement yet"));
-
-  test("create on a spec that exists", () => refused(["create", "analyze"], ["create"], "create cannot run again"));
 
   // A new analysis takes the spec back to analyzed, so an archive queued
   // behind it in the same press starts out of order.

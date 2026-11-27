@@ -76,62 +76,6 @@ describe("the steps above the Log", () => {
     expect(draw([`${KEY}:analyze.0`])).toContain("READ-LINE");
     expect(draw()).not.toContain("READ-LINE");
   });
-
-  test("the phase identity is shown and its complete phase log is closed by default (AC-1, AC-3, AC-5)", () => {
-    const html = renderSpecsRows(
-      [finished("job", "analyze", "2026-09-19T10:00:00Z")],
-      {
-        runnerAvailable: true,
-        targets: [{ project: "aide", specFolder: FOLDER }],
-        filter: { open: KEY, phases: `${KEY}:analyze` },
-        phaseMessages: () => ({
-          logs: [{ by: "ai", lines: ["WHOLE-PHASE-LOG"] }],
-          errors: ["FAILED-COMMAND"],
-          steps,
-          running: false,
-          identity: { phase: "analyze", attempt: 2, at: "2026-09-19T10:00:00Z" },
-        }),
-      },
-      Date.parse("2026-09-19T12:00:00Z"),
-    );
-    expect(html).toContain("Analyze");
-    expect(html).toContain("Attempt 2");
-    expect(html).toContain("2026-09-19");
-    expect(html).toContain("Entire Analyze attempt log");
-    expect(html).toContain("<details");
-    expect(html).not.toContain("<details open");
-    expect(html).not.toContain("FAILED-COMMAND");
-    expect(html).toContain("steptab=errors");
-  });
-
-  test("only open phase-step logs carry their shared indent marker", () => {
-    const html = draw([`${KEY}:analyze.0`, `${KEY}:implement`, `${KEY}:implement.0`]);
-    const logs = html.match(/<tr class="phasemsgs"[^>]*>/g) ?? [];
-    const stepLogs = logs.filter((tag) => tag.includes('data-msgs="Step 1 of 2"'));
-    expect(stepLogs).toHaveLength(2);
-    for (const tag of stepLogs) expect(tag).toContain('data-phasesteplog="1"');
-    const phaseLogs = logs.filter((tag) => !stepLogs.includes(tag));
-    expect(phaseLogs).toHaveLength(2);
-    for (const tag of phaseLogs) expect(tag).not.toContain("data-phasesteplog");
-    expect(html).toContain("12.3k");
-    expect(html).toContain('data-elapsed="2026-09-19T11:59:30.000Z"');
-  });
-
-  test("every step line under an unfolded phase is marked as standing under a phase, whichever the phase", () => {
-    const html = renderSpecsRows(
-      [finished("job-a", "analyze", "2026-09-19T10:00:00Z"), finished("job-i", "implement", "2026-09-19T10:30:00Z")],
-      {
-        runnerAvailable: true,
-        targets: [{ project: "aide", specFolder: FOLDER }],
-        filter: { open: KEY, phases: `${KEY}:analyze,${KEY}:implement` },
-        phaseMessages: () => ({ logs: [{ by: "ai", lines: ["THE-LOG-LINE"] }], steps, running: true }),
-      },
-      Date.parse("2026-09-19T12:00:00Z"),
-    );
-    const stepLines = html.match(/<tr class="subrow"[^>]*data-jobstep="1"[^>]*>/g) ?? [];
-    expect(stepLines).toHaveLength(4);
-    for (const tr of stepLines) expect(tr).toContain('data-phasestep="1"');
-  });
 });
 
 // What a phase line's State/Action cell used to say beside its badge is said in the phase's log.

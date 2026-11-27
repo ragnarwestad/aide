@@ -72,10 +72,6 @@ describe("a running scheduled job's row on the Running tab", () => {
     expect(stepKeys(html)).toEqual(["Step Aide: preparing", "Step 1 of 2", "Step 2 of 2"]);
   });
 
-  test("shut, it has no step line", async () => {
-    expect(stepKeys(await rows())).toEqual([]);
-  });
-
   test("an unfolded step shows its own part of the log, a folded one does not", async () => {
     const unfolded = await rows(`open=${KEY}&phases=${KEY}.2`);
     expect(unfolded).toContain("wrote the report line");

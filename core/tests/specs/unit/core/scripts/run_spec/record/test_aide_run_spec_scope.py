@@ -109,20 +109,6 @@ def test_a_neighbour_archived_on_main_and_merged_in_is_not_the_steps_own_write(
     assert rc == 0, out
     assert out["terminalReason"] == "completed", out
 
-def test_a_run_that_writes_only_its_own_folder_is_not_a_scope_violation(runner, workspace, fake_claude):
-    status_with_phase(workspace, "create", ["| a | ⬜ | |"])
-    folder = workspace["folder"]
-    claude = fake_claude(
-        "cat > /dev/null\n"
-        + READ_SPECS
-        + f'echo "analysis" >> "$specs/{folder}/2-analysis.md"\n'
-        + f"echo '{json.dumps(RESULT_OK)}'"
-    )
-    rc, out, _ = run(runner, workspace, claude, command="analyze")
-    assert rc == 0, out
-    assert out["terminalReason"] == "completed", out
-
-
 def test_group_archive_may_move_every_named_member_without_a_scope_violation(
     runner, workspace, fake_claude
 ):

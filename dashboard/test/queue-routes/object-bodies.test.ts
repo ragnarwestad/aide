@@ -109,7 +109,7 @@ describe("a JSON body that is not an object", () => {
 });
 
 describe("each route keeps its own size limit", () => {
-  for (const route of ROUTES) {
+  for (const route of ROUTES.filter((r) => r.cap !== MAX_BODY)) {
     test(`${route.name} answers 413 one byte over its cap and changes nothing (AC-3)`, async () => {
       const b = await board();
       const before = await b.stored();

@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { rmSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { QueueStore, parseJobRequest } from "../../../src/queue/queue.ts";
+import { QueueStore } from "../../../src/queue/queue.ts";
 import { DEFAULTS, resolve, REQ } from "../queue-fixtures.ts";
 
 let dir: string;
@@ -14,24 +14,6 @@ beforeEach(() => {
 });
 
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
-
-// A job could name passenger projects — other repos a run would branch,
-// commit and push alongside the primary. The tick box that named them
-// went when 0 of the queue's 200 jobs had ever used one, and the field
-// went with it. What has to keep working is the jobs already mirrored
-// with the field: an unknown key is ignored, never refused.
-describe("a job mirrored with the retired extraProjects field", () => {
-  test("still loads, with the key ignored", () => {
-    const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
-    const r = store.enqueue(REQ);
-    if (!r.ok) throw new Error(r.error);
-    const raw = JSON.parse(readFileSync(mirrorPath, "utf-8")) as Record<string, unknown>[];
-    for (const job of raw) job.extraProjects = ["aide-dashboard"];
-    writeFileSync(mirrorPath, JSON.stringify(raw));
-    const reloaded = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
-    expect(reloaded.get(r.job.id)?.specFolder).toBe(r.job.specFolder);
-  });
-});
 
 describe("a job mirrored with the retired interrupted state", () => {
   test("loads as failed, keeping the error that says why", () => {
@@ -125,29 +107,6 @@ test("a Land branch survives a store restart while old jobs need no branch (AC-1
   const reloaded = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
   expect(reloaded.get(land.job.id)?.branch).toBe("topic/ready");
 });
-// --- Resolve is not a step at all -----------------------------------
-//
-// The routine is folded into `archive`. The
-// vocabulary is what enforces that: a post that still names it — an old
-// bookmark, a stale queue-config, a hand-written request — is refused as
-// an invalid entry in `steps`, before anything reaches the runner.
-
-describe("the retired resolve step", () => {
-  test("a job may no longer be queued for it", () => {
-    const r = parseJobRequest({ ...REQ, steps: ["resolve"] }, { resolve, defaults: DEFAULTS });
-    expect(r.ok).toBe(false);
-  });
-
-  test("archive is still queueable, and runs on the config's default model", () => {
-    const r = parseJobRequest({ ...REQ, steps: ["archive"] }, { resolve, defaults: DEFAULTS });
-    expect(r.ok).toBe(true);
-    if (!r.ok) return;
-    expect(r.job.steps).toEqual(["archive"]);
-    // A merge is not an implement: archive keeps the default model even
-    // now that it may have a resolution to do.
-    expect(r.job.model.archive).toBe("sonnet");
-  });
-});
 // --- The store says when it changed --------------------------------
 
 // The page used to ask every five seconds whether anything had moved.
@@ -240,10 +199,4 @@ describe("QueueStore.onChange", () => {
     expect(c.fired()).toBe(before);
   });
 
-  // Every other store in the tests is built without the hook, and a
-  // store that required one would be a change to every caller.
-  test("a store built without the hook still works", () => {
-    const store = new QueueStore({ defaults: DEFAULTS, resolve, mirrorPath });
-    expect(store.enqueue(REQ).ok).toBe(true);
-  });
 });

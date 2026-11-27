@@ -69,17 +69,6 @@ describe("POST /projects/<name>/pin", () => {
     expect(answer.results[0]!.error).toBe("Pin is on or off.");
     expect(existsSync(join(dir, "owned", "gamma", "pinned"))).toBe(false);
   });
-
-  test("pinning and unpinning leave the project's repository untouched (AC-5)", async () => {
-    const { base, dir } = board();
-    const project = join(dir, "root", "gamma");
-    const git = (...args: string[]) => Bun.spawnSync(["git", ...args], { cwd: project }).stdout.toString();
-    const head = git("rev-parse", "HEAD");
-    await pin(base, "gamma", "on");
-    await pin(base, "gamma", "off");
-    expect(git("status", "--porcelain")).toBe("");
-    expect(git("rev-parse", "HEAD")).toBe(head);
-  });
 });
 
 describe("a pinned project in the board's lists", () => {

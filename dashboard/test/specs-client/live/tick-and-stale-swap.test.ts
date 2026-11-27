@@ -81,20 +81,6 @@ describe("a hand-ticked phase box survives the five-second swap", () => {
     expect(h.runButton.textContent).toBe("Implement");
   });
 
-  // The disabled-but-named case, so the in-session client
-  // script and the server's own next render never disagree about the
-  // same row — the server draws exactly this state for a spec whose
-  // recorded choice ticks nothing (`actionState()`, `active: false`).
-  test("a box unticked back to nothing disables the button rather than hiding it", () => {
-    const h = harness(() => ({ ok: true }));
-    h.changeStep(0, false); // analyze off — the only one served ticked
-    expect(h.runButton.hidden).toBe(false);
-    expect(h.runButton.disabled).toBe(true);
-    // Named for the earliest not-yet-run phase, the same one `nextPhase`
-    // would name server-side — not left showing whatever it said before.
-    expect(h.runButton.textContent).toBe("Analyze");
-  });
-
   // A row whose analyze has run, served as the server draws it: nothing
   // ticked, the button reading "Implement", disabled.
   const analyzed = { run: { done: ["create", "analyze"], label: "Implement", disabled: true }, ticked: [] };
@@ -128,16 +114,6 @@ describe("a hand-ticked phase box survives the five-second swap", () => {
 
     expect(h.rows.innerHTML).toBe("<tr>fresh</tr>");
     expect(ticks(h)).toEqual([true, true, true]);
-  });
-
-  // A hand-made "off" is as much a choice as a hand-made "on": the
-  // server had this one ticked, and the reader said no to it.
-  test("a box the reader unticked stays unticked", async () => {
-    const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
-    h.changeStep(0, false); // analyze, which the server pre-ticked
-    await swap(h);
-
-    expect(ticks(h)).toEqual([false, false, false]);
   });
 
   test("a row nobody has touched keeps the ticks the server drew", async () => {
@@ -357,12 +333,6 @@ describe("a criterion's tick box and Not verified box", () => {
     expect(h.tickBoxes[0]!.checked).toBe(false);
     expect(h.unverifiedBoxes[0]!.checked).toBe(false);
   });
-
-  test("a box nobody touched follows the server", async () => {
-    const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
-    await swap(h);
-    expect(h.unverifiedBoxes[0]!.checked).toBe(false);
-  });
 });
 
 // --- An archived criterion's Failed box is one more of the same answer ---
@@ -394,9 +364,4 @@ describe("a criterion's Failed box", () => {
     expect(h.failedBoxes[0]!.checked).toBe(false);
   });
 
-  test("an untouched Failed box follows the server", async () => {
-    const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
-    await swap(h);
-    expect(h.failedBoxes[0]!.checked).toBe(false);
-  });
 });

@@ -4,7 +4,6 @@
 
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { store, enqueue, makeRunner, okResult, resetHarness, cleanupHarness } from "../runner-fixtures.ts";
-import { formatSentence } from "../../../../src/messages/format.ts";
 import { gitFailureMessage } from "../../../../src/queue/runner/git-failure.ts";
 import { withoutStepFailed } from "../../../../src/messages/format.ts";
 
@@ -110,12 +109,6 @@ describe("a step whose push GitHub did not take the key for", () => {
     expect(withoutStepFailed(after?.error)).toEqual({ key: "runner.notPushedCode", values: { branch: BRANCH }, inner: { key: "git.pushAuth" } });
     expect(after?.errorDetail).toBe(UNPUSHED);
   });
-
-  test("reads in Norwegian as GitHub not taking the key of the machine that runs Aide", () => {
-    const text = formatSentence("nb", run()?.error as Parameters<typeof formatSentence>[1]) ?? "";
-    expect(text).toContain(BRANCH);
-    expect(text).toContain("GitHub godtar ikke SSH-nøkkelen til maskinen som kjører Aide");
-  });
 });
 
 describe("a step refused because main could not be fetched", () => {
@@ -146,30 +139,5 @@ describe("a step refused because main could not be fetched", () => {
     expect(gitFailureMessage(refused({ repo: "code", branch: "main", kind: "none" }))).toMatchObject({
       inner: { key: "git.fetchNoText" },
     });
-  });
-
-  test("reads in Norwegian as GitHub not taking the key, naming the base", () => {
-    const text = formatSentence("nb", gitFailureMessage(refused({ repo: "code", branch: "main", kind: "auth" })) as Parameters<typeof formatSentence>[1]) ?? "";
-    expect(text).toContain("main");
-    expect(text).toContain("GitHub godtar ikke SSH-nøkkelen");
-  });
-});
-
-describe("an archive whose specs push git gave no words for", () => {
-  const run = () => {
-    const job = enqueue({ steps: ["archive"] });
-    const runner = makeRunner({
-      readResult: () => ({ ...okResult(0.1), ...unpushed([{ repo: "specs", branch: BRANCH, kind: "none" }]) }),
-    });
-    runner.tick();
-    runner.poll();
-    return store.get(job.id)?.error as Parameters<typeof formatSentence>[1];
-  };
-
-  test("says Archive failed, and names Archive as the button to press again", () => {
-    const text = formatSentence("en", run()) ?? "";
-    expect(text).toStartWith("Problem: Archive failed: ");
-    expect(text).toContain("Solution: Press Archive again");
-    expect(text).not.toContain("{");
   });
 });

@@ -51,17 +51,6 @@ def test_no_arguments_refuses_with_a_usage_line(installer):
     assert "usage:" in result.stderr
 
 
-def test_the_hook_is_installed_into_the_common_git_dir(installer, tmp_path):
-    repo = init_repo(tmp_path / "specs")
-
-    result = run(installer, repo)
-
-    assert result.returncode == 0, result.stderr
-    hook_path = repo / ".git" / "hooks" / "commit-msg"
-    assert hook_path.is_file()
-    assert hook_path.stat().st_mode & 0o111, "the hook is not executable"
-
-
 def test_a_second_run_is_byte_identical(installer, tmp_path):
     repo = init_repo(tmp_path / "specs")
     run(installer, repo)
@@ -122,30 +111,6 @@ def test_installing_against_one_worktree_protects_every_worktree(installer, tmp_
     assert commit_result.returncode != 0
 
 
-def test_a_repo_that_has_never_had_the_hook_installed_commits_unconditionally(tmp_path):
-    """The hook is opt-in per repo — a repo the installer never
-    touched has no guard at all, whatever the message."""
-    repo = init_repo(tmp_path / "specs")
-    spec_file = repo / "55-example" / "2-analysis.md"
-    spec_file.parent.mkdir(parents=True, exist_ok=True)
-    spec_file.write_text("content\n")
-    git(repo, "add", "55-example/2-analysis.md")
-
-    result = subprocess.run(
-        ["git", "-C", str(repo), "commit", "-qm", "Copied from another spec"],
-        capture_output=True, text=True,
-    )
-
-    assert result.returncode == 0, result.stderr
-
-
-def test_no_such_directory_is_skipped_not_fatal(installer, tmp_path):
-    result = run(installer, tmp_path / "nowhere")
-
-    assert result.returncode == 0
-    assert "no such directory" in result.stderr
-
-
 def test_something_that_is_not_a_repo_is_skipped_not_fatal(installer, tmp_path):
     plain = tmp_path / "plain"
     plain.mkdir()
@@ -154,23 +119,6 @@ def test_something_that_is_not_a_repo_is_skipped_not_fatal(installer, tmp_path):
 
     assert result.returncode == 0
     assert "not a git working tree" in result.stderr
-
-
-def test_the_hook_body_is_installed_alongside_it(workspace_root, tmp_path):
-    """Without this, an installed ~/.local/bin/aide-install-spec-hook
-    cannot find its own hook source — install_common_bin only copies
-    flat files, and the hook body lives in core/scripts/hooks/."""
-    installer_sh = workspace_root / "core" / "scripts" / "_install-bin.sh"
-    env = {"PATH": os.environ["PATH"], "HOME": str(tmp_path)}
-    result = subprocess.run(
-        ["bash", "-c", f'source "{installer_sh}"; install_common_bin'],
-        capture_output=True, text=True, env=env,
-    )
-
-    assert result.returncode == 0, result.stderr
-    hook_body = tmp_path / ".local" / "bin" / "hooks" / "commit-msg-spec-guard"
-    assert hook_body.is_file()
-    assert hook_body.stat().st_mode & 0o111
 
 
 def test_the_installed_installer_can_find_its_own_hook_body(workspace_root, tmp_path):

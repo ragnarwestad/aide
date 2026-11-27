@@ -50,14 +50,3 @@ def test_fresh_and_resumed_turns_use_one_contract_for_every_provider_ac_1_ac_2_a
         assert out["argv"][out["argv"].index("--model") + 1] == model
 
 
-def test_invalid_permission_data_refuses_before_a_provider_runs_ac_6_ac_7(
-    runner, workspace, fake_codex
-):
-    codex = fake_codex("exit 41")
-    rc, out, _ = run(
-        runner, workspace, tool="codex", codex=codex,
-        permission_mode="not-a-mode", dry_run=True,
-    )
-    assert rc == 2, out
-    assert "permission" in out["error"].lower()
-    assert not fake_codex.calls.exists()

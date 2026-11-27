@@ -74,17 +74,6 @@ def test_the_channels_are_the_rows_of_the_youtube_channels_table_in_order_ac_1(m
     ]
 
 
-def test_youtube_uses_the_importable_news_module_and_shared_cells_ac_1_ac_2(module, monkeypatch):
-    assert module.news.__file__.endswith("scripts/news/news.py")
-    monkeypatch.setattr(module.news, "section_cells", lambda *args, **kwargs: iter([
-        ["AI Engineer", "UCLKPca3kwwd-B59HNr-_lvA"]
-    ]))
-
-    assert module.channels("not the real table") == [
-        ("AI Engineer", "UCLKPca3kwwd-B59HNr-_lvA")
-    ]
-
-
 def test_channels_reject_malformed_rows_and_stop_at_a_separator_ac_1_ac_3_ac_4_ac_7_ac_8(module):
     text = """### YouTube channels
 | Channel | Channel id |

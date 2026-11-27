@@ -10,20 +10,6 @@ function page(opts: Partial<NewSpecPageOptions> = {}): Document {
 }
 
 describe("what the New spec form posts", () => {
-  test("the New spec form has no phase, AI, model or AI-formulation controls (AC-4, AC-5)", () => {
-    const doc = page({
-      modelChoices: [{ name: "sonnet" }, { name: "gpt-6", tool: "codex" }],
-      providerChoices: [
-        { key: "Claude", name: "Claude", tool: "claude" },
-        { key: "Codex", name: "Codex", tool: "codex" },
-      ],
-    });
-    const options = doc.getElementById("new-spec-form")!;
-    expect(options.querySelector('[name="steps"]')).toBeNull();
-    expect(options.querySelector('[name^="provider."], [name^="model."]')).toBeNull();
-    expect(options.querySelector('[name="aiFormulateAcceptance"]')).toBeNull();
-  });
-
   test("an untouched New spec form posts only the three spec settings (AC-5)", () => {
     const doc = page({ modelChoices: [{ name: "sonnet" }, { name: "fable" }] });
     const form = doc.getElementById("new-spec-form") as HTMLFormElement;

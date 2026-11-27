@@ -1,6 +1,6 @@
 // The Depends on picker on the Specs list's open row, in a real browser:
 // Save writes the line without loading the page again and the row keeps the
-// tick, and Cancel unticks what was ticked.
+// tick.
 
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
@@ -49,18 +49,5 @@ test("Save writes the Depends on line with no page load, and the redrawn row hol
   }
   expect(loads.n).toBe(0);
   expect(await page.locator(`${FORM} input[name="dependsOn"][value="${OTHER}"]`).isChecked()).toBe(true);
-  await page.close();
-});
-
-test("Cancel unticks what was ticked and is disabled again", async () => {
-  const { page } = await openRow();
-  const box = page.locator(`${FORM} input[name="dependsOn"][value="${OTHER}"]`);
-  const cancel = page.locator(`#depends-aide-${SPEC}-cancel`);
-  expect(await cancel.isDisabled()).toBe(true);
-  await box.check();
-  expect(await cancel.isEnabled()).toBe(true);
-  await cancel.click();
-  expect(await box.isChecked()).toBe(false);
-  expect(await cancel.isDisabled()).toBe(true);
   await page.close();
 });

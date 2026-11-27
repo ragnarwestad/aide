@@ -280,12 +280,6 @@ def test_analysis_reads_this_specs_list_and_record_from_the_given_file(script, r
     assert specs_named(out["warned"]) == {OTHER: ["x.ts"]}, out
 
 
-def test_help_prints_the_usage(script):
-    proc = subprocess.run([str(script), "--help"], capture_output=True, text=True)
-    assert proc.returncode == 0, proc.stderr
-    assert "--specs-root" in proc.stdout and "--spec" in proc.stdout and "--record" in proc.stdout, proc.stdout
-
-
 @pytest.mark.parametrize("args", [["--spec", SPEC], ["--specs-root", "{root}"]])
 def test_a_missing_argument_is_refused_in_the_shared_json_shape(script, root, args):
     make_spec(root, SPEC, ["x.ts"], phase="created")

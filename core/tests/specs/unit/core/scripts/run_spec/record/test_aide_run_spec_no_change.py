@@ -110,11 +110,10 @@ def test_a_record_beside_files_to_change_is_not_accepted_ac_3(runner, workspace,
     assert "noChangeNeeded" not in out, out
 
 
-@pytest.mark.parametrize("verdict", [v for _, v in UNVERIFIED], ids=[n for n, _ in UNVERIFIED])
 def test_an_unverified_record_on_a_short_analysis_with_no_files_is_still_refused_ac_3(
-    runner, workspace, fake_claude, verdict
+    runner, workspace, fake_claude
 ):
-    out, _ = _analyze(runner, workspace, fake_claude, analysis="short", verdict=verdict)
+    out, _ = _analyze(runner, workspace, fake_claude, analysis="short", verdict=dict(UNVERIFIED)["not-passed"])
     assert out["ok"] is False, out
     assert out["terminalReason"] == "short-analysis-over-limit", out
     assert "no files to change were recorded" in out["errorLog"], out

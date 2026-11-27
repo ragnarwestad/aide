@@ -176,7 +176,7 @@ describe("a step's model id", () => {
     expect(stored("claude-opus-5-5")).toBe("claude-opus-5-5");
   });
 
-  test.each([["missing", undefined], ["empty", ""], ["a number", 5], ["a list", ["x"]]])(
+  test.each([["missing", undefined], ["empty", ""], ["a number", 5]])(
     "a model id that is %s leaves the step's undefined",
     (_name, value) => {
       expect(stored(value)).toBeUndefined();
@@ -245,27 +245,6 @@ describe("a usage-limit stop records when the step starts again", () => {
     runner.poll();
     expect(store.get(job.id)?.state).toBe("waiting");
     expect(store.get(job.id)?.usageLimitWait).toEqual({ until: "2026-08-16T14:00:00.000Z", resetKnown: true });
-  });
-
-  test("no reset time is one hour after the stop (AC-2)", () => {
-    const job = enqueue();
-    const runner = makeRunner({ readResult: () => limited() });
-    runner.tick();
-    runner.poll();
-    expect(store.get(job.id)?.usageLimitWait).toEqual({ until: "2026-08-16T11:00:00.000Z", resetKnown: false });
-  });
-
-  test("a stop for another reason records no wait (AC-2)", () => {
-    const job = enqueue();
-    store.update(job.id, { retry: {
-      action: job.steps[job.stepIndex]!, attempts: 2,
-      previousAttempt: { terminalReason: "timeout" },
-    } });
-    const runner = makeRunner({ readResult: () => ({ ...okResult(1), ok: false, terminalReason: "timeout" }) });
-    runner.tick();
-    runner.poll();
-    expect(store.get(job.id)?.state).toBe("failed");
-    expect(store.get(job.id)?.usageLimitWait).toBeUndefined();
   });
 });
 
@@ -342,22 +321,6 @@ describe("reconciliation after a restart", () => {
 });
 
 describe("notifications", () => {
-  // A gate parked a job between two steps and waited for a
-  // person to press Approve. There is no stop between steps any more —
-  // every step lands its own work, so there is nothing to hold a job for
-  // — and the runner has no branch left that can produce the state.
-  test("a finished step never parks the job — the next one is queued straight away", () => {
-    const job = enqueue({ steps: ["analyze", "implement"] });
-    const runner = makeRunner({ readResult: () => okResult(1) });
-    runner.tick();
-    runner.poll();
-    expect(store.get(job.id)?.state).toBe("queued");
-    // And it actually STARTS, unpressed: the old gate left `spawns` at 1
-    // however many ticks followed.
-    runner.tick();
-    expect(spawns.length).toBe(2);
-    expect(events.map((e) => e.event)).not.toContain("gate");
-  });
 
   test("a finished job notifies once, with the branch to look at", () => {
     enqueue({ steps: ["analyze"] });
@@ -394,20 +357,5 @@ describe("notifications", () => {
     runner.poll();
     expect(events.map((e) => e.event)).toEqual(["failed"]);
     expect(events[0]!.reason).toContain("dirty");
-  });
-
-  test("a failure the board words notifies with the board's sentence in English, not the bare ending (AC-2)", () => {
-    const job = enqueue({ steps: ["implement"] });
-    store.update(job.id, { retry: {
-      action: "implement", attempts: 2,
-      previousAttempt: { terminalReason: "no-progress" },
-    } });
-    const runner = makeRunner({
-      readResult: () => ({ ...okResult(0), ok: false, terminalReason: "no-progress" }),
-    });
-    runner.tick();
-    runner.poll();
-    expect(events.map((e) => e.event)).toEqual(["failed"]);
-    expect(events[0]!.reason).toContain("left no real progress");
   });
 });

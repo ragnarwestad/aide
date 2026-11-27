@@ -150,13 +150,6 @@ class TestInstallersWireUpShellPath:
             timeout=180,
         )
 
-    def test_the_installer_writes_the_block(self, workspace_root, tmp_path):
-        result = self._run(workspace_root, "claude-code", "install.sh", home=tmp_path)
-        assert result.returncode == 0, result.stdout + result.stderr
-        for name in (".zshenv", ".bashrc"):
-            assert PATH_BLOCK_MARKER in (tmp_path / name).read_text(), \
-                f"install.sh left ~/{name} without the PATH block"
-
     def test_an_individual_uninstall_keeps_the_block(self, workspace_root, tmp_path):
         result = self._run(workspace_root, "claude-code", "install.sh", home=tmp_path)
         assert result.returncode == 0, result.stdout + result.stderr
@@ -209,24 +202,6 @@ class TestInstallReplacesByRename:
         assert run().returncode == 0
         assert installed.stat().st_ino != before, "the file was written into, not replaced"
         assert not list((tmp_path / ".local" / "bin").glob("*.aide-tmp"))
-
-
-class TestSpecTransitionsLibIsInstalled:
-    def test_spec_transitions_lib_and_table_are_installed(self, workspace_root, tmp_path):
-        """aide-archive-spec's implement check calls may_apply_spec_transition
-        from lib/spec-transitions.sh. It landed without an
-        installer entry, so the serving host refused every archive as
-        not-implemented-yet (2026-09-03)."""
-        installer = workspace_root / "core" / "scripts" / "_install-bin.sh"
-        env = {"PATH": os.environ["PATH"], "HOME": str(tmp_path)}
-        result = subprocess.run(
-            ["bash", "-c", f'source "{installer}"; install_common_bin'],
-            capture_output=True, text=True, env=env,
-        )
-        assert result.returncode == 0, result.stderr
-        lib = tmp_path / ".local" / "bin" / "lib"
-        assert (lib / "spec-transitions.sh").is_file()
-        assert (lib / "transitions.json").is_file()
 
 
 class TestInstallRemovesWhatItNoLongerHas:

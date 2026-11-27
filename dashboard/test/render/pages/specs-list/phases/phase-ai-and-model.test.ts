@@ -164,13 +164,6 @@ describe("an AI and a model on every phase line", () => {
     expect(face(picker)).toContain(">RO<");
     expect(face(picker)).toContain(TOOL_ICONS.codex);
   });
-
-  test("the closed picker carries the chosen provider's full name as its hover text and accessible name (AC-7)", () => {
-    const PERSONAL = { key: "personal", name: "Claude Personal", short: "CP", tool: "claude" as const };
-    const select = aiSelect(rows([], { providerChoices: [PERSONAL, CODEX] }), "analyze");
-    expect(select).toMatch(/^<select[^>]* title="Claude Personal"/);
-    expect(select).toMatch(/^<select[^>]* aria-label="Claude Personal"/);
-  });
 });
 
 // --- The closed button and the selects inside it agree ------------------

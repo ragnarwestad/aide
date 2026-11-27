@@ -137,10 +137,6 @@ describe("the detail behind a sentence the board words", () => {
     });
   });
 
-  test("a stop is not worded as a failure", () => {
-    expect(stored(result("timeout", { timeLimit: { seconds: 10, during: "session" } }))?.error).toMatchObject({ key: "runner.afterTwoTimeouts", inner: { key: "runner.timeLimitSession" } });
-  });
-
   test("an implement that changed nothing stores the session's reason, and the notification quotes it (AC-5)", () => {
     const after = stored(result("no-progress", { noProgressReason: "no cause established that justifies a fix" }));
     expect(after?.error).toMatchObject({

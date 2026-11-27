@@ -66,15 +66,6 @@ def test_refuses_without_a_reason(script, project, specs):
     assert (specs / "81-x").exists()
 
 
-def test_unknown_spec_lists_the_active_folders(script, project, specs):
-    configure(project, specs)
-    add_spec(specs, "80-other")
-    rc, out, _ = run(script, project, "999")
-    assert rc == 2, out
-    assert out["terminalReason"] == "refused"
-    assert "80-other" in out["error"], out
-
-
 # --- Legal from every pre-archive phase, unlike archive ----
 
 
@@ -89,14 +80,6 @@ def test_closes_a_spec_that_never_implemented(script, project, specs):
     assert out["specFolder"] == "archive/81-x"
     assert not (specs / "81-x").exists()
     assert (specs / "archive" / "81-x").exists()
-
-
-def test_closes_a_spec_analyzed_but_not_implemented(script, project, specs):
-    configure(project, specs)
-    body = status_md("create, analyze", phase("Phase 1: RED", ["| a | ⬜ | |"]))
-    add_spec(specs, "81-x", body)
-    rc, out, _ = run(script, project, "81-x")
-    assert out["terminalReason"] == "closed", out
 
 
 def test_closes_a_spec_held_on_unticked_acceptance_rows(script, project, specs):

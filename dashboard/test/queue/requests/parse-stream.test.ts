@@ -205,12 +205,6 @@ describe("summarizeStream on a Codex transcript", () => {
     expect(activity[0]).toContain("src/queue.ts");
   });
 
-  test("a truncated or non-JSON line is skipped, not fatal", () => {
-    const stream = [codexAgentMessage("before"), "not json", '{"type":"item.compl', codexAgentMessage("after")].join("\n");
-
-    expect(summarizeStream(stream, { max: 10, tool: "codex" })).toHaveLength(2);
-  });
-
   test("an item naming its kind as `type` reads the same as `item_type`", () => {
     // Measured against codex-cli 0.148.0 on 2026-08-20, from a real
     // `codex exec --json` turn: the completed item carries

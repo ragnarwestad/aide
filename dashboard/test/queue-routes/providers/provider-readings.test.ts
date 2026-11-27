@@ -119,7 +119,6 @@ describe("the Models tab", () => {
     expect(probe.modelReads[0]!.env).toMatchObject({ CLAUDE_CONFIG_DIR: "/srv/claude-own" });
   });
 
-
   test("a probe that throws is answered as a reading that failed, and kept as one (AC-9)", async () => {
     const { base } = serve(countingProbe({ models: async () => { throw new Error("opencode would not start"); } }));
     const res = await open(base, "OpenCode", "models");
@@ -154,7 +153,6 @@ describe("the Installation tab", () => {
     await open(base, "Codex", "installation");
     expect(lastChecks().codex).toMatchObject({ tool: "codex", missing: ["scripts"] });
   });
-
 
   const login = (provider: string, ok: boolean): ExtraCheck => ({ question: "Is it logged in?", ok, detail: "", provider, ...(ok ? {} : { problem: `${provider} not logged in` }) });
   const TWO: Record<string, Provider> = { Claude: { name: "Claude", tool: "claude" }, "Claude-2": { name: "Claude-2", tool: "claude", configDir: "/srv/claude-2" } };
@@ -210,12 +208,5 @@ describe("opening the page", () => {
     }
     expect(probe.checks).toHaveLength(0);
     expect(probe.modelReads).toHaveLength(0);
-  });
-});
-
-describe("the Check route is gone", () => {
-  test("a POST to it is not found", async () => {
-    const { base } = serve(countingProbe());
-    expect((await post(base, "/api/queue/settings/check", { key: "Claude" })).status).toBe(404);
   });
 });

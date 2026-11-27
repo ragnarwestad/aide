@@ -250,27 +250,6 @@ class TestUninstallReadsTheManifest:
         assert (skills / "owned").is_dir()
         assert (skills / ".aide-installed-manifest").is_file()
 
-    def test_preview_names_manifests_without_inventory_counts_ac_5(self, workspace_root, tmp_path):
-        result = subprocess.run(
-            [str(workspace_root / "core/implementations/claude-code/uninstall.sh")],
-            input="n\n",
-            capture_output=True,
-            text=True,
-            env={"HOME": str(tmp_path), "PATH": "/usr/bin:/bin"},
-        )
-
-        assert "skills/.aide-installed-manifest" in result.stdout
-        assert "rules/.aide-installed-manifest" in result.stdout
-        assert "named directories" not in result.stdout
-        assert "named files" not in result.stdout
-
-    def test_claude_scripts_use_shared_rule_manifest_helpers_ac_6(self, workspace_root):
-        install = (workspace_root / "core/implementations/claude-code/install.sh").read_text()
-        uninstall = (workspace_root / "core/implementations/claude-code/uninstall.sh").read_text()
-
-        assert 'install_rules "$GLOBAL_CLAUDE/rules"' in install
-        assert 'uninstall_rules "$HOME/.claude/rules"' in uninstall
-
     def test_uninstall_before_the_first_rule_manifest_removes_shipped_rules_ac_6(
         self, workspace_root, tmp_path
     ):
@@ -523,9 +502,14 @@ def test_a_skill_without_a_description_names_the_skill_ac_4(sample_skill):
         "sample: description must be a supported string of 1–1024 characters"]
 
 
-@pytest.mark.parametrize("field,limit", [("description", 1024), ("compatibility", 500)])
-@pytest.mark.parametrize("size", [0, 1, -1, 1_000_000])
-@pytest.mark.parametrize("style", ["plain", "single", "double", "folded", "literal"])
+FIELD_LIMIT_CASES = [
+    ("description", 1024, size, style)
+    for size in (0, 1, -1, 1_000_000)
+    for style in ("plain", "single", "double", "folded", "literal")
+] + [("compatibility", 500, size, "plain") for size in (0, 1, -1, 1_000_000)]
+
+
+@pytest.mark.parametrize("field,limit,size,style", FIELD_LIMIT_CASES)
 def test_decoded_field_limits(sample_skill, field, limit, size, style):
     size = limit if size == -1 else limit + 1 if size == 1_000_000 else size
     value = "é" * size

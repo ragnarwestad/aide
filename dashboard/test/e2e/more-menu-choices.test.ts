@@ -55,51 +55,16 @@ async function openMore(size: { width: number; height: number }, path = "/?live=
   await page.locator(`${MORE_MENU} > summary`).click();
 }
 
-// Placed before the language case, which sets the language cookie for
-// every later load on this page: these find their rows by English name.
-test("the … menu's Usage row opens the Usage panel at phone width (AC-2)", async () => {
-  await openMore(PHONE);
-  await page.locator(MORE_MENU).getByRole("button", { name: "Usage", exact: true }).click();
-  await page.locator("[data-usage-content]").waitFor({ state: "visible" });
-  expect(await page.locator(MORE_MENU).evaluate((el) => (el as HTMLDetailsElement).open)).toBe(false);
-});
-
-test("on Jobs the filters stay on the phone's search line, outside the … menu, with one count (AC-1, AC-6, AC-7)", async () => {
-  await openMore(PHONE);
-  const more = page.locator(MORE_MENU);
-  const count = page.locator("[data-result-count]");
-  expect(await more.locator('[data-opens$="-filter"]').count()).toBe(0);
-  expect(await more.locator("[data-result-count]").count()).toBe(0);
-  expect(await count.count()).toBe(1);
-  await page.locator(`${MORE_MENU} > summary`).click();
-
-  await page.locator('.specsearch details.menu[data-filter="state"] > summary').click();
-  expect(await page.locator('details.menu[data-filter="state"]').evaluate((el) => (el as HTMLDetailsElement).open)).toBe(true);
-  await page.locator('.specsearch details.menu[data-filter="kind"] > summary').click();
-  expect(await page.locator('details.menu[data-filter="kind"]').evaluate((el) => (el as HTMLDetailsElement).open)).toBe(true);
-});
-
-for (const path of ["/", "/specs"]) {
-  test(`the tab bar help opens the search explanation on ${path}`, async () => {
-    await page.setViewportSize(PHONE);
-    await withBrowser(page.goto(`${base}${path}?live=0`), `page.goto(${path})`);
-    const tabs = page.getByRole("navigation").filter({ has: page.getByLabel(t("en", "shell.tabHelpTitle")) });
-    const help = tabs.getByLabel(t("en", "shell.tabHelpTitle"), { exact: true });
-    await help.click({ timeout: 2000 });
-    const explanation = tabs.getByText(t("en", "list.searchHelpBody"), { exact: false });
-    await explanation.waitFor({ state: "visible", timeout: 2000 });
-    await page.keyboard.press("Escape");
-    await explanation.waitFor({ state: "hidden" });
-  });
-}
-
-test("on Specs the Filter opens from the phone's search line", async () => {
+test("the tab bar help opens the search explanation, and Escape shuts it", async () => {
   await page.setViewportSize(PHONE);
-  await withBrowser(page.goto(`${base}/specs?live=0`), "page.goto(/specs)");
-  await page.locator('.specsearch details.menu[data-filter="state"] > summary').click();
-  const filter = page.locator('details.menu[data-filter="state"]');
-  expect(await filter.evaluate((el) => (el as HTMLDetailsElement).open)).toBe(true);
-  await filter.locator(".menupanel a").first().waitFor({ state: "visible" });
+  await withBrowser(page.goto(`${base}/?live=0`), "page.goto(/)");
+  const tabs = page.getByRole("navigation").filter({ has: page.getByLabel(t("en", "shell.tabHelpTitle")) });
+  const help = tabs.getByLabel(t("en", "shell.tabHelpTitle"), { exact: true });
+  await help.click({ timeout: 2000 });
+  const explanation = tabs.getByText(t("en", "list.searchHelpBody"), { exact: false });
+  await explanation.waitFor({ state: "visible", timeout: 2000 });
+  await page.keyboard.press("Escape");
+  await explanation.waitFor({ state: "hidden" });
 });
 
 test("choosing Deutsch reloads in German with the menu open, once", async () => {

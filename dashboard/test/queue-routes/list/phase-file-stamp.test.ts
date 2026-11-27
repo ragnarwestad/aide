@@ -114,12 +114,6 @@ describe("a phase's own file stamp fills the gap no queue job can", () => {
     expect(computeSpecTotalDurationMs([], Date.parse(NOW), dir)?.ms).toBe(3 * 60 * 1000);
   });
 
-  test("the same spec's header row, drawn with no jobs at all, shows the fallback total too", () => {
-    stampCreate("3m00s");
-    const html = page([], [target({ done: ["create"] })]);
-    expect(headCell(html)).toContain("3m 00s");
-  });
-
   test("the create phase's Cost cell shows the unknown mark, never blank and never $0.00", () => {
     stampCreate("3m00s");
     const html = page(

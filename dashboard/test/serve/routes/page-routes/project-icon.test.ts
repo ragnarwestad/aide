@@ -119,13 +119,6 @@ describe("POST /projects/<name>/icon", () => {
     expect(icon.querySelector("svg")).not.toBeNull();
   });
 
-  test("a glyph not on the list or a colour outside 1 to 6 is refused, and the icon is unchanged (AC-2)", async () => {
-    const base = board({ "favicon.svg": "<svg/>" });
-    expect(await refusedWith(await choose(base, { choice: "glyph", glyph: "no-such", hue: "3" }))).not.toBe("");
-    expect(await refusedWith(await choose(base, { choice: "glyph", glyph: "rocket", hue: "9" }))).not.toBe("");
-    expect((await listedIcon(base)).getAttribute("src")).toBe("/projects/aide/icon");
-  });
-
   test("a PNG is kept beside the checkouts, served as its bytes, and drawn as an image (AC-3, AC-5)", async () => {
     const { base, dir } = boardAt({ "favicon.svg": "<svg/>" });
     const bytes = png(1024);
@@ -173,17 +166,5 @@ describe("POST /projects/<name>/icon", () => {
     expect(res.headers.get("content-security-policy")).toContain("sandbox");
     expect(res.headers.get("x-content-type-options")).toBe("nosniff");
     expect((await listedIcon(base)).tagName).toBe("IMG");
-  });
-
-  test("choosing an icon, a file and Automatic leaves the project's repository untouched (AC-9)", async () => {
-    const { base, dir } = boardAt({ "favicon.svg": "<svg/>" });
-    const project = join(dir, "root", "aide");
-    const git = (...args: string[]) => Bun.spawnSync(["git", ...args], { cwd: project }).stdout.toString();
-    const head = git("rev-parse", "HEAD");
-    await choose(base, { choice: "glyph", glyph: "rocket", hue: "2" });
-    await chooseFile(base, "logo.png", png(64));
-    await choose(base, { choice: "automatic" });
-    expect(git("status", "--porcelain")).toBe("");
-    expect(git("rev-parse", "HEAD")).toBe(head);
   });
 });

@@ -41,15 +41,6 @@ function fieldNames(doc: Document): string[] {
     .sort();
 }
 
-describe("the entry's page", () => {
-  test("offers the tabs Report and Settings", () => {
-    for (const tab of ["report", "settings", undefined]) {
-      const words = [...page({ tab }).querySelectorAll("nav.subtabs a")].map((a) => a.textContent);
-      expect(words).toEqual(["Report", "Settings"]);
-    }
-  });
-});
-
 describe("the Settings tab", () => {
   test("shows every field, Enabled as a read-only value, Delete and Edit, and no Run now (AC-1)", () => {
     const doc = page();

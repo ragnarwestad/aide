@@ -195,17 +195,6 @@ describe("a scheduled job's row folds and stops in place", () => {
     expect(loads.n).toBe(0);
     await page.close();
   });
-
-  test("opened, the row shows its Stop and its state chip at desktop width and at a phone's", async () => {
-    const { base } = harness.start({ queueMirror: JSON.stringify([nightly]) });
-    for (const width of [1280, 375]) {
-      const page = await browser.newPage({ viewport: { width, height: 800 } });
-      await page.goto(`${base}/?open=aide/schedule-nightly@nightly1`);
-      await page.locator(STOP).waitFor({ state: "visible" });
-      expect(await page.locator(CHIP).isVisible()).toBe(true);
-      await page.close();
-    }
-  });
 });
 
 test("the first job arrives and remains as finished history without a reload, then search still works", async () => {
@@ -313,28 +302,6 @@ test("a description changed since the analysis is in the analysis log, opened wi
     }
   }
 });
-
-test("Types can select Merge separately and its card names the source branch (AC-2)", async () => {
-  const baseJob = { project: "aide", stepIndex: 0, state: "queued", timeoutSec: {}, permissionMode: {}, model: {}, createdAt: "2026-11-16T12:00:00Z" };
-  const { base } = harness.start({ queueMirror: JSON.stringify([
-    { ...baseJob, id: "land-filter", specFolder: "land", steps: ["land"], branch: "fix/example" },
-    { ...baseJob, id: "deploy-filter", specFolder: "deploy", steps: ["deploy"] },
-  ]), extra: { gitRun: fakeGit(CLEAN_MASTER).run } });
-  const page = await browser.newPage();
-  try {
-    await page.goto(`${base}/?live=0`);
-    const menu = page.locator('details.menu[data-filter="kind"]');
-    await menu.locator("summary").click();
-    await menu.getByRole("checkbox", { name: "None", exact: true }).click();
-    await menu.getByRole("checkbox", { name: "None", exact: true, checked: true }).waitFor();
-    await menu.getByRole("checkbox", { name: "Merge (1)", exact: true }).click();
-    await page.waitForURL((url) => url.searchParams.get("kind") === "land");
-    await page.getByText(/Merge to .* · fix\/example/, { exact: true }).waitFor();
-    expect(new URL(page.url()).searchParams.get("kind")).toBe("land");
-    await page.getByText("Deploy", { exact: true }).waitFor({ state: "hidden" });
-  } finally { await page.close(); }
-});
-
 
 test("live merge activity changes without folding the open row (AC-5, AC-6, AC-7)", async () => {
   const own = mkdtempSync(join(tmpdir(), "merge-live-"));

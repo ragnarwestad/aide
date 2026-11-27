@@ -26,12 +26,6 @@ describe("a landing that succeeds", () => {
     expect(landed.landingErrorDetail).toBeUndefined();
   });
 
-  test("leaves another step's failure alone", async () => {
-    const landed = await landAnalyze(failedAt("create"));
-    expect("landingError" in landed).toBe(false);
-    expect("landingErrorDetail" in landed).toBe(false);
-  });
-
   test("has nothing to clear when no landing failed", async () => {
     const landed = await landAnalyze({});
     expect("landingError" in landed).toBe(false);

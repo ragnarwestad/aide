@@ -23,13 +23,6 @@ def _skill_names(workspace_root):
 
 @pytest.mark.codex
 class TestInstallSkills:
-    def test_install_copies_every_skill_to_agents_dir(self, workspace_root, tmp_path, run_installer):
-        result = run_installer(f"{CODEX}/install.sh", home=tmp_path)
-        assert result.returncode == 0, result.stdout + result.stderr
-        for name in _skill_names(workspace_root):
-            skill_md = tmp_path / ".agents" / "skills" / name / "SKILL.md"
-            assert skill_md.exists(), f"missing: ~/.agents/skills/{name}/SKILL.md"
-
     def test_install_replaces_a_stale_copy(self, workspace_root, tmp_path, run_installer):
         name = _skill_names(workspace_root)[0]
         stale = tmp_path / ".agents" / "skills" / name

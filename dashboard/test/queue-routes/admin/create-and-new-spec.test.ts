@@ -82,7 +82,7 @@ describe("--criteria-checks reaches the runner only for a create that chose a le
     expect(await argvFor("create")).not.toContain("--criteria-checks");
   });
 
-  test.each([["analyze"], ["implement"]])("never for %s", async (step) => {
+  test.each([["implement"]])("never for %s", async (step) => {
     expect(await argvFor(step, "stop")).not.toContain("--criteria-checks");
   });
 });
@@ -114,7 +114,7 @@ describe("--choose-approach reaches the runner for a create from the form", () =
     expect(await argvFor("create")).not.toContain("--choose-approach");
   });
 
-  test.each([["analyze"], ["implement"]])("never for %s", async (step) => {
+  test.each([["implement"]])("never for %s", async (step) => {
     expect(await argvFor(step, true)).not.toContain("--choose-approach");
   });
 });

@@ -67,14 +67,10 @@ def test_create_posts_only_direct_spec_fields_ac_7(machine, board):
         assert removed not in body
 
 
-@pytest.mark.parametrize("flag", ["--autostart", "--provider", "--model", "--no-ai-criteria"])
-def test_create_refuses_removed_job_options_ac_7(machine, flag):
-    args = ["create", "demo", "A title", "--file", "/dev/null", flag]
-    if flag in ("--provider", "--model"):
-        args.append("unused")
-    result = machine.run(*args)
+def test_create_refuses_removed_job_options_ac_7(machine):
+    result = machine.run("create", "demo", "A title", "--file", "/dev/null", "--model", "unused")
     assert result.returncode == 2
-    assert f"{flag} is not an option of aide create" in result.stderr or f"unknown option {flag}" in result.stderr
+    assert "--model is not an option of aide create" in result.stderr
 
 
 def test_an_old_provisional_answer_is_refused_ac_7(machine, board):

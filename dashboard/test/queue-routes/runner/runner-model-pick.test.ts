@@ -2,7 +2,6 @@
 
 import { IMPLEMENTED } from "../../helpers/queue-server.ts";
 import { afterEach, describe, expect, test } from "bun:test";
-import { renderSpecsPage } from "../../../src/render";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness(undefined, IMPLEMENTED);
@@ -19,10 +18,6 @@ describe("picking a model for a job", () => {
     modelChoices: { sonnet: {}, fable: {} },
   };
 
-  // The choice belongs to a row the reader has opened, so
-  // every page here opens the one spec it renders.
-  const OPEN = { open: "aide/81-queue-and-runner" };
-
   /** Posts `body` to the queue as the page's form does, on a server
    *  configured with CHOICES. */
   async function postForm(body: string): Promise<Response> {
@@ -33,46 +28,6 @@ describe("picking a model for a job", () => {
 
   const modelOf = async (res: Response): Promise<Record<string, string>> =>
     ((await res.json()) as { job: { model: Record<string, string> } }).job.model;
-
-  test("a row says which model it ran on — as the select's pre-filled value", () => {
-    const html = renderSpecsPage(
-      [
-        {
-          id: "a", project: "aide", specFolder: "81-queue-and-runner",
-          steps: ["implement"], stepIndex: 0, state: "done", spentUsd: 24.5,
-          timeoutSec: 1200, createdAt: "2026-08-16T00:00:00Z", model: "fable",
-        },
-      ],
-      "2026-08-16T00:00:00Z",
-      [{ label: "Overview", path: "projects.html" }],
-      {
-        runnerAvailable: true, targets: [], filter: OPEN,
-        modelChoices: [{ name: "sonnet" }, { name: "fable" }],
-        defaultModels: { default: "sonnet" },
-      },
-    );
-    expect(html).toMatch(/<select name="model\.implement"[^>]*>[^]*?<option value="fable"[^>]*selected/);
-  });
-
-  test("posting a chosen model runs every step on it", async () => {
-    const res = await postForm(new URLSearchParams({
-      target: "aide/81-queue-and-runner",
-      steps: "implement",
-      model: "fable",
-    }).toString());
-    expect(res.status).toBe(200);
-    expect(await modelOf(res)).toEqual({ implement: "fable" });
-  });
-
-  test("an empty model field means 'use the configuration', not an error", async () => {
-    const res = await postForm(new URLSearchParams({
-      target: "aide/81-queue-and-runner",
-      steps: "implement",
-      model: "",
-    }).toString());
-    expect(res.status).toBe(200);
-    expect(await modelOf(res)).toEqual({ implement: "opus" });
-  });
 
   // The choice moved onto the phase lines, so a form now
   // posts one field PER PHASE — `model.analyze=…&model.implement=…`.
@@ -102,18 +57,6 @@ describe("picking a model for a job", () => {
     );
     expect(res.status).toBe(200);
     expect(await modelOf(res)).toEqual({ analyze: "fable", implement: "opus" });
-  });
-
-  test("every phase left on 'default' queues no override at all", async () => {
-    const res = await postForm("target=aide%2F81-queue-and-runner&steps=implement&model.implement=");
-    expect(res.status).toBe(200);
-    expect(await modelOf(res)).toEqual({ implement: "opus" });
-  });
-
-  test("a per-phase field naming a model the config does not list is refused", async () => {
-    const res = await postForm("target=aide%2F81-queue-and-runner&steps=implement&model.implement=gpt-9");
-    expect(res.status).toBe(400);
-    expect(await res.text()).toContain("gpt-9");
   });
 });
 // The Merge button is gone, and this whole block with it. What it

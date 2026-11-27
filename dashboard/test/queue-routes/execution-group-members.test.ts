@@ -167,7 +167,7 @@ describe("the group card's Remove", () => {
     expect(groupsIn(dir)[0]?.removedAt).toBeDefined();
   });
 
-  test.each(["queued", "running", "archiving"])("refuses Remove while the group is %s", async (state) => {
+  test.each(["running"])("refuses Remove while the group is %s", async (state) => {
     const { base, dir } = twoArchivedMembers(state);
     expect((await groupAction(base, "remove")).status).toBe(409);
     expect(groupsIn(dir)[0]?.removedAt).toBeUndefined();

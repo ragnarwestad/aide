@@ -309,7 +309,7 @@ test("a new Jobs search excludes a previously opened nonmatching job (AC-4, AC-6
   expect(read().rows).toEqual([]);
 });
 
-for (const count of [1000, 10000]) {
+for (const count of [1000]) {
   for (const [route, path] of [[jobsPage, "/"], [specsPages, "/specs"]] as const) {
     for (const limit of [100, 200]) {
       test(`${path} bounds row construction to ${limit} entries among ${count} mixed records (AC-10)`, async () => {

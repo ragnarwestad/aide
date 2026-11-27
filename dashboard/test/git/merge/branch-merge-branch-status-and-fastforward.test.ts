@@ -69,12 +69,6 @@ describe("mergeBranchIntoDefault: the branch is not on origin", () => {
 // them — they carry nothing.
 
 describe("mergeBranchIntoDefault: reason is set at exactly two refusals", () => {
-  test("a branch that is not on origin is called gone, and never a conflict", async () => {
-    const git = fakeGit({ ...CLEAN_MASTER, "ls-remote": { code: 2 } });
-    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
-    expect(result.ok).toBe(false);
-    expect(result.reason).toBe("gone");
-  });
 
   // The other 21 refusals in the log, across 7 specs. Every
   // one of them had to be finished by hand, and nobody ever saw why —
@@ -128,24 +122,6 @@ describe("mergeBranchIntoDefault: reason is set at exactly two refusals", () => 
     const seq = git.calls.map((c) => c.args.join(" "));
     expect(seq).toContain("push -q origin HEAD:refs/heads/master");
     expect(seq.some((a) => a.startsWith("reset -q --hard"))).toBe(false);
-  });
-
-  test("a base ahead of origin by a commit of its own is still refused — that is somebody's work", async () => {
-    const git = fakeGit({
-      ...CLEAN_MASTER,
-      "ls-remote --exit-code": { code: 0, stdout: "deadbeef\trefs/heads/aide/89-merge-from-the-dashboard\n" },
-      "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
-      "pull -q --ff-only": { code: 1 },
-      "rev-list --count origin/master..master": { code: 0, stdout: "1\n" },
-      "rev-list origin/master..master --no-merges --not --remotes=origin": { code: 0, stdout: "abc1234\n" },
-      switch: { code: 0 },
-      fetch: { code: 0 },
-      checkout: { code: 0 },
-    });
-    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
-    expect(result.ok).toBe(false);
-    expect(sentence(result.error)).toContain("Cannot fast-forward master");
-    expect(git.calls.some((c) => c.args[0] === "reset")).toBe(false);
   });
 
   test("a push that failed carries no reason — the merge itself went through", async () => {

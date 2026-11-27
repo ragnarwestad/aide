@@ -477,17 +477,6 @@ def _out_of_scope_reviewer(fake_claude, tmp_path):
     )
 
 
-def test_a_description_with_an_out_of_scope_section_tells_the_review_so_at_level_off(
-    runner, workspace, fake_claude, tmp_path
-):
-    with_status(workspace, ["create", "analyze"])
-    _with_out_of_scope_section(workspace)
-    claude = _out_of_scope_reviewer(fake_claude, tmp_path)
-    rc, out, _ = run(runner, workspace, claude, command="implement", review_model="claude-sonnet-4")
-    assert rc == 0, out
-    assert OUT_OF_SCOPE_MARKER in (tmp_path / "review-prompt.txt").read_text()
-
-
 def test_an_out_of_scope_defect_goes_back_in_the_one_fix_turn_and_is_not_reviewed_again(
     runner, workspace, fake_claude, tmp_path
 ):

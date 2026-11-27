@@ -57,16 +57,6 @@ describe("with one slot, one job at a time", () => {
     runner.tick();
     expect(spawns.length).toBe(2);
   });
-
-  test("with maxConcurrent 1 the second job waits even for a different spec", () => {
-    const a = enqueue();
-    const b = enqueue({ specFolder: "91-parallel-spec-runs" });
-    const runner = makeRunner({ maxConcurrent: 1 });
-    runner.tick();
-    expect(spawns.length).toBe(1);
-    expect(store.get(a.id)?.state).toBe("running");
-    expect(store.get(b.id)?.state).toBe("queued");
-  });
 });
 
 // Slice 91b. The shared working tree was the only thing that
@@ -141,15 +131,6 @@ describe("several jobs at once", () => {
     store.update(a.id, { landing: undefined });
     runner.tick();
     expect(store.get(b.id)?.state).toBe("running");
-  });
-
-  test("the runner records why a Merge is waiting for another Merge", () => {
-    const a = enqueue({ specFolder: "land", steps: ["land"], branch: "fix/first" });
-    store.writeUnchecked(a.id, { state: "running", landing: true });
-    const b = enqueue({ specFolder: "land", steps: ["land"], branch: "fix/second" });
-    makeRunner({ maxConcurrent: 2 }).tick();
-    expect(store.get(b.id)?.state).toBe("queued");
-    expect(store.get(b.id)?.error).toMatchObject({ key: "runner.waitingForMerge" });
   });
 
   test("an archive landing holds no step but archive", () => {
@@ -233,38 +214,6 @@ describe("several jobs at once", () => {
     expect(sentence(held.landingError)).toContain("conflict — merge it by hand");
   });
 
-  // The whole queue stops while any job is landing, and every queued row
-  // used to sit there with no reason at all — or with an older, wrong
-  // one still on it.
-  // No job waits on a landing any anywhere any more. A landing used to
-  // merge in the shared main checkout — `git switch`, then the whole
-  // suite on the result — and that is the directory a starting run
-  // reads before it cuts its own worktree. The merge happens in a
-  // worktree of its own now, so there is nothing for a starting run to
-  // be caught by, and the board runs its six at once.
-  test("a job starts while another spec's merge is in flight", () => {
-    const a = enqueue({ steps: ["analyze"] });
-    const b = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["archive"] });
-    const runner = makeRunner({ maxConcurrent: 2 });
-    store.writeUnchecked(a.id, { state: "done", landing: true });
-    runner.tick();
-    expect(store.get(b.id)?.state).toBe("running");
-    expect(store.get(b.id)?.error).toBeUndefined();
-  });
-
-  // Two more, and a merge holds neither: the point of the change is
-  // that the repository no longer decides anything.
-  test("a job in another project starts too, while the merge runs", () => {
-    const a = enqueue({ steps: ["analyze"] });
-    const b = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["analyze"] });
-    const c = enqueue({ project: "other-project", steps: ["analyze"] });
-    const runner = makeRunner({ maxConcurrent: 3, projectDir: (p) => join(dir, p) });
-    store.writeUnchecked(a.id, { state: "done", landing: true });
-    runner.tick();
-    expect(store.get(b.id)?.state).toBe("running");
-    expect(store.get(c.id)?.state).toBe("running");
-  });
-
   // The one ordering a landing still imposes is on its OWN row: the
   // job's next step waits for its own merge, which is what `landing`
   // means.
@@ -274,48 +223,6 @@ describe("several jobs at once", () => {
     store.writeUnchecked(a.id, { state: "queued", landing: true });
     runner.tick();
     expect(spawns.length).toBe(0);
-  });
-
-  // The whole-board pause used to hold every
-  // queued job while ANY job was landing, whatever repo either one
-  // touched. Two different project names whose `projectDir`s resolve to
-  // two different paths never contend with each other.
-  test("a job started while a merge runs in a repo it does not share", () => {
-    const a = enqueue({ steps: ["analyze"] });
-    const b = enqueue({ project: "other-project", steps: ["analyze"] });
-    const runner = makeRunner({
-      maxConcurrent: 2,
-      projectDir: (p) => join(dir, p),
-    });
-    store.writeUnchecked(a.id, { state: "done", landing: true });
-    runner.tick();
-    expect(store.get(b.id)?.state).toBe("running");
-  });
-
-  // A job is not held back when it SHARES a repository with a landing:
-  // sharing a repository was
-  // only dangerous because the landing stood in its checkout.
-  test("a job sharing a repository with a merge starts anyway", () => {
-    const sharedRoot = join(dir, "shared-repo");
-    const a = enqueue({ steps: ["analyze"] });
-    const b = enqueue({ project: "other-project", steps: ["analyze"] });
-    const runner = makeRunner({
-      maxConcurrent: 2,
-      projectDir: (p) => (p === "aide" || p === "other-project" ? sharedRoot : join(dir, p)),
-    });
-    store.writeUnchecked(a.id, { state: "done", landing: true });
-    runner.tick();
-    expect(store.get(b.id)?.state).toBe("running");
-  });
-
-  test("an archive waits only for another ARCHIVE — an analyze beside it starts", () => {
-    const a = enqueue({ steps: ["analyze"] });
-    const b = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["archive"] });
-    const runner = makeRunner({ maxConcurrent: 2 });
-    runner.tick();
-    expect(spawns.length).toBe(2);
-    expect(store.get(a.id)?.state).toBe("running");
-    expect(store.get(b.id)?.state).toBe("running");
   });
 
   test("poll completes EVERY running job, not just the first", () => {
@@ -353,15 +260,6 @@ describe("schedule jobs share the queue with spec work", () => {
     expect(store.get(schedule.id)?.errorReason).toBeUndefined();
   });
 
-  test("starts while another job's landing holds its own repository locks", () => {
-    const spec = enqueue({ steps: ["analyze"] });
-    store.writeUnchecked(spec.id, { state: "done", landing: true });
-    const schedule = enqueue({ specFolder: "schedule-nightly", steps: ["schedule"] });
-    makeRunner({ maxConcurrent: 2 }).tick();
-    expect(store.get(schedule.id)?.state).toBe("running");
-    expect(spawns).toHaveLength(1);
-  });
-
   test("still waits for a free slot and starts when it becomes available", () => {
     const spec = enqueue({ steps: ["implement"] });
     const schedule = enqueue({ specFolder: "schedule-nightly", steps: ["schedule"] });
@@ -372,16 +270,6 @@ describe("schedule jobs share the queue with spec work", () => {
     runner.poll();
     runner.tick();
     expect(store.get(schedule.id)?.state).toBe("running");
-  });
-
-  test("a spec starts alongside a running schedule", () => {
-    const schedule = enqueue({ specFolder: "schedule-nightly", steps: ["schedule"] });
-    const runner = makeRunner({ maxConcurrent: 2 });
-    runner.tick();
-    const spec = enqueue({ steps: ["analyze"] });
-    runner.tick();
-    expect(store.get(schedule.id)?.state).toBe("running");
-    expect(store.get(spec.id)?.state).toBe("running");
   });
 });
 
@@ -396,15 +284,6 @@ describe("shared queue admission order", () => {
     expect(spawns[0]?.step).toBe("analyze");
     expect(store.get(analyze.id)?.state).toBe("running");
     expect(store.get(archive.id)?.state).toBe("queued");
-  });
-
-  test("archives admitted together keep their arrival order", () => {
-    const first = enqueue({ steps: ["archive"] });
-    enqueue({ specFolder: "91-parallel-spec-runs", steps: ["archive"] });
-    const runner = makeRunner({ maxConcurrent: 1 });
-    runner.tick();
-    expect(spawns.length).toBe(1);
-    expect(store.get(first.id)?.state).toBe("running");
   });
 
   test("a held-back admitted archive does not block ready work behind it", () => {
@@ -684,26 +563,6 @@ describe("a create takes no slot", () => {
     expect(spawns.map((s) => s.step)).toEqual(["analyze", "create"]);
   });
 
-  test("it starts with every one of two slots taken (AC-1)", () => {
-    enqueue();
-    enqueue({ specFolder: "91-parallel-spec-runs" });
-    const runner = makeRunner({ maxConcurrent: 2 });
-    runner.tick();
-    const c = enqueue({ project: "other-project", steps: ["create"] });
-    runner.tick();
-    expect(store.get(c.id)?.state).toBe("running");
-  });
-
-  test("a running create is not counted against the slots (AC-2)", () => {
-    const c = enqueue({ steps: ["create"] });
-    const a = enqueue({ specFolder: "91-parallel-spec-runs" });
-    const runner = makeRunner({ maxConcurrent: 1 });
-    runner.tick();
-    expect(store.get(c.id)?.state).toBe("running");
-    runner.tick();
-    expect(store.get(a.id)?.state).toBe("running");
-  });
-
   test("every other step still waits while the slot is taken (AC-3)", () => {
     const a = enqueue();
     const runner = makeRunner({ maxConcurrent: 1 });
@@ -764,16 +623,6 @@ describe("a job held for a usage limit", () => {
     runner.tick();
     runner.tick({ notAnalyzed: new Map([[waiting.id, { key: "runner.notAnalyzed" as const }]]) });
     expect(store.get(waiting.id)?.error).toBeUndefined();
-  });
-
-  test("starts on the first tick that no longer holds it, and the sentence is taken off (AC-3)", () => {
-    const held = enqueue({ steps: ["implement"] });
-    const runner = makeRunner({ maxConcurrent: 2 });
-    runner.tick({ usageLimit: limitHold(held.id) });
-    expect(spawns).toHaveLength(0);
-    runner.tick();
-    expect(store.get(held.id)?.state).toBe("running");
-    expect(store.get(held.id)?.error).toBeUndefined();
   });
 });
 

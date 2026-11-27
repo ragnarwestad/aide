@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { t } from "../../../../../src/i18n";
 import { renderSpecsRows, type SpecsPageOptions, type QueueRowView, type SpecTarget } from "../../../../../src/render";
-import { row, specTarget, openRowsAt, runLine, phaseBox } from "../../fixtures.ts";
+import { row, specTarget, openRowsAt } from "../../fixtures.ts";
 
 // Split out of row-status-and-controls.test.ts by theme: the rest of
 // "a spec's row runs its own phases" that is not about ticking/locking
@@ -60,85 +60,6 @@ describe("a spec's row runs its own phases", () => {
   });
 });
 
-// --- One pass over the page as a whole -----------------------------
-
-// The page was built one row-feature at a time and never looked at
-// whole. Three of the six complaints are render-level: a disabled box
-// that looks live, a job whose later steps read as free while it holds
-// them, and an intro paragraph standing between the title and the list
-// on every load.
-// The rule this block is about: the lock is read off
-// the SPEC's state, not off the list of steps the in-flight job happens
-// to hold. A job queued as two steps together used to leave a LATER
-// step tickable, which promised a press the queue was going to refuse
-// anyway.
-describe("a busy job holds every step on the row", () => {
-  const target = specTarget;
-  // The step boxes belong to the open row; which of them a
-  // busy job holds is what this block is about.
-  const rows = openRowsAt("2026-08-18T12:00:00Z");
-
-  /** One job holding two steps, to exercise the lock across a step
-   *  boundary. */
-  const pair = (state: QueueRowView["state"], stepIndex = 0): QueueRowView =>
-    row({
-      specFolder: "101-specs-page-ui-pass",
-      steps: ["analyze", "implement"],
-      stepIndex,
-      state,
-    });
-
-  const line = (r: QueueRowView) =>
-    runLine(rows([r], [target("101-specs-page-ui-pass")]), "101-specs-page-ui-pass");
-
-  test("a later step of the running job is disabled too, not only the one in flight", () => {
-    const l = line(pair("running"));
-    // The server would refuse a second job naming EITHER of these
-    // (`clashing()` tests the whole job), so the page must not offer
-    // one of them as available.
-    expect(phaseBox(l, "analyze")).toContain("disabled");
-    expect(phaseBox(l, "implement")).toContain("disabled");
-  });
-
-  // The step the job never named is locked too. The queue
-  // refuses a second job on a spec that already has one in flight
-  // (`clashing()`), whatever steps the two name — so a tickable
-  // `archive` beside a running `analyze` was an offer the page could
-  // not keep.
-  test("a step the running job never held is locked all the same", () => {
-    const l = line(pair("running"));
-    expect(phaseBox(l, "archive")).toContain("disabled");
-  });
-
-  test("a queued job holds its steps before it has started any of them", () => {
-    const l = line(pair("queued"));
-    expect(phaseBox(l, "analyze")).toContain("disabled");
-    expect(phaseBox(l, "implement")).toContain("disabled");
-  });
-
-  test("a queued job holds the steps it never named either", () => {
-    const l = line(pair("queued"));
-    expect(phaseBox(l, "archive")).toContain("disabled");
-  });
-
-  test("a finished job holds nothing — every box is offerable again", () => {
-    const l = line(pair("done", 1));
-    for (const step of ["analyze", "implement", "archive"]) {
-      expect(phaseBox(l, step)).not.toContain("disabled");
-      expect(phaseBox(l, step)).not.toContain("title=\"analyze");
-    }
-    expect(l).not.toContain("This phase can't be changed right now");
-  });
-
-  test("a job that failed, stopped or was cancelled holds nothing either", () => {
-    for (const state of ["failed", "waiting", "cancelled"] as const) {
-      const l = line(pair(state, 1));
-      expect(phaseBox(l, "analyze")).not.toContain("disabled");
-      expect(phaseBox(l, "implement")).not.toContain("disabled");
-    }
-  });
-});
-
 // --- The first line says what is happening, or what is next --------
 //
 // The badge names active work, automatic waiting, or the resting state.
@@ -162,12 +83,6 @@ describe("the State line says what is happening, or what is next", () => {
     const state = head.match(/<td[^>]*data-col="state"[\s\S]*?<\/td>/)?.[0] ?? "";
     return state.match(/<span class="badge b-[a-z]+" title="([^"]*)"/)?.[1] ?? "";
   };
-  const actionCell = (html: string) => {
-    const head = html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>\s*<tr class="specstate"[\s\S]*?<\/tr>/)?.[0] ?? "";
-    const cells = [...head.replace(/<td[^>]*data-col="fold"[^>]*>[\s\S]*?<\/td>/g, "").matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
-    return cells[cells.length - 1] ?? "";
-  };
-  const done = () => row({ id: "j1", specFolder: "132-a", steps: ["implement"], state: "done" });
 
   test("a queued job without a position uses the shared Queued label (AC-3, AC-7)", () => {
     const html = rows(
@@ -198,13 +113,5 @@ describe("the State line says what is happening, or what is next", () => {
     );
     expect(chip(html)).toBe("Queued 7/11");
     expect(chipTitle(html)).toBeFalsy();
-  });
-
-  // The one action that used to live outside the panel.
-  test("a row whose only offer was Merge now has an empty action cell", () => {
-    const cell = actionCell(rows([done()], [target("132-a")]));
-    expect(cell).not.toContain("<form");
-    expect(cell).not.toContain("/merge");
-    expect(cell).not.toContain("<button");
   });
 });

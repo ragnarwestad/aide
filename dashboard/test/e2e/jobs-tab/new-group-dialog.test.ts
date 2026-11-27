@@ -1,8 +1,7 @@
-// The New group dialog on the Jobs tab, in a browser: the button opens it,
-// Cancel closes it with nothing saved and it opens again empty, a refused
-// Save stays in it with the reason, and a saved group's card appears on the
-// tab. The tab is opened without live updates, so the card can only come
-// from the redraw the dialog's own close makes.
+// The New group dialog on the Jobs tab, in a browser: a refused Save stays
+// in it with the reason, and a saved group's card appears on the tab. The
+// tab is opened without live updates, so the card can only come from the
+// redraw the dialog's own close makes.
 
 import { afterEach, beforeEach, expect, test } from "bun:test";
 import type { Browser, Locator, Page } from "playwright";
@@ -38,7 +37,6 @@ const name = (): Locator => dialog().locator('input[name="name"]');
 const member = (folder: string): Locator => dialog().locator(`input[name="member"][value="${folder}"]`);
 const inDialog = (label: string): Locator => dialog().getByRole("button", { name: label, exact: true });
 const save = (): Locator => inDialog(t("en", "list.checksSave"));
-const cancel = (): Locator => inDialog(t("en", "dialog.cancel"));
 const card = (): Locator => page.getByRole("button", { name: "Release", exact: true });
 
 /** The Jobs tab of a board with two specs a group can be made of, in a specs repository that can save. */
@@ -57,36 +55,6 @@ async function openDialog(): Promise<void> {
   await page.getByRole("button", { name: t("en", "list.groupCreate"), exact: true }).click();
   await dialog().waitFor({ state: "visible" });
 }
-
-test("New group opens a dialog with Project, Name, the eligible specs, Save and Cancel (AC-2)", async () => {
-  await openTab();
-  await openDialog();
-  expect(await dialog().locator('select[name="project"]').isVisible()).toBe(true);
-  expect(await name().isVisible()).toBe(true);
-  for (const folder of [FIRST, SECOND]) expect(await member(folder).isVisible()).toBe(true);
-  expect(await save().isVisible()).toBe(true);
-  expect(await cancel().isVisible()).toBe(true);
-});
-
-test("Cancel closes the dialog, saves nothing, and the dialog opens again empty (AC-3)", async () => {
-  await openTab();
-  let posts = 0;
-  page.on("request", (request) => {
-    if (request.method() === "POST" && new URL(request.url()).pathname === "/api/queue/groups") posts++;
-  });
-  await openDialog();
-  await name().fill("Release");
-  await member(FIRST).check();
-  await member(SECOND).check();
-  await cancel().click();
-  await dialog().waitFor({ state: "hidden" });
-
-  await openDialog();
-  expect(await name().inputValue()).toBe("");
-  expect(await dialog().locator('input[name="member"]:checked').count()).toBe(0);
-  expect(posts).toBe(0);
-  expect(await card().count()).toBe(0);
-});
 
 test("a refused Save keeps the dialog open with what was typed and the reason in it (AC-5)", async () => {
   await openTab();

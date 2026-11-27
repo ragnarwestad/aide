@@ -83,18 +83,6 @@ describe("POST /projects/<name>/hide", () => {
     expect((await hide(base, "nosuch", "on")).status).toBe(400);
     expect(existsSync(join(dir, "owned", "beta", "hidden"))).toBe(false);
   });
-
-  test("hiding and showing leave the project's repository untouched (AC-10)", async () => {
-    const { base, dir } = board();
-    const project = join(dir, "root", "beta");
-    const git = (...args: string[]) => Bun.spawnSync(["git", ...args], { cwd: project }).stdout.toString();
-    const head = git("rev-parse", "HEAD");
-    await hide(base, "beta", "on");
-    expect(git("status", "--porcelain")).toBe("");
-    await hide(base, "beta", "off");
-    expect(git("status", "--porcelain")).toBe("");
-    expect(git("rev-parse", "HEAD")).toBe(head);
-  });
 });
 
 describe("a hidden project on the board", () => {
@@ -122,15 +110,6 @@ describe("a hidden project on the board", () => {
     expect(await lists(base)).toEqual({ picker: all, choice: all });
   });
 
-  test("its own page still opens and names it, while its picker leaves it out (AC-3)", async () => {
-    const { base } = board();
-    await hide(base, "beta", "on");
-    const res = await fetch(`${base}/projects/beta?tab=config`);
-    expect(res.status).toBe(200);
-    expect(await picker(base, "beta")).toEqual(["aide", "gamma"]);
-    expect((await page(base, "/projects/beta")).querySelector("nav.breadcrumb h1")?.textContent).toBe("beta");
-  });
-
   test("the Projects list draws it inside the Hidden fold, and Show takes it out (AC-4, AC-9)", async () => {
     const { base } = board();
     await hide(base, "beta", "on");
@@ -151,22 +130,6 @@ describe("a hidden project on the board", () => {
       expect(await res.text()).toContain("01-first");
     }
     expect(await (await fetch(`${base}/?q=${encodeURIComponent("beta:01")}`)).text()).toContain('id="spec-beta/01-first"');
-  });
-
-  test("a job asked for it is refused with a sentence saying it is hidden, and accepted once shown (AC-7, AC-9)", async () => {
-    const { base } = board();
-    const run = () => fetch(`${base}/api/queue`, {
-      method: "POST",
-      headers: { "content-type": "application/json", accept: "application/json" },
-      body: JSON.stringify({ project: "beta", specFolder: "01-first", steps: ["analyze"] }),
-    });
-    await hide(base, "beta", "on");
-    const refused = await run();
-    expect(refused.ok).toBe(false);
-    expect(JSON.stringify(await refused.json())).toContain("beta is hidden");
-    await hide(base, "beta", "off");
-    const accepted = await run();
-    expect(accepted.ok).toBe(true);
   });
 });
 

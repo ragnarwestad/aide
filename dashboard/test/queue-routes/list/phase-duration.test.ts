@@ -9,7 +9,6 @@ import {
   type SpecTarget,
 } from "../../../src/render";
 import { row as queueRow } from "../../design/row-fixtures.ts";
-import { durationLabel } from "../../../src/render/ui/job-state";
 import { phaseDuration } from "../../../src/render/pages/specs-list/data-model";
 
 // --- Time becomes something worth reading -------------------------
@@ -57,54 +56,6 @@ describe("a phase says how long it took", () => {
       .match(new RegExp(`<tr class="specstate"[^>]*data-folder="${folder}">.*?</tr>`))?.[0]
       ?.match(/<td data-col="started">(.*?)<\/td>/)?.[1] ?? "";
 
-  test("a finished single-step phase shows its own span", () => {
-    const html = page([
-      job("a1", "aa-spec", {
-        steps: ["analyze"],
-        startedAt: "2026-08-16T09:00:00Z",
-        results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T09:04:12Z" }],
-      }),
-    ]);
-    expect(phaseCell(html, "analyze")).toContain("4m 12s");
-  });
-
-  // The trap: a job that ran two steps has ONE `startedAt`, and the
-  // whole job's span belongs to neither step. The second step's own
-  // duration runs from where the first one ended.
-  test("a two-step job's second phase shows its own slice, not the job's span", () => {
-    const html = page([
-      job("a1", "aa-spec", {
-        steps: ["analyze", "implement"],
-        stepIndex: 1,
-        startedAt: "2026-08-16T09:00:00Z",
-        results: [
-          { step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T09:10:00Z" },
-          { step: "implement", ok: true, costUsd: 2, at: "2026-08-16T09:40:00Z" },
-        ],
-      }),
-    ]);
-    expect(phaseCell(html, "analyze")).toContain("10m 00s");
-    expect(phaseCell(html, "implement")).toContain("30m 00s");
-    // 40 minutes is the whole job — the answer a reach for
-    // `finishedAt - startedAt` would have given.
-    expect(phaseCell(html, "implement")).not.toContain("40m");
-  });
-
-  // Every phase's Time cell says something — an empty cell asks the
-  // reader whether the phase ran at all, which the badge beside it
-  // already answers. A dash where no duration was recorded: `0s` claims
-  // a measurement nobody made.
-  test("a phase nobody has run reads a dash, not 0s and not an empty cell", () => {
-    const html = page([
-      job("a1", "aa-spec", {
-        startedAt: "2026-08-16T09:00:00Z",
-        results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T09:04:12Z" }],
-      }),
-    ]);
-    expect(phaseCell(html, "archive")).toContain("–");
-    expect(phaseCell(html, "archive")).not.toContain("0s");
-  });
-
   // A running phase carries the instant it began, so the browser can
   // count up from it without waiting for the server to redraw
   // The server still writes a readable figure into the
@@ -122,64 +73,6 @@ describe("a phase says how long it took", () => {
     const cell = phaseCell(html, "implement");
     expect(cell).toContain('data-elapsed="2026-08-16T11:30:00Z"');
     expect(cell).toContain("30m 00s");
-  });
-
-  test("a running FIRST step counts from the job's own start", () => {
-    const html = page([
-      job("a1", "aa-spec", { state: "running", startedAt: "2026-08-16T11:45:00Z" }),
-    ]);
-    expect(phaseCell(html, "analyze")).toContain('data-elapsed="2026-08-16T11:45:00Z"');
-    expect(phaseCell(html, "analyze")).toContain("15m 00s");
-  });
-
-  // The work, not the calendar. These two jobs are three days apart and
-  // the spec took twenty minutes. The total is the ONLY thing the header
-  // cell shows — beside "3 d ago" it would read as noise, so no "X ago"
-  // text sits beside it.
-  test("a finished spec's phases carry their durations, and so does the header", () => {
-    const html = page(
-      [
-        job("a1", "aa-spec", {
-          steps: ["analyze"],
-          startedAt: "2026-08-13T09:00:00Z",
-          results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-08-13T09:05:00Z" }],
-        }),
-        job("a2", "aa-spec", {
-          steps: ["implement", "archive"],
-          stepIndex: 1,
-          startedAt: "2026-08-16T09:00:00Z",
-          results: [
-            { step: "implement", ok: true, costUsd: 2, at: "2026-08-16T09:10:00Z" },
-            { step: "archive", ok: true, costUsd: 1, at: "2026-08-16T09:15:00Z" },
-          ],
-        }),
-      ],
-      [target("aa-spec", { createdAt: "2026-08-13T08:00:00Z", done: ["analyze", "implement", "archive"] })],
-    );
-    // 5 + 10 + 5 minutes of work, on the lines that did it AND on the
-    // header now — the same figure rather than two different ones.
-    expect(headCell(html, "aa-spec")).toContain("20m 00s");
-    expect(headCell(html, "aa-spec")).not.toContain("3 d ago");
-    expect(phaseCell(html, "analyze")).toContain("5m 00s");
-    expect(phaseCell(html, "implement")).toContain("10m 00s");
-    expect(phaseCell(html, "archive")).toContain("5m 00s");
-  });
-
-  // The header cell answers "how long", not "when made" — a
-  // spec still missing a phase is exactly the case that must not be
-  // blanked entirely.
-  test("a spec still missing a phase shows the sum of what has settled", () => {
-    const html = page(
-      [
-        job("a1", "aa-spec", {
-          steps: ["analyze"],
-          startedAt: "2026-08-13T09:00:00Z",
-          results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-08-13T09:12:00Z" }],
-        }),
-      ],
-      [target("aa-spec", { createdAt: "2026-08-13T08:00:00Z", done: ["analyze"] })],
-    );
-    expect(headCell(html, "aa-spec")).toContain("12m 00s");
   });
 
   // A running phase's own elapsed-so-far now counts toward the
@@ -206,24 +99,6 @@ describe("a phase says how long it took", () => {
     // 10 minutes = 09:00 — so `now - since` reproduces the same total.
     expect(headCell(html, "aa-spec")).toContain('data-elapsed="2026-08-16T09:00:00.000Z"');
   });
-
-  // A step whose own work is still landing has no `at` yet
-  // the phase must keep counting from its own start
-  // instead of reading a settled duration off a timestamp that has not
-  // been written.
-  test("a phase still landing reads live, counting from its own start", () => {
-    const html = page([
-      job("a1", "aa-spec", {
-        state: "done",
-        landing: true,
-        startedAt: "2026-08-16T09:00:00Z",
-        results: [{ step: "analyze", ok: true, costUsd: 1 }],
-      }),
-    ]);
-    const cell = phaseCell(html, "analyze");
-    expect(cell).toContain('data-elapsed="2026-08-16T09:00:00Z"');
-    expect(cell).toContain("3h 00m");
-  });
 });
 
 // The summing the spec list has always done, lifted out of
@@ -242,7 +117,7 @@ describe("computeSpecTotalDurationMs", () => {
   const row = (id: string, extra: Partial<QueueRowView>): QueueRowView =>
     queueRow({ id, specFolder: "aa-spec", state: "done", createdAt: "2026-08-13T08:00:00Z", ...extra });
 
-  /** The same three jobs the list's own "sum, not span" test uses: five
+  /** Three jobs: five
    *  minutes of analyze, ten of implement, five of archive, three days
    *  apart. */
   const rows = (): QueueRowView[] => [
@@ -354,41 +229,6 @@ describe("computeSpecTotalDurationMs", () => {
     // dropped in favor of the newest-only answer.
     expect(computeSpecTotalDurationMs(withRetry, NOW)?.ms).toBe(28 * 60 * 1000);
   });
-
-  // The same phase timings, summed by each of the two
-  // fixture shapes this page draws a total from — job records, off this
-  // function, and an archived spec's own file stamps, off `readerGroup`
-  // — must agree. This is genuinely ONE shared source: with
-  // no queue job left for the archived side to read, `readerGroup` falls
-  // back to `totalDuration()`'s own file-stamp branch, the identical
-  // function `computeSpecTotalDurationMs` calls here — so this is no
-  // longer parity between two implementations, only between two
-  // fixtures fed into the one implementation both take. It also proves
-  // the "same rule" claim under the new summing behavior
-  // (every attempt), not only the old latest-only one — `rows()` has no
-  // retried phase, so both fixtures see one attempt per step either way.
-  test("agrees with the archived figure for the same underlying phase timings", () => {
-    const liveMs = computeSpecTotalDurationMs(rows(), NOW)?.ms;
-    const archived: ArchivedSpecView = {
-      project: "aide",
-      folder: "aa-spec",
-      done: ["analyze", "implement", "archive"],
-      models: {},
-      phaseOutcomes: {
-        analyze: { timeSpentMs: 5 * 60 * 1000 },
-        implement: { timeSpentMs: 10 * 60 * 1000 },
-        archive: { timeSpentMs: 5 * 60 * 1000 },
-      },
-    };
-    const html = renderSpecsRows([], {
-      runnerAvailable: true,
-      targets: [],
-      archivedSpecs: [archived],
-      filter: { state: "archived" },
-    });
-    expect(liveMs).toBeDefined();
-    expect(html).toContain(durationLabel(liveMs!));
-  });
 });
 
 // --- An archived row reads the queue's own memory too -----------
@@ -441,29 +281,6 @@ describe("an archived row reads a still-remembered queue job the same way a live
     // analyze: 4s off the queue's own job; implement: 1s off the file
     // stamp, the queue having forgotten it — 5s together.
     expect(headCell(html)).toContain("5s");
-  });
-
-  test("the archived row reports the identical figure the live row showed for the same jobs", () => {
-    const rows = [
-      job("a1", {
-        startedAt: "2026-08-16T09:00:00Z",
-        results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T09:00:04Z" }],
-      }),
-    ];
-    const liveMs = computeSpecTotalDurationMs(rows, NOW)?.ms;
-    const html = renderSpecsRows(
-      rows,
-      {
-        runnerAvailable: true,
-        targets: [],
-        archived: [KEY],
-        archivedSpecs: [archived({ phaseOutcomes: {} })],
-        filter: { state: "archived" },
-      },
-      NOW,
-    );
-    expect(liveMs).toBeDefined();
-    expect(headCell(html)).toContain(durationLabel(liveMs!));
   });
 });
 

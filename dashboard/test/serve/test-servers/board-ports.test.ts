@@ -29,18 +29,6 @@ describe("a test server takes a port that is actually exposed", () => {
     expect(await findFreePort([...TEST_SERVER_PORTS], free)).toBeUndefined();
   });
 
-  // The port a random pick would have given is never exposed, so it is
-  // never chosen either.
-  test("nothing outside the pool is ever returned", async () => {
-    for (const reserved of [[], [TEST_SERVER_PORTS[0]!], [TEST_SERVER_PORTS[0]!, TEST_SERVER_PORTS[2]!]]) {
-      const port = await findFreePort(reserved, free);
-      expect(port).toBeDefined();
-      // `TEST_SERVER_PORTS` is a literal tuple, so its own `toContain` would
-      // only accept one of its six members — this asks the question of
-      // a plain array instead.
-      expect([...TEST_SERVER_PORTS] as number[]).toContain(port!);
-    }
-  });
 });
 
 // And the probe is asked, not assumed: a port something else already

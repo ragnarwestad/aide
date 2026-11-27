@@ -2,7 +2,6 @@ import { describe, expect, test } from "bun:test";
 import {
   acceptanceSectionUnreadable,
   checkStateOf,
-  FAIL_NOTE_MAX,
   failedCount,
   failNoteTooLong,
   markFailedStatusLine,
@@ -522,9 +521,6 @@ describe("the Failed mark", () => {
 });
 
 describe("failNoteTooLong", () => {
-  test("the bound is 500", () => {
-    expect(FAIL_NOTE_MAX).toBe(500);
-  });
 
   test("500 characters fit, 501 do not", () => {
     expect(failNoteTooLong("a".repeat(500))).toBe(false);

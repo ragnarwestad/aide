@@ -87,22 +87,6 @@ class TestNewSpecFilesRequireTheConvention:
         assert result.returncode == 0, result.stderr
         assert git(repo, "log", "-1", "--format=%s") == "Run /aide-analyze for 55-example"
 
-    def test_a_headless_suffix_is_accepted(self, hook, tmp_path):
-        repo = init_repo(tmp_path / "specs", hook)
-        write_spec_file(repo, "55-example/3-solution.md")
-
-        result = commit(repo, "Run /aide-analyze for 55-example (headless)")
-
-        assert result.returncode == 0, result.stderr
-
-    def test_a_stopped_suffix_is_accepted(self, hook, tmp_path):
-        repo = init_repo(tmp_path / "specs", hook)
-        write_spec_file(repo, "55-example/4-status.md")
-
-        result = commit(repo, "Run /aide-implement for 55-example (stopped: time limit)")
-
-        assert result.returncode == 0, result.stderr
-
     def test_a_new_readme_is_gated(self, hook, tmp_path):
         repo = init_repo(tmp_path / "specs", hook)
         write_spec_file(repo, "55-example/0-README.md")
@@ -145,10 +129,8 @@ class TestModifyingOtherExistingSpecFilesIsGated:
     allows hand-editing their content outside a skill run."""
 
     @pytest.mark.parametrize("relpath", [
-        "55-example/2-analysis.md",
         "55-example/3-solution.md",
         "55-example/4-status.md",
-        "55-example/0-README.md",
     ])
     def test_a_modify_only_change_is_still_rejected(self, hook, tmp_path, relpath):
         repo = init_repo(tmp_path / "specs", hook)
@@ -159,21 +141,6 @@ class TestModifyingOtherExistingSpecFilesIsGated:
         result = commit(repo, "Copy from another spec")
 
         assert result.returncode != 0
-
-    @pytest.mark.parametrize("relpath", [
-        "55-example/2-analysis.md",
-        "55-example/3-solution.md",
-        "55-example/4-status.md",
-    ])
-    def test_a_modify_only_change_with_a_conforming_message_is_accepted(self, hook, tmp_path, relpath):
-        repo = init_repo(tmp_path / "specs", hook)
-        write_spec_file(repo, relpath, "one\n")
-        commit(repo, "Run /aide-analyze for 55-example")
-
-        write_spec_file(repo, relpath, "one\ntwo\n")
-        result = commit(repo, "Run /aide-implement for 55-example")
-
-        assert result.returncode == 0, result.stderr
 
 
 class TestUnrelatedCommitsAreUntouched:

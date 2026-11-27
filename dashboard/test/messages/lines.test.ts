@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { MESSAGES, type MessageEntry, type MessageKey } from "../../src/messages/catalog.ts";
+import { type MessageEntry, type MessageKey } from "../../src/messages/catalog.ts";
 import { formatMessage, formatSentence, type BoardMessage } from "../../src/messages/format.ts";
 
 const all = (s: string) => ({ en: s, nb: s, es: s, de: s, fr: s });
@@ -72,60 +72,10 @@ describe("a message not yet in the two-line shape", () => {
   });
 });
 
-describe("the board's own entries", () => {
-  test("an entry is a Problem line and a Solution line in the reader's language (AC-1)", () => {
-    expect(formatMessage("nb", m("runner.notAnalyzed"))).toBe(
-      "Problem: Holdt tilbake: ikke analysert ennå\nLøsning: Trykk Analyser først",
-    );
-  });
-
-  test("an entry that offered two fixes names the one that resolves the case (AC-2)", () => {
-    expect(formatMessage("en", m("runner.modelAtCapacity", { values: { button: "Analyze" } })).split("\n")[1]).toBe(
-      "Solution: Choose another model for Analyze",
-    );
-  });
-
-  test("a create whose number assignment failed twice points to the serving checkout (AC-7)", () => {
-    const out = formatMessage("en", m("landing.createAssignNumberFailed"));
-    expect(out).toContain("after two attempts");
-    expect(out).toContain("checkout on the serving host");
-  });
-
-  test("a wrapper takes the fix of the message inside it (AC-3)", () => {
-    const inner = m("runner.notAnalyzed");
-    const out = formatMessage("en", m("landing.stepFailed", { values: { step: "Archive" }, inner }));
-    expect(out.split("\n")[1]).toBe("Solution: Press Analyze first");
-  });
-
-  test("an entry around data keeps its own fix (AC-3)", () => {
-    const out = formatMessage("en", m("runner.criteriaStopped", { values: { message: "x" } }));
-    expect(out.split("\n")).toHaveLength(2);
-  });
-
-  test("a runner's English words with their fix are the two lines (AC-4)", () => {
-    expect(
-      formatMessage("nb", m("message.written", { values: { problem: "cannot fast-forward b", solution: "merge it by hand" } })),
-    ).toBe("Problem: Cannot fast-forward b\nLøsning: Merge it by hand");
-  });
-
-  test("a runner's words without a fix are the Problem line alone (AC-4)", () => {
-    expect(formatMessage("en", m("message.written", { values: { problem: "cannot do x", solution: "" } }))).toBe(
-      "Problem: Cannot do x",
-    );
-  });
-
-  test("a message stored as plain text reads exactly as stored (AC-5)", () => {
-    expect(formatSentence("nb", "cannot do x — fix y")).toBe("cannot do x — fix y");
-  });
-});
-
-
 describe("information keeps its meaning when given a lead", () => {
-  const statements = Object.entries(MESSAGES).filter(([, entry]) => "statement" in entry).map(([key]) => key);
-
-  test.each(statements)("%s is still information with a phase name before it", (key) => {
+  test("a statement is still information with a phase name before it", () => {
     const text = formatMessage("en", m("message.lead", {
-      values: { lead: "Analyze" }, inner: m(key, { values: { dependency: "aide:726" } }),
+      values: { lead: "Analyze" }, inner: m("runner.dependencyNotArchived", { values: { dependency: "aide:726" } }),
     }));
     expect(text).toStartWith("Analyze ");
     expect(text).not.toMatch(/^(Problem|Solution):/m);

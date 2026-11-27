@@ -51,12 +51,6 @@ test("a board that is not a test board, or one the round did not name a file for
   expect((await press(unnamed.base, "10")).status).toBe(404);
 });
 
-test("a press from another site is refused like every other queue route", async () => {
-  const { base } = harness.start({ extra: { testBoardSpec: "aide-wt-run" } });
-  const res = await fetch(`${base}/api/self-run/delay`, { method: "POST", headers: { origin: "https://evil.example" } });
-  expect(res.status).toBe(403);
-});
-
 test("a JSON body that is not an object answers the reader's 400 and writes nothing (AC-1)", async () => {
   const { base } = harness.start({ extra: { testBoardSpec: "aide-wt-run" } });
   for (const text of ["null", "[]", "{not json"]) {

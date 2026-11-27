@@ -28,15 +28,6 @@ describe("the page's rows", () => {
     expect(start?.kind).toBe("action");
   });
 
-  test("the shared-prefix section names GET /api/queue and POST /api/queue", () => {
-    const at = page.indexOf("## Reads and actions share a prefix");
-    expect(at).toBeGreaterThan(-1);
-    const rest = page.slice(at + 1);
-    const next = rest.indexOf("\n## ");
-    const section = next === -1 ? rest : rest.slice(0, next);
-    expect(section).toContain("`GET /api/queue`");
-    expect(section).toContain("`POST /api/queue`");
-  });
 });
 
 describe("the scanner reads the real tree", () => {

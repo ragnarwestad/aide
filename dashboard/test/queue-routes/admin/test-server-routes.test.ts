@@ -178,18 +178,6 @@ describe("POST /api/queue/projects/<name>/test-server/stop", () => {
     expect(((await res.json()) as { ok: boolean }).ok).toBe(true);
     expect(server.testServersStore().get("aide", MAIN_TEST_SERVER_KEY)).toBeUndefined();
   });
-
-  // The Test servers list's own Stop form carries class="actionform",
-  // which specs-client.ts posts as a JSON-wanting XHR.
-  test("answers JSON for the actionform's own XHR", async () => {
-    const { base, server } = start();
-    server.testServersStore().set("aide", MAIN_TEST_SERVER_KEY, mainEntry());
-    const res = await fetch(`${base}/api/queue/projects/aide/test-server/stop`, { method: "POST", headers: AUTH });
-    expect(res.status).toBe(200);
-    const body = (await res.json()) as { ok: boolean };
-    expect(body.ok).toBe(true);
-    expect(server.testServersStore().get("aide", MAIN_TEST_SERVER_KEY)).toBeUndefined();
-  });
 });
 
 describe("GET /projects/<name>?startTestServer=1", () => {

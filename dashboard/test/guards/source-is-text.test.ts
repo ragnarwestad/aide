@@ -21,10 +21,12 @@ describe("every source file is text git can diff", () => {
     expect(SOURCES.length).toBeGreaterThan(15);
   });
 
-  for (const file of SOURCES) {
-    test(`${file} contains no NUL byte`, async () => {
+  test("no source file contains a NUL byte", async () => {
+    const offenders: string[] = [];
+    for (const file of SOURCES) {
       const bytes = new Uint8Array(await Bun.file(join(ROOT, file)).arrayBuffer());
-      expect(bytes.indexOf(0)).toBe(-1);
-    });
-  }
+      if (bytes.indexOf(0) !== -1) offenders.push(file);
+    }
+    expect(offenders).toEqual([]);
+  });
 });

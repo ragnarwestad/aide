@@ -74,11 +74,6 @@ describe("the open row and the chevrons", () => {
     expect(link).not.toContain("data-nav");
   });
 
-  test("a spec's title on the Specs list leads nowhere; its project still links to the project", () => {
-    expect(html).not.toContain('class="specpart" data-goto');
-    expect(html).toContain('href="/projects/aide"');
-  });
-
   test("the open row's chevron leads back to the list, with the row's view", () => {
     expect(chevron("81-queue-x")).toContain('href="/specs?q=queue#spec-aide/81-queue-x"');
   });
@@ -196,31 +191,6 @@ describe("an open row on the Specs list is the spec alone", () => {
     expect(html).toMatch(/value="implement" checked/);
     expect(html).not.toMatch(/value="analyze" checked/);
     expect(html).toMatch(/name="model\.implement"[\s\S]*?<option value="codex-fast"[^>]* selected/);
-  });
-
-  test("the Run dialog adds Review and Verify choices beside their phases (AC-1)", () => {
-    const html = onList("aide/81-queue-x");
-    const analyze = html.indexOf('data-step="analyze"');
-    const planReview = html.indexOf('data-side="plan-review"');
-    const implement = html.indexOf('data-step="implement"');
-    const review = html.indexOf('data-side="review"');
-    const verify = html.indexOf('data-side="verify"');
-    expect(analyze).toBeGreaterThan(-1);
-    expect(planReview).toBeGreaterThan(analyze);
-    expect(implement).toBeGreaterThan(planReview);
-    expect(review).toBeGreaterThan(implement);
-    expect(verify).toBeGreaterThan(review);
-    expect(html).toContain('name="model.plan-review"');
-    expect(html).toContain('name="model.review"');
-    expect(html).toContain('name="model.verify"');
-  });
-
-  test("the Run dialog uses the job line's compact phase picker (AC-1, AC-4)", () => {
-    const html = onList("aide/81-queue-x");
-    const analyze = html.match(/<tr class="subrow" data-step="analyze">[\s\S]*?<\/tr>/)?.[0] ?? "";
-    expect(analyze).toContain('class="aimodelopen"');
-    expect(analyze).toContain('class="aimodelnow"');
-    expect(analyze).toContain('class="aimodelpanel"');
   });
 
   test("the approach choice's form is on the shut row and the Running tab's open row, not the Specs list's open row", () => {

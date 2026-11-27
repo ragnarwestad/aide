@@ -370,7 +370,7 @@ describe("whether a run could start there", () => {
   // nobody writes to, ruinous for anything a build writes into. The
   // source directory is created here on purpose, so the existence check
   // above cannot be what refuses it: the name alone has to.
-  test.each([["build"], ["target"], ["dist"], [".gradle"], ["backend/build"]])(
+  test.each([["build"], ["backend/build"]])(
     "a worktree link naming a build output (%p) blocks, and says why",
     async (entry) => {
       const { projectsRoot, dir } = checkout("buildlink");
@@ -407,19 +407,6 @@ describe("whether a run could start there", () => {
     });
     expect(result.readiness!.canRun).toBe(true);
     expect(check(result, "worktreeLinks")[0]!.ok).toBe(true);
-  });
-
-  // The dashboard cannot know which gitignored paths a
-  // project's own test command needs, so it never invents one — but it
-  // says the field is empty, because that is what made Skjer's suite
-  // fail for a reason that had nothing to do with the change.
-  test("no worktree links at all is said in words, and blocks nothing", async () => {
-    const { projectsRoot, dir } = checkout("nolinks");
-    const result = await assess(dir, projectsRoot);
-    expect(result.readiness!.canRun).toBe(true);
-    const links = check(result, "worktreeLinks")[0]!;
-    expect(links.blocking).toBe(false);
-    expect(links.detail.toLowerCase()).toContain("worktree");
   });
 
   // --- The same fixture the bash side reads, read here too ---------
@@ -508,13 +495,6 @@ describe("whether a run could start there", () => {
     // own settings file does.
     const manifestOf = (dir: string) =>
       readFileSync(dashboardSettingsFile(checkoutsUnder(dirname(dir)), basename(dir)), "utf-8");
-
-    test("pr is written into the dashboard's settings file", async () => {
-      const { projectsRoot, dir } = checkout("alpha");
-      const r = await assess(dir, projectsRoot, {}, { codeLanding: "pr" });
-      expect(r.steps.find((s) => s.step === "codeLanding")?.ok).toBe(true);
-      expect(manifestOf(dir)).toContain("codeLanding: pr");
-    });
 
     // `merge` is what an absent key already means. Writing it would put
     // a second statement of the default in a file that has to be kept

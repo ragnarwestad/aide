@@ -115,11 +115,6 @@ async function mounted(html: string, url = "http://board.test/?live=0") {
 
 const settled = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-test("a bounded field drawn in place gets its count (AC-2)", async () => {
-  await mounted(`<input type="text" name="title" maxlength="10" value="abc">`);
-  expect(document.querySelector("[data-limit]")?.textContent).toBe("3 of 10 characters");
-});
-
 test("two mounts leave one count per field, and a typed character updates it (AC-2)", async () => {
   const { mountPage } = await mounted(`<input type="text" name="title" maxlength="10">`);
   const { bindLimits } = await import("../../../src/specs-client/limits");

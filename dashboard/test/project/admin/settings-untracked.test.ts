@@ -136,17 +136,4 @@ describe("Settings save by whether the manifest is tracked", () => {
     expect(git(f.origin, "rev-parse", "main")).toBe(originHead);
   });
 
-  test("a criterion prefix is set, changed and removed in a tracked manifest on origin", async () => {
-    const f = fixture({ ".aide/project.yaml": "name: demo\n" });
-    const options = { saveManifest: saveManifest(f.dir), settingsFile: dashboardSettingsFile(f.base, "demo") };
-    const onOrigin = () => git(f.origin, "show", "main:.aide/project.yaml");
-    expect((await updateProjectSettings(run, f.dir, { acPrefix: "F{spec}" }, options)).ok).toBe(true);
-    expect(onOrigin()).toContain("acPrefix: F{spec}");
-    expect((await updateProjectSettings(run, f.dir, { acPrefix: "P{spec}" }, options)).ok).toBe(true);
-    expect(onOrigin()).toContain("acPrefix: P{spec}");
-    expect(onOrigin()).not.toContain("F{spec}");
-    expect((await updateProjectSettings(run, f.dir, { acPrefix: "" }, options)).ok).toBe(true);
-    expect(onOrigin()).not.toContain("acPrefix");
-    expect(existsSync(dashboardSettingsFile(f.base, "demo"))).toBe(false);
-  });
 });

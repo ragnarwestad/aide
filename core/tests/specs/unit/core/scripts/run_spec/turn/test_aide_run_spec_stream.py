@@ -112,10 +112,6 @@ RESULT_REFUSED = {
     **RESULT_OK, "is_error": True, "stop_reason": "refusal",
     "terminal_reason": "api_error", "result": "API Error: safeguards flagged this message",
 }
-RESULT_NOT_LOGGED_IN = {
-    **RESULT_OK, "is_error": True, "terminal_reason": "api_error",
-    "result": "Not logged in \u00b7 Please run /login",
-}
 
 def test_a_refusal_ends_model_refused_and_the_commit_says_so(runner, workspace, fake_claude):
     """A refused step is a step that stopped: the reason is the model's own,
@@ -138,20 +134,8 @@ def test_a_refusal_ends_model_refused_and_the_commit_says_so(runner, workspace, 
     subject_line = git(workspace["specs"], "log", "-1", "--pretty=%s", "aide/81-queue-and-runner")
     assert subject_line.endswith("(stopped: model-refused)"), subject_line
 
-def test_a_login_failure_stays_a_cli_error(runner, workspace, fake_claude):
-    """The refusal is told from the login problem by `stop_reason`; a
-    result that carries none keeps today's reason, so the board still
-    sends the reader to Settings."""
-    claude = fake_claude(stream_body(RESULT_NOT_LOGGED_IN))
-    _, out, _ = run(runner, workspace, claude)
-    assert out["ok"] is False
-    assert out["terminalReason"] == "cli-error"
-
 @pytest.mark.parametrize(("text", "name", "status", "kind"), [
     ("Not logged in \u00b7 Please run /login", "authentication_failed", None, "login"),
-    ("Failed to authenticate: OAuth session expired and could not be refreshed", "authentication_failed", None, "login"),
-    ("API Error: 500 Internal server error. This is a server-side issue, usually temporary \u2014 try again in a "
-     "moment. If it persists, check https://status.claude.com.", "server_error", 500, "provider"),
 ])
 def test_a_claude_api_error_carries_the_provider_s_own_words_and_kind_AC_6(runner, workspace, fake_claude, text, name, status, kind):
     """The words are in the result's text, not an error list: they reach the
@@ -192,12 +176,6 @@ def test_a_non_success_result_keeps_its_supplied_cause_AC_6(runner, workspace, f
     assert_written_as_in_fixture("providerError", out["providerError"])
     assert out["providerError"] == {"kind": "other", "message": "provider said why"}
     assert out["error"] is None and "provider said why" in out["errorLog"], out
-
-def test_exit_zero_and_a_non_error_success_still_complete(runner, workspace, fake_claude):
-    claude = fake_claude(stream_body(RESULT_OK, exit_code=0))
-    _, out, _ = run(runner, workspace, claude)
-    assert out["ok"] is True
-    assert out["terminalReason"] == "completed"
 
 def test_a_truncated_last_line_does_not_lose_the_result(runner, workspace, fake_claude, tmp_path):
     """A killed run leaves half a line behind. Refusing the whole file

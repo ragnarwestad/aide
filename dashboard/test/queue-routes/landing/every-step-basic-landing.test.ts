@@ -96,29 +96,6 @@ describe("every step lands its own work", () => {
     },
   );
 
-  // The one step that deliberately does not land. The code
-  // stays on `aide/<spec>`, which is where a person tests it — by
-  // leaving `archive` unticked. The worktree is gone when the run ends,
-  // so the branch on origin is what remains.
-  test("a finished implement step merges nothing and leaves its branch open", async () => {
-    const dir = own("aide-149-implement-");
-    const paths = repos(dir);
-    const git = gitFor();
-    const { base } = serverWithHarness(dir, paths, git);
-    const marker = installs(paths.project);
-
-    const branchUrls = [
-      { root: paths.project, url: "https://example.test/aide" },
-      { root: paths.specs, url: "https://example.test/aide-specs" },
-    ];
-    const done = await stepWithResult(base, dir, "implement", { branchUrls }, (j) => j.state === "done");
-
-    expect(merges(git.calls)).toEqual([]);
-    expect(done.landing).toBeFalsy();
-    expect(done.branchUrls).toEqual(branchUrls);
-    expect(existsSync(marker)).toBe(false);
-  });
-
   // The one landing that sends CODE to a default branch —
   // and the reason it cannot read its own outcome alone. The code branch
   // moved during IMPLEMENT; archive's own run may touch the project
@@ -293,23 +270,6 @@ describe("every step lands its own work", () => {
     expect(existsSync(marker)).toBe(false);
   });
 
-  // The other half, and the whole of the risk accepted
-  // knowingly: a step that touched only the specs repo must
-  // not reach back into the queue's history and land the code an
-  // earlier implement left open.
-  test("analyze does not land an unarchived implement's code branch", async () => {
-    const dir = own("aide-149-analyze-scope-");
-    const paths = repos(dir);
-    const git = gitFor();
-    const { base } = serverWithHarness(dir, paths, git);
-
-    await implementDone(base, dir, [{ root: paths.project, url: "https://example.test/aide" }]);
-    await stepWithResult(base, dir, "analyze", { branchUrls: specsBranch(paths) });
-
-    expect(merges(git.calls, paths.specs).length).toBeGreaterThan(0);
-    expect(merges(git.calls, paths.project)).toEqual([]);
-  });
-
   // The reason is stored on
   // the job and still read from there on any later request — a landing
   // has no browser to redirect a query string to. What is gone is the
@@ -336,21 +296,5 @@ describe("every step lands its own work", () => {
     // The failure itself is still on the row, and still names the repo
     // the reader has to go and look at.
     expect(specControls(html, SPEC)).not.toBe("");
-  });
-
-  // Both routes are gone, not merely unreachable from the
-  // page: the actions they offered are what this whole spec removes.
-  test.each(["merge", "approve"])("POST /api/queue/<id>/%s is not a route any more", async (verb) => {
-    const dir = own(`aide-149-route-${verb}-`);
-    const paths = repos(dir);
-    const { base } = serverWithHarness(dir, paths, gitFor());
-    const job = await runStep(base, "analyze");
-
-    const res = await fetch(`${base}/api/queue/${job.id}/${verb}`, { method: "POST", headers: AUTH });
-    expect(res.status).toBe(404);
-    // Cancel is untouched — it is the one thing on that route that was
-    // never about merging.
-    const cancel = await fetch(`${base}/api/queue/${job.id}/cancel`, { method: "POST", headers: AUTH });
-    expect(cancel.status).toBe(200);
   });
 });

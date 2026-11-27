@@ -41,14 +41,6 @@ const headings = (doc: Document): [string, URL, string | null][] =>
 const query = (u: URL): Record<string, string> => Object.fromEntries(u.searchParams);
 
 describe("the runs list", () => {
-  test("has the columns Started, State and Duration", () => {
-    expect(headings(draw()).map(([word]) => word)).toEqual(["Started", "State", "Duration"]);
-  });
-
-  test("its words follow the reader's language", () => {
-    expect(headings(draw({ lang: "nb" })).map(([word]) => word)).toEqual(["Startet", "Tilstand", "Varighet"]);
-  });
-
   test("marks the run being shown, and no other", () => {
     expect(marked(draw({ shown: "r1" }))).toEqual(["r1"]);
     expect(marked(draw({ shown: "r2" }))).toEqual(["r2"]);

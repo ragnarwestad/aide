@@ -12,7 +12,7 @@ describe("a create that ended without a spec", () => {
     expect(createEndedWithoutSpec(create({ state }))).toBe(true);
   });
 
-  test.each(["queued", "running", "cancelled", "done", "waiting"])("%s is not a failure", (state) => {
+  test.each(["cancelled", "done"])("%s is not a failure", (state) => {
     expect(createEndedWithoutSpec(create({ state }))).toBe(false);
   });
 

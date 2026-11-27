@@ -1,8 +1,8 @@
 // Split out of spec-save.test.ts by theme.
 //
 // Sibling to spec-overview-checks.test.ts: same "the checks on the
-// Overview tab" describe from the original file, covering the commit
-// message, what a tick refuses, and the archived-spec/retired-route
+// Overview tab" describe from the original file, covering what a
+// tick refuses, and the archived-spec/retired-route
 // guards.
 
 import { afterEach, describe, expect, test } from "bun:test";
@@ -10,10 +10,10 @@ import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import type { GitRunner } from "../../src/git/process/index.ts";
-import { SPEC, TICK, FILE_SHA, DESCRIPTION, NEW_TEXT, createSpecSaveHarness, ARCHIVED, ARCHIVED_TEXT, savable } from "./spec-save-fixtures.ts";
+import { TICK, FILE_SHA, DESCRIPTION, createSpecSaveHarness, ARCHIVED, ARCHIVED_TEXT, savable } from "./spec-save-fixtures.ts";
 import {
-  PHASE, OPEN_ROW, DONE_ROW, STATUS, ticked, statusPath, startWithChecks as start, tick, save,
-  recording, messageOf, branchAwareGitRunner, NV_ROW, NV_STATUS, marked, SECOND_OPEN_ROW, answer,
+  PHASE, OPEN_ROW, DONE_ROW, STATUS, ticked, statusPath, startWithChecks as start, tick,
+  recording, branchAwareGitRunner, NV_ROW, NV_STATUS, marked, SECOND_OPEN_ROW, answer,
 } from "./spec-checks-fixtures.ts";
 import { afterTick } from "../../src/serve/routes/spec-edit/checks.ts";
 
@@ -22,22 +22,6 @@ afterEach(() => harness.cleanup());
 const startWithChecks = (gitRun: GitRunner, status = STATUS) => start(harness, gitRun, status);
 
 describe("the checks on the Overview tab", () => {
-  describe("the commit message", () => {
-    test("a tick reads as a check made by hand, not as an edit", async () => {
-      const git = recording();
-      const { base } = startWithChecks(git.run);
-      await tick(base, { ticks: [OPEN_ROW] });
-      expect(messageOf(git.calls)).toBe(`Tick a check in 4-status.md for ${SPEC} by hand from the dashboard`);
-    });
-
-    test("a description edit still reads exactly as it did", async () => {
-      const git = recording();
-      const { base } = startWithChecks(git.run);
-      await save(base, { text: NEW_TEXT });
-      expect(messageOf(git.calls)).toBe(`Edit 1-description.md for ${SPEC} from the dashboard`);
-    });
-  });
-
   // --- A tick that cannot go through changes nothing -----------
 
   test("a 4-status.md that moved under the reader refuses the tick", async () => {

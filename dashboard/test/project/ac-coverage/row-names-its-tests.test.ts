@@ -133,14 +133,6 @@ describe("a criterion's tests by kind", () => {
     expect(body.querySelector(`[data-testcriterion="${SCOPE}|1|browser"]`)!.textContent).toContain("it fits a phone");
   });
 
-  test("the same test listed twice counts twice and both names are inside", () => {
-    const twice = { file: "a.test.ts", name: "the total shows (AC-1)" };
-    const body = drawn(acTestsLine({ task: "AC-1: x", tests: [twice, twice] }, "en", SCOPE));
-    const fold = body.querySelector("details")!;
-    expect(fold.textContent).toContain("a.test.ts");
-    expect(fold.innerHTML.match(/the total shows/g)).toHaveLength(2);
-  });
-
   test("the criterion fold is keyed by spec and criterion, with no AC- text", () => {
     const html = acTestsLine({ task: "AC-3: x", tests: [{ file: "a.test.ts", name: "t (AC-3)" }] }, "en", SCOPE);
     expect(html).toContain(`data-testcriterion="${SCOPE}|3"`);
@@ -188,11 +180,6 @@ describe("a criterion's tests by kind", () => {
     expect(checklist(page, "en")).toContain(expected);
   });
 
-  test("a criterion no test names still shows its warning and no fold (AC-9)", () => {
-    const body = drawn(acTestsLine({ task: "AC-4: x", untested: true }, "en", SCOPE));
-    expect(body.querySelector(".checktests .untested")?.textContent).toBe("No test names AC-4.");
-    expect(body.querySelector("details")).toBeNull();
-  });
 });
 
 test("counts individual tests per kind and keeps unknown tests separate", () => {

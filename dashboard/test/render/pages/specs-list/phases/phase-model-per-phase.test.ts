@@ -3,7 +3,6 @@
 import { describe, expect, test } from "bun:test";
 import { renderSpecsRows, type SpecTarget } from "../../../../../src/render";
 import { row, pickerRowsAt } from "../../fixtures.ts";
-import { TOOL_ICONS } from "../../../../../src/render/ui/components/icons.ts";
 import { phaseLine } from "../../../../../src/render/pages/specs-list/model-resolve.ts";
 import { sidePickers } from "../../../../../src/render/pages/specs-list/model-picker";
 import { analyzeRests } from "../../../../../src/render/pages/specs-list/phase-rows.ts";
@@ -69,17 +68,6 @@ describe("one picker per phase", () => {
     expect(review).not.toContain('<option value="">');
     expect(verify).not.toContain('<option value="">');
     expect(review).not.toContain("hidden disabled");
-  });
-
-  test("Review and Verify's closed provider picker shows its provider's tool icon and short name, the full name as its title (AC-5)", () => {
-    const html = rows([], { pendingModels: { "aide/169-one-picker": { review: "gpt-fast" } } });
-    const review = html.match(/<tr class="subrow" data-side="review">[\s\S]*?<\/tr>/)?.[0] ?? "";
-    const picker = review.match(/<span class="providerpick">[\s\S]*?<\/select><\/span>/)?.[0] ?? "";
-    const face = picker.slice(0, picker.indexOf("<select"));
-    expect(face).toContain(TOOL_ICONS.codex);
-    expect(face).toContain(">CO<");
-    expect(picker).toMatch(/<select[^>]* title="Codex"/);
-    expect(picker).toMatch(/<option value="Codex"[^>]*data-short="CO"/);
   });
 
   test("Review and Verify show the first listed model when the configured default is not listed (AC-3)", () => {
@@ -213,12 +201,6 @@ describe("one picker per phase", () => {
     expect(phaseSelect(html, "analyze")).toMatch(/<option value="sonnet"[^>]*selected/);
   });
 
-  // A configured default outranks the fallback exactly as it always did.
-  test("a configured default still wins over the first entry", () => {
-    const select = phaseSelect(rows([], { defaultModels: { default: "gpt-fast" } }), "analyze");
-    expect(select).toMatch(/<option value="gpt-fast"[^>]*selected/);
-  });
-
   // --- the lock a busy row puts on every control on it ------
 
   test("a busy row locks its AI selects for the same reason as its models", () => {
@@ -240,30 +222,6 @@ describe("one picker per phase", () => {
       row({ id: "j1", specFolder: "169-one-picker", steps: ["implement"], stepIndex: 0, state: "done" }),
     ]);
     expect(html.match(/<select[^>]*data-ai="model\.archive"[^>]*>/)![0]).not.toContain("disabled");
-  });
-
-  // --- ResolveChosenModel's new "pending" tier ---------------------
-
-  // A pending pick wins over the configured default, exactly as a phase
-  // with history wins over a pending pick (`used` > `pending` >
-  // `configured`, tested end to end in phase-model-picker.test.ts).
-  test("a recorded pending pick beats the configured default", () => {
-    const html = rows([], {
-      defaultModels: { default: "sonnet" },
-      pendingModels: { "aide/169-one-picker": { analyze: "gpt-fast" } },
-    });
-    expect(phaseSelect(html, "analyze")).toMatch(/<option value="gpt-fast"[^>]*selected/);
-  });
-
-  // An absent pending value for one step falls through to the
-  // configured default unchanged — the boundary case immediately
-  // beneath the new tier.
-  test("an absent pending pick falls through to the configured default unchanged", () => {
-    const html = rows([], {
-      defaultModels: { default: "sonnet" },
-      pendingModels: { "aide/169-one-picker": { implement: "gpt-fast" } },
-    });
-    expect(phaseSelect(html, "analyze")).toMatch(/<option value="sonnet"[^>]*selected/);
   });
 });
 

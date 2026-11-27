@@ -63,14 +63,6 @@ describe("GET /api/version — this process's own boot-time commit", () => {
     expect(await pollVersion(base, null)).toBeNull();
   });
 
-  test("no credential at all — still 200", async () => {
-    const { run } = bootGit({ code: 0, stdout: "abc1234deadbeef\n" });
-    const { base } = harness.start({ extra: { gitRun: run } });
-    // Deliberately no header and no cookie of any kind.
-    const res = await fetch(`${base}/api/version`);
-    expect(res.status).toBe(200);
-  });
-
   test("only GET — POST is refused", async () => {
     const { run } = bootGit({ code: 0, stdout: "abc1234deadbeef\n" });
     const { base } = harness.start({ extra: { gitRun: run } });

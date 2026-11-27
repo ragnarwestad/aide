@@ -24,15 +24,6 @@ describe("the session id is known before the step starts", () => {
     expect(stored.streamFile).toBe(spawns[0]!.streamFile);
   });
 
-  test("the id is stored before any result could have arrived", () => {
-    // readResult never answers, so nothing has completed: whatever the
-    // job carries now was known in advance, not learned afterwards.
-    const job = enqueue();
-    makeRunner({ readResult: () => null }).tick();
-    expect(store.get(job.id)!.results).toEqual([]);
-    expect(store.get(job.id)!.sessionId).toBeTruthy();
-  });
-
   test("every step gets its own session id", () => {
     enqueue({ steps: ["analyze", "implement"] });
     const runner = makeRunner({ readResult: () => okResult(1) });

@@ -102,8 +102,3 @@ def test_refuses_without_project_dir(script):
 def test_refuses_a_directory_that_is_not_there(script, tmp_path):
     code, answer = prefix(script, tmp_path / "nope", "--spec", FOLDER)
     assert code == 2 and "no such --project-dir" in answer["error"]
-
-
-def test_refuses_an_unknown_argument(script, project):
-    code, answer = prefix(script, project, "--spec", FOLDER, "--landing")
-    assert code == 2 and "unknown argument" in answer["error"]

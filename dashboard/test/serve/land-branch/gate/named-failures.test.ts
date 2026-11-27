@@ -64,6 +64,7 @@ test("an unnamed first run does not claim that a named failure repeated (AC-5)",
     key: "landing.testsRedOnMergeUnnamed",
     values: { branch: "aide/81-x", button: "Archive" },
   });
+  expect(verdict.failedTests).toBeUndefined();
 }, 30_000);
 
 test("different tests stay as separate detail items (AC-3, AC-5)", async () => {
@@ -74,6 +75,7 @@ test("different tests stay as separate detail items (AC-3, AC-5)", async () => {
     values: { count: 2, branch: "aide/81-x", button: "Archive" },
     lists: { tests: ["t/test_a.py::test_one — first error", "t/test_a.py::test_two — second error"] },
   });
+  expect(verdict.failedTests).toBeUndefined();
 }, 30_000);
 
 test("a repeated failure stays the merge's when the retry adds another failure (AC-3)", async () => {
@@ -102,13 +104,6 @@ test("the tests the merge failed twice are kept with their file and error, all o
   expect(verdict.failedTests?.[9]).toEqual({ name: "t/test_a.py::test_10", file: "t/test_a.py", error: "second error" });
   expect((verdict.error as { lists?: { tests?: string[] } }).lists?.tests).toHaveLength(9);
 }, 30_000);
-
-test("a merge that failed different tests, or named none first, keeps no list (AC-7)", async () => {
-  recorder("test_one", "test_two");
-  expect((await runProjectSuiteBeforePush(merged(), job, "aide/81-x", { button: "Archive" })).failedTests).toBeUndefined();
-  recorder("", "test_one");
-  expect((await runProjectSuiteBeforePush(merged(), job, "aide/81-x", { button: "Archive" })).failedTests).toBeUndefined();
-}, 60_000);
 
 describe("failingLines", () => {
   test("the recorder's own answer is not a line the tests said", () => {

@@ -203,7 +203,9 @@ describe("every spec is a row", () => {
     for (const step of ["analyze", "implement", "archive"]) {
       expect(subRow(html, step)).not.toContain("disabled");
     }
-    expect(line).not.toContain("<button[^>]*disabled");
+    const run = line.match(/<button[^>]*form="rowrun-[^>]*>/)?.[0] ?? "";
+    expect(run).not.toBe("");
+    expect(run).not.toContain("disabled");
     expect(subRow(html, "analyze")).not.toContain("<form");
   });
 

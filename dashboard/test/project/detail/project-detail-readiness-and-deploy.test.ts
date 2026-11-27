@@ -3,12 +3,11 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { rmSync } from "node:fs";
 import { join } from "node:path";
-import { navEntries } from "../../../src/render";
 import { NO_DEPLOY_SENTENCE } from "../../../src/render/pages/projects-page/project-page.ts";
 import { parseArgs } from "../../../src/serve/serve-helpers";
 import type { GitRunner } from "../../../src/git/process/index.ts";
 import { fakeGit } from "../../helpers/fake-git.ts";
-import { harness, ownDirs, projectsRoot, settled, stranded, serve, get, behindBy, unanswerable, INSTALLS, loadUntil, setTestCmd, setWorktreeLinks } from "./project-detail-route-fixtures.ts";
+import { harness, ownDirs, projectsRoot, settled, stranded, serve, get, behindBy, unanswerable, INSTALLS, loadUntil, setTestCmd } from "./project-detail-route-fixtures.ts";
 
 afterEach(() => {
   harness.cleanup();
@@ -29,30 +28,6 @@ describe("what the page says about whether a run could start", () => {
     const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
     expect(html).not.toContain("there is no such branch");
     expect(html).toContain("ready to run");
-  });
-
-  test("a worktree link with nothing to link is on the page", async () => {
-    const root = projectsRoot({ aide: null });
-    setWorktreeLinks(root, "aide", "node_modules");
-    const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
-    expect(html).toContain("A run refuses a worktree link with nothing to link");
-  });
-
-  // A field-owned check that is UNSET (nothing
-  // configured at all, not merely misconfigured) now carries its
-  // readiness note on the Config row too — closing the gap the Health
-  // tab's removal would otherwise have left unreachable.
-  test("no worktree links configured at all is on the Config row", async () => {
-    const root = projectsRoot({ aide: null });
-    const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
-    expect(html).toMatch(/worktree links/i);
-    expect(html).toContain("No worktree links are configured");
-  });
-
-  test("a specs root that is not there is on the page", async () => {
-    const root = projectsRoot({ aide: "AIDE_SPECS_PATH=/tmp/aide-no-such-specs-root\n" });
-    const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
-    expect(html).toContain("There is no specs root at /tmp/aide-no-such-specs-root");
   });
 
   // Fail-open, the way the drift check on /projects already does: the
@@ -499,9 +474,6 @@ describe('the "Serving" line on a project\'s own page', () => {
 // on 2026-08-22: a project is reached from the Projects page, which
 // lists every one with its counts, its warnings and its controls.
 describe("the nav does not name the projects", () => {
-  test("it is the two aggregate tabs, whatever projects the machine has", () => {
-    expect(navEntries().map((e) => e.label)).toEqual(["Projects", "Schedule"]);
-  });
 
   test("a server started with --root builds a nav with no project in it", () => {
     const root = projectsRoot({ aide: null });

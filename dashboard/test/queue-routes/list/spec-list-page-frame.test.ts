@@ -1,10 +1,7 @@
 // Split out of spec-list-rendering.test.ts by theme.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import { writeFileSync } from "node:fs";
-import { join } from "node:path";
-import { ran, statusSaying } from "../../helpers/queue-server.ts";
-import { JOB, specControls, phaseDone, OPEN_81, listUntil, rowSaysDone, setupQueueRoutesHarness } from "../fixtures.ts";
+import { JOB, OPEN_81, setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness();
 
@@ -56,24 +53,6 @@ describe("GET / (the spec list, HTML)", () => {
     expect(rows).toContain("<tr");
     expect(rows).toContain("81-queue-and-runner");
     expect(rows).not.toContain("<html");
-  });
-
-});
-
-describe("the step boxes on a row follow that spec", () => {
-  test("a step the spec has already had is marked done, and its box is offered unticked", async () => {
-    const { base, dir } = start();
-    const spec = join(dir, "root", "aide", "specs", "81-queue-and-runner");
-    writeFileSync(join(spec, "4-status.md"), statusSaying(["create", "analyze"]));
-    ran(dir, ["create", "analyze"]);
-    const html = await listUntil(base, rowSaysDone("analyze"));
-    const line = specControls(html, "81-queue-and-runner");
-    // analyze has run: its box can be ticked again, and is not.
-    // Implement is what you came for, so its box is pre-ticked.
-    expect(line).toMatch(/name="steps" value="analyze" form/);
-    expect(line).not.toMatch(/value="analyze" checked/);
-    expect(line).toMatch(/data-phase="implement"[^]*?value="implement"[^>]*checked/);
-    expect(phaseDone(line, "analyze")).toBe(true);
   });
 
 });

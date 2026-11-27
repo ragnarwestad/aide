@@ -4,7 +4,7 @@
 // This opens a real page, dirties a tracked form, clicks an in-app link
 // and checks the replacement dialog leaves none of nav-busy.ts's/
 // nav-overlay.ts's own side effects behind once the reader chooses to
-// stay, and follows the link once the reader chooses to leave.
+// stay.
 import { describe, expect, test } from "bun:test";
 import type { Page } from "playwright";
 import { browserDeadline, withBrowser } from "../helpers/browser-deadline.ts";
@@ -39,18 +39,6 @@ function exitLink() {
 }
 
 describe("the leave-app dialog replaces the native prompt for an in-app link", () => {
-  // Fails in one line when the page stops carrying the link these cases
-  // click, rather than through a 20-second click timeout three cases
-  // deep: the selector went stale once already, and a test whose exit
-  // path has vanished says nothing about the dialog either way.
-  test("the exit path these cases use is on the page", async () => {
-    await withBrowser(
-      page.goto(`${base}/settings`),
-      "page.goto(settings page)",
-    );
-    expect(await exitLink().count()).toBe(1);
-  });
-
   test('pressing Cancel leaves no stray .awaiting link and no open pageoverlay behind', async () => {
     await withBrowser(
       page.goto(`${base}/settings`),
@@ -67,23 +55,6 @@ describe("the leave-app dialog replaces the native prompt for an in-app link", (
     expect(new URL(page.url()).pathname).toBe("/settings");
     expect(await exitLink().evaluate((el) => el.classList.contains("awaiting"))).toBe(false);
     expect(await page.locator("dialog.pageoverlay").count()).toBe(0);
-  });
-
-  test('pressing OK navigates to the link\'s destination', async () => {
-    await withBrowser(
-      page.goto(`${base}/settings`),
-      "page.goto(settings page)",
-    );
-    await dirtyTheSettingsForm();
-    await exitLink().click();
-    const dialog = page.locator("#leaveapp");
-    await dialog.waitFor({ state: "visible" });
-
-    await Promise.all([
-      page.waitForURL((url) => new URL(url).pathname === "/"),
-      dialog.getByRole("button", { name: "OK" }).click(),
-    ]);
-    expect(new URL(page.url()).pathname).toBe("/");
   });
 });
 

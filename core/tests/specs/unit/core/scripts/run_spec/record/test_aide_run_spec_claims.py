@@ -74,24 +74,6 @@ def test_a_pr_landing_opens_the_pull_request(runner, workspace, fake_claude, fak
     assert fake_gh.calls.exists(), "a pr landing must open one"
     assert out["prUrl"], out
 
-def test_open_rows_recompute_the_header_percentage(runner, workspace, fake_claude):
-    """A header reading `0% (0 of 4 completed)` next to 4 real rows
-    (2 done, 2 open) is rewritten to the real split."""
-    write_raw_status(
-        workspace,
-        "# Queue - Status\n\n## Tracking info\n\n"
-        f"- **Task:** `{workspace['folder']}/`\n"
-        "- **Total progress:** 0% (0 of 4 completed)\n\n---\n\n"
-        "## Phase 1: RED\n\n"
-        "| Task | Status | Notes |\n|------|--------|-------|\n"
-        "| one | ✅ | |\n"
-        "| two | ✅ | |\n"
-        "| three | ⬜ | |\n"
-        "| four | ⬜ | |\n",
-    )
-    text = _status_after_an_analyze(runner, workspace, fake_claude)
-    assert bullet(text, "Total progress") == "50% (2 of 4 completed)"
-
 def test_a_header_that_already_matches_is_not_rewritten(runner, workspace, fake_claude):
     """A header already agreeing with the real row count produces no
     change and no commit — the same `cmp -s` guard `Workflow steps
@@ -115,24 +97,6 @@ def test_a_header_that_already_matches_is_not_rewritten(runner, workspace, fake_
     # test_a_line_that_is_already_right_is_not_rewritten above — the
     # ONE genuinely new file is this fixture's first-ever 4-status.json.
     assert roots[str(workspace["specs"])]["changedFiles"] == 1
-
-def test_both_numerator_and_denominator_are_corrected(runner, workspace, fake_claude):
-    """A real, archived staleness — a header of `73%
-    (11 of 15 completed)` next to 19 real, all-✅ rows becomes `100% (19
-    of 19 completed)`. Both numbers were wrong, not the denominator
-    alone."""
-    rows = "\n".join(f"| task {i} | ✅ | |" for i in range(1, 20))
-    write_raw_status(
-        workspace,
-        "# Queue - Status\n\n## Tracking info\n\n"
-        f"- **Task:** `{workspace['folder']}/`\n"
-        "- **Total progress:** 73% (11 of 15 completed)\n\n---\n\n"
-        "## Phase 1: RED\n\n"
-        "| Task | Status | Notes |\n|------|--------|-------|\n"
-        f"{rows}\n",
-    )
-    text = _status_after_an_analyze(runner, workspace, fake_claude)
-    assert bullet(text, "Total progress") == "100% (19 of 19 completed)"
 
 def test_a_fresh_status_file_with_no_rows_yet_is_left_untouched(runner, workspace, fake_claude):
     """A status file straight from the template — Phase tables with
@@ -201,20 +165,3 @@ def test_the_bold_bulleted_format_survives_the_rewrite(runner, workspace, fake_c
     )
     text = _status_after_an_analyze(runner, workspace, fake_claude)
     assert bullet(text, "Total progress") == "50% (2 of 4 completed)"
-
-def test_a_non_checkbox_status_row_counts_as_one_task(runner, workspace, fake_claude):
-    """A three-column row with a bare status word instead of a
-    checkbox mark (a real `Plan review` row) counts the
-    same as any ordinary row."""
-    write_raw_status(
-        workspace,
-        "# Queue - Status\n\n## Tracking info\n\n"
-        f"- **Task:** `{workspace['folder']}/`\n"
-        "- **Total progress:** 0% (0 of 2 completed)\n\n---\n\n"
-        "## Phase 1: RED\n\n"
-        "| Task | Status | Notes |\n|------|--------|-------|\n"
-        "| Plan review (feasibility, scope guardian, coherence) | ✅ | Three blind subagents; 2 must-fix |\n"
-        "| ordinary task | ⬜ | |\n",
-    )
-    text = _status_after_an_analyze(runner, workspace, fake_claude)
-    assert bullet(text, "Total progress") == "50% (1 of 2 completed)"

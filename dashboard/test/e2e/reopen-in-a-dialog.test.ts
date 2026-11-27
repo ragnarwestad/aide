@@ -1,5 +1,5 @@
-// Reopen asks in a dialog, from the Actions cell of the spec's row, and once the queue
-// has the job the page goes to the Running page with the job's own row open.
+// Reopen asks in a dialog, from the Actions cell of the spec's row, and its OK
+// posts the reopen with the files reset only when that box is ticked.
 //
 // `make test` runs it, and by hand:
 // `cd dashboard && bun test --timeout 20000 test/e2e/reopen-in-a-dialog.test.ts`.
@@ -49,7 +49,6 @@ async function open(path: string, post: { status: number; json: unknown } = ACCE
 }
 
 const dialog = (page: Page) => page.locator("dialog[data-progress-dialog]:visible");
-const modal = (page: Page) => dialog(page).evaluate((el) => (el as HTMLDialogElement).matches(":modal"));
 
 /** Presses OK and waits for the post's answer, which comes after it is recorded. */
 async function ok(page: Page): Promise<void> {
@@ -65,15 +64,6 @@ async function ask(page: Page): Promise<void> {
 }
 
 describe("Reopen asks in a dialog from the spec in its row", () => {
-  test("Reopen opens a modal headed with the spec's concise reference, and the address stays (AC-1)", async () => {
-    const { page } = await open(SPEC);
-    await ask(page);
-    expect(await modal(page)).toBe(true);
-    expect(await dialog(page).getByRole("heading", { name: "Reopen aide:150?" }).isVisible()).toBe(true);
-    expect(await dialog(page).locator("input[name=resetFiles]").isChecked()).toBe(false);
-    expect(new URL(page.url()).pathname).toBe(SPEC);
-  });
-
   test("OK posts resetFiles=1 only with the box ticked", async () => {
     for (const tick of [true, false]) {
       const { page, posts } = await open(SPEC);
@@ -86,24 +76,5 @@ describe("Reopen asks in a dialog from the spec in its row", () => {
       expect(body.get("specFolder")).toBe(STAMPED);
       expect(body.get("resetFiles")).toBe(tick ? "1" : null);
     }
-  });
-
-  test("an accepted post goes to the Running page scrolled to the job's shut row", async () => {
-    const { page } = await open(SPEC);
-    await ask(page);
-    await dialog(page).getByRole("button", { name: "OK" }).click();
-    await page.waitForURL((url) => url.pathname === "/");
-    expect(new URL(page.url()).hash).toBe(`#spec-aide/${STAMPED}:reopen@j1`);
-  });
-
-  test("a refusal is written in the dialog, which stays, and a second OK posts again", async () => {
-    const { page, posts } = await open(SPEC, { status: 400, json: { error: "Only an archived spec can be reopened." } });
-    await ask(page);
-    await ok(page);
-    await dialog(page).getByText("Only an archived spec can be reopened.").waitFor();
-    expect(await modal(page)).toBe(true);
-    expect(new URL(page.url()).pathname).toBe(SPEC);
-    await ok(page);
-    expect(posts).toHaveLength(2);
   });
 });

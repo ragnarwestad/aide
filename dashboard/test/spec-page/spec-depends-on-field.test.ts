@@ -139,14 +139,6 @@ describe("the Depends on field", () => {
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED(`${DEPENDS(OTHER)}, \`${THIRD}\``));
   });
 
-  test("emptying the field removes the line", async () => {
-    const { base, dir } = startTracked(savable("/host"), TRACKED(DEPENDS(OTHER)));
-    const { status, body } = await answer(await track(base, { dependsOn: "", baseSha: FILE_SHA }));
-    expect(status).toBe(200);
-    expect(body.ok).toBe(true);
-    expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED());
-  });
-
   // The picker's form is the only writer of the line, and a browser
   // posts nothing for a box left unticked: the form carries one empty
   // entry, so a picker cleared of every box still posts, and the route

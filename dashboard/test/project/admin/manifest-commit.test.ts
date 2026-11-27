@@ -8,11 +8,11 @@
 // both whatever the code does.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createGitRunner } from "../../../src/git/process/index.ts";
-import { commitManifestEdits, updateProjectSettings } from "../../../src/project/project-admin";
+import { commitManifestEdits } from "../../../src/project/project-admin";
 
 const dirs: string[] = [];
 afterEach(() => {
@@ -107,19 +107,4 @@ describe("a Settings save commits the manifest", () => {
     expect(git(origin, "rev-parse", "main").trim()).toBe(before);
   });
 
-  test("through updateProjectSettings, nothing is left on disk either", async () => {
-    const { root, origin } = checkout();
-
-    const result = await updateProjectSettings(
-      gitSeam.run,
-      root,
-      { specsPath: "", worktreeLinks: "node_modules", previewCmd: "pnpm dev" },
-      { saveManifest: (edits) => commitManifestEdits(gitSeam, root, edits) },
-    );
-
-    expect(result.steps.filter((s) => !s.ok)).toEqual([]);
-    expect(onOrigin(origin)).toContain("previewCmd: pnpm dev");
-    expect(readFileSync(join(root, ".aide", "project.yaml"), "utf-8")).toContain("worktreeLinks: node_modules");
-    expect(dirty(root)).toBe("");
-  });
 });

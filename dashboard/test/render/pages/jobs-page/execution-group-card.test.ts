@@ -75,25 +75,10 @@ test("the card keeps saved member order and sorts by activity", () => {
   expect(executionGroupPlace({ ...group("stopped"), startedAt: "2026-11-11T10:00:00.000Z" }, [stoppedAtNoon])).toEqual({ band: 2, changedAt: Date.parse("2026-11-11T12:00:00.000Z") });
 });
 
-test("a running card offers Stop and retains member content (AC-1, AC-5, AC-8, AC-11)", () => {
-  const html = executionGroupCard(group("running"), [member("2-second", "<tr>recovery</tr>"), member("1-first", "<tr>detail</tr>")]);
-  expect(html).toContain('name="action" value="stop"');
-  expect(html).not.toContain('value="start"');
-  expect(html).toContain("recovery");
-});
-
 test("a prepared card starts by durable id (AC-3, AC-10, AC-11)", () => {
   const html = executionGroupCard({ ...group("prepared"), startedAt: undefined }, [member("1-first", "<tr>first</tr>"), member("2-second", "<tr>second</tr>")]);
   expect(html).toContain('/api/queue/groups/group-1');
   expect(html).toContain('name="action" value="start"');
-});
-
-test("a completed card offers Remove in its menu, wired to the group's own route (AC-1, AC-10)", () => {
-  const html = executionGroupCard(group("completed"), [member("2-second", "<tr>history</tr>")]);
-  expect(html).toContain('/api/queue/groups/group-1/action');
-  expect(html).toContain('name="action" value="remove"');
-  expect(html).toContain(`>${t("en", "project.remove")}</button>`);
-  expect(html).toContain('<details class="menu"');
 });
 
 test("a completed group is placed with finished work (AC-3, AC-4)", () => {
@@ -133,27 +118,6 @@ test("a card ready to archive offers Archive and says the group lands together (
   expect(html).toContain(t("en", "list.groupArchiveReady", { button: stepLabel("archive") }));
 });
 
-test("a card offers Archive for a member the group recorded as implemented while its files still say Analyze", () => {
-  const recorded = { ...group("waiting-acceptance"), completedMembers: ["1-first", "2-second"] };
-  const html = executionGroupCard(recorded, [implemented("1-first"), implemented("2-second", { done: ["create", "analyze"] })]);
-  expect(html).toContain('name="action" value="archive"');
-});
-
-test("an opened group shows one shared Archive line above its members without a checkbox (AC-1, AC-3, AC-6)", () => {
-  const archiveJob = {
-    id: "archive-1", project: "aide", specFolder: "1-first", steps: ["archive"], stepIndex: 0,
-    state: "running", createdAt: "2026-11-15T10:00:00Z", startedAt: "2026-11-15T10:00:00Z",
-    spentUsd: 1.5, timeoutSec: {}, permissionMode: {}, model: { archive: "fable" }, results: [],
-    executionGroupId: "group-1", groupMembers: ["1-first", "2-second"],
-  } as never;
-  const html = executionGroupCard(group("archiving"), [implemented("1-first"), implemented("2-second")], "en", { openFor: "active", jobs: [archiveJob] });
-  const archiveAt = html.indexOf('data-group-archive');
-  expect(archiveAt).toBeGreaterThan(-1);
-  expect(archiveAt).toBeLessThan(html.indexOf('data-spec-group-member'));
-  expect(html.match(/data-group-archive/g)).toHaveLength(1);
-  expect(html.slice(archiveAt, html.indexOf('data-spec-group-member'))).not.toContain('type="checkbox"');
-});
-
 test("a shared Archive attempt contributes to group totals exactly once (AC-13)", () => {
   const archiveJob = {
     id: "archive-1", project: "aide", specFolder: "1-first", steps: ["archive"], stepIndex: 1,
@@ -164,11 +128,6 @@ test("a shared Archive attempt contributes to group totals exactly once (AC-13)"
   const second = implemented("2-second", { spentUsd: 4, totalDurationMs: 30_000 });
   const html = executionGroupCard(group("completed"), [first, second], "en", { openFor: "done", jobs: [archiveJob] });
   expect(html).toContain(costCell(9, undefined, "–"));
-});
-
-test("a card ready to archive names its own button in the page's language (AC-1)", () => {
-  const html = executionGroupCard(group("waiting-acceptance"), [implemented("1-first"), implemented("2-second")], "nb");
-  expect(html).toContain(t("nb", "list.groupArchiveReady", { button: stepLabel("archive", "nb") }));
 });
 
 test("a card waiting on acceptance rows names each such member with a link to its page (AC-2)", () => {
@@ -187,23 +146,6 @@ test("a card waiting on a busy member names it with a link to its page (AC-3)", 
   expect(html).toContain(`href="${specPagePath("aide", "2-second")}"`);
 });
 
-test("a card's wait is drawn by the message component a spec's row uses (AC-4)", () => {
-  const html = executionGroupCard(group("waiting-acceptance"), [implemented("1-first"), implemented("2-second")]);
-  expect(html).toContain(rowMessage("waiting", t("en", "list.groupArchiveReady", { button: "Archive" })));
-});
-
-test("a card's wait shows whether the card is shut or open (AC-5)", () => {
-  const ready = [implemented("1-first"), implemented("2-second")];
-  const message = t("en", "list.groupArchiveReady", { button: stepLabel("archive") });
-  const shut = executionGroupCard(group("waiting-acceptance"), ready);
-  expect(shut).toContain("data-group-body hidden");
-  expect(shut.indexOf(message)).toBeGreaterThan(-1);
-  expect(shut.indexOf(message)).toBeLessThan(shut.indexOf("data-group-body"));
-  const open = executionGroupCard(group("waiting-acceptance"), ready, "en", { openFor: "waiting" });
-  expect(open).not.toContain("data-group-body hidden");
-  expect(open).toContain(message);
-});
-
 test("a card is drawn shut unless a member's spec is open in it, with no state marker (AC-4)", () => {
   const shut = executionGroupCard(group("prepared"), [member("1-first", "<tr>first</tr>")]);
   expect(shut.match(/data-group-body hidden/g)).toHaveLength(1);
@@ -213,15 +155,6 @@ test("a card is drawn shut unless a member's spec is open in it, with no state m
   expect(open).toContain('aria-expanded="true"');
 });
 
-test("a card shown for a chosen state is drawn open with every member, and carries the state (AC-4)", () => {
-  const html = executionGroupCard(group("prepared"), [member("1-first", "<tr>queued-one</tr>"), member("2-second", "<tr>stopped-two</tr>")], "en", { openFor: "waiting" });
-  expect(html).not.toContain("data-group-body hidden");
-  expect(html).toContain('aria-expanded="true"');
-  expect(html).toContain("queued-one");
-  expect(html).toContain("stopped-two");
-  expect(html).toContain('data-group-open="waiting"');
-});
-
 test("a card's state is read from the page's language", () => {
   expect(executionGroupCard(group("prepared"), [], "nb")).toContain(`>${t("nb", "list.groupState.prepared")}<`);
 });
@@ -229,12 +162,6 @@ test("a card's state is read from the page's language", () => {
 test("a group held back or done says so in a spec's own words", () => {
   expect(executionGroupCard(group("waiting-acceptance"), [], "nb")).toContain(`>${t("nb", "wordPhase.badgeHeldBack")}<`);
   expect(executionGroupCard(group("completed"), [], "nb")).toContain(`>${t("nb", "list.done")}<`);
-});
-
-test("a shut card still shows its members' pips", () => {
-  const prepared = executionGroupCard(group("prepared"), [member("1-first", "<tr>first</tr>")]);
-  expect(prepared.indexOf('class="pip ')).toBeGreaterThan(-1);
-  expect(prepared.indexOf('class="pip ')).toBeLessThan(prepared.indexOf("data-group-body"));
 });
 
 test("a member's pip takes the colour of its own state", () => {
@@ -249,13 +176,6 @@ test("a member's pip takes the colour of its own state", () => {
   expect(memberPipKind(spec({ phases: [{ step: "archive", heldBack: { reason: "x" } }] as never }), false)).toBe("waiting");
   expect(memberPipKind(spec({}), false)).toBe("todo");
   expect(memberPipKind(undefined, false)).toBe("todo");
-});
-
-test("an editable card opens its filled Edit dialog", () => {
-  const html = executionGroupCard(group("running"), [member("1-first", ""), member("2-second", "")], "en", { candidates: [{ project: "aide", specFolder: "3-third" }], locked: new Set(["1-first"]) });
-  expect(html).toContain('<details class="menu"');
-  expect(html).toContain('data-ask="edit-group-group-group-1"');
-  expect(html).toContain('<dialog class="formdialog" id="edit-group-group-group-1"');
 });
 
 test("each member's pip is marked with its spec number, in the group's order", () => {

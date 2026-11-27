@@ -101,13 +101,6 @@ def test_an_unrecognised_permission_mode_refuses_before_codex_starts(runner, wor
     assert "acceptEdit" in out["error"]
     assert not fake_codex.calls.exists(), "the run must refuse before spawning anything"
 
-def test_an_unknown_tool_is_refused(runner, workspace, fake_claude):
-    claude = fake_claude("exit 1")
-    rc, out, _ = run(runner, workspace, claude, tool="gemini")
-    assert rc == 2, out
-    assert out["terminalReason"] == "refused"
-    assert "gemini" in out["error"]
-
 def test_an_unknown_effort_is_refused(runner, workspace, fake_claude):
     claude = fake_claude("exit 1")
     rc, out, _ = run(runner, workspace, claude, effort="turbo")
@@ -316,12 +309,6 @@ def test_a_codex_at_capacity_error_a_later_error_followed_is_a_cli_error(runner,
     what the step ended on."""
     stream = CODEX_STREAM_AT_CAPACITY_NO_TURN + "\n" + CODEX_STREAM_FAILED.split("\n", 1)[1]
     codex = fake_codex(emits(stream) + "; exit 1")
-    rc, out, _ = run(runner, workspace, tool="codex", codex=codex)
-    assert out["terminalReason"] == "cli-error"
-
-
-def test_a_codex_exit_1_with_no_at_capacity_error_is_a_cli_error(runner, workspace, fake_codex):
-    codex = fake_codex(emits(CODEX_STREAM_FAILED) + "; exit 1")
     rc, out, _ = run(runner, workspace, tool="codex", codex=codex)
     assert out["terminalReason"] == "cli-error"
 

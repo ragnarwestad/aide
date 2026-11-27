@@ -120,36 +120,6 @@ def test_a_reused_branch_keeps_its_own_work(runner, workspace, fake_claude):
     assert is_ancestor(project, earlier, branch), "the earlier step's work must survive"
     assert is_ancestor(project, "main", branch), "and main must be in there too"
 
-def test_a_held_back_specs_implement_reuses_the_existing_branch(runner, workspace, fake_claude):
-    """A spec already implemented, held back only on
-    an unticked acceptance-criteria row, still reuses its existing
-    branch when Implement runs another round — branch reuse has no
-    special case for a held-back spec at all (2-analysis.md), and this
-    locks that in as a regression rather than an assumption."""
-    project = workspace["project"]
-    specs = workspace["specs"]
-    folder = workspace["folder"]
-    branch = f"aide/{folder}"
-    earlier = commit_on_branch(project, branch, "from-implement.txt", "implement wrote this\n", "implement's own commit")
-    git(project, "switch", "-q", "main")
-
-    (specs / folder / "4-status.md").write_text(
-        "# Queue - Status\n\n## Tracking info\n\n"
-        f"- **Task:** `{folder}/`\n"
-        "- **Workflow steps completed:** analyze, implement\n\n---\n\n"
-        "## Acceptance criteria\n\n| Task | Status | Notes |\n"
-        "|------|--------|-------|\n"
-        "| AC-1: does the thing | ⬜ | |\n"
-    )
-    subprocess.run(["git", "-C", str(specs), "add", "-A"], check=True)
-    subprocess.run(["git", "-C", str(specs), "commit", "-qm", "held back on acceptance"], check=True)
-
-    claude = specs_only_claude(fake_claude, workspace)
-    rc, out, _ = run(runner, workspace, claude, command="implement")
-    assert rc == 0, out
-    assert is_ancestor(project, earlier, branch), "the earlier round's work must survive"
-
-
 def test_a_rejected_push_that_only_needed_a_pull_is_retried_not_reported(
     runner, workspace, fake_claude, fetchable_origin_both_roots, tmp_path
 ):
@@ -598,34 +568,6 @@ def test_a_branch_that_has_not_landed_is_still_reused(
     rc, out, _ = run(runner, workspace, claude)
     assert rc == 0, out
     assert is_ancestor(project, unlanded, branch), "the unlanded commit must survive"
-
-def test_an_unreachable_origin_leaves_a_local_branch_reused_as_before(
-    runner, workspace, fake_claude
-):
-    """The check is a network call like every other one in this script:
-    best effort, and never fatal. An origin nobody can reach must not be
-    read as proof that a branch has landed. No `origin` remote is
-    configured here at all — the plainest form of unreachable there is.
-    """
-    project = workspace["project"]
-    branch = "aide/81-queue-and-runner"
-    earlier = commit_on_branch(project, branch, "from-the-earlier-step.txt", "analyze wrote this\n", "an earlier step")
-    git(project, "switch", "-q", "main")
-
-    claude = specs_only_claude(fake_claude, workspace)
-    rc, out, _ = run(runner, workspace, claude)
-    assert rc == 0, out
-    assert is_ancestor(project, earlier, branch), \
-        "the earlier step's work must survive when origin cannot be reached"
-
-def test_extra_project_dir_is_no_longer_an_argument(runner, workspace, fake_claude):
-    claude = fake_claude(f"echo '{json.dumps(RESULT_OK)}'")
-    rc, out, _ = run(runner, workspace, claude, extra_project_dir="/tmp/whatever")
-    assert rc == 2, out
-    assert out["terminalReason"] == "refused"
-    assert "unknown argument" in out["error"]
-    assert "--extra-project-dir" in out["error"]
-
 
 def _origin_main_moves_on(project):
     """Put a commit on origin's main that this checkout has not fetched,

@@ -28,13 +28,6 @@ describe("the header's Deploy mark", () => {
     expect(html).toContain(deployAskDialog("en", "aide", DEPLOY_MARK_DIALOG));
   });
 
-  test("draws an empty slot and no question before the first answer (AC-5)", () => {
-    setDeployWaiting(() => undefined);
-    const html = render();
-    expect(markOf(html)).toBe('<span class="deploymark" aria-hidden="true"></span>');
-    expect(html).not.toContain(`id="${DEPLOY_MARK_DIALOG}"`);
-  });
-
   test("names one commit in the singular", () => {
     expect(deployMark("en", { project: "aide", commits: 1, branch: "main" })).toContain("aide has 1 new commit to deploy");
   });

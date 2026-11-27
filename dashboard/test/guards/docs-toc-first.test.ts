@@ -25,11 +25,13 @@ const pages = [
   ...READ_BY_PEOPLE.map((f) => join(REPO, f)),
 ];
 
-test.each(pages.map((p) => [p.slice(DASHBOARD.length - "dashboard".length), p]))(
-  "%s has its table of contents first, under its title",
-  (_name, path) => {
-    const lines = readFileSync(path, "utf-8").split("\n").filter((l) => l.trim() !== "");
-    expect(lines[0]!.startsWith("# ")).toBe(true);
-    expect(lines[1]).toBe("## Table of contents");
-  },
-);
+test("every page has its table of contents first, under its title", () => {
+  const offenders = pages
+    .filter((path) => {
+      const lines = readFileSync(path, "utf-8").split("\n").filter((l) => l.trim() !== "");
+      return !lines[0]?.startsWith("# ") || lines[1] !== "## Table of contents";
+    })
+    .map((path) => path.slice(DASHBOARD.length - "dashboard".length));
+  expect(pages.length).toBeGreaterThan(20);
+  expect(offenders).toEqual([]);
+});

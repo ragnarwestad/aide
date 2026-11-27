@@ -52,18 +52,6 @@ def test_every_address_in_the_sources_table_is_a_source_and_nothing_below_it(mod
     ]
 
 
-def test_sources_use_the_importable_news_module_and_shared_cells_ac_1_ac_2(module, monkeypatch):
-    assert module.news.__file__.endswith("scripts/news/news.py")
-    monkeypatch.setattr(module.news, "section_cells", lambda *args, **kwargs: iter([
-        ["Aide", "<https://a.example/><br><https://b.example/>"]
-    ]))
-
-    assert module.sources("not the real table") == [
-        ("Aide", "https://a.example/"),
-        ("Aide", "https://b.example/"),
-    ]
-
-
 def test_sources_keep_reading_after_a_separator_but_stop_at_a_heading_ac_2_ac_3_ac_4_ac_8(module):
     text = """### Sources
 | Tool | News |

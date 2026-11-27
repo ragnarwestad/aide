@@ -57,16 +57,14 @@ def commit_on(repo, branch, entries, start="main"):
     git(repo, "checkout", "-q", "main")
 
 
-def merge(repo, scripts, tmp_path, branch, use_driver=True):
+def merge(repo, scripts, tmp_path, branch):
     """`git merge <branch>` on main, with the project's translation arguments."""
-    args = []
-    if use_driver:
-        out = subprocess.run(
-            ["bash", "-c", f'source "{scripts}/_aide-spec-lib.sh" && source "{scripts}/lib/translation-files.sh" && aide_translation_merge_args "$1" "$2" "$3"',
-             "_", str(repo), str(tmp_path), str(scripts)],
-            capture_output=True, text=True, check=True,
-        )
-        args = [a for a in out.stdout.split("\n") if a]
+    out = subprocess.run(
+        ["bash", "-c", f'source "{scripts}/_aide-spec-lib.sh" && source "{scripts}/lib/translation-files.sh" && aide_translation_merge_args "$1" "$2" "$3"',
+         "_", str(repo), str(tmp_path), str(scripts)],
+        capture_output=True, text=True, check=True,
+    )
+    args = [a for a in out.stdout.split("\n") if a]
     return subprocess.run(["git", "-C", str(repo), *args, "merge", "-q", "--no-edit", branch],
                           capture_output=True, text=True)
 
@@ -86,12 +84,6 @@ def test_two_branches_adding_messages_at_the_end_merge_cleanly(repo, scripts, tm
     assert (repo / MESSAGES).read_text() == messages(
         {"title": "Skjera", "login": "Logg inn", "invites": "Invitasjoner", "reminder": "Påminnelse"}
     )
-
-
-def test_the_same_additions_conflict_without_the_projects_setting(repo, scripts, tmp_path):
-    two_branches_adding(repo)
-    proc = merge(repo, scripts, tmp_path, "spec", use_driver=False)
-    assert proc.returncode != 0
 
 
 def test_two_values_for_one_key_leave_gits_own_conflict_markers(repo, scripts, tmp_path):

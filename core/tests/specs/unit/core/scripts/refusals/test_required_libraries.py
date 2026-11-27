@@ -134,11 +134,11 @@ def test_missing_required_library_refuses_before_mutation_ac_1_ac_2_ac_3(
         assert sentinel.read_bytes() == before
 
 
-@pytest.mark.parametrize(("command", "missing"), FAULTY_COMMANDS)
+@pytest.mark.parametrize("command", REQUIRED_LIBRARIES)
 def test_help_succeeds_without_required_libraries_ac_4(
-    scripts, tmp_path, command, missing,
+    scripts, tmp_path, command,
 ):
-    copied = copy_scripts(scripts, tmp_path, missing)
+    copied = copy_scripts(scripts, tmp_path, REQUIRED_LIBRARIES[command][0])
 
     result = run(copied / command, "--help")
 

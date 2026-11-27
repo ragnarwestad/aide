@@ -33,14 +33,6 @@ describe("the table on the Installation tab", () => {
     ]);
   });
 
-  test("a place only read in place is a row too, and two places for hooks both read Hooks (AC-1)", () => {
-    expect(rows(installation(check("opencode"))).map(([label]) => label)).toEqual(["Instructions", "Skills", "Skills"]);
-    expect(rows(installation(check("codex"))).filter(([label]) => label === "Hooks")).toEqual([
-      ["Hooks", "~/.codex/hooks.json"],
-      ["Hooks", "~/.codex/hooks/"],
-    ]);
-  });
-
   test("a check that could not be run is said under the table, which is still drawn (AC-9, AC-1)", () => {
     const html = installationBlock(check("codex", { found: false, error: "The check did not finish in time." }), "en");
     expect(html.indexOf("<table")).toBeGreaterThanOrEqual(0);

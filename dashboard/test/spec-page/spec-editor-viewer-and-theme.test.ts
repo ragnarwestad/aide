@@ -137,14 +137,3 @@ describe("the typing surface follows the raw textarea's disabled state", () => {
   });
 });
 
-// The editor sits in the Specs list's open row, which shows the spec whole:
-// it grows with its text at every width, never a fixed box its text spills
-// out of. The library marks the growing mode with `auto-height` on the host.
-describe("the editor grows with its text", () => {
-  test("a wide screen mounts the editor growing with its text", () => {
-    const host = setHost('<textarea class="spec-editor-raw"># original\n</textarea>');
-    mount();
-    expect(host.classList.contains("auto-height")).toBe(true);
-  });
-});
-

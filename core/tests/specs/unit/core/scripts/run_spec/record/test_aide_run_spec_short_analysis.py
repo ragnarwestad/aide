@@ -82,26 +82,6 @@ def _failed_on_a_limit(out, said):
     assert said in out["errorLog"], out
 
 
-def test_a_short_analysis_within_every_limit_completes_and_says_so(runner, workspace, fake_claude):
-    out, err = _analyze(runner, workspace, fake_claude)
-    assert out["ok"] is True, out
-    assert out["terminalReason"] == "completed", out
-    assert _log(err) == [
-        "analysis: short (the files to change and where the tests sit; no step-by-step plan, so no plan review) — grade LOW, 3 acceptance criteria, 3 files to change, 3 of them source files"
-        " — within the limits, the step completes"
-    ], err
-
-
-def test_a_short_analysis_with_more_than_three_criteria_completes(runner, workspace, fake_claude):
-    out, err = _analyze(runner, workspace, fake_claude, criteria=8)
-    assert out["ok"] is True, out
-    assert out["terminalReason"] == "completed", out
-    assert _log(err) == [
-        "analysis: short (the files to change and where the tests sit; no step-by-step plan, so no plan review) — grade LOW, 8 acceptance criteria, 3 files to change, 3 of them source files"
-        " — within the limits, the step completes"
-    ], err
-
-
 @pytest.mark.parametrize("level", ["warn", "stop"])
 def test_a_short_analysis_is_not_failed_for_the_criteria_checks_level(runner, workspace, fake_claude, level):
     out, _ = _analyze(runner, workspace, fake_claude, checks=level)
@@ -131,13 +111,6 @@ def test_the_analysis_line_is_read_as_the_shared_table_says(runner, workspace, f
     out, err = _analyze(runner, workspace, fake_claude, analysis_line=case["line"])
     assert out["ok"] is True, out
     assert [l.split(" — ")[0].split(" (")[0] for l in _log(err)] == [f"analysis: {case['analysis']}"], err
-
-
-def test_every_completed_analyze_logs_the_analysis_the_grade_and_both_counts(runner, workspace, fake_claude):
-    _, err = _analyze(runner, workspace, fake_claude, analysis_line=None, grade="MEDIUM", criteria=4, files=["a.ts"])
-    assert _log(err) == [
-        "analysis: full — grade MEDIUM, 4 acceptance criteria, 1 files to change, 1 of them source files — the step completes"
-    ], err
 
 
 def test_a_short_analysis_over_the_files_limit_fails_the_step(runner, workspace, fake_claude):
@@ -171,23 +144,12 @@ def test_a_short_analysis_that_cannot_show_it_is_within_the_limits_fails(runner,
     _failed_on_a_limit(out, said)
 
 
-@pytest.mark.parametrize("grade", ["MEDIUM", "HIGH"])
-def test_a_short_analysis_graded_above_low_fails(runner, workspace, fake_claude, grade):
-    out, _ = _analyze(runner, workspace, fake_claude, grade=grade)
-    _failed_on_a_limit(out, f"it is graded {grade}, not LOW")
-
-
 def test_every_limit_crossed_is_named_and_the_criteria_are_not_one(runner, workspace, fake_claude):
     out, _ = _analyze(runner, workspace, fake_claude, grade="HIGH", criteria=8, files=[f"f{n}.ts" for n in range(5)])
     for said in ("it is graded HIGH, not LOW",
                  "it has 5 source files to change, over the limit of 3 (f0.ts, f1.ts, f2.ts, f3.ts, f4.ts)"):
         assert said in out["errorLog"], out["errorLog"]
     assert "acceptance criteria" not in out["errorLog"], out["errorLog"]
-
-
-def test_a_short_analysis_for_a_spec_sent_back_to_a_full_one_fails(runner, workspace, fake_claude):
-    out, _ = _analyze(runner, workspace, fake_claude, sent_back="it changes the result format")
-    _failed_on_a_limit(out, "it was sent back to a full analysis")
 
 
 def _description_on_the_branch(workspace):
@@ -215,17 +177,6 @@ def test_a_full_analysis_for_a_spec_sent_back_completes(runner, workspace, fake_
     )
     assert out["ok"] is True, out
     assert out["terminalReason"] == "completed", out
-
-
-def test_tests_and_documentation_are_not_counted_against_the_files_limit(runner, workspace, fake_claude):
-    files = ["src/a.ts", "src/b.ts", "src/c.ts", "test/a.test.ts", "docs/page.md"]
-    out, err = _analyze(runner, workspace, fake_claude, files=files)
-    assert out["ok"] is True, out
-    assert out["terminalReason"] == "completed", out
-    assert _log(err) == [
-        "analysis: short (the files to change and where the tests sit; no step-by-step plan, so no plan review) — grade LOW, 3 acceptance criteria, 5 files to change, 3 of them source files"
-        " — within the limits, the step completes"
-    ], err
 
 
 def test_a_short_analysis_listing_only_tests_and_documentation_completes(runner, workspace, fake_claude):

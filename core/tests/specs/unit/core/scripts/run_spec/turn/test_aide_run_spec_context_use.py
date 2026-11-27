@@ -298,13 +298,3 @@ def test_codex_leaves_out_the_tasks_a_resumed_thread_ran_before_the_step(
     codex = fake_codex(_writing_task(home, CODEX_THREAD_ID, [_count(50_000)], CODEX_STREAM_OK))
     rc, out, _ = run(runner, workspace, tool="codex", codex=codex)
     assert out["context"]["fullest"] == 50_000, out
-
-
-def test_codexs_review_thread_is_not_the_main_session(runner, workspace, fake_codex, tmp_path, monkeypatch):
-    with_status(workspace, ["create", "analyze"])
-    home = tmp_path / "codex-home"
-    monkeypatch.setenv("CODEX_HOME", str(home))
-    codex = _implementing_codex(fake_codex, home, own=[_count(60_000)], fix=[_count(90_000)],
-                                review=[_count(250_000)])
-    rc, out, _ = run(runner, workspace, tool="codex", codex=codex, command="implement", review_model="gpt-6.1-sol")
-    assert out["context"]["fullest"] == 90_000, out

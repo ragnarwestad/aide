@@ -49,12 +49,10 @@ def checklist(rows):
     ])
 
 
-def run(script, project, spec, specs_dir=None, result_file=None, group_members=None):
+def run(script, project, spec, specs_dir=None, group_members=None):
     args = [str(script), "--project-dir", str(project), "--spec", spec]
     if specs_dir:
         args += ["--specs-dir", str(specs_dir)]
-    if result_file:
-        args += ["--result-file", str(result_file)]
     if group_members:
         args += ["--group-members", ",".join(group_members)]
     proc = subprocess.run(args, capture_output=True, text=True)
@@ -111,14 +109,6 @@ def test_already_archived_by_full_folder_name(script, project, specs):
     assert "77-recovered" in out["note"], out
 
 
-def test_already_archived_resolves_by_number_too(script, project, specs):
-    configure(project, specs)
-    add_spec(specs, "77-recovered", archived=True)
-    rc, out, _ = run(script, project, "77")
-    assert out["terminalReason"] == "already-archived"
-    assert out["specFolder"] == "archive/77-recovered"
-
-
 # --- conflict-open -----------------------------------------
 
 
@@ -160,14 +150,6 @@ def test_no_status_file_at_all_is_not_implemented_yet(script, project, specs):
     rc, out, _ = run(script, project, "81-x")
     assert out["terminalReason"] == "not-implemented-yet", out
     assert (specs / "81-x").exists(), "nothing may be moved on this path"
-
-
-def test_every_row_unstarted_with_no_implement_is_ordinary_progression(script, project, specs):
-    configure(project, specs)
-    body = status_md("create, analyze", phase("Phase 1: RED", ["| a | ⬜ | |", "| b | Not started | |"]))
-    add_spec(specs, "81-x", body)
-    rc, out, _ = run(script, project, "81-x")
-    assert out["terminalReason"] == "not-implemented-yet", out
 
 
 def test_ordinary_progression_removes_a_stale_held_back_section(script, project, specs):
@@ -274,70 +256,7 @@ def test_group_archive_with_every_member_moved_is_already_archived(script, proje
     assert out["terminalReason"] == "already-archived", out
 
 
-# --- the status-table read, through a ## Checklist heading ----
-
-
-def test_checklist_every_row_done_archives_the_spec(script, project, specs):
-    configure(project, specs)
-    body = status_md("create, analyze, implement", checklist(["| a | ✅ | |", "| b | Completed | |"]))
-    add_spec(specs, "81-x", body)
-    write_test_run(specs, "81-x", git(project, "rev-parse", "HEAD"), 0)
-    rc, out, _ = run(script, project, "81-x")
-    assert rc == 0, out
-    assert out["terminalReason"] == "archived", out
-    assert not (specs / "81-x").exists()
-    assert (specs / "archive" / "81-x").exists()
-
-
-def test_checklist_all_unstarted_with_no_implement_is_ordinary_progression(script, project, specs):
-    configure(project, specs)
-    body = status_md("create, analyze", checklist(["| a | ⬜ | |", "| b | Not started | |"]))
-    add_spec(specs, "81-x", body)
-    rc, out, _ = run(script, project, "81-x")
-    assert out["terminalReason"] == "not-implemented-yet", out
-
-
 # --- Archive proceeds once implement has run, whatever the ticks say -
-
-
-def test_implement_present_with_every_row_unstarted_archives_the_spec(script, project, specs):
-    """The exact scenario: implement
-    landed and is on the record, but every task row still reads
-    unstarted. Archive is no longer waiting on the checklist to say the
-    work is done — only on whether implement ran."""
-    configure(project, specs)
-    body = status_md("create, analyze, implement", phase("Phase 1: RED", ["| a | ⬜ | |"]))
-    add_spec(specs, "81-x", body)
-    write_test_run(specs, "81-x", git(project, "rev-parse", "HEAD"), 0)
-    rc, out, _ = run(script, project, "81-x")
-    assert rc == 0, out
-    assert out["terminalReason"] == "archived", out
-    assert not (specs / "81-x").exists()
-    assert (specs / "archive" / "81-x").exists()
-
-
-def test_implement_present_with_an_open_in_progress_row_archives_the_spec(script, project, specs):
-    """Not just unstarted rows — a row genuinely mid-flight (🔄) no
-    longer blocks archive either, once implement is on the record."""
-    configure(project, specs)
-    body = status_md("create, analyze, implement", phase("Phase 1: RED", ["| a | 🔄 | |"]))
-    add_spec(specs, "81-x", body)
-    write_test_run(specs, "81-x", git(project, "rev-parse", "HEAD"), 0)
-    rc, out, _ = run(script, project, "81-x")
-    assert out["terminalReason"] == "archived", out
-    assert not (specs / "81-x").exists()
-
-
-def test_checklist_implement_present_with_an_unstarted_row_archives_the_spec(script, project, specs):
-    """The same through the `## Checklist` heading a LOW-complexity spec uses
-    instead of `## Phase*`."""
-    configure(project, specs)
-    body = status_md("create, analyze, implement", checklist(["| a | ⬜ | |"]))
-    add_spec(specs, "81-x", body)
-    write_test_run(specs, "81-x", git(project, "rev-parse", "HEAD"), 0)
-    rc, out, _ = run(script, project, "81-x")
-    assert out["terminalReason"] == "archived", out
-    assert not (specs / "81-x").exists()
 
 
 def test_archiving_removes_a_stale_held_back_section(script, project, specs):

@@ -26,15 +26,13 @@ def specs_root(tmp_path):
     return d
 
 
-def run(script, specs_root, folder, file, content, result_file=None, extra_args=None):
+def run(script, specs_root, folder, file, content, extra_args=None):
     args = [
         str(script),
         "--specs-root", str(specs_root),
         "--folder", folder,
         "--file", file,
     ]
-    if result_file:
-        args += ["--result-file", str(result_file)]
     if extra_args:
         args += extra_args
     proc = subprocess.run(args, input=content, capture_output=True, text=True)
@@ -65,14 +63,6 @@ def test_writes_content_verbatim_to_active_location(script, specs_root):
     assert (specs_root / "42-do-a-thing" / "2-analysis.md").read_text() == "# New content\n"
 
 
-def test_overwrites_existing_content_completely(script, specs_root):
-    make_spec(specs_root, "42-do-a-thing")
-    run(script, specs_root, "42-do-a-thing", "2-analysis.md", "first\n")
-    rc, out, _ = run(script, specs_root, "42-do-a-thing", "2-analysis.md", "second\n")
-    assert rc == 0, out
-    assert (specs_root / "42-do-a-thing" / "2-analysis.md").read_text() == "second\n"
-
-
 # --- dual-location resolution (archive/) --------------------------------
 
 
@@ -95,14 +85,6 @@ def test_prefers_active_location_over_archive(script, specs_root):
 
 
 def test_refuses_when_neither_location_has_the_folder(script, specs_root):
-    rc, out, _ = run(script, specs_root, "42-do-a-thing", "2-analysis.md", "content\n")
-    assert rc != 0
-    assert out["ok"] is False
-    assert out["terminalReason"] == "refused"
-
-
-def test_refuses_when_folder_exists_but_not_that_file(script, specs_root):
-    make_spec(specs_root, "42-do-a-thing", files=("1-description.md",))
     rc, out, _ = run(script, specs_root, "42-do-a-thing", "2-analysis.md", "content\n")
     assert rc != 0
     assert out["ok"] is False
@@ -161,20 +143,6 @@ def test_refuses_on_empty_stdin(script, specs_root):
     assert (specs_root / "42-do-a-thing" / "2-analysis.md").read_text() == "placeholder\n"
 
 
-# --- --result-file --------------------------------------------------------
-
-
-def test_result_file_mirrors_stdout(script, specs_root, tmp_path):
-    make_spec(specs_root, "42-do-a-thing")
-    result_file = tmp_path / "result.json"
-    rc, out, _ = run(
-        script, specs_root, "42-do-a-thing", "2-analysis.md", "content\n",
-        result_file=result_file,
-    )
-    assert rc == 0, out
-    assert json.loads(result_file.read_text().strip()) == out
-
-
 # --- Landing 4-status.md derives 4-status.json -------------------
 
 
@@ -201,15 +169,6 @@ def test_landing_4_status_md_hands_back_the_derived_state_on_stdout(script, spec
     rc, out, _ = run(script, specs_root, "42-do-a-thing", "4-status.md", content)
     assert rc == 0, out
     assert json.loads(out["stateJson"])["completedPhases"] == ["create", "analyze", "implement"]
-
-
-def test_landing_4_status_md_writes_the_state_file_at_the_archive_location(script, specs_root):
-    make_spec(specs_root / "archive", "42-do-a-thing", files=("4-status.md",))
-    content = "# Spec - Status\n\n## Tracking info\n\n**Archived:** 2026-08-20\n"
-    rc, out, _ = run(script, specs_root, "42-do-a-thing", "4-status.md", content)
-    assert rc == 0, out
-    state = json.loads((specs_root / "archive" / "42-do-a-thing" / "4-status.json").read_text())
-    assert state["archived"] == {"date": "2026-08-20"}
 
 
 def test_landing_a_different_file_never_writes_a_state_file(script, specs_root):

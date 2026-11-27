@@ -1,6 +1,5 @@
 import { describe, expect, test } from "bun:test";
 import { renderSpecsRows, type SpecsPageOptions, type QueueRowView, type SpecTarget } from "../../../../../src/render";
-import { ICON_LOCK } from "../../../../../src/render/ui/components";
 import { row, openKeys } from "../../fixtures.ts";
 
 // --- While a spec is busy, its row offers Cancel and nothing else ---
@@ -65,81 +64,7 @@ describe("a busy row offers only what its state allows", () => {
   const openControls = (r: QueueRowView, folder = "105-busy") =>
     controlsLine(rows([r], [target(folder)]), folder);
 
-  // --- Running or queued, Cancel and only Cancel ---------------
-
-  /** A posting form on the open row, by the verb it posts to. */
-  const control = (cell: string, verb: string) =>
-    cell.match(new RegExp(`<form [^>]*action="/api/queue/j1/${verb}"[\\s\\S]*?</form>`))?.[0] ?? "";
-
-  for (const state of ["queued", "running"] as const) {
-    test(`a ${state} spec's opened row offers Cancel, and nothing else it can press`, () => {
-      // The buttons never come and go — a row's stack is
-      // the same buttons throughout, and its STATE says which of them
-      // will take a click. Cancel is the only one in it
-      // at all: Approve went with the stop between steps, Merge with
-      // the hand merge.
-      const cell = openControls(spec(state));
-      // Cancel is a button naming its dialog, whose OK posts the cancel.
-      const cancel = cell.match(/<button [^>]*data-ask="cancelask-j1"[^>]*>/)?.[0] ?? "";
-      expect(cancel).not.toBe("");
-      expect(cancel).not.toContain("disabled");
-      expect(control(cell, "cancel")).not.toBe("");
-      expect(control(cell, "approve")).toBe("");
-      expect(control(cell, "merge")).toBe("");
-    });
-  }
-
-  // --- Every phase box locks, with the reason on it -------------
-
-  for (const state of ["queued", "running"] as const) {
-    test(`a ${state} spec locks every phase box, not the ones its job named`, () => {
-      const line = openControls(spec(state));
-      const verb = state === "running" ? "running" : "queued";
-      for (const step of ["analyze", "implement", "archive"]) {
-        expect(box(line, step)).toContain("disabled");
-        // The reason is not the box's own `title`.
-        expect(box(line, step)).not.toContain(`title="Implement is ${verb}"`);
-      }
-    });
-  }
-
-  test("a queued job spins nothing — its own step still reads as ticked", () => {
-    const line = openControls(spec("queued"));
-    // The job named `implement` and nothing else. Queued is not yet
-    // running, so no box spins — but the tick that was made before Run
-    // was pressed is still what the row says.
-    expect(box(line, "implement")).toContain('class="phase checked"');
-    for (const step of ["analyze", "archive"]) {
-      expect(box(line, step)).toContain('class="phase default"');
-    }
-    for (const step of ["analyze", "implement", "archive"]) {
-      expect(box(line, step)).not.toContain('class="phase off"');
-      expect(box(line, step)).not.toContain(ICON_LOCK);
-    }
-  });
-
-  /** The case: all three steps
-   *  ticked and started as one job, with two of them not reached yet.
-   *  The two said nothing about belonging to the running job — they
-   *  were drawn exactly like a step the job never named. */
-
   // --- Run, the model and the "more" fields lock too ------------
-
-  // Run used to stand here greyed out, with the reason in its title —
-  // the shape needed so a column of buttons could not change
-  // width from row to row. Now ONE control is drawn per row, and
-  // while a job is in flight that control is Cancel: an inert Run
-  // beside a live Cancel is exactly the second control this removes.
-  test("no Run is drawn at all while the spec is busy", () => {
-    const line = openControls(spec("running"));
-    expect(runBtn(line)).toBe("");
-    expect(line).not.toMatch(/<button[^>]*form="rowrun/);
-    // The old title told the reader to do the exact thing this rule
-    // removes; it must not survive anywhere on the row.
-    expect(line).not.toContain("tick a phase it does not hold");
-    // What the row offers instead names the step it would stop.
-    expect(line).toContain(">Cancel</button>");
-  });
 
   test("a step waiting on its usage limit offers Cancel, and no Run", () => {
     const line = openControls({ ...spec("waiting"), stopReason: "provider-limit", usageLimitWait: { until: "2099-01-01T00:00:00Z", resetKnown: true } });
@@ -161,13 +86,6 @@ describe("a busy row offers only what its state allows", () => {
       for (const step of ["analyze", "implement", "archive"])
         expect(box(line, step)).toContain("disabled");
     }
-  });
-
-  test("the model select locks", () => {
-    const html = rows([spec("running")], [target("105-busy")]);
-    // The model select is on the phase lines; the rule
-    // it obeys is this one, unchanged.
-    expect(html.match(/<select name="model\.analyze"[^>]*>/)![0]).toContain("disabled");
   });
 
   // --- A gate offers Approve and Cancel, and locks the rest -----

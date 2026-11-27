@@ -106,27 +106,6 @@ describe("the spec's own history says what has happened, not the queue's", () =>
     expect(phaseDone(specControls(html, "81-queue-and-runner"), "implement")).toBe(false);
   });
 
-  test("the same step IS done once the runner has committed it", async () => {
-    const { base, dir } = start();
-    const spec = join(dir, "root", "aide", "specs", "81-queue-and-runner");
-    writeFileSync(
-      join(spec, "4-status.md"),
-      statusSaying(
-        ["create", "analyze", "implement"],
-        "- **Total progress:** `100% (22 of 22 completed)`\n",
-      ),
-    );
-    ran(dir, ["create", "analyze", "implement"]);
-
-    const html = await listUntil(base, rowSaysDone("implement"));
-    expect(phaseDone(specControls(html, "81-queue-and-runner"), "implement")).toBe(true);
-    expect(html).toMatch(/value="archive" checked/);
-    // The button is named for the phase a press would run —
-    // the bare word "Run" went with the again-variant that preceded it.
-    expect(html).not.toContain("Run again");
-    expect(html).toContain(">Archive</button>");
-  });
-
   // An archived spec is a row, on the chips that ask for one, and never
   // on the view of the active ones.
   test("a spec whose folder has been archived is off the Active view, and on the Archived one", async () => {

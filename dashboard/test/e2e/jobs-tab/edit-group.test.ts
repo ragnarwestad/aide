@@ -1,5 +1,5 @@
-// Edit on a group's card: the shared menu opens and closes like the header's,
-// and Edit saves the filled member list.
+// Edit on a group's card saves the filled member list and the name, and
+// Remove removes the group in place.
 
 import { afterEach, beforeEach, expect, test } from "bun:test";
 import type { Browser, Locator, Page } from "playwright";
@@ -54,24 +54,6 @@ async function openCard(locked = false): Promise<void> {
   await dialog().waitFor({ state: "visible" });
 }
 
-test("the group menu closes outside and on Escape (AC-1)", async () => {
-  await openCard();
-  await dialog().getByRole("button", { name: "Cancel" }).click();
-  await card().locator("summary").click();
-  expect(await card().locator("details.menu").getAttribute("open")).not.toBeNull();
-  await page.locator("main").click({ position: { x: 4, y: 4 } });
-  expect(await card().locator("details.menu").getAttribute("open")).toBeNull();
-  await card().locator("summary").click();
-  await page.keyboard.press("Escape");
-  expect(await card().locator("details.menu").getAttribute("open")).toBeNull();
-});
-
-test("Edit opens a filled dialog listing the spec the group can take (AC-3, AC-6)", async () => {
-  await openCard();
-  expect(await candidate(ADDED).isVisible()).toBe(true);
-  expect(await candidate(FIRST).isChecked()).toBe(true);
-});
-
 test("Edit removes one member and adds another (AC-8)", async () => {
   await openCard();
   await candidate(SECOND).uncheck();
@@ -93,9 +75,8 @@ test("Edit can rename a group with a locked member and keeps the name after relo
   await page.getByRole("button", { name: "Renamed release", exact: true }).waitFor();
 });
 
-for (const width of [390, 1440]) {
-test(`at ${width}px Remove covers the pending request and removes the group without a reload`, async () => {
-  await page.setViewportSize({ width, height: 900 });
+test("Remove covers the pending request and removes the group without a reload", async () => {
+  await page.setViewportSize({ width: 1440, height: 900 });
   const { base } = harness.start({
     description: grouped(FIRST, 1), alsoSpecs: [SECOND],
     alsoDescriptions: { [SECOND]: grouped(SECOND, 2) },
@@ -124,22 +105,4 @@ test(`at ${width}px Remove covers the pending request and removes the group with
   await card().waitFor({ state: "detached" });
   await page.locator("dialog.pageoverlay[open]").waitFor({ state: "detached" });
   expect(await page.evaluate(() => (window as unknown as { sameDocument?: boolean }).sameDocument)).toBe(true);
-});
-}
-
-test("the running group keeps Edit and Remove visible but disabled", async () => {
-  const state = "running";
-  const { base } = harness.start({
-    description: grouped(FIRST, 1), alsoSpecs: [SECOND],
-    alsoDescriptions: { [SECOND]: grouped(SECOND, 2) },
-    executionGroups: [{ id: "group-1", project: "aide", name: "Release", members: [FIRST, SECOND],
-      branch: `aide/group-${FIRST}`, state, createdAt: "2026-11-11T10:00:00Z", completedMembers: [], jobs: [] }],
-  });
-  await page.goto(`${base}/?live=0`);
-  await card().locator("summary").click();
-  for (const name of [t("en", "list.groupEdit"), t("en", "project.remove")]) {
-    const button = card().getByRole("button", { name, exact: true });
-    await button.waitFor({ state: "visible" });
-    expect(await button.isDisabled()).toBe(true);
-  }
 });

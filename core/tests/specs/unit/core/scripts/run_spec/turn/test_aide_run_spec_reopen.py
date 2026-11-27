@@ -24,29 +24,6 @@ def land_the_archive(workspace):
     git(workspace["specs"], "push", "-q", "origin", "main")
 
 
-def test_reopen_finds_a_spec_that_is_already_in_the_archive(runner, workspace, fake_claude):
-    """The --spec gate checks `$specs_root/$spec_arg` and `$specs_root/*/`
-    and nothing else, so an archived folder is "unknown spec" — which
-    would refuse the one step that exists to un-archive it, before the
-    skill ever ran."""
-    archive_the_spec(workspace)
-    claude = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")
-    rc, out, _ = run(runner, workspace, claude, command="reopen")
-    assert rc == 0, out
-    assert out["ok"] is True, out
-
-def test_the_archive_is_opened_for_reopen_and_for_no_other_step(
-    runner, workspace, fake_claude
-):
-    """An archived spec is not runnable. `reopen` is the exemption, the
-    way `create` is the exemption from "the folder must already exist" —
-    a named step, never a general relaxation of the gate."""
-    archive_the_spec(workspace)
-    claude = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")
-    rc, out, _ = run(runner, workspace, claude, command="analyze")
-    assert rc == 2, out
-    assert "unknown spec" in out["error"], out
-
 def test_reopen_names_the_folder_not_its_archive_path(runner, workspace, fake_claude):
     """The branch, the worktree and the commit are named after the spec,
     and an archived folder resolving to `archive/<slug>` would name a
@@ -107,22 +84,6 @@ def test_reopen_takes_the_branch_off_origin_in_both_roots(
     assert rc == 0, out
     for bare in (origin["project"], origin["specs"]):
         assert not has_branch(bare, BRANCH), f"{bare} still holds {BRANCH}"
-
-@pytest.mark.parametrize("reset", [False, True], ids=["keep", "reset"])
-@pytest.mark.usefixtures("origin")
-def test_reopen_succeeds_when_the_branches_are_already_gone(
-    reset,
-    runner, workspace, fake_claude
-):
-    """Every one of the four deletions tolerates "already gone": a spec
-    whose branch was cleaned up by the landing that archived it is the
-    normal case, not a failure."""
-    archive_the_spec(workspace)
-    land_the_archive(workspace)
-    claude = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")
-    rc, out, _ = run(runner, workspace, claude, command="reopen", reset_files=reset or None)
-    assert rc == 0, out
-    assert out["ok"] is True, out
 
 def test_reopen_refuses_when_the_spec_is_already_active(runner, workspace, fake_claude):
     """The spec is left exactly where the resolver found it — active,

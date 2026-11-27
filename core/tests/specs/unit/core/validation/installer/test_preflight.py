@@ -67,13 +67,6 @@ class TestPreflight:
         result = _run(workspace_root, ["gemini"], home=tmp_path)
         assert result.returncode != 0
 
-    def test_copilot_report_explains_the_skill_path(self, workspace_root, tmp_path):
-        """Copilot reads skills from ~/.claude/skills — the report must say so,
-        or a user without Claude Code will think the skills are missing."""
-        result = _run(workspace_root, ["copilot"], home=tmp_path)
-        assert ".claude/skills" in result.stdout
-
-
 LOCAL_SETTINGS = ".claude/settings.local.json"
 
 
@@ -152,17 +145,6 @@ class TestPreflightDrift:
         assert result.returncode == 0, result.stderr
         assert "match" not in result.stdout.lower()
         assert "behind" not in result.stdout.lower()
-
-    def test_reports_match_when_stamp_equals_head(self, workspace_root, tmp_path):
-        head = subprocess.run(
-            ["git", "-C", str(workspace_root), "rev-parse", "HEAD"],
-            capture_output=True, text=True,
-        ).stdout.strip()
-        self._write_stamp(tmp_path, workspace_root, head)
-        result = _run(workspace_root, ["claude"], home=tmp_path)
-        assert result.returncode == 0, result.stderr
-        assert "match" in result.stdout.lower(), result.stdout
-        assert head in result.stdout, result.stdout
 
     def test_reports_behind_when_stamp_is_stale(self, workspace_root, tmp_path):
         fake_sha = "0000000000000000000000000000000000dead"

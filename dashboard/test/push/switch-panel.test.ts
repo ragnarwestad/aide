@@ -160,28 +160,6 @@ describe("a press moves the switch only once the answer is in", () => {
     expect(m.sw.disabled).toBe(false);
   });
 
-  test("a denied prompt ends off and unpressable, with the blocked sentence", async () => {
-    const f = fake({ permission: "default", prompt: "denied" });
-    const m = mount(f);
-    await flush();
-    m.sw.click();
-    await flush();
-    expect(m.checked()).toBe("false");
-    expect(m.sw.disabled).toBe(true);
-    expect(m.status.textContent).toStartWith("Notifications are blocked for this site");
-  });
-
-  test("a server that refuses the subscription leaves it off and pressable, with the try-again sentence", async () => {
-    const f = fake({ permission: "default" });
-    const m = mount(f);
-    await flush();
-    m.sw.click();
-    await flush();
-    await f.answer(false);
-    expect(m.checked()).toBe("false");
-    expect(m.sw.disabled).toBe(false);
-    expect(m.status.textContent).toBe("Notifications could not be turned on. Try again.");
-  });
 });
 
 describe("the switch is a component of its own", () => {

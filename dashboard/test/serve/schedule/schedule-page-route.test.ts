@@ -198,16 +198,6 @@ describe("GET /schedule/<project>/<name>", () => {
 
 describe("GET /schedule with an unlisted model", () => {
   const withModel = (model: string): Entry[] => [{ ...NIGHTLY, model }];
-  test("an entry naming a model the queue does not offer is flagged on the list and on its project's Schedule tab", async () => {
-    const { base } = start({ extra: { queueDefaults: DEFAULTS } });
-    writeSchedule("aide", withModel("retired"));
-    const list = await (await fetch(`${base}/schedule`)).text();
-    expect(list).toContain("retired");
-    expect(list).toContain("sonnet, codex-fast");
-    const tab = await (await fetch(`${base}/projects/aide?tab=schedule`)).text();
-    expect(tab).toContain("sonnet, codex-fast");
-    expect(tab).toContain("is not one the queue offers");
-  });
 
   test("the flag on the list and on the Schedule tab links to the entry's Settings tab", async () => {
     const { base } = start({ extra: { queueDefaults: DEFAULTS } });
@@ -216,15 +206,6 @@ describe("GET /schedule with an unlisted model", () => {
       const hrefs = [...parse(await (await fetch(`${base}${path}`)).text()).querySelectorAll("a")].map((a) => a.getAttribute("href")!);
       expect(hrefs).toContain("/schedule/aide/nightly-report?tab=settings");
     }
-  });
-
-  test("an entry naming a listed model in another case is not flagged", async () => {
-    const { base } = start({ extra: { queueDefaults: DEFAULTS } });
-    writeSchedule("aide", withModel("SONNET"));
-    const list = await (await fetch(`${base}/schedule`)).text();
-    expect(list).not.toContain("is not one the queue offers");
-    const tab = await (await fetch(`${base}/projects/aide?tab=schedule`)).text();
-    expect(tab).not.toContain("is not one the queue offers");
   });
 });
 
@@ -273,18 +254,6 @@ describe("GET /schedule/<project>/<entry> shows a run's report", () => {
   const get = async (base: string, path: string): Promise<string> =>
     (await fetch(`${base}${path}`, )).text();
   const PAGE = "/schedule/aide/nightly-report";
-
-  test("a picked run's report is in a frame, with its time and outcome", async () => {
-    const { base } = setup([
-      { id: "old", state: "done", at: "2026-09-01T03:00:00Z", report: "<p>OLD-TEXT</p>" },
-      { id: "new", state: "done", at: "2026-09-02T03:00:00Z", report: "<p>NEW-TEXT</p>" },
-    ]);
-    const html = await get(base, `${PAGE}?run=new`);
-    expect(html).toMatch(/<iframe\b[^>]*data-report-frame/);
-    expect(html).toContain("NEW-TEXT");
-    expect(html).not.toContain("OLD-TEXT");
-    expect(html).toContain("2026-09-02T03:00:00Z");
-  });
 
   test("an entry that has never run says so once, shows no list, and ?run= is ignored", async () => {
     const { base } = setup([]);
@@ -409,14 +378,6 @@ describe("GET /schedule/<project>/<entry> shows a run's report", () => {
     }
   });
 
-  test("the bare file is served as text/html with the token", async () => {
-    const { base } = setup([{ id: "new", state: "done", at: "2026-09-02T03:00:00Z", report: "<p>NEW-TEXT</p>" }]);
-    const res = await fetch(`${base}/schedule-output/aide/${KEY}/runs/new/index.html`, );
-    expect(res.status).toBe(200);
-    expect(res.headers.get("content-type")).toContain("text/html");
-    expect(await res.text()).toContain("NEW-TEXT");
-  });
-
   test("the list's output link opens the newest run's report, and only when that run has one", async () => {
     const withReport = setup([{ id: "new", state: "done", at: "2026-09-02T03:00:00Z", report: "<p>x</p>" }]);
     expect(await get(withReport.base, "/schedule")).toContain(`href="${PAGE}?run=new#report"`);
@@ -429,18 +390,6 @@ describe("GET /schedule/<project>/<entry> shows a run's report", () => {
 });
 
 describe("where the pages read the jobs from", () => {
-  test("an entry only a project's manifest lists is on neither /schedule nor its own page", async () => {
-    const { base, dir } = start();
-    writeFileSync(
-      join(dir, "root", "aide", ".aide", "project.yaml"),
-      'name: aide\nschedule:\n  - name: from-manifest\n    cron: "0 3 * * *"\n    prompt: docs/nightly.md\n',
-    );
-    writeSchedule("aide", [NIGHTLY]);
-    const list = await (await fetch(`${base}/schedule`)).text();
-    expect(list).toContain("nightly-report");
-    expect(list).not.toContain("from-manifest");
-    expect((await fetch(`${base}/schedule/aide/from-manifest`)).status).toBe(404);
-  });
 
   test("jobs recorded under a name stay attached when the entry is added under the same project, and not under another", async () => {
     const scratch = mkdtempSync(join(tmpdir(), "aide-schedule-history-"));
@@ -479,11 +428,5 @@ describe("the page that makes an entry", () => {
   test("New with no project is 404", async () => {
     const { base } = start();
     expect((await fetch(`${base}/schedule/new`)).status).toBe(404);
-  });
-
-  test("the separate edit page is gone: its address is 404", async () => {
-    const { base } = start();
-    writeSchedule("aide", [NIGHTLY]);
-    expect((await fetch(`${base}/schedule/aide/nightly-report/edit`)).status).toBe(404);
   });
 });

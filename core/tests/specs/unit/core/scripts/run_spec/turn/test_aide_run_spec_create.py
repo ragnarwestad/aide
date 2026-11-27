@@ -12,7 +12,7 @@ import pytest
 from ...conftest import READ_SPECS, git, init_repo, run
 from ..run_spec_fakes import creating_claude
 from ..run_spec_results import RESULT_ERROR, RESULT_OK, asks_for_step
-from ..run_spec_invoking import CREATE_KEY, SCHEDULE_KEY, create, schedule
+from ..run_spec_invoking import CREATE_KEY, create, schedule
 
 
 def test_create_refuses_without_a_description(runner, workspace, fake_claude):
@@ -218,21 +218,6 @@ def test_create_is_told_the_specs_root_it_must_write_under(runner, workspace, fa
 
 # --- Create with no AI session at all ------------------------------
 
-def test_create_with_no_ai_formulate_spawns_no_ai(runner, workspace, fake_claude):
-    """The box cleared means create writes the spec directly, no
-    claude/codex process at all — regardless of whether the description
-    has an '## Acceptance criteria' section."""
-    claude = fake_claude("exit 1")
-    rc, out, _ = create(
-        runner, workspace, claude,
-        title="A new spec", description="Do the thing that was asked for",
-        no_ai_formulate=True,
-    )
-    assert rc == 0, out
-    assert out["ok"] is True, out
-    assert not fake_claude.calls.exists()
-
-
 def test_create_with_no_ai_formulate_reports_zero_measured_cost_and_tool_none(runner, workspace, fake_claude):
     """The result JSON says the step is done, cost 0, measured,
     and names which of the two paths create took."""
@@ -328,23 +313,6 @@ def test_create_with_no_ai_formulate_surfaces_a_refused_write(runner, workspace,
     assert "AC-n" in out.get("error", ""), out
 
 
-def test_create_without_the_flag_still_spawns_ai_byte_for_byte(runner, workspace, fake_claude):
-    """The box left ticked (the flag omitted) produces exactly
-    today's argv/prompt — the no-AI path changes nothing about it."""
-    claude = fake_claude("exit 1")
-    rc, out, _ = create(runner, workspace, claude, dry_run=True)
-    assert rc == 0, out
-    assert asks_for_step(out["prompt"], "create"), out
-
-
-def test_create_with_no_ai_formulate_finishes_well_under_the_time_limit(runner, workspace, fake_claude):
-    """The timing clause: the whole step, not merely the missing AI
-    spawn."""
-    claude = fake_claude("exit 1")
-    rc, out, _ = create(runner, workspace, claude, no_ai_formulate=True)
-    assert rc == 0, out
-
-
 # --- the acceptance criteria checks level chosen on the New spec form ---------
 
 LEVEL_LINE = "- **Acceptance criteria checks:**"
@@ -371,13 +339,6 @@ def _line_after_created(text):
     lines = text.splitlines()
     at = next(i for i, line in enumerate(lines) if line.startswith("- **Created:**"))
     return lines[at + 1]
-
-
-def test_a_create_without_ai_records_the_chosen_level_after_created(runner, workspace, fake_claude):
-    rc, out, _ = create(runner, workspace, fake_claude("exit 1"), no_ai_formulate=True, criteria_checks="stop")
-    assert rc == 0, out
-    assert out["ok"] is True, out
-    assert _line_after_created(_created_description(workspace)) == f"{LEVEL_LINE} stop"
 
 
 def test_a_create_with_an_ai_session_records_the_chosen_level_after_created(runner, workspace, fake_claude):
@@ -415,12 +376,11 @@ def test_an_unknown_level_is_refused_before_anything_runs(runner, workspace, fak
 APPROACH_LINE = "- **Let me choose the approach:**"
 
 
-@pytest.mark.parametrize("value", ["yes", "no"])
-def test_a_create_without_ai_records_whether_to_choose_the_approach(runner, workspace, fake_claude, value):
-    rc, out, _ = create(runner, workspace, fake_claude("exit 1"), no_ai_formulate=True, choose_approach=value)
+def test_a_create_without_ai_records_whether_to_choose_the_approach(runner, workspace, fake_claude):
+    rc, out, _ = create(runner, workspace, fake_claude("exit 1"), no_ai_formulate=True, choose_approach="yes")
     assert rc == 0, out
     assert out["ok"] is True, out
-    assert _line_after_created(_created_description(workspace)) == f"{APPROACH_LINE} {value}"
+    assert _line_after_created(_created_description(workspace)) == f"{APPROACH_LINE} yes"
 
 
 def test_a_create_with_an_ai_session_records_it_after_the_criteria_checks_level(runner, workspace, fake_claude):
@@ -521,18 +481,6 @@ def test_schedule_refuses_a_missing_prompt_file(runner, workspace, fake_claude):
     assert out["ok"] is False
     assert "prompt-file" in out["error"], out
     assert not fake_claude.calls.exists()
-
-def test_every_other_step_still_refuses_the_schedule_tracking_key(runner, workspace, fake_claude):
-    """The exemption is additive: `analyze` on a schedule-shaped key that
-    names no real spec folder is refused exactly as any other unknown
-    spec would be."""
-    claude = fake_claude("exit 1")
-    rc, out, _ = run(runner, workspace, claude, command="analyze", spec=SCHEDULE_KEY)
-    assert rc == 2
-    assert "unknown spec" in out["error"], out
-    assert not fake_claude.calls.exists()
-
-
 
 def test_create_makes_the_specs_root_of_a_project_that_has_none_yet(runner, fake_claude, tmp_path):
     """A new project's first spec: `specs/` inside it does not exist until

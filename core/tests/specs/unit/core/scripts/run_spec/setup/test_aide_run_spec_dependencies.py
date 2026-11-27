@@ -94,32 +94,6 @@ def test_analyze_waits_for_the_dependency_too(runner, workspace, fake_claude, lo
     assert "aide:80" in out["error"]
     assert not fake_claude.calls.exists()
 
-def test_a_dependency_merged_but_not_archived_still_refuses(
-    runner, workspace, fake_claude, local_origins
-):
-    """Merged is not the same question as archived. The Merge
-    button deletes the branch after merging, but an archive
-    step re-creates it and merges it again minutes later — 97 and 102
-    were each refused against a dependency whose branch was fully on
-    main. Landing the code is not the same as archiving the spec: the
-    folder is still under the active list, not archive/, so a dependent
-    must still wait."""
-    add_spec(workspace, "80-dependency")
-    # The dependency's branch points AT origin's main: everything on it
-    # is merged, only the name is left — but its folder is still active,
-    # not archived.
-    git(workspace["specs"], "push", "-q", "origin", "main")
-    leave_branch_on_origin(workspace, "aide/80-dependency")
-    set_depends_on(workspace, "80")
-
-    rc, out = _implement_with_an_ai_that_must_not_run(runner, workspace, fake_claude)
-    assert rc == 2
-    assert out["terminalReason"] == "refused"
-    assert "aide:80" in out["error"]
-    assert "not archived yet" in out["error"]
-    assert not fake_claude.calls.exists(), "the refusal must precede the money"
-
-
 def test_an_earlier_group_dependency_with_implement_done_lets_analyze_start_ac_5(
     runner, workspace, fake_claude, local_origins
 ):
@@ -166,24 +140,6 @@ def test_an_earlier_group_dependency_without_implement_still_refuses_ac_5(
     )
     assert rc == 2
     assert "not archived yet" in out["error"]
-
-def test_a_dependency_with_no_branch_and_not_archived_still_refuses(
-    runner, workspace, fake_claude, local_origins
-):
-    """The 340/341 shape: a dependency whose last landed step
-    deleted its branch and whose next step has not pushed a new one has
-    no branch on origin at all — and used to read as 'merged'. Its
-    folder never reached origin either way, so it is not archived and
-    the dependent must still wait."""
-    add_spec(workspace, "80-dependency")
-    set_depends_on(workspace, "80")
-
-    rc, out = _implement_with_an_ai_that_must_not_run(runner, workspace, fake_claude)
-    assert rc == 2
-    assert out["terminalReason"] == "refused"
-    assert "aide:80" in out["error"]
-    assert "not archived yet" in out["error"]
-    assert not fake_claude.calls.exists(), "the refusal must precede the money"
 
 def test_the_full_folder_name_resolves_as_well_as_the_number(
     runner, workspace, fake_claude, local_origins

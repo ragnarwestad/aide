@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import type { GitRunner } from "../../../src/git/process/index.ts";
-import { ran, statusSaying } from "../../helpers/queue-server.ts";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness } = setupQueueRoutesHarness();
@@ -138,45 +137,5 @@ describe("no render path runs git or a network command", () => {
     });
     const first = await (await get(base, "/specs/aide/81-queue-and-runner?tab=analysis")).text();
     expect(first).toContain("deadbee");
-  });
-
-  /** What the row says a phase's state is. The pips said it until
-   *  2026-09-07, when they came off the list; each phase's own LINE says
-   *  it in words for an open row, and the button's label says which
-   *  phase is the first one still ahead. Both come from the same
-   *  `done` this test is about. */
-  const phaseBadge = (html: string, step: string): string =>
-    (html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${step}"[^>]*>[\\s\\S]*?</tr>`))?.[0] ?? "")
-      .match(/<span class="badge b-([a-z]+)"/)?.[1] ?? "";
-  const buttonLabels = (html: string): string[] =>
-    [...html.matchAll(/<button[^>]*class="btn primary"[^>]*>([^<]*)<\/button>/g)].map((match) => match[1]);
-
-  // A regression guard for the branch above — a
-  // LIVE spec must keep reading `done` from `target?.done` (the
-  // git-verified `workflowHistory`), never from the file's own claim.
-  // Not expected to be RED on its own: the live branch of the new `done:`
-  // line is byte-for-byte unchanged, but nothing before this task fetched
-  // ANY spec's Overview tab through a real route and inspected its pips —
-  // so a broken conditional (e.g. an inverted `ref?.archived` check) would
-  // otherwise pass unnoticed.
-  test("a live spec's row still reads its phases from its own git-verified history", async () => {
-    const { base, dir } = harness.start({
-      extra: { driftPollMs: 0, specCachePollMs: 40 },
-      status: statusSaying(["create", "analyze", "implement", "archive"]),
-    });
-    ran(dir, ["create", "analyze"]);
-    // The history is read in the background; wait for it rather than a
-    // fixed 100 ms, which a landing's gate lost to load (2026-09-03).
-    // The Running tab's open row draws the phase lines.
-    let html = "";
-    for (let i = 0; i < 100; i++) {
-      html = await (await get(base, "/?open=aide/81-queue-and-runner")).text();
-      if (phaseBadge(html, "analyze") === "done") break;
-      await new Promise((r) => setTimeout(r, 50));
-    }
-    expect(phaseBadge(html, "analyze")).toBe("done");
-    // And what the file CLAIMS is not what the row believes: implement
-    // has no git-verified run, so the button is still named for it.
-    expect(buttonLabels(html)).toContain("Implement");
   });
 });

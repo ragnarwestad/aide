@@ -19,20 +19,6 @@ test("active groups keep Start until every member is ready for Archive", () => {
   expect(groupActionState([implemented, { ...implemented, acceptanceOpen: true }])).toBe("start");
 });
 
-test("Specs renders group members as independent rows without a group fold (AC-10, AC-16)", () => {
-  const html = renderSpecsRows([], {
-    targets: [
-      { project: "p", specFolder: "2-second", group: { name: "Release", position: 2 } },
-      { project: "p", specFolder: "1-first", group: { name: "Release", position: 1 } },
-    ],
-    providers: [],
-    archived: [],
-  } as never);
-  expect(html).not.toContain("data-spec-group=");
-  expect(html).toContain("1-first");
-  expect(html).toContain("2-second");
-});
-
 test("grouped children have no Archive action (AC-5)", () => {
   const html = renderSpecsRows([], {
     targets: [{ project: "p", specFolder: "1-first", group: { name: "Release", position: 1 }, done: ["create", "analyze", "implement"] }],

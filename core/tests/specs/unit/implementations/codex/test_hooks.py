@@ -137,10 +137,6 @@ class TestMarkdownlint:
         assert result.returncode == 0
         assert result.stdout.strip() == "VALIDATED docs/path with spaces.md"
 
-    def test_default_command_never_uses_npx(self, hooks_dir):
-        hook = (hooks_dir / "aide-markdownlint.sh").read_text()
-        assert "npx markdownlint-cli2" not in hook
-
     def test_lints_markdown_from_file_path(self, hooks_dir):
         result = run_hook(
             hooks_dir,

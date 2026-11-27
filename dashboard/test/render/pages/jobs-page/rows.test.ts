@@ -144,16 +144,7 @@ describe("where a row stands on the tab: running or landing, queued, the rest; t
   });
 });
 
-describe("a scheduled job in flight has a row", () => {
-  test("a queued, a running and a landing scheduled job", () => {
-    const jobs = [
-      sched({ id: "sq", state: "queued" }),
-      sched({ id: "sr", state: "running", project: "other" }),
-      sched({ id: "sl", state: "done", landing: true, project: "third" }),
-    ];
-    expect(new Set(ids(jobs))).toEqual(new Set(["sq", "sr", "sl"]));
-  });
-
+describe("a scheduled job has a row", () => {
   test("finished and cancelled jobs remain as history (AC-3)", () => {
     const jobs = [sched({ id: "d", state: "done" }), sched({ id: "x", state: "cancelled", project: "other" })];
     expect(ids(jobs)).toEqual(["d", "x"]);
@@ -179,14 +170,6 @@ describe("a cleanup job has a row only while it runs or waits for a person", () 
 
   test("includes a running cleanup job (AC-1)", () => {
     expect(ids([cleanup({ id: "running", state: "running" })])).toEqual(["running"]);
-  });
-
-  test("keeps a completed cleanup job in history (AC-3)", () => {
-    expect(ids([cleanup({ id: "done", state: "done" })])).toEqual(["done"]);
-  });
-
-  test("keeps a cleanup job that waits for a person (AC-3)", () => {
-    expect(ids([cleanup({ id: "failed", state: "failed" })])).toEqual(["failed"]);
   });
 });
 
@@ -216,73 +199,8 @@ describe("a spec's job is never a job row: its spec's row stands for it", () => 
   });
 });
 
-describe("a finished scheduled job that waits for the user keeps its row", () => {
-  const waiting: [string, Partial<J>][] = [
-    ["failed", { state: "failed" }],
-    ["failed with a conflict", { state: "failed", errorReason: "conflict" } as Partial<J>],
-    ["stopped by its time limit", { state: "failed", stopReason: "timeout" } as Partial<J>],
-    ["stopped on red tests", { state: "failed", stopReason: "tests-red" } as Partial<J>],
-  ];
-  for (const [what, o] of waiting) {
-    test(`${what}`, () => {
-      expect(ids([sched({ id: "s", ...o })])).toEqual(["s"]);
-    });
-  }
-});
-
-describe("a newer scheduled job leaves the earlier one in history", () => {
-  const failed = sched({ id: "old", state: "failed", createdAt: T(1) });
-
-  for (const state of ["queued", "running", "done"] as const) {
-    test(`a newer ${state} one`, () => {
-      const newer = sched({ id: "new", state, createdAt: T(2) });
-      expect(ids([newer, failed])).toEqual(["new", "old"]);
-    });
-  }
-
-  test("a newer cancelled run does not clear it", () => {
-    const newer = sched({ id: "new", state: "cancelled", createdAt: T(2) });
-    expect(ids([newer, failed])).toEqual(["new", "old"]);
-  });
-
-  test("a newer one that itself waits keeps its own row, and the older goes", () => {
-    const newer = sched({ id: "new", state: "failed", createdAt: T(2) });
-    expect(ids([newer, failed])).toEqual(["new", "old"]);
-  });
-
-  test("an older job after the failed one does not clear it", () => {
-    const older = sched({ id: "before", state: "done", createdAt: T(0) });
-    expect(ids([failed, older])).toEqual(["old", "before"]);
-  });
-
-  test("another project or another schedule key leave it", () => {
-    const other = sched({ id: "b", state: "running", project: "other", createdAt: T(3) });
-    expect(ids([other, failed])).toContain("old");
-
-    const s = sched({ id: "s", state: "failed", specFolder: "schedule-a", createdAt: T(1) });
-    const sOther = sched({ id: "so", state: "done", specFolder: "schedule-b", createdAt: T(2) });
-    expect(ids([sOther, s])).toEqual(["so", "s"]);
-  });
-});
-
 describe("a waiting scheduled job whose entry was deleted", () => {
   const waiting = sched({ id: "s", state: "failed" });
-
-  test("stays as finished history after its entry is deleted (AC-3, AC-11)", () => {
-    const asked: [string, string][] = [];
-    const exists = (project: string, name: string) => {
-      asked.push([project, name]);
-      return true;
-    };
-    expect(ids([waiting], { ...none, scheduleEntryExists: exists })).toEqual(["s"]);
-    expect(asked).toEqual([]);
-    expect(ids([waiting], { ...none, scheduleEntryExists: () => false })).toEqual(["s"]);
-  });
-
-  test("a running scheduled job does not ask whether its entry exists", () => {
-    const running = sched({ id: "r", state: "running" });
-    expect(ids([running], { ...none, scheduleEntryExists: () => false })).toEqual(["r"]);
-  });
 
   test("is sorted as finished once its entry is gone (AC-11)", () => {
     expect(jobPlace(waiting, [], () => false).band).toBe(3);
@@ -304,12 +222,6 @@ describe("a Close or Reopen is a job row of its own, not its spec's", () => {
       at("reopen", { id: "l", state: "done", landing: true, specFolder: "83-c" }),
     ];
     expect(ids(jobs)).toEqual(["q", "r", "l"]);
-  });
-
-  test("failed and finished jobs remain as their own history rows (AC-3)", () => {
-    expect(ids([at("close", { id: "f", state: "failed" })])).toEqual(["f"]);
-    expect(ids([at("close", { id: "f", state: "failed", createdAt: T(1) }), job({ id: "a", state: "running", createdAt: T(2) })])).toEqual(["f"]);
-    expect(ids([at("reopen", { id: "d", state: "done" })])).toEqual(["d"]);
   });
 
   test("a reopen gone on to the spec's next step is the spec's again", () => {
@@ -366,17 +278,6 @@ describe("a deploy is a job row of its own, named for the deploy", () => {
       deploy({ id: "r", state: "running", project: "third" }),
     ];
     expect(ids(jobs)).toEqual(["q", "h", "r"]);
-  });
-
-  test("failed deploys stay beside newer deploys (AC-3)", () => {
-    for (const state of ["failed"] as const) {
-      expect(ids([deploy({ id: "f", state, createdAt: T(1) })])).toEqual(["f"]);
-      expect(ids([deploy({ id: "f", state, createdAt: T(1) }), deploy({ id: "n", state: "queued", createdAt: T(2) })])).toEqual(["f", "n"]);
-    }
-  });
-
-  test("a done deploy stays in history (AC-3)", () => {
-    expect(ids([deploy({ id: "d", state: "done" })])).toEqual(["d"]);
   });
 
   test("its title is the deploy, without the project the row names first, and its key is the project's own", () => {

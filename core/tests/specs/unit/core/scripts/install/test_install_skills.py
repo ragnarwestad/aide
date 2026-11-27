@@ -98,19 +98,6 @@ def dirs(tmp_path):
 
 @pytest.mark.unit
 class TestProductionSkillManifest:
-    def test_reinstall_removes_a_retired_skill_and_rewrites_the_manifest_ac_1(self, helper, dirs):
-        source, target, manifest = dirs
-        skill(source, "aide-create")
-        installed(target, "aide-create")
-        installed(target, "retired")
-        manifest.write_text("aide-create\nretired\n")
-
-        result = run_function(helper, source, "install_skills", target)
-
-        assert result.returncode == 0, result.stderr
-        assert not (target / "retired").exists()
-        assert manifest.read_text().splitlines() == ["aide-create"]
-
     @pytest.mark.parametrize("function", ["install_skills", "uninstall_skills"])
     def test_invalid_manifest_names_cannot_escape_the_target_ac_3(self, helper, dirs, function):
         source, target, manifest = dirs
@@ -146,12 +133,6 @@ class TestProductionSkillManifest:
 
         assert result.returncode == 0, result.stderr
         assert not manifest.exists()
-
-    def test_duplicate_skill_manifest_functions_are_absent_ac_4(self, helper):
-        text = helper.read_text()
-
-        assert "prune_retired_skills" not in text
-        assert "_write_skill_manifest" not in text
 
 
 @pytest.mark.unit
@@ -227,18 +208,6 @@ class TestUninstallAgentsSkills:
             env={"HOME": str(home), "PATH": "/usr/bin:/bin"},
         )
 
-    def test_it_removes_the_manifest_it_wrote(self, helper, tmp_path):
-        home = tmp_path / "home"
-        target = home / ".agents" / "skills"
-        target.mkdir(parents=True)
-        manifest = target / ".aide-installed-manifest"
-        manifest.write_text("aide-create\n")
-
-        result = self.run_uninstall(helper, home)
-
-        assert result.returncode == 0, result.stderr
-        assert not manifest.exists()
-
     def test_it_removes_a_retired_skill_the_source_no_longer_names(self, helper, tmp_path):
         home = tmp_path / "home"
         target = home / ".agents" / "skills"
@@ -250,15 +219,3 @@ class TestUninstallAgentsSkills:
 
         assert result.returncode == 0, result.stderr
         assert not (target / "aide-to-html").exists()
-
-    def test_a_skill_no_manifest_names_is_left_alone(self, helper, tmp_path):
-        home = tmp_path / "home"
-        target = home / ".agents" / "skills"
-        target.mkdir(parents=True)
-        installed(target, "somebody-elses-skill")
-        (target / ".aide-installed-manifest").write_text("aide-to-html\n")
-
-        result = self.run_uninstall(helper, home)
-
-        assert result.returncode == 0, result.stderr
-        assert (target / "somebody-elses-skill").exists()

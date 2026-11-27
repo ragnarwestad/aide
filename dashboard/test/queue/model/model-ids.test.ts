@@ -7,8 +7,6 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { QueueStore, type QueueDefaults } from "../../../src/queue/queue.ts";
-import { resolveStepModel } from "../../../src/queue/model-name.ts";
-import { resolveStepModel as reExported } from "../../../src/serve/serve-helpers/runner-argv.ts";
 import { enqueue, makeRunner, okResult, resetHarness, cleanupHarness, store as harnessStore } from "../runner/runner-fixtures.ts";
 
 const DEFAULTS: QueueDefaults = {
@@ -85,11 +83,5 @@ describe("Runner.complete() records the id against the choice the step ran on", 
     runner.tick();
     runner.poll();
     expect(harnessStore.modelIds).toEqual({});
-  });
-});
-
-describe("resolveStepModel", () => {
-  test("lives in the queue layer and is still exported from where it was", () => {
-    expect(reExported).toBe(resolveStepModel);
   });
 });

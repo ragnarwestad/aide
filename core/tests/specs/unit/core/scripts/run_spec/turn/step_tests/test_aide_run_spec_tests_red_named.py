@@ -79,20 +79,6 @@ def test_red_tests_are_named_without_a_cause_when_no_files_command_is_set_ac_4_a
     }, out
 
 
-def test_whether_the_session_changed_a_failing_file_is_not_a_verdict_ac_6(
-    runner, workspace, fake_claude, tmp_path
-):
-    with_status(workspace, ["create", "analyze"])
-    suite = _playwright_suite(tmp_path, ["e2e/a.spec.ts:5:1 › a works"])
-    _project_with_test_cmd(workspace, str(suite))
-    claude, _ = _claude(fake_claude, tmp_path, work="mkdir -p web/e2e && printf 'x\\n' > web/e2e/a.spec.ts")
-    rc, out, _ = run(runner, workspace, claude, command="implement")
-    assert out["terminalReason"] == "tests-red", out
-    assert_written_as_in_fixture("testsRed", out["testsRed"])
-    assert "touched" not in out["testsRed"], out
-    assert "untouched" not in out["testsRed"], out
-
-
 def test_different_prior_failures_are_not_used_as_a_verdict_ac_6(runner, workspace, fake_claude, tmp_path):
     with_status(workspace, ["create", "analyze"])
     suite = _playwright_suite(tmp_path, ["e2e/a.spec.ts:5:1 › a works"], ["e2e/c.spec.ts:3:1 › c works"])

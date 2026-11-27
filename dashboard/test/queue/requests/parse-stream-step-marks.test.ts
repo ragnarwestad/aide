@@ -37,26 +37,9 @@ describe("a mark is a line of its own", () => {
     ]);
   });
 
-  test("a mark wrapped in backticks or bold is still a mark, shown bare", () => {
-    expect(summarizeStream(say(`\`${START}\`\n**${DONE}**`), { tool: "claude" })).toEqual([START, DONE]);
-  });
-
-  test("a done with a note after it, and a skipped with its reason, are marks", () => {
-    const text = "--- Step 4 of 9: Check for work already begun — done (nothing to keep)\n--- Step 5 of 9: Update — skipped: nothing to update";
-    expect(summarizeEntries(say(text), { tool: "claude" }).every((e) => e.mark)).toBe(true);
-  });
-
   test("a codex agent message is split the same way", () => {
     const item = line({ type: "item.completed", item: { type: "agent_message", text: `${START}\nReading.\n${DONE}` } });
     expect(summarizeStream(item, { tool: "codex" })).toEqual([START, "Reading.", DONE]);
-  });
-
-  test("a mark from a log written before the prefix is still a mark", () => {
-    expect(summarizeEntries(say("analyze · Step 1 of 9: Read the description — done"), { tool: "claude" })[0]!.mark).toBe(true);
-  });
-
-  test("prose that only mentions a step is not a mark", () => {
-    expect(summarizeEntries(say("Step 6 (Create the implementation plan) first."), { tool: "claude" })[0]!.mark).toBeUndefined();
   });
 });
 

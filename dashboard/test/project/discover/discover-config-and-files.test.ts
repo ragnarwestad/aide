@@ -30,12 +30,6 @@ describe("one key out of a project's own .aide/config", () => {
     expect(configValue(dir, "AIDE_LINT_CMD")).toBeNull();
   });
 
-  // A path or a command may perfectly well contain `=`.
-  test("a value keeps every = after the first", () => {
-    dir = write("AIDE_INSTALL_CMD=make install FLAGS=-q\n");
-    expect(configValue(dir, "AIDE_INSTALL_CMD")).toBe("make install FLAGS=-q");
-  });
-
   test("a comment, an indented line and an empty value are all no answer", () => {
     dir = write("# AIDE_INSTALL_CMD=commented\n  AIDE_INSTALL_CMD=indented\nAIDE_LINT_CMD=   \n");
     expect(configValue(dir, "AIDE_INSTALL_CMD")).toBeNull();

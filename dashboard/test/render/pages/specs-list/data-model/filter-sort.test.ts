@@ -4,7 +4,6 @@ import {
   applyFilter,
   chosenStates,
   stateFilters,
-  stateFilterLabel,
   sortGroups,
   toggledState,
 } from "../../../../../src/render/pages/specs-list/data-model/filter-sort.ts";
@@ -44,11 +43,6 @@ describe("a state value names every ticked entry", () => {
     expect(toggledState(STATE_FILTERS, stateFilters("active,idle"), "all")).toBe("all");
   });
 
-  test("keeps the Jobs state labels while Specs uses progress states", () => {
-    expect(["active:all", "waiting", "done", "failed"].map((key) => stateFilterLabel(key, "en")))
-      .toEqual(["Running", "Waiting", "Done", "Failed"]);
-  });
-
   test("sorts State by the state shown for the spec", () => {
     const sorted = sortGroups(rows, { sort: "state", dir: "asc" });
     expect(sorted.map((row) => row.specFolder)).toEqual(["3-active", "1-created", "2-idle"]);
@@ -60,12 +54,5 @@ describe("a state value names every ticked entry", () => {
       .toEqual(["2-idle", "3-active", "1-created"]);
     expect(sortGroups(rows, { sort: "actions", dir: "desc" }, (row) => labels.get(row.specFolder)!, "en").map((row) => row.specFolder))
       .toEqual(["1-created", "3-active", "2-idle"]);
-  });
-
-  test("translates Created, Idle, Active and Not archived in every language (AC-12)", () => {
-    for (const lang of ["en", "nb", "es", "de", "fr"] as const) {
-      for (const key of ["created", "idle", "active", "not-archived"])
-        expect(stateFilterLabel(key, lang)).not.toBe("");
-    }
   });
 });

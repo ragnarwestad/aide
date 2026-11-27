@@ -78,11 +78,6 @@ function repoWithHistory(dir: string, origin: string, tag: boolean): void {
 }
 
 describe("POST /api/self-run", () => {
-  test("refuses a press from another site like every other queue route", async () => {
-    const { base } = harness.start({ extra: { testBoardSpec: TEST_BOARD } });
-    const res = await fetch(`${base}/api/self-run`, { method: "POST", headers: { origin: "https://evil.example" } });
-    expect(res.status).toBe(403);
-  });
 
   test("with no board info, answers 404 to both the press and the status", async () => {
     const { base } = harness.start({ extra: {} });

@@ -32,11 +32,6 @@ describe("a queued deploy is held back while a landing is in flight", () => {
     expect(holds.has(other.id)).toBe(false);
   });
 
-  test("with no landing the deploy is not held", () => {
-    const d = deploy();
-    expect(deployLandingHolds(ctx()).has(d.id)).toBe(false);
-  });
-
   test("a tick leaves it queued with the sentence on the row, and starts it once the landing has cleared", () => {
     const l = landing();
     const d = deploy();

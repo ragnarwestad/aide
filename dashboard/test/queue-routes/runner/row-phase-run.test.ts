@@ -1,9 +1,7 @@
 // Split out of runner-invocation.test.ts by theme.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import { writeFileSync } from "node:fs";
-import { join } from "node:path";
-import { ran, statusSaying, IMPLEMENTED } from "../../helpers/queue-server.ts";
+import { IMPLEMENTED } from "../../helpers/queue-server.ts";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness(undefined, IMPLEMENTED);
@@ -100,47 +98,6 @@ describe("running a spec's phases from its own row", () => {
     const made = (await res.json()) as { job: { steps: string[]; gateAfter?: string[] } };
     expect(made.job.steps).toEqual(["analyze", "implement"]);
     expect(made.job.gateAfter).toBeUndefined();
-  });
-
-  // No checkbox sends this key and there is no gate, so a urlencoded
-  // body naming `gate` is a stray from somewhere else. It is ignored, like any other unknown
-  // key, and the job runs straight through.
-  test("a stray gate key is ignored", async () => {
-    const { base } = start();
-    const body = new URLSearchParams({ project: "aide", specFolder: "81-queue-and-runner" });
-    body.append("steps", "analyze");
-    body.append("steps", "implement");
-    body.append("gate", "on");
-    const res = await fetch(`${base}/api/queue`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/x-www-form-urlencoded",
-        accept: "application/json",
-      },
-      body: body.toString(),
-    });
-    const made = (await res.json()) as { job: { gateAfter?: string[]; state: string } };
-    expect(made.job.gateAfter).toBeUndefined();
-    expect(made.job.state).toBe("queued");
-  });
-
-  // The row does not offer a rerun: a done phase's box is
-  // ticked and locked, the same treatment `create` already had (see
-  // "a created spec reads create as done" above). The API route itself
-  // is untouched (2-analysis.md, "API dependencies: None") — a rerun
-  // sent straight to it, bypassing the row's own box, still succeeds.
-  test("a rerun of a done phase reaches the queue", async () => {
-    const { base, dir } = start();
-    const spec = join(dir, "root", "aide", "specs", "81-queue-and-runner");
-    writeFileSync(join(spec, "4-status.md"), statusSaying(["create", "analyze"]));
-    ran(dir, ["create", "analyze"]);
-    const res = await postRow(base, {
-      project: "aide",
-      specFolder: "81-queue-and-runner",
-      steps: "analyze",
-    });
-    expect(res.status).toBe(200);
-    expect(((await res.json()) as { job: { steps: string[] } }).job.steps).toEqual(["analyze"]);
   });
 
 });

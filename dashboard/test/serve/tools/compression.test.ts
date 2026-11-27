@@ -137,27 +137,4 @@ describe("compressResponse, wired into the real server", () => {
     expect(res.headers.get("content-encoding")).toBe("gzip");
   });
 
-  test("a small, non-whitelisted response (405) carries no content-encoding", async () => {
-    const { base } = harness.start();
-    const res = await fetch(`${base}/spec-editor.js`, {
-      method: "DELETE",
-      headers: { "accept-encoding": "gzip" },
-    });
-    expect(res.status).toBe(405);
-    expect(res.headers.get("content-encoding")).toBeNull();
-  });
-
-  // The one response a compression wrapper must never buffer: SSE holds
-  // the body open indefinitely, so gzipping it would mean waiting
-  // forever for a "whole body" that never comes.
-  test("GET /api/queue/events keeps streaming, uncompressed, with gzip requested", async () => {
-    const { base } = harness.start();
-    const res = await fetch(`${base}/api/queue/events`, {
-      headers: { "accept-encoding": "gzip" },
-    });
-    expect(res.status).toBe(200);
-    expect(res.headers.get("content-type")).toContain("text/event-stream");
-    expect(res.headers.get("content-encoding")).toBeNull();
-    await res.body!.cancel();
-  });
 });

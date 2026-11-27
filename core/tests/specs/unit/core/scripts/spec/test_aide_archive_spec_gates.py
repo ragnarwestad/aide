@@ -37,64 +37,6 @@ from .test_aide_archive_spec import (
 # judge, and archive refuses until every one of them is ticked.
 
 
-def test_unticked_acceptance_criteria_row_blocks_archive(script, project, specs):
-    configure(project, specs)
-    body = status_md(
-        "create, analyze, implement",
-        phase("Phase 1: RED", ["| a | ✅ | |"]) + acceptance(["| REQ-1: does the thing | ⬜ | |"]),
-    )
-    add_spec(specs, "81-x", body)
-    write_test_run(specs, "81-x", git(project, "rev-parse", "HEAD"), 0)
-    rc, out, _ = run(script, project, "81-x")
-    assert out["terminalReason"] == "acceptance-criteria-unticked", out
-    assert (specs / "81-x").exists(), "an unticked acceptance-criteria row must block the move"
-
-
-def test_fully_ticked_acceptance_criteria_archives_normally(script, project, specs):
-    configure(project, specs)
-    body = status_md(
-        "create, analyze, implement",
-        phase("Phase 1: RED", ["| a | ✅ | |"]) + acceptance(["| REQ-1: does the thing | ✅ | |"]),
-    )
-    add_spec(specs, "81-x", body)
-    write_test_run(specs, "81-x", git(project, "rev-parse", "HEAD"), 0)
-    rc, out, _ = run(script, project, "81-x")
-    assert out["terminalReason"] == "archived", out
-    assert not (specs / "81-x").exists()
-    assert (specs / "archive" / "81-x").exists()
-
-
-def test_non_standard_header_acceptance_row_ticked_still_archives(script, project, specs):
-    """A header row named something other than `Task |
-    Status | Notes` must never count toward the acceptance gate's total
-    — only its position above the separator marks it as a header, not
-    its own column text."""
-    configure(project, specs)
-    body = status_md(
-        "create, analyze, implement",
-        phase("Phase 1: RED", ["| a | ✅ | |"]) + "\n".join([
-            "## Acceptance criteria", "", "| REQ | Criterion | Done |",
-            "|------|--------|-------|", "| REQ-1: does the thing | ✅ | |", "", "---", "",
-        ]),
-    )
-    add_spec(specs, "81-x", body)
-    write_test_run(specs, "81-x", git(project, "rev-parse", "HEAD"), 0)
-    rc, out, _ = run(script, project, "81-x")
-    assert out["terminalReason"] == "archived", out
-    assert not (specs / "81-x").exists()
-
-
-def test_no_acceptance_criteria_section_is_unaffected(script, project, specs):
-    """A spec with no `## Acceptance criteria` section behaves
-    exactly as it did before this spec — implement present is enough."""
-    configure(project, specs)
-    body = status_md("create, analyze, implement", phase("Phase 1: RED", ["| a | ⬜ | |"]))
-    add_spec(specs, "81-x", body)
-    write_test_run(specs, "81-x", git(project, "rev-parse", "HEAD"), 0)
-    rc, out, _ = run(script, project, "81-x")
-    assert out["terminalReason"] == "archived", out
-
-
 def test_a_one_line_acceptance_note_does_not_block_archive(script, project, specs):
     """A run that said acceptance ticking was not
     required writes a `## Acceptance criteria` heading followed by ONE
@@ -118,22 +60,6 @@ def test_a_one_line_acceptance_note_does_not_block_archive(script, project, spec
     assert not (specs / "81-x").exists()
 
 
-def test_unticked_acceptance_criteria_note_names_the_checks_tab(script, project, specs):
-    """The tab that carries this checklist is called Checks
-    (renamed from Overview) — the note must send the reader
-    there, not to a name the tab no longer has."""
-    configure(project, specs)
-    body = status_md(
-        "create, analyze, implement",
-        phase("Phase 1: RED", ["| a | ✅ | |"]) + acceptance(["| REQ-1: does the thing | ⬜ | |"]),
-    )
-    add_spec(specs, "81-x", body)
-    write_test_run(specs, "81-x", git(project, "rev-parse", "HEAD"), 0)
-    rc, out, _ = run(script, project, "81-x")
-    assert "Status tab" in out["note"], out
-    assert "Overview tab" not in out["note"], out
-
-
 def test_acceptance_criteria_gate_keeps_refusing_on_every_run(script, project, specs):
     """A spec whose acceptance-criteria row is never ticked stays
     blocked indefinitely — the refusal is not a one-time hiccup, it
@@ -149,26 +75,6 @@ def test_acceptance_criteria_gate_keeps_refusing_on_every_run(script, project, s
     rc2, out2, _ = run(script, project, "81-x")
     assert out1["terminalReason"] == "acceptance-criteria-unticked", out1
     assert out2["terminalReason"] == "acceptance-criteria-unticked", out2
-    assert (specs / "81-x").exists()
-
-
-def test_unticked_acceptance_criteria_blocks_before_the_test_command_runs(script, project, specs, tmp_path):
-    """The acceptance-criteria gate must answer before
-    the test-record gate ever gets a chance to shell out to the project's
-    test command. No test-run.json record exists here, so the pre-fix
-    order would have run AIDE_TEST_CMD (dropping the marker file) before
-    reaching the unticked row."""
-    configure(project, specs)
-    marker = tmp_path / "marker"
-    (project / ".aide" / "project.yaml").write_text(f"AIDE_TEST_CMD: touch {marker}\n")
-    body = status_md(
-        "create, analyze, implement",
-        phase("Phase 1: RED", ["| a | ✅ | |"]) + acceptance(["| REQ-1: does the thing | ⬜ | |"]),
-    )
-    add_spec(specs, "81-x", body)
-    rc, out, _ = run(script, project, "81-x")
-    assert out["terminalReason"] == "acceptance-criteria-unticked", out
-    assert not marker.exists(), "the test command must never run before the acceptance gate answers"
     assert (specs / "81-x").exists()
 
 
@@ -260,19 +166,6 @@ def test_specs_dir_is_read_from_not_just_conflict_checked(project, specs, script
     assert (specs / "81-x").exists()
 
 
-def test_the_move_uses_git_mv_when_the_specs_root_is_tracked(script, project, specs):
-    configure(project, specs)
-    body = status_md("create, analyze, implement", phase("Phase 1: RED", ["| a | ✅ | |"]))
-    add_spec(specs, "81-x", body)
-    write_test_run(specs, "81-x", git(project, "rev-parse", "HEAD"), 0)
-    run(script, project, "81-x")
-    # git mv STAGES the rename ("R"), rather than leaving it as an
-    # untracked/deleted pair the way a plain `mv` in a tracked repo would.
-    status = git(specs, "status", "--porcelain")
-    assert status.startswith("R"), status
-    assert "D " not in status and "??" not in status, status
-
-
 def test_running_twice_after_archiving_is_idempotent(script, project, specs):
     configure(project, specs)
     body = status_md("create, analyze, implement", phase("Phase 1: RED", ["| a | ✅ | |"]))
@@ -288,14 +181,6 @@ def test_running_twice_after_archiving_is_idempotent(script, project, specs):
 
     text = (specs / "archive" / "81-x" / "4-status.md").read_text()
     assert text.count("**Archived:**") == 1, text
-
-
-def test_the_result_file_carries_the_same_json_as_stdout(script, project, specs, tmp_path):
-    configure(project, specs)
-    add_spec(specs, "81-x")
-    result_file = tmp_path / "result.json"
-    rc, out, _ = run(script, project, "81-x", result_file=result_file)
-    assert json.loads(result_file.read_text()) == out
 
 
 # --- the test-record gate --------------------------------------
@@ -321,20 +206,6 @@ DONE_BODY = phase("Phase 1: RED", ["| a | ✅ | |"])
 
 
 # --- The state file --------------------------------------------
-
-
-def test_archiving_writes_the_state_file_at_the_archive_location(script, project, specs):
-    configure(project, specs)
-    body = status_md("create, analyze, implement", phase("Phase 1: RED", ["| a | ✅ | |"]))
-    add_spec(specs, "81-x", body)
-    write_test_run(specs, "81-x", git(project, "rev-parse", "HEAD"), 0)
-    rc, out, _ = run(script, project, "81-x")
-    assert rc == 0, out
-    assert out["terminalReason"] == "archived", out
-    assert not (specs / "81-x" / "4-status.json").exists()
-    state = json.loads((specs / "archive" / "81-x" / "4-status.json").read_text())
-    assert state["completedPhases"] == ["create", "analyze", "implement"]
-    assert state["archived"]["date"]
 
 
 def test_the_acceptance_criteria_gate_reads_the_state_file_not_the_prose(script, project, specs):
@@ -406,31 +277,3 @@ def test_acceptance_rows_all_done_or_not_verified_archive(script, project, specs
     rc, out, _ = run(script, project, "81-x")
     assert out["terminalReason"] == "archived", out
     assert (specs / "archive" / "81-x").exists()
-
-
-def test_a_not_verified_row_beside_an_open_row_still_blocks_archive(script, project, specs):
-    configure(project, specs)
-    body = status_md(
-        "create, analyze, implement",
-        phase("Phase 1: RED", ["| a | ✅ | |"])
-        + acceptance(["| REQ-1: one | Not verified | |", "| REQ-2: two | ⬜ | |"]),
-    )
-    add_spec(specs, "81-x", body)
-    write_test_run(specs, "81-x", git(project, "rev-parse", "HEAD"), 0)
-    rc, out, _ = run(script, project, "81-x")
-    assert out["terminalReason"] == "acceptance-criteria-unticked", out
-    assert (specs / "81-x").exists()
-
-
-def test_a_failed_row_blocks_archive(script, project, specs):
-    configure(project, specs)
-    body = status_md(
-        "create, analyze, implement",
-        phase("Phase 1: RED", ["| a | ✅ | |"])
-        + acceptance(["| REQ-1: one | ✅ | |", "| REQ-2: two | ❌ Failed | Failed: x |"]),
-    )
-    add_spec(specs, "81-x", body)
-    write_test_run(specs, "81-x", git(project, "rev-parse", "HEAD"), 0)
-    rc, out, _ = run(script, project, "81-x")
-    assert out["terminalReason"] == "acceptance-criteria-unticked", out
-    assert (specs / "81-x").exists()

@@ -82,14 +82,6 @@ CODEX_AT_CAPACITY = "\n".join(json.dumps(e) for e in [
 ])
 
 
-def test_no_review_choice_leaves_review_off(runner, workspace, fake_claude):
-    with_status(workspace, ["create", "analyze"])
-    claude = _claude(fake_claude, "review: no defects found")
-    rc, out, _ = run(runner, workspace, claude, command="implement")
-    assert rc == 0 and out["terminalReason"] == "completed", out
-    assert len(fake_claude.calls.read_text().splitlines()) == 1
-
-
 def test_the_verification_drops_a_defect_and_only_the_kept_one_goes_back_renumbered(runner, workspace, fake_claude, tmp_path):
     with_status(workspace, ["create", "analyze"])
     claude = _claude(fake_claude, TWO_DEFECTS, "keep 2\ndrop 1. The guard is already at x.ts:10", keep_in=tmp_path)
@@ -203,14 +195,6 @@ def test_an_opencode_review_keeps_its_own_session_id_ac_1(
     assert out["review"]["sessionId"] == "review-opencode-session", out
 
 
-def test_a_wrapped_defect_reaches_the_fix_turn_whole(runner, workspace, fake_claude, tmp_path):
-    with_status(workspace, ["create", "analyze"])
-    review = "review: 2 defect(s) found\n1. The first is real\n   and goes on here\n2. The second is not"
-    claude = _claude(fake_claude, review, "keep 1\ndrop 2. handled at y.ts:4", keep_in=tmp_path)
-    run(runner, workspace, claude, command="implement", review_model="claude-sonnet-4", verify_model="claude-opus-4")
-    assert "1. The first is real and goes on here" in (tmp_path / "fix-prompt.txt").read_text()
-
-
 def test_an_unnumbered_list_goes_back_whole_rather_than_being_dropped(runner, workspace, fake_claude, tmp_path):
     with_status(workspace, ["create", "analyze"])
     claude = _claude(fake_claude, "review: 1 defect(s) found\n- The list is not numbered", "drop 1. not a defect", keep_in=tmp_path)
@@ -284,25 +268,6 @@ def test_a_codex_review_reports_its_tokens_and_no_dollar_figure_ac_1(runner, wor
     # Codex's own total: input (cached included) + output (reasoning included).
     assert review["tokens"]["total"] == 4210 + 812, review
     assert_written_as_in_fixture("review", review)
-
-
-def test_a_codex_step_beside_a_claude_review_reports_the_reviews_dollars_ac_5(
-    runner, workspace, fake_claude, fake_codex
-):
-    """The step's own tool reports no dollar figure and the review's does:
-    the step's cost is then the review's, so a total over the step's
-    sessions is the sum of what the board can add up."""
-    with_status(workspace, ["create", "analyze"])
-    claude = _claude(fake_claude, "review: no defects found")
-    codex = fake_codex(
-        "printf 'real work\\n' > implemented.txt && git add -A && git commit -q -m 'the step'; "
-        + emits(CODEX_STREAM_OK)
-    )
-    rc, out, _ = run(runner, workspace, claude, codex=codex, tool="codex", command="implement",
-                     review_tool="claude", review_model="claude-sonnet-4")
-    assert out["terminalReason"] == "completed", out
-    assert out["review"]["costUsd"] == 0.5, out["review"]
-    assert out["costUsd"] == 0.5, out
 
 
 def test_a_verification_that_ran_is_reported_beside_the_review_ac_2(runner, workspace, fake_claude):

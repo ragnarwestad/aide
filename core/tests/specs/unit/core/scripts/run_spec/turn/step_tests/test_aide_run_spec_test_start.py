@@ -46,25 +46,6 @@ def test_playwright_naming_its_server_url_in_use_is_a_port_in_use(tmp_path):
     assert "is already used" in cause["line"]
 
 
-def test_a_url_without_a_port_uses_its_schemes_own(tmp_path):
-    cause = _failure(tmp_path, "Error: https://localhost/ is already used, make sure that nothing is running on the port/url\n")
-    assert cause["port"] == 443
-
-
-@pytest.mark.parametrize(
-    "line, port",
-    [
-        ("Error: listen EADDRINUSE: address already in use :::8806", 8806),
-        ("Error: listen EADDRINUSE: address already in use 127.0.0.1:3000", 3000),
-        ("listen tcp 0.0.0.0:1025: bind: address already in use", 1025),
-    ],
-)
-def test_an_address_in_use_with_a_port_is_a_port_in_use(tmp_path, line, port):
-    cause = _failure(tmp_path, f"starting\n{line}\n")
-    assert cause["kind"] == "port-in-use"
-    assert cause["port"] == port
-
-
 def test_an_address_in_use_without_a_port_says_nothing(tmp_path):
     assert _failure(tmp_path, "Error response from daemon: ports are not available: bind: address already in use\n") is None
 

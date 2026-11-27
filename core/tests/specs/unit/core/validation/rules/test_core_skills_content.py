@@ -31,30 +31,6 @@ def test_every_aide_script_a_skill_runs_exists():
     assert not missing, f"skills run scripts core/scripts does not have: {missing}"
 
 
-@pytest.mark.validation
-def test_analyze_plan_and_review_share_the_parts_lines():
-    """The plan step writes the Parts lines the plan review checks
-    ."""
-    analyze = CORE_STEPS_DIR / "aide-analyze"
-    skill = (analyze / "references" / "implementation-plan.md").read_text(encoding="utf-8")
-    review = (analyze / "references" / "plan-review.md").read_text(encoding="utf-8")
-    for form in ("Reused:", "New, because", "None —"):
-        assert form in skill, f"the plan step does not write {form!r}"
-        assert form in review, f"the plan review does not check {form!r}"
-
-
-@pytest.mark.validation
-def test_analyze_plan_and_review_share_the_costly_decisions_lines_AC_4():
-    """The plan step writes the decisions subsection the plan review
-    checks, in the same heading and line forms."""
-    analyze = CORE_STEPS_DIR / "aide-analyze"
-    skill = (analyze / "references" / "implementation-plan.md").read_text(encoding="utf-8")
-    review = (analyze / "references" / "plan-review.md").read_text(encoding="utf-8")
-    for form in ("### Decisions costly to change", "costly to change:", "cheap to change:", "None —"):
-        assert form in skill, f"the plan step does not write {form!r}"
-        assert form in review, f"the plan review does not check {form!r}"
-
-
 def ears_patterns(path):
     """Read whole pattern spans with whitespace collapsed and case preserved."""
     text = path.read_text(encoding="utf-8")
@@ -165,19 +141,9 @@ def test_the_short_analysis_gives_the_test_places_and_the_criteria_table():
         assert heading in section.group(1), f"the short analysis does not give {heading!r}"
 
 
-STEP_TITLE = re.compile(r"^#+ Step \d+ of \d+: (.+)$", re.M)
 # A table row whose last three cells, stripped of padding, are the three grades.
 GRADE_ROW = re.compile(r"^\s*\|[^|\n]*\|\s*LOW\s*\|\s*MEDIUM\s*\|\s*HIGH\s*\|\s*$", re.M)
 GRADING_REFERENCE = "core/scripts/lib/steps/aide-analyze/references/complexity-and-analysis.md"
-
-
-@pytest.mark.validation
-def test_analyze_grades_the_complexity_after_it_searches_the_code():
-    skill = (CORE_STEPS_DIR / "aide-analyze" / "SKILL.md").read_text(encoding="utf-8")
-    titles = STEP_TITLE.findall(skill)
-    assert "Analyze the codebase" in titles, "the analyze skill has no search step"
-    assert "Grade the complexity" in titles, "the analyze skill has no grading step"
-    assert titles.index("Analyze the codebase") < titles.index("Grade the complexity")
 
 
 @pytest.mark.validation

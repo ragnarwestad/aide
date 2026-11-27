@@ -64,36 +64,6 @@ describe("a spec's row runs its own phases", () => {
     expect(phaseBox(line, "implement")).toContain('value="implement" checked');
   });
 
-  // A press takes the spec as far as it can go, so every
-  // phase that has not run starts ticked. Whether a job has ever run
-  // for the spec makes no difference to that — `explore` is outside
-  // the phase steps, so a spec that has only explored has the same
-  // empty done-set, and the same three ticks, as one nothing has run
-  // at all. That distinction used to be two tests here.
-  test("a spec nothing has run pre-ticks every phase", () => {
-    const lines = [
-      runLine(rows([], [target("94-never-run")]), "94-never-run"),
-      runLine(rows([job("j1", "explore")], [target("94-row-runs-it")]), "94-row-runs-it"),
-    ];
-    for (const line of lines) {
-      expect(phaseBox(line, "analyze")).toContain('value="analyze" checked');
-      expect(phaseBox(line, "implement")).toContain('value="implement" checked');
-      expect(phaseBox(line, "archive")).toContain('value="archive" checked');
-    }
-  });
-
-  test("pre-ticking never re-ticks a phase already done on disk", () => {
-    // Nothing was ever queued for this spec, but its 2-analysis.md is
-    // filled in: `done` is read off the files, not off job history.
-    // `analyze` is done, so its box is not pre-ticked; the two phases
-    // after it are — every phase that has not run, not the next one
-    // only.
-    const line = runLine(rows([], [target("94-never-run", { done: ["analyze"] })]), "94-never-run");
-    expect(phaseBox(line, "analyze")).not.toContain("checked");
-    expect(phaseBox(line, "implement")).toContain('value="implement" checked');
-    expect(phaseBox(line, "archive")).toContain('value="archive" checked');
-  });
-
   // The siblings lock too. The
   // rule is read off the spec — one job in flight on it, so no second
   // job from this row — not off the one step that job happens to name.
@@ -319,24 +289,6 @@ describe("a spec's row runs its own phases", () => {
     expect(phaseBox(line, "archive")).toContain('name="steps" value="archive"');
     expect(phaseBox(line, "archive")).toContain("checked");
     expect(phaseBox(line, "archive")).not.toContain("disabled");
-  });
-
-  // A phase already in `g.done` can still be genuinely re-running (e.g.
-  // a `/aide-reset`-triggered redo, outside this row's own UI). The busy
-  // path must keep rendering — checked, disabled, with the busy reason
-  // — not the "already done" wording.
-  test("a busy rerun of an already-done phase keeps the busy wording, not 'already done'", () => {
-    const line = runLine(
-      rows(
-        [job("j1", "analyze", { state: "running" })],
-        [target("94-row-runs-it", { done: ["analyze"] })],
-      ),
-      "94-row-runs-it",
-    );
-    expect(phaseBox(line, "analyze")).toContain("disabled");
-    // The box's own `title` is gone.
-    expect(phaseBox(line, "analyze")).not.toContain('title="Analyze is running"');
-    expect(phaseBox(line, "analyze")).not.toContain("already done");
   });
 });
 

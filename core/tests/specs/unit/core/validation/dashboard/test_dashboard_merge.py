@@ -6,7 +6,6 @@ reads the ROOT only: a JS lockfile or `package.json` appearing there would
 silently redirect every AI's idea of "run the tests" from pytest to npm.
 """
 import os
-import re
 import subprocess
 
 import pytest
@@ -88,22 +87,3 @@ class TestTheDeployInstallRefreshesEveryTool:
             assert f"warned {implementation}" in logged
 
 
-@pytest.mark.validation
-class TestInstallAfterMergeLogsInsteadOfDiscarding:
-    """A tool the installer cannot declare has to
-    reach somewhere a reader can find it later — not /dev/null, which a
-    headless merge nobody is watching would otherwise discard it into."""
-
-    def test_neither_installer_call_redirects_to_dev_null(self, workspace_root):
-        script = workspace_root / "dashboard" / "deploy" / "install-after-merge.sh"
-        content = script.read_text(encoding="utf-8")
-        lines = [
-            line for line in content.splitlines()
-            if "./core/implementations/" in line and "install.sh" in line
-        ]
-        assert lines, "no installer call lines found in install-after-merge.sh"
-        for line in lines:
-            assert not re.search(r">\s*[\"']?/dev/null", line), \
-                f"installer output is still discarded: {line}"
-        assert "Library/Logs/aide-dashboard" in content or "AIDE_INSTALL_LOG" in content, \
-            "install-after-merge.sh does not log installer output anywhere"

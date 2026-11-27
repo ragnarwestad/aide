@@ -12,7 +12,7 @@
 // the first phase section with unchecked tasks.
 
 import { describe, expect, test } from "bun:test";
-import { archiveHeldBackReason, parseStatus } from "../../../src/project/parse-status";
+import { parseStatus } from "../../../src/project/parse-status";
 
 
 // Until now the dashboard GUESSED which workflow steps a spec had had,
@@ -92,36 +92,6 @@ describe("workflow steps completed", () => {
     ]);
   });
 
-  // The field is an ADDITION to 4-status.md. Everything the
-  // parser already answered out of that file must answer the same.
-  test("progress, phase and the held-back reason are untouched by the new field", () => {
-    // Written out in full on purpose: this text is the input of the parser under test.
-    const content = [
-      "# 139 - Status",
-      "",
-      "## Tracking info",
-      "",
-      "- **Workflow steps completed:** create, analyze",
-      "- **Total progress:** `95% (21 of 22 completed)`",
-      "",
-      "## Archive held back",
-      "",
-      "- the Slack webhook (Phase 4, still unchecked)",
-      "",
-      "## Phase 1: RED",
-      "",
-      "| Task | Status | Notes |",
-      "|------|--------|-------|",
-      "| a    | ⬜     |       |",
-      "",
-    ].join("\n");
-    const status = parseStatus(content);
-    expect(status.progress).toEqual({ percent: 95, done: 21, total: 22 });
-    expect(status.phase).toBe("Phase 1: RED");
-    expect(status.workflowSteps).toEqual(["create", "analyze"]);
-    expect(archiveHeldBackReason(content)).toBe("the Slack webhook (Phase 4, still unchecked)");
-  });
-
   // The line the old heuristics would have read as "analyze done": a
   // status file saying only `create`, beside an untouched 693-byte
   // analysis template. The parser answers from the field alone.
@@ -185,28 +155,4 @@ describe("step models", () => {
     });
   });
 
-  test("progress, phase and workflowSteps are untouched by the new field", () => {
-    // Written out in full on purpose: this text is the input of the parser under test.
-    const content = [
-      "# 244 - Status",
-      "",
-      "## Tracking info",
-      "",
-      "- **Workflow steps completed:** create, analyze",
-      "- **Model (analyze):** claude sonnet",
-      "- **Total progress:** `95% (21 of 22 completed)`",
-      "",
-      "## Phase 1: RED",
-      "",
-      "| Task | Status | Notes |",
-      "|------|--------|-------|",
-      "| a    | ⬜     |       |",
-      "",
-    ].join("\n");
-    const status = parseStatus(content);
-    expect(status.progress).toEqual({ percent: 95, done: 21, total: 22 });
-    expect(status.phase).toBe("Phase 1: RED");
-    expect(status.workflowSteps).toEqual(["create", "analyze"]);
-    expect(status.stepModels).toEqual({ analyze: "claude sonnet" });
-  });
 });

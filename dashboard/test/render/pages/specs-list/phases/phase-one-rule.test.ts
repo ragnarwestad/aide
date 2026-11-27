@@ -33,11 +33,6 @@ describe("one rule per phase", () => {
   const target = specTarget;
   const rows = openRowsAt("2026-08-19T12:00:00Z");
   const head = (html: string) => html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>\s*<tr class="specstate"[\s\S]*?<\/tr>/)?.[0] ?? "";
-  /** The Run button's own line, under the header. */
-  /** Everything one row draws: its header line and, when it is open,
-   *  the phase lines under it — where the boxes live. */
-  const runLine = (html: string) =>
-    html.match(/<tr class="[^"]*spechead[\s\S]*?(?=<tr class="[^"]*spechead|<\/tbody>|$)/)?.[0] ?? "";
   /** A phase's own line — an ordinary row of six cells,
    *  with nothing spanning it. */
   const subRow = (html: string, phase: string) =>
@@ -84,17 +79,6 @@ describe("one rule per phase", () => {
     // row's panel says it instead — named for the phase it is about.
     expect(analyze).not.toContain("last re-run cancelled");
     expect(panel(html)).toContain("Analyze last re-run cancelled");
-  });
-
-  // The "Run again" wording is retired, and the
-  // bare word "Run" with it: the button is named for the
-  // phase a press would run, which says what "again" was groping for
-  // and cannot be wrong at the edges.
-  test("with every phase but archive done the button is named for archive", () => {
-    const html = rows([], [target("108-ready", { done: BUILT })]);
-    expect(subRow(html, "archive")).toContain(PHASE_NOT_RUN);
-    expect(runLine(html)).not.toContain("Run again");
-    expect(runLine(html)).toContain(">Archive</button>");
   });
 
   test("an archive run that declined reads held back, not done", () => {

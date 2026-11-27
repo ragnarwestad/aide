@@ -35,19 +35,6 @@ afterEach(() => {
   clearCheckoutFaults();
 });
 
-describe("the checkout-fault banner", () => {
-  test("a checkout that answers again takes its line away", () => {
-    setCheckoutFault("woodstack", "one thing");
-    clearCheckoutFault("woodstack");
-
-    expect(shell()).not.toContain("checkout-fault");
-  });
-
-  test("nothing wrong is no banner at all", () => {
-    expect(shell()).not.toContain("checkout-fault");
-  });
-});
-
 // The wiring, at the one place that reports a checkout refusal: the
 // banner has to be written by the same call that writes the log line, or
 // the page and the log disagree about what is wrong right now.

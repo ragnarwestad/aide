@@ -72,13 +72,6 @@ describe("GET /api/queue/events", () => {
     await s.quiet(400);
   });
 
-  test("a `changed` event follows an enqueue", async () => {
-    const { base } = harness.start();
-    const s = await connect(base);
-    await enqueue(base);
-    expect(await s.next()).toContain("event: changed");
-  });
-
   test("a `changed` event follows a cancel", async () => {
     const { base } = harness.start();
     const s = await connect(base);

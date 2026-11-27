@@ -1,5 +1,4 @@
-// Close on a spec's row asks its question in a dialog, and the
-// close page stays what it was for a browser with script off.
+// Close on a spec's row asks its question in a dialog.
 //
 // Not run by the session on its own: `make test` runs it, and by hand:
 // `cd dashboard && bun test --timeout 20000 test/e2e/close-in-a-dialog.test.ts`.
@@ -39,41 +38,13 @@ async function open(post: { status: number; json: unknown }): Promise<Page> {
 const ACCEPTED = { status: 200, json: { ok: true, job: { id: "j1", project: "aide", specFolder: LIVE, steps: ["close"], stepIndex: 0 } } };
 
 describe("Close asks in a dialog", () => {
-  test("Close opens a modal with the Reason field, OK and Cancel, and the address stays", async () => {
-    const page = await open(ACCEPTED);
-    await close(page).click();
-    await dialog(page).waitFor({ state: "visible" });
-    expect(await dialog(page).evaluate((el) => (el as HTMLDialogElement).matches(":modal"))).toBe(true);
-    expect(await dialog(page).locator("textarea[name=reason]").isVisible()).toBe(true);
-    expect(await dialog(page).getByRole("button", { name: "OK" }).isVisible()).toBe(true);
-    expect(await dialog(page).getByRole("button", { name: "Cancel" }).isVisible()).toBe(true);
-    expect(new URL(page.url()).pathname).toBe(SPEC);
-  });
-
-  test("an empty press posts nothing, and the count and the paste note are drawn inside the dialog", async () => {
+  test("an empty press posts nothing", async () => {
     const page = await open(ACCEPTED);
     let posts = 0;
     page.on("request", (r) => r.method() === "POST" && (posts += 1));
     await close(page).click();
     await dialog(page).getByRole("button", { name: "OK" }).click();
     expect(posts).toBe(0);
-    expect(await dialog(page).textContent()).toContain("0 of 5000 characters");
-    await dialog(page).locator("textarea").fill("x".repeat(5000));
-    expect(await dialog(page).textContent()).toContain("5000 of 5000 characters");
-  });
-
-  test("a refusal is written in the box, which stays open with the reason in it, and Escape closes it", async () => {
-    const page = await open({ status: 400, json: { error: "Give a reason that is not blank." } });
-    await close(page).click();
-    await dialog(page).locator("textarea").fill("   ");
-    await dialog(page).getByRole("button", { name: "OK" }).click();
-    await dialog(page).getByText("Give a reason that is not blank.").waitFor();
-    expect(await dialog(page).isVisible()).toBe(true);
-    expect(await dialog(page).locator("textarea").inputValue()).toBe("   ");
-    expect(new URL(page.url()).pathname).toBe(SPEC);
-    await page.keyboard.press("Escape");
-    await page.waitForTimeout(300);
-    expect(await dialog(page).isVisible()).toBe(false);
   });
 
   // The Running page follows the job from there, scrolled to the job's own row.

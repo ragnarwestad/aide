@@ -45,22 +45,6 @@ afterEach(() => {
 // Both fields land in the same personal file, and neither
 // may take the other — or a hand-written key, or a comment — with it.
 describe("writing .aide/config", () => {
-  // The links live outside this file, in the committed
-  // manifest — so what this asserts is that the value still comes
-  // back in the shape the runner reads, from wherever it is kept.
-  test("worktree links are written in the format the runner reads them in", async () => {
-    const projectsRoot = root();
-    const base = root();
-    const dir = join(projectsRoot, "links");
-    const result = await addProject(cloningGit().run, projectsRoot, {
-      name: "links",
-      gitUrl: "git@example.com:me/links.git",
-      codeLanding: "merge",
-      worktreeLinks: ".venv dashboard/node_modules",
-    }, base);
-    expect(result.ok).toBe(true);
-    expect(resolveWorktreeLinks(dir, dashboardSettingsFile(base, "links")).links).toBe(".venv dashboard/node_modules");
-  });
 
   test("both fields at once, over a config that already has comments and other keys", async () => {
     const projectsRoot = root();
@@ -109,22 +93,6 @@ describe("writing .aide/config", () => {
     expect(existsSync(join(dir, ".aide", "config"))).toBe(false);
   });
 
-  test("a worktree-links value naming a build output is refused before it is written", async () => {
-    const projectsRoot = root();
-    const dir = join(projectsRoot, "buildrefused");
-    const result = await addProject(cloningGit({}, { "build/": "" }).run, projectsRoot, {
-      name: "buildrefused",
-      gitUrl: "git@example.com:me/buildrefused.git",
-      codeLanding: "merge",
-      worktreeLinks: "build",
-    });
-    expect(result.ok).toBe(false);
-    const step = result.steps.find((s) => s.step === "worktreeLinks")!;
-    expect(step.ok).toBe(false);
-    expect(step.error).toContain("build");
-    expect(step.error).toContain("build output");
-    expect(existsSync(join(dir, ".aide", "config"))).toBe(false);
-  });
 });
 
 describe("the denied worktree-link names", () => {

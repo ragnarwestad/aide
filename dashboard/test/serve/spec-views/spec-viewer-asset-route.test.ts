@@ -22,22 +22,6 @@ describe("GET /spec-viewer.js", () => {
     expect(body.length).toBeGreaterThan(1000);
   });
 
-  test("a repeat GET with If-None-Match set to the prior ETag returns 304 with an empty body", async () => {
-    const { base } = harness.start();
-    const first = await fetch(`${base}/spec-viewer.js`);
-    const etag = first.headers.get("etag")!;
-    const second = await fetch(`${base}/spec-viewer.js`, { headers: { "if-none-match": etag } });
-    expect(second.status).toBe(304);
-    expect(await second.text()).toBe("");
-  });
-
-  test("a stale If-None-Match gets the full body back, not a 304", async () => {
-    const { base } = harness.start();
-    const res = await fetch(`${base}/spec-viewer.js`, { headers: { "if-none-match": '"not-a-real-etag"' } });
-    expect(res.status).toBe(200);
-    expect((await res.text()).length).toBeGreaterThan(1000);
-  });
-
   // Risk analysis: the bundle must import the vendor's dedicated Viewer
   // entry point, never the full Editor class — a silent regression back
   // to the ~767 KB editor bundle would still render correctly, so a

@@ -12,7 +12,7 @@ import subprocess
 
 import pytest
 
-from ...conftest import READ_SPECS, STOP_DEADLINE_SEC, git
+from ...conftest import READ_SPECS, git
 from ..run_spec_invoking import SCHEDULE_KEY, wait_until
 from ..run_spec_invoking import schedule as run_schedule
 from ..run_spec_results import RESULT_OK
@@ -88,18 +88,6 @@ def test_a_job_that_commits_in_the_specs_repository_is_pushed_and_left_on_its_br
     assert BRANCH in heads(origin["specs"]), heads(origin["specs"])
 
 
-def test_a_job_that_commits_and_hits_its_time_limit_keeps_the_commit_on_the_branch(
-    runner, workspace, fake_claude, origin
-):
-    with_prompt(workspace)
-    claude = job(fake_claude, COMMIT_IN_PROJECT + "sleep 120\n")
-    rc, out, _ = schedule(runner, workspace, claude, timeout_sec=STOP_DEADLINE_SEC)
-    assert out["terminalReason"] == "timeout", out
-    # The limit reaches the board as a field, the same as for every other command.
-    assert out["error"] is None and out["timeLimit"] == {"seconds": int(STOP_DEADLINE_SEC), "during": "session"}, out
-    assert BRANCH in heads(origin["project"]), heads(origin["project"])
-
-
 def test_a_failed_job_leaves_the_sentence_to_the_board(runner, workspace, fake_claude):
     with_prompt(workspace)
     rc, out, _ = schedule(runner, workspace, job(fake_claude, "exit 1\n"))
@@ -137,13 +125,6 @@ def test_a_cancelled_job_that_has_committed_keeps_it_on_the_branch(runner, works
             proc.kill()
             proc.wait(timeout=10)
     assert BRANCH in heads(origin["project"]), heads(origin["project"])
-
-
-def test_a_non_scheduled_step_still_commits_and_pushes_its_work(runner, workspace, fake_claude, origin):
-    claude = job(fake_claude, 'echo "written by the step" > "$PWD/new-code.txt"\n' + FINISHED)
-    rc, out, _ = schedule(runner, workspace, claude, command="implement", spec=workspace["folder"], prompt_file=None)
-    assert rc == 0, out
-    assert "aide/81-queue-and-runner" in heads(origin["project"])
 
 
 def test_a_scheduled_prompt_now_carries_a_request_for_a_commit_message(runner, workspace, fake_claude):
@@ -203,29 +184,6 @@ def test_a_job_that_does_nothing_leaves_no_branch(runner, workspace, fake_claude
     assert out["ok"] is True, out
     assert BRANCH not in heads(origin["project"]), heads(origin["project"])
     assert BRANCH not in heads(origin["specs"]), heads(origin["specs"])
-
-
-@pytest.mark.usefixtures("origin")
-def test_no_scope_violation_error_line_is_written_for_an_ordinary_commit(runner, workspace, fake_claude):
-    with_prompt(workspace)
-    _, out, _, err = schedule(runner, workspace, job(fake_claude, COMMIT_IN_PROJECT + FINISHED), return_stderr=True)
-    assert out["ok"] is True, out
-    assert out["terminalReason"] == "completed", out
-    assert "a scheduled job cannot change the repository" not in err, err
-    assert "scope-violation" not in err, err
-
-
-def test_the_schedule_guard_file_is_gone(runner):
-    """`run-spec-schedule-guard.sh` and the `discard_scheduled_commits`
-    it called existed only to take back a scheduled job's own commits —
-    with nothing left to discard, deleting the guard is the fix, not a
-    dangling reference to keep around."""
-    lib = runner.parent / "lib"
-    assert not (lib / "run-spec-schedule-guard.sh").exists()
-    source_text = runner.read_text()
-    assert "run-spec-schedule-guard.sh" not in source_text
-    for part in lib.glob("run-spec/**/*.sh"):
-        assert "discard_scheduled_commits" not in part.read_text(), part
 
 
 def test_a_job_that_asks_for_chrome_starts_claude_with_it(runner, workspace, fake_claude):

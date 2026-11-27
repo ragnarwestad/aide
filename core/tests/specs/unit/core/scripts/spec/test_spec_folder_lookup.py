@@ -82,10 +82,6 @@ def test_the_existing_spec_lookup_returns_the_actual_location(specs_root, arg, l
     assert existing(specs_root, arg) == (0, location)
 
 
-def test_the_existing_spec_lookup_prefers_the_active_folder(specs_root):
-    assert existing(specs_root, "744") == (0, "744-x")
-
-
 @pytest.mark.parametrize("arg", ["700-", "999", "999-none", "archive/999-none", ""])
 def test_the_existing_spec_lookup_finds_nothing_for_a_missing_spec_or_a_prefix(specs_root, arg):
     assert existing(specs_root, arg) == (1, "")

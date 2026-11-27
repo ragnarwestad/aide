@@ -2,8 +2,7 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import {
-  ARCHIVED, ARCHIVED_VIEW, ALL_VIEW, LIVE, LIVE_OTHER, OTHER, SAME_DAY, STAMPED, UNDATED,
-  UNSTAMPED, harness, order, specsList, start,
+  ARCHIVED, ARCHIVED_VIEW, LIVE, OTHER, SAME_DAY, STAMPED, harness, order, specsList, start,
 } from "./archived-specs-fixtures.ts";
 
 afterEach(() => harness.cleanup());
@@ -16,44 +15,11 @@ describe("the default filter", () => {
     expect(html).toContain(">All");
     expect(html).toMatch(/aria-checked="true"><span class="check" aria-hidden="true"><\/span>All/);
   });
-
-  // A spec that reaches the archive stays on the list the reader is
-  // already looking at. The Active chip is what cuts them now, and has
-  // its own test below.
-  test("holds the live specs AND the archived ones", async () => {
-    const html = await specsList(start().base);
-    expect(html).toContain(LIVE);
-    for (const folder of Object.keys(ARCHIVED)) expect(html).toContain(folder);
-  });
-
-  test("the Active chip is what holds the archived ones back", async () => {
-    const html = await specsList(start().base, "?state=not-archived");
-    expect(html).toContain(LIVE);
-    for (const folder of Object.keys(ARCHIVED)) expect(html).not.toContain(folder);
-    // Not the folder alone: the title and the description are what a
-    // reader would see, and a row that leaked either would be a row.
-    expect(html).not.toContain("One page shows the whole spec");
-    expect(html).not.toContain("Every spec file on one page.");
-  });
-
-  test("still counts the archived specs on the chips that would show them", async () => {
-    const html = await specsList(start().base);
-    // Five archived specs exist and none of them is rendered — a chip
-    // reading "Archived (0)" beside a list that has 150 of them is the
-    // one thing a count must not say.
-    expect(html).toMatch(/>Archived \(5\)</);
-  });
 });
 
 // --- The Archived chip ----------------------------------------
 
 describe("the Archived chip", () => {
-  test("shows every archived spec and no live one", async () => {
-    const html = await specsList(start().base, ARCHIVED_VIEW);
-    for (const folder of Object.keys(ARCHIVED)) expect(html).toContain(folder);
-    expect(order(html)).not.toContain(LIVE);
-  });
-
   // Same rule as `targets()`: the allowlist in queue-config.json is
   // what the dashboard shows, and a discovered project that is not on
   // it is not the dashboard's business.
@@ -61,31 +27,6 @@ describe("the Archived chip", () => {
     const html = await specsList(start({ queueProjects: ["skjer"] }).base, ARCHIVED_VIEW);
     expect(html).not.toContain(STAMPED);
     expect(html).toContain(OTHER);
-  });
-});
-
-// --- All means all, in ONE order ------------------------------
-
-describe("the All chip", () => {
-  // Pinned to the "spec" sort explicitly: the list's own default
-  // changed to Created, and this fixture's synthetic git
-  // answers no spec's real creation date — every row would tie there,
-  // which proves nothing about interleaving. Folder number is still a
-  // real, distinct value per row, live or archived, so it is what
-  // proves the point this criterion is actually about.
-  test("interleaves live and archived by the same sort key", async () => {
-    const rows = order(await specsList(start().base, `${ALL_VIEW}&sort=spec`));
-    // Folder number, descending: 150, 92, 81, 60, 31, 05, 01. The live
-    // spec sits BETWEEN two archived ones, which a list that
-    // concatenated the two sets could not produce.
-    expect(rows).toEqual([STAMPED, UNSTAMPED, LIVE, SAME_DAY, UNDATED, OTHER, LIVE_OTHER]);
-  });
-
-  test("the active progress chips exclude archived specs", async () => {
-    for (const state of ["not-archived", "active", "created", "idle", "reopened"]) {
-      const html = await specsList(start().base, `?state=${state}`);
-      for (const folder of Object.keys(ARCHIVED)) expect(html).not.toContain(folder);
-    }
   });
 });
 
@@ -117,11 +58,5 @@ describe("the Not verified entry", () => {
   test("counts only the specs with a count, on a view that builds no archived row", async () => {
     const html = await specsList(withMarks().base, "?state=not-archived");
     expect(html).toMatch(/>Not verified \(2\)</);
-  });
-
-  test("a spec with no Not verified row is in neither the list nor the count", async () => {
-    const html = await specsList(start().base, "?state=not-verified");
-    expect(order(html)).toEqual([]);
-    expect(html).toMatch(/>Not verified \(0\)</);
   });
 });

@@ -212,16 +212,6 @@ describe("the Depends on line's Save follows Cancel", () => {
     expect(save(rows, A).disabled).toBe(true);
   });
 
-  test("stays enabled through a redraw that keeps the change, and is disabled again by Cancel (AC-1)", () => {
-    const { rows, redraw } = list();
-    redraw();
-    tick(rows, A, THIRD);
-    redraw();
-    expect(save(rows, A).disabled).toBe(false);
-    cancelDependsOn(cancel(rows, A));
-    expect(save(rows, A).disabled).toBe(true);
-  });
-
   test("equals Cancel after a tick, a change back, a redraw, Cancel, a save and a refusal (AC-3, AC-8)", () => {
     const { rows, redraw } = list();
     redraw();

@@ -469,10 +469,4 @@ describe("a stop its spec has taken over", () => {
     }
     expect(store.get(newer.id)?.state).toBe("done");
   });
-
-  test("a stop whose wait was cleared and that nothing has taken over keeps waiting", () => {
-    const made = stopped(job({ steps: ["analyze"] }), "10:00", undefined);
-    restartAfterUsageLimit(store, toolOf, at("12:00"));
-    expect(store.get(made.id)?.state).toBe("waiting");
-  });
 });

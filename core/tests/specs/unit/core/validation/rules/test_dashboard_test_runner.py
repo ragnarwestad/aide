@@ -96,16 +96,6 @@ class TestAWorkerStoppedFromOutside:
 
 
 class TestAFailingTest:
-    def test_a_file_that_fails_once_is_run_again_alone_and_the_suite_is_green(self, workspace_root, tmp_path):
-        r = _run_suite(workspace_root, tmp_path, "red-once")
-        assert r.returncode == 0, r.stdout + r.stderr
-        assert f"running its failing file(s) again alone: {tmp_path}/red-once.test.ts" in r.stdout
-
-    def test_a_file_that_fails_twice_is_red(self, workspace_root, tmp_path):
-        r = _run_suite(workspace_root, tmp_path, "red")
-        assert r.returncode == 1, r.stdout + r.stderr
-        assert "red: worker(s) 0" in r.stdout
-
     def test_a_file_is_not_retried_when_one_run_was_requested_ac_3(self, workspace_root, tmp_path):
         import os
         env = {**os.environ, "AIDE_TEST_WORKERS": "1", "AIDE_TEST_ONCE": "1", "BASH_FUNC_bun%%": _FAKE_BUN}

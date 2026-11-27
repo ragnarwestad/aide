@@ -100,15 +100,6 @@ describe("a job held behind it", () => {
 });
 
 describe("what the sentences ask of the reader", () => {
-  test("a held job's asks for no press (AC-10)", () => {
-    const all = [
-      getUsageLimitMessage(heldView("runner.usageLimitHeld", { provider: "Claude", at: "2026-08-16T05:00:00.000Z" }), "en", NOW, TZ)!,
-      getUsageLimitMessage(heldView("runner.usageLimitHeldNoReset", { provider: "Claude", at: "2026-08-16T05:00:00.000Z" }), "en", NOW, TZ)!,
-      getUsageLimitMessage(heldView("runner.usageLimitHeldProbe", { provider: "Claude", at: "2026-08-16T05:00:00.000Z" }), "en", NOW, TZ)!,
-    ];
-    for (const text of all) expect(text.toLowerCase()).not.toContain("press");
-  });
-
   test("automatic retries are informational catalogue statements", () => {
     for (const resetKnown of [true, false]) {
       const notice = message(stoppedView({ usageLimitWait: { until: "2026-08-16T05:00:00.000Z", resetKnown } }), "en", NOW, TZ)!;

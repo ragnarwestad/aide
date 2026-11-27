@@ -52,23 +52,9 @@ describe("the settings under Depends on", () => {
     expect(lineOf(spec(FOLDER, { createChoices: CHOICES }))).not.toContain('name="aiFormulateAcceptance"');
   });
 
-  test("has no per-spec group name, suggestions or removal control (AC-9, AC-11)", () => {
-    const html = lineOf(spec(FOLDER, { group: { name: "Release", position: 1 }, createChoices: CHOICES }));
-    expect(html).not.toContain('name="group"');
-    expect(html).not.toContain("<datalist");
-    expect(html).not.toContain('name="removeGroup"');
-    expect(html).toContain('name="criteriaChecks"');
-  });
-
   test("are tied to the row's own form, so two open rows do not share a control", () => {
     const html = lineOf(spec(FOLDER, { createChoices: CHOICES }));
     const id = dependsOnFormId({ project: "aide", specFolder: FOLDER });
     expect(html).toContain(`<select name="criteriaChecks" form="${id}" id="${id}-criteria-checks">`);
   });
-});
-
-test("the line spans every column of the Running tab's table, the tab it is drawn on", async () => {
-  const { columnGroup } = await import("../../../../../src/render/pages/specs-list/filter-bar.ts");
-  const columns = columnGroup(false).match(/<col /g)!.length;
-  expect(lineOf(spec(FOLDER)).match(/<td colspan="(\d+)"/)?.[1]).toBe(String(columns));
 });

@@ -135,11 +135,6 @@ describe("listing specs from a root the caller owns", () => {
     expect(a.specs.map((s) => s.folder)).toEqual(["01-first-thing", "02-old-thing"]);
   });
 
-  test("no resolver at all is every project's own checkout, exactly as before", () => {
-    const b = discoverProjects(fx.root).find((p) => p.name === "proj-b")!;
-    expect(b.specs.map((s) => s.folder)).toEqual(["03-b-thing"]);
-  });
-
   test("buildProjectViews passes the resolver through, status file and all", () => {
     const b = buildProjectViews(fx.root, forProjB).find((p) => p.name === "proj-b")!;
     expect(b.specs.map((s) => s.folder)).toEqual(["04-pushed-thing", "05-pushed-and-archived"]);

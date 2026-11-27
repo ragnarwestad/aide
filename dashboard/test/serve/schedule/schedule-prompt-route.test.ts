@@ -67,14 +67,6 @@ describe("GET /schedule/<project>/<name>/prompt", () => {
     expect(html).toContain("/spec-viewer.js");
   });
 
-  test("shows the file whichever way its path was typed when saved (AC-3)", async () => {
-    const { base, dir } = start();
-    projectWithOrigin(dir, "aide", { [PROMPT]: COMMITTED });
-    setPrompt("docs//nightly.md");
-    const doc = parse(await (await fetch(`${base}/schedule/aide/nightly-report/prompt`)).text());
-    expect(doc.querySelector("pre.spec-editor-raw")?.textContent).toBe(COMMITTED);
-  });
-
   test("a prompt that names a directory gives the cannot-be-read sentence, never a listing (AC-4)", async () => {
     const { base, dir } = start();
     projectWithOrigin(dir, "aide", { [PROMPT]: COMMITTED });

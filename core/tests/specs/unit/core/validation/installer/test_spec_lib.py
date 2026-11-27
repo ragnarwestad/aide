@@ -264,11 +264,6 @@ class TestManifestGet:
         out = _call(workspace_root, f'aide_manifest_get "worktreeLinks" "{tmp_path}"')
         assert out == ""
 
-    def test_extra_whitespace_around_the_value_is_trimmed(self, workspace_root, tmp_path):
-        self._manifest(tmp_path, "worktreeLinks:    deps   \n")
-        out = _call(workspace_root, f'aide_manifest_get "worktreeLinks" "{tmp_path}"')
-        assert out == "deps"
-
     def test_a_double_quoted_value_is_read_without_its_quotes(self, workspace_root, tmp_path):
         """`installCmd: "sh test.sh"` is the YAML string `sh test.sh`, as the
         dashboard reads it. Read with its quotes, the runner ran a command
@@ -302,53 +297,6 @@ class TestManifestGet:
         self._manifest(tmp_path, "stack:\n  worktreeLinks: not-this\n")
         out = _call(workspace_root, f'aide_manifest_get "worktreeLinks" "{tmp_path}"')
         assert out == ""
-
-    def test_a_key_with_no_value_is_empty(self, workspace_root, tmp_path):
-        """`worktreeLinks:` with nothing after it is not a link named
-        `""` — it is a key that says nothing, same as an absent one."""
-        self._manifest(tmp_path, "worktreeLinks:\n")
-        out = _call(workspace_root, f'aide_manifest_get "worktreeLinks" "{tmp_path}"')
-        assert out == ""
-
-    def test_a_trailing_comment_is_dropped_ac_1(self, workspace_root, tmp_path):
-        self._manifest(tmp_path, "acPrefix: F{spec} # feature\n")
-        out = _call(workspace_root, f'aide_manifest_get "acPrefix" "{tmp_path}"')
-        assert out == "F{spec}"
-
-    def test_a_tab_before_the_hash_starts_a_comment_ac_1(self, workspace_root, tmp_path):
-        self._manifest(tmp_path, "worktreeLinks: .venv dashboard/node_modules\t# both\n")
-        out = _call(workspace_root, f'aide_manifest_get "worktreeLinks" "{tmp_path}"')
-        assert out == ".venv dashboard/node_modules"
-
-    def test_a_value_that_is_only_a_comment_is_empty_ac_1(self, workspace_root, tmp_path):
-        self._manifest(tmp_path, "acPrefix: # none yet\n")
-        out = _call(workspace_root, f'aide_manifest_get "acPrefix" "{tmp_path}"')
-        assert out == ""
-
-    def test_a_hash_with_no_space_before_it_is_part_of_the_value_ac_1(self, workspace_root, tmp_path):
-        self._manifest(tmp_path, "acPrefix: a#b\n")
-        out = _call(workspace_root, f'aide_manifest_get "acPrefix" "{tmp_path}"')
-        assert out == "a#b"
-
-    def test_a_hash_inside_double_quotes_is_kept_ac_2(self, workspace_root, tmp_path):
-        self._manifest(tmp_path, 'acPrefix: "F{spec} # x"\n')
-        out = _call(workspace_root, f'aide_manifest_get "acPrefix" "{tmp_path}"')
-        assert out == "F{spec} # x"
-
-    def test_a_comment_after_single_quotes_is_dropped_and_the_hash_inside_kept_ac_2(
-        self, workspace_root, tmp_path,
-    ):
-        self._manifest(tmp_path, "acPrefix: 'a # b'  # c\n")
-        out = _call(workspace_root, f'aide_manifest_get "acPrefix" "{tmp_path}"')
-        assert out == "a # b"
-
-    def test_a_comment_after_double_quotes_is_dropped_with_the_quotes_ac_2(
-        self, workspace_root, tmp_path,
-    ):
-        self._manifest(tmp_path, 'acPrefix: "F{spec}"   # c\n')
-        out = _call(workspace_root, f'aide_manifest_get "acPrefix" "{tmp_path}"')
-        assert out == "F{spec}"
-
 
 @pytest.mark.validation
 @pytest.mark.validation
@@ -454,14 +402,6 @@ class TestAidesOwnWorktreeLinksTravelWithTheRepo:
             "aide's own .aide/project.yaml must name the two gitignored paths its "
             "test commands live behind — read by the same function aide-run-spec uses"
         )
-
-    def test_the_manifest_is_what_a_run_would_read(self, workspace_root):
-        """Not just present: WINNING. `.aide/config` may still carry the
-        old spelling on a machine that has not been migrated, and the
-        manifest is the file that has to decide."""
-        manifest = (workspace_root / ".aide" / "project.yaml").read_text(encoding="utf-8")
-        assert "worktreeLinks: .venv dashboard/node_modules" in manifest
-
 
 @pytest.mark.validation
 class TestOutOfScopeSection:

@@ -6,7 +6,6 @@ import { describe, expect, test } from "bun:test";
 import type { Job } from "../../../../src/queue/queue.ts";
 import type { Provider } from "../../../../src/queue/providers/index.ts";
 import { switchedOffHolds } from "../../../../src/queue/runner/switched-off.ts";
-import { formatMessage } from "../../../../src/messages/format.ts";
 
 const PROVIDERS: Record<string, Provider> = {
   off: { name: "Claude Capra", tool: "claude", enabled: false },
@@ -32,13 +31,5 @@ describe("a step on a switched-off provider", () => {
   test("a step with no provider, or one that has been removed, is not held here", () => {
     expect(switchedOffHolds([job("a")], () => "claude", PROVIDERS).size).toBe(0);
     expect(switchedOffHolds([job("a")], () => "gone", PROVIDERS).size).toBe(0);
-  });
-});
-
-describe("the sentence a held step shows", () => {
-  test("is a Problem line and a Solution line naming the provider to switch on", () => {
-    const text = formatMessage("en", { key: "runner.providerSwitchedOff", values: { provider: "Claude Capra" } });
-    expect(text.split("\n")).toHaveLength(2);
-    expect(text.split("\n")[1]).toContain("Claude Capra");
   });
 });

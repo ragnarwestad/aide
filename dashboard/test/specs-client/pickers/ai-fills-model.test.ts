@@ -65,16 +65,6 @@ describe("an AI picked on a phase line fills that phase's model", () => {
     expect(values(h)).toEqual(["sonnet", "codex-fast", "codex-fast", "sonnet"]);
   });
 
-  // A phase that has RUN is no exception. The removed set-all control
-  // left it alone because one action wrote five selects and could not
-  // ask; this is the reader picking on that line, and a rerun on
-  // another AI is exactly what the line is for.
-  test("a phase with history is written like any other", () => {
-    const h = harness(() => ({ ok: true, body: { ok: true } }));
-    h.changeAi(1, "codex"); // analyze, which carries data-ran="1"
-    expect(values(h)[1]).toBe("codex-fast");
-  });
-
   test("picking Claude Code fills a Claude model in just as well", () => {
     const h = harness(() => ({ ok: true, body: { ok: true } }));
     h.changeAi(2, "claude"); // implement, drawn on codex-fast
@@ -178,20 +168,6 @@ describe("an AI picked on a phase line fills that phase's model", () => {
     // RUN shows the model it ran on, and the swap is what delivers it.
     expect(values(h)).toEqual(["sonnet", "fable", "codex-fast", "sonnet"]);
     expect(tools(h)).toEqual(["claude", "claude", "codex", "claude"]);
-  });
-
-  // The provider picked is filed under its own name (`provider.<step>`)
-  // next to the model, so the swap puts back the provider of the line that
-  // was touched and no other.
-  test("the provider picked is remembered for its own line only", async () => {
-    const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
-    await h.changeAi(1, "codex");
-    h.document.visibilityState = "visible";
-    h.tick();
-    await flush();
-
-    expect(values(h)).toEqual(["sonnet", "codex-fast", "codex-fast", "sonnet"]);
-    expect(tools(h)).toEqual(["claude", "codex", "codex", "claude"]);
   });
 
   // Two providers of one tool run the same models: switching between

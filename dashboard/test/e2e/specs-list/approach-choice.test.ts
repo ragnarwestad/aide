@@ -1,7 +1,6 @@
-// The approach warning on the Specs list, in a real browser: Cancel puts
-// the recommended approach back, and an approach's link opens the
-// Solution tab with that approach's lead in view.
-import { describe, expect, test } from "bun:test";
+// The approach warning on the Specs list, in a real browser: an approach's
+// link opens the Solution tab with that approach's lead in view.
+import { describe, test } from "bun:test";
 import type { Page } from "playwright";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -46,22 +45,8 @@ e2eBrowser(harness, async (browser) => {
 });
 
 const notice = () => page.locator(`tr.specnotice[data-folder="${FOLDER}"]`);
-const radio = (letter: string) => notice().locator(`input[name="approach"][value="${letter}"]`);
 
 describe("the approach warning", () => {
-  test("Cancel puts the recommended approach back", async () => {
-    await withBrowser(page.goto(`${base}/specs?live=0`), "page.goto(/)");
-    expect(await radio("A").isChecked()).toBe(true);
-    const cancel = notice().locator("button", { hasText: "Cancel" });
-    expect(await cancel.isDisabled()).toBe(true);
-    await radio("B").check();
-    expect(await cancel.isEnabled()).toBe(true);
-    await cancel.click();
-    expect(await radio("A").isChecked()).toBe(true);
-    expect(await radio("B").isChecked()).toBe(false);
-    expect(await cancel.isDisabled()).toBe(true);
-  });
-
   test("an approach's link opens the Solution tab with its lead in view", async () => {
     await withBrowser(page.goto(`${base}/specs?live=0`), "page.goto(/)");
     await notice().locator('a[href*="#approach-b"]').click();

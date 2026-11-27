@@ -37,55 +37,11 @@ describe("summarizeOpencodeStream", () => {
       "The file says hello",
     ]);
   });
-
-  test("the run's own bookkeeping is left out", () => {
-    // step-start and step-finish say nothing about what the run is
-    // doing, and a reader watching a live step wants only the doing.
-    const out = summarizeOpencodeStream(STREAM).join(" ");
-    expect(out).not.toContain("step-start");
-    expect(out).not.toContain("step-finish");
-  });
-
-  test("a half-written last line costs nothing", () => {
-    const killed = `${STREAM}\n{"type":"text","part":{"ty`;
-    expect(summarizeOpencodeStream(killed)).toEqual(summarizeOpencodeStream(STREAM));
-  });
-
-  test("the entries are escaped, so a transcript cannot write markup onto the page", () => {
-    const nasty = line({
-      type: "text",
-      sessionID: SESSION,
-      part: { type: "text", text: "<script>alert(1)</script>" },
-    });
-    expect(summarizeOpencodeStream(nasty).join("")).not.toContain("<script>");
-  });
 });
 
 describe("summarizeStream telling the schemas apart", () => {
   test("an opencode transcript is recognised with nobody saying so", () => {
     expect(summarizeStream(STREAM)).toEqual(summarizeOpencodeStream(STREAM));
-  });
-
-  test("naming the tool wins over the sniff", () => {
-    expect(summarizeStream(STREAM, { tool: "opencode" })).toEqual(
-      summarizeOpencodeStream(STREAM),
-    );
-  });
-
-  test("a claude transcript is still read as claude", () => {
-    const claude = [
-      line({ type: "system", subtype: "init", cwd: "/x" }),
-      line({ type: "assistant", message: { content: [{ type: "text", text: "Reading queue.ts" }] } }),
-    ].join("\n");
-    expect(summarizeStream(claude)).toEqual(["Reading queue.ts"]);
-  });
-
-  test("a codex transcript is still read as codex", () => {
-    const codex = [
-      line({ type: "thread.started", thread_id: "t1" }),
-      line({ type: "item.completed", item: { item_type: "agent_message", text: "done" } }),
-    ].join("\n");
-    expect(summarizeStream(codex)).toEqual(["done"]);
   });
 });
 

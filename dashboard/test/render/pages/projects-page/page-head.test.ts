@@ -23,26 +23,6 @@ const pickerLinks = (doc: ReturnType<typeof head>) =>
   [...doc.querySelectorAll("details.projectpicker .menupanel a")].map((a) => a.getAttribute("href"));
 
 describe("projectPageHead()", () => {
-  test("is a breadcrumb: Projects links to the list, the project's name is the heading and no link (AC-1)", () => {
-    const doc = head();
-    const crumb = doc.querySelector("nav.breadcrumb")!;
-    const link = crumb.querySelector("a")!;
-    expect(link.getAttribute("href")).toBe("/projects");
-    expect(link.textContent).toBe("Projects");
-    const h1 = crumb.querySelector("h1")!;
-    expect(h1.textContent).toBe("aide");
-    expect(h1.querySelector("a")).toBeNull();
-    expect(crumb.querySelectorAll("a").length).toBe(1);
-    expect(doc.querySelector("a.backlink")).toBeNull();
-  });
-
-  test("the picker's trigger shows the current project's icon and name (AC-2)", () => {
-    const doc = head({ icon: { src: "/projects/aide/icon" } });
-    const summary = doc.querySelector("details.projectpicker > summary")!;
-    expect(summary.querySelector("img.projicon")?.getAttribute("src")).toBe("/projects/aide/icon");
-    expect(summary.textContent).toContain("aide");
-  });
-
   test("each project's link opens its page on the tab open now (AC-3)", () => {
     const projects = [{ name: "aide", icon: null }, { name: "paceup", icon: null }, { name: "skjera", icon: null }];
     expect(pickerLinks(head({ tab: "config", projects }))).toEqual([

@@ -1,14 +1,8 @@
-// A spec row and the rows renderer, for the row-action tests.
+// A spec row, for the tests that draw one.
 
-import {
-  renderSpecsRows,
-  type SpecsPageOptions,
-  type QueueRowView,
-  type SpecTarget,
-} from "../../src/render";
+import type { QueueRowView } from "../../src/render";
 
 export const AT = "2026-08-18T12:00:00Z";
-export const NOW = Date.parse("2026-08-18T12:00:00Z");
 
 export const row = (extra: Partial<QueueRowView> = {}): QueueRowView => ({
   id: "job-1",
@@ -22,24 +16,3 @@ export const row = (extra: Partial<QueueRowView> = {}): QueueRowView => ({
   createdAt: "2026-08-18T10:00:00Z",
   ...extra,
 });
-
-export const target = (extra: Partial<SpecTarget> = {}): SpecTarget => ({
-  project: "aide",
-  specFolder: "102-design-foundation",
-  ...extra,
-});
-
-// A row is collapsed unless the view names it, and the
-// controls this file is about come with opening it — so every render
-// here opens the one spec it draws.
-export const rows = (list: QueueRowView[], opts: Partial<SpecsPageOptions> = {}) =>
-  renderSpecsRows(
-    list,
-    {
-      runnerAvailable: true,
-      targets: [],
-      filter: { open: "aide/102-design-foundation" },
-      ...opts,
-    },
-    NOW,
-  );

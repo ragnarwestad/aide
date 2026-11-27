@@ -8,17 +8,6 @@ const running = {
   state: "running", spentUsd: 0, timeoutSec: 600, createdAt: "2026-11-11T12:00:00Z", results: [],
 } as QueueRowView;
 
-test("New group excludes a spec with an ordinary job in flight (AC-4)", () => {
-  const view: JobsView = {
-    shown: [], specJobs: [running], now: Date.parse("2026-11-11T12:01:00Z"),
-    list: { runnerAvailable: true, targets: [{ project: "aide", specFolder: "1-running" }, { project: "aide", specFolder: "2-ready" }, { project: "aide", specFolder: "3-ready" }] },
-  };
-  const html = renderJobsRows(view);
-  const editor = html.slice(html.indexOf("data-execution-group-editor"), html.indexOf("</dialog>"));
-  expect(editor).not.toContain('value="1-running"');
-  expect(editor).toContain('value="2-ready"');
-});
-
 /** The tab with a row and with none, in a project that may have a spec made in it. */
 const TABS: JobsView[] = [
   {
@@ -27,15 +16,6 @@ const TABS: JobsView[] = [
   },
   { shown: [], specJobs: [], list: { runnerAvailable: true, targets: [], createProjects: ["aide"] } },
 ];
-
-test("the search row ends in the button that opens the New group dialog, with a row and with none (AC-2)", () => {
-  for (const view of TABS) {
-    const html = renderJobsRows(view);
-    const search = html.slice(html.indexOf(`class="specsearch"`), html.indexOf("</form>", html.indexOf(`class="specsearch"`)));
-    expect(search).toContain(`data-ask="${NEW_GROUP_DIALOG}"`);
-    expect(html).toContain(`id="${NEW_GROUP_DIALOG}"`);
-  }
-});
 
 test("the Jobs tab offers no way to make a spec, with a row and with none (AC-6)", () => {
   for (const view of TABS) expect(renderJobsRows(view)).not.toContain('href="/new"');

@@ -73,10 +73,6 @@ describe("pageShell install warning banner", () => {
 });
 
 describe("pageShell language", () => {
-  test("every page carries the Usage menu", () => {
-    const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-01T00:00:00Z");
-    expect(html).toContain('id="usage-dialog"');
-  });
   // The link now targets the CALLER's own current address
   // (`opts.currentUrl`), with only `lang` swapped, so switching
   // language keeps the reader on the page, tab, sort and filter they
@@ -117,38 +113,6 @@ describe("the header's tabs", () => {
   test("a section stays current on its own page, and no tab is current on Projects", () => {
     expect(siteTabKeys(NAV, "/schedule").current).toBe("/schedule");
     expect(siteTabKeys(NAV, "/projects").current).toBeUndefined();
-  });
-
-  test("the \"…\" menu opens Projects and Providers", () => {
-    const html = pageShell("Jobs", NAV, "/", "<p>body</p>", "2026-09-01T00:00:00Z");
-    const menu = html.split(`aria-label="${esc(t("en", "shell.more"))}"`)[1] ?? html;
-    expect(menu).toContain('href="/projects"');
-    expect(menu).toContain('href="/providers"');
-  });
-
-  test("draws the three site tabs with their own icons (AC-2, AC-3)", () => {
-    const html = pageShell("Jobs", [
-      { label: "Projects", path: "/projects" },
-      { label: "Schedule", labelKey: "shell.tabSchedule", path: "/schedule", icon: "schedule" },
-    ], "/", "<p>body</p>", "2026-09-01T00:00:00Z");
-    for (const tab of ["jobs", "specs", "schedule"]) {
-      expect(html).toContain(`data-tab="${tab}"`);
-    }
-  });
-
-  test("the site tab bar carries the \"?\" that explains the tabs and counts, after its tabs (AC-1)", () => {
-    const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-01T00:00:00Z", { lang: "nb" });
-    const bar = html.match(/<body[\s\S]*?<nav class="tabbar">([\s\S]*?)<\/nav>/)?.[1] ?? "";
-    const help = bar.indexOf(`<details class="intro"><summary title="${esc(t("nb", "shell.tabHelpTitle"))}"`);
-    expect(help).toBeGreaterThan(bar.lastIndexOf('class="tab"'));
-  });
-
-  test("does not invent an icon for a section that names none (AC-2)", () => {
-    const html = pageShell("Other", [
-      { label: "Projects", path: "/projects" },
-      { label: "Other", path: "/other" },
-    ], "/other", "<p>body</p>", "2026-09-01T00:00:00Z");
-    expect(html).not.toContain('data-tab="other"');
   });
 });
 

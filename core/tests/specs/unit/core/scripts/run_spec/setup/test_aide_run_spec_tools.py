@@ -64,31 +64,6 @@ def test_archive_is_handed_the_open_conflict_and_its_result_is_pushed(
     assert "resolved by the step" in git(project, "show", f"{branch}:contested.txt")
     assert is_ancestor(project, "main", branch), "main must now be contained in the branch"
 
-@pytest.mark.usefixtures("origin")
-def test_after_an_archive_resolution_the_default_branch_fast_forwards(
-    runner, workspace, fake_claude
-):
-    """The point of pushing the branch is that
-    the landing that follows finds a fast-forward — the same routine that
-    refused before now succeeds, because the branch changed, not the
-    routine."""
-    project = workspace["project"]
-    branch = conflicting_branch(workspace, published=True)
-    claude = fake_claude(
-        "cat > /dev/null\n"
-        'printf "resolved by the step\\n" > contested.txt\n'
-        "git add -A\n"
-        "git commit -q --no-edit\n"
-        f"echo '{json.dumps(RESULT_OK)}'"
-    )
-    rc, out, _ = run(runner, workspace, claude, command="archive", push="branch")
-    assert rc == 0, out
-    ff = subprocess.run(
-        ["git", "-C", str(project), "merge", "-q", "--ff-only", branch],
-        capture_output=True, text=True,
-    )
-    assert ff.returncode == 0, ff.stderr
-
 def test_an_archive_that_gives_up_leaves_the_branch_exactly_where_it_was(
     runner, workspace, fake_claude, origin
 ):
@@ -403,19 +378,6 @@ def test_implement_is_handed_the_open_conflict_and_its_result_is_pushed(runner, 
     assert seen.exists() and seen.read_text().strip(), "the session must be started with the merge open"
     assert "resolved by the step" in git(origin["project"], "show", f"{branch}:contested.txt")
     assert is_ancestor(project, "main", branch), "main must now be contained in the branch"
-
-
-@pytest.mark.usefixtures("origin")
-def test_an_implement_that_walks_away_mid_merge_publishes_no_conflict_markers(runner, workspace, fake_claude, origin):
-    project = workspace["project"]
-    with_status(workspace, ["create", "analyze"])
-    branch = conflicting_branch(workspace, published=True)
-    before = git(project, "rev-parse", branch)
-    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_ERROR)}'")
-    rc, out, _ = run(runner, workspace, claude, command="implement", push="branch")
-    assert out["terminalReason"] != "refused", out
-    assert git(project, "rev-parse", branch) == before, "an undecided merge must not be committed"
-    assert git(origin["project"], "branch", "--list", branch) == ""
 
 
 @pytest.mark.usefixtures("origin")

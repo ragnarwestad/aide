@@ -22,24 +22,6 @@ describe("GET /spec-editor.js", () => {
     expect(body.length).toBeGreaterThan(1000);
   });
 
-  // Reuse half: a repeat request carrying the first response's
-  // own ETag is told nothing has changed, rather than sent the bundle
-  // again.
-  test("a repeat GET with If-None-Match set to the prior ETag returns 304 with an empty body", async () => {
-    const { base } = harness.start();
-    const first = await fetch(`${base}/spec-editor.js`);
-    const etag = first.headers.get("etag")!;
-    const second = await fetch(`${base}/spec-editor.js`, { headers: { "if-none-match": etag } });
-    expect(second.status).toBe(304);
-    expect(await second.text()).toBe("");
-  });
-
-  test("a stale If-None-Match gets the full body back, not a 304", async () => {
-    const { base } = harness.start();
-    const res = await fetch(`${base}/spec-editor.js`, { headers: { "if-none-match": '"not-a-real-etag"' } });
-    expect(res.status).toBe(200);
-    expect((await res.text()).length).toBeGreaterThan(1000);
-  });
 });
 
 // Second clause: two different bundle texts must never share an

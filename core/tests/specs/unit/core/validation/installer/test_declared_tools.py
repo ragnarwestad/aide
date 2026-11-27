@@ -56,15 +56,6 @@ class TestInstallMiseDeclaredTools:
         assert result.returncode == 0, result.stderr
         assert "node" in (result.stdout + result.stderr).lower()
 
-    def test_declares_markdownlint_via_mise(self, workspace_root, tmp_path):
-        calls = tmp_path / "mise-calls.txt"
-        fake_bin = _fake_mise(tmp_path, f'printf "%s\\n" "$*" >> {calls}\nexit 0')
-        result = _run_declared(workspace_root, tmp_path, fake_bin, os.environ["PATH"])
-        assert result.returncode == 0, result.stderr
-        logged = calls.read_text() if calls.exists() else ""
-        assert "use -g npm:markdownlint-cli2@latest" in logged, logged
-
-
 def _run_declared(workspace_root, tmp_path, fake_bin, rest_of_path="/usr/bin:/bin"):
     """Runs install_mise_declared_tools with `fake_bin` ahead of
     `rest_of_path` on PATH and `tmp_path` as HOME."""
@@ -113,21 +104,6 @@ def _implementations(workspace_root):
     hand-written list stops covering the next one the day it is added."""
     root = workspace_root / "core" / "implementations"
     return sorted(d.name for d in root.iterdir() if (d / "install.sh").is_file())
-
-
-@pytest.mark.validation
-class TestInstallersDeclareMarkdownlint:
-    """Every installer must call install_mise_declared_tools, or a machine
-    that only ran one core/implementations/<ai>/install.sh never gets it."""
-
-    def test_every_installer_calls_install_mise_declared_tools(self, workspace_root):
-        shared = (workspace_root / "core" / "scripts" / "_install-steps.sh").read_text()
-        assert "install_mise_declared_tools" in shared
-        for tool in _implementations(workspace_root):
-            installer = workspace_root / "core" / "implementations" / tool / "install.sh"
-            text = installer.read_text()
-            assert "_install-steps.sh" in text, \
-                f"core/implementations/{tool}/install.sh does not use the shared install steps"
 
 
 @pytest.mark.validation
@@ -238,24 +214,6 @@ class TestUpgradeAiToolsReportsEveryToolItUpgrades:
     is upgraded silently: the run prints no evidence that it moved, and
     a package that stopped resolving looks exactly like one that is
     already current."""
-
-    @staticmethod
-    def _lines(workspace_root):
-        text = (workspace_root / "core" / "scripts" / "upgrade-ai-tools").read_text()
-        upgrade_line = next(
-            line for line in text.splitlines() if line.strip().startswith("mise upgrade")
-        )
-        report_line = next(line for line in text.splitlines() if "mise ls" in line)
-        return upgrade_line, report_line
-
-    @staticmethod
-    def _patterns(report_line):
-        """The alternatives the report's own `grep -E` matches on. It
-        greps the full `mise ls` output, so each alternative is a
-        substring of the package name rather than the whole of it."""
-        pattern = re.search(r'grep -E "([^"]*)"', report_line)
-        assert pattern, report_line
-        return pattern.group(1).split("|")
 
     def test_every_upgraded_tool_appears_in_the_version_report(self, workspace_root):
         text = (workspace_root / "core" / "scripts" / "upgrade-ai-tools").read_text()

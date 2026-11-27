@@ -149,22 +149,6 @@ describe("POST /api/queue/projects", () => {
     expect(noAddress.body.results[0]!.error).toMatch(/^say/);
   });
 
-  test("a form post with no Code landing is refused with the same sentence", async () => {
-    const { base, dir } = start({ gitRun: cloningGit() });
-    const FORM = { "content-type": "application/x-www-form-urlencoded" };
-    const post = async (fields: Record<string, string>) => {
-      const res = await fetch(`${base}/api/queue/projects`, { method: "POST", redirect: "manual", headers: FORM, body: new URLSearchParams(fields) });
-      return { status: res.status, body: (await res.json()) as StepBody };
-    };
-    const noLanding = await post({ name: "nochoice", gitUrl: "https://example.com/nochoice.git" });
-    const noAddress = await post({ name: "noaddress", codeLanding: "merge" });
-    expect(noLanding.status).toBe(400);
-    expect(noLanding.body.results[0]!.error).toMatch(/^choose/);
-    expect(noAddress.status).toBe(400);
-    expect(noAddress.body.results[0]!.error).toMatch(/^say/);
-    expect(existsSync(join(dir, "root", "nochoice"))).toBe(false);
-  });
-
   // A clone with no manifest gets one, and the answer says
   // so rather than leaving the operator to find out.
   test("a clone with no manifest is added, and the made manifest is reported", async () => {

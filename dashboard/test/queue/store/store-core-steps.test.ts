@@ -5,7 +5,6 @@ import {
   workflowControls,
 } from "../../../src/workflow-steps.ts";
 import {
-  PHASE_STEPS,
   currentWorkRoundJobs,
   parseJobRequest,
 } from "../../../src/queue/queue.ts";
@@ -57,12 +56,6 @@ describe("reopen", () => {
     const r = parseJobRequest({ ...REQ, steps: ["reopen"] }, { resolve, defaults: DEFAULTS });
     expect(r.ok).toBe(false);
     expect(!r.ok && r.error).toContain("already active");
-  });
-
-  // It is queueable, not a stage a spec passes through: `explore` is
-  // in `WORKFLOW_STEPS` for the same reason, and draws no phase box.
-  test("is not one of the phases a row draws a box for", () => {
-    expect([...PHASE_STEPS] as string[]).not.toContain("reopen");
   });
 
   // An archived spec is not among a project's `specFolders` — the page

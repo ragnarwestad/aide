@@ -69,34 +69,6 @@ def _install_common_bin(workspace_root, home):
 class TestInstallCommonBin:
     """The shared bin installer must ship every user-facing CLI script."""
 
-    def test_aide_record_test_run_is_installed(self, workspace_root, tmp_path):
-        """The archive gate calls it by name. It shipped without being in
-        COMMON_BIN_SCRIPTS, so the serving host never had it: the gate
-        could not make the record it refuses for the lack of, and every
-        archive was refused with nothing to show for it."""
-        _install_common_bin(workspace_root, tmp_path)
-        assert (tmp_path / ".local" / "bin" / "aide-record-test-run").is_file(), \
-            "aide-record-test-run is not in COMMON_BIN_SCRIPTS, so the archive gate cannot run it"
-
-    def test_spec_state_lib_is_installed(self, workspace_root, tmp_path):
-        """The spec's state lives in lib/spec-state.sh, which
-        aide-archive-spec sources when present — and treats every spec as
-        not implemented when absent. It shipped without being in the
-        installer's lists, so the serving host refused every archive."""
-        _install_common_bin(workspace_root, tmp_path)
-        assert (tmp_path / ".local" / "bin" / "lib" / "spec-state.sh").is_file(), \
-            "lib/spec-state.sh is not in COMMON_BIN_LIB_SCRIPTS"
-
-    def test_the_aide_command_and_its_sentence_library_are_installed_AC_1(self, workspace_root, tmp_path):
-        """`aide` is the command a terminal or an AI session queues steps
-        with; it refuses to run without lib/board-answer.sh beside it."""
-        _install_common_bin(workspace_root, tmp_path)
-        command = tmp_path / ".local" / "bin" / "aide"
-        assert command.is_file() and os.access(command, os.X_OK), \
-            "core/scripts/aide did not reach ~/.local/bin as an executable"
-        assert (tmp_path / ".local" / "bin" / "lib" / "board-answer.sh").is_file(), \
-            "lib/board-answer.sh did not reach ~/.local/bin/lib"
-
     def test_workflow_steps_json_is_installed(self, workspace_root, tmp_path):
         """workflow-steps.json is the one file both
         aide-run-spec (jq) and the dashboard (import) read the workflow's

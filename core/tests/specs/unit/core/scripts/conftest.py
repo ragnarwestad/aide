@@ -108,11 +108,10 @@ def workspace(tmp_path):
 READ_SPECS = 'specs="$(sed -n "s|^AIDE_SPECS_PATH=||p" "$PWD/.aide/config" | head -1)"\n'
 
 # The step time limit for the tests that let a fake model run into it.
-# The limit covers the runner's own setup too — the worktree, the branch
-# — and beside four other suites that setup alone took longer than the
-# 8 s these tests used to give, so the fake model never started and the
-# branch was never made (seen in two runs).
-STOP_DEADLINE_SEC = "15"
+# It counts from the session's start, after the worktree and the branch
+# are made, so it only has to cover the fake model starting and writing
+# its first lines.
+STOP_DEADLINE_SEC = "5"
 
 
 

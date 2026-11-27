@@ -47,3 +47,10 @@ export function projectWithOrigin(files: Record<string, string>, opts: { clone?:
   mkdirSync(base);
   return { root, origin, projects, dir, base, cleanup: () => rmSync(root, { recursive: true, force: true }) };
 }
+
+/** A checkout named `name` under `projectsRoot`, with its specs folder. */
+export function checkoutUnder(projectsRoot: string, name: string): { projectsRoot: string; dir: string } {
+  const dir = join(projectsRoot, name);
+  mkdirSync(join(dir, "specs"), { recursive: true });
+  return { projectsRoot, dir };
+}

@@ -5,11 +5,10 @@
 import { describe, expect, test } from "bun:test";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { PROVIDER_TOOLS as providersExport } from "../../../src/queue/providers/index.ts";
 import {
   PROVIDER_TOOLS, RESULT_TOOLS, RUNNABLE_TOOLS, SHORT_TOOL_NAMES, TOOLS, TOOL_NAMES, checkRunnableTools, providerFamily,
 } from "../../../src/queue/providers/tools.ts";
-import { RUNNABLE_TOOLS as stepsExport, asResultTool, asRunnableTool } from "../../../src/queue/steps.ts";
+import { asResultTool, asRunnableTool } from "../../../src/queue/steps.ts";
 
 const SRC = join(import.meta.dir, "../../../src");
 const SHARED_FILE = join(import.meta.dir, "../../../../core/scripts/lib/runnable-tools.json");
@@ -31,11 +30,6 @@ function codeLines(dir: string = SRC): { where: string; text: string }[] {
 }
 
 describe("the tool lists", () => {
-  test("the modules that used to define a list hand out the same array (AC-1)", () => {
-    expect(providersExport).toBe(PROVIDER_TOOLS);
-    expect(stepsExport).toBe(RUNNABLE_TOOLS);
-  });
-
   test("each wider list is the narrower one and what it adds (AC-1)", () => {
     expect([...RUNNABLE_TOOLS]).toEqual([...PROVIDER_TOOLS, "fake-claude"]);
     expect([...RESULT_TOOLS]).toEqual([...RUNNABLE_TOOLS, "none"]);
@@ -83,10 +77,6 @@ describe("the runnable tools come from the shared file", () => {
   test("none is a result's tool, never a runnable one (AC-4)", () => {
     expect(asResultTool("none")).toBe("none");
     expect(asRunnableTool("none")).toBeUndefined();
-  });
-
-  test("copilot is not runnable (AC-5)", () => {
-    expect(asRunnableTool("copilot")).toBeUndefined();
   });
 });
 

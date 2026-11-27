@@ -8,17 +8,8 @@ import { readFileSync } from "node:fs";
 import { FILE_SHA, DESCRIPTION, NEW_TEXT, createSpecSaveHarness, descriptionPath, post, answer, savable } from "./spec-save-fixtures.ts";
 import { statusSaying } from "../helpers/queue-server.ts";
 
-const { harness, start } = createSpecSaveHarness();
+const { harness } = createSpecSaveHarness();
 afterEach(() => harness.cleanup());
-
-// --- The textarea lives on the spec page's own Description tab ----
-
-describe("the Description tab", () => {
-  test("a spec nobody has is a 404, not a blank editor", async () => {
-    const { base } = start(savable("/host"));
-    expect((await fetch(`${base}/specs/aide/99-no-such-spec?tab=description`)).status).toBe(404);
-  });
-});
 
 // --- regression lock: a held-back spec stays editable ------------------
 //

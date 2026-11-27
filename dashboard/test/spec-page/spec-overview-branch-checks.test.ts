@@ -13,7 +13,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import {
-  PHASE, EARLIER_PHASE, OPEN_ROW, DONE_ROW, EARLIER_DONE_ROW, phaseSection,
+  PHASE, OPEN_ROW, DONE_ROW, phaseSection,
   statusPath, tick, answer, BRANCH_FILE_SHA, branchAwareGitRunner,
 } from "./spec-checks-fixtures.ts";
 import { STATUS_TAB, createSpecSaveHarness } from "./spec-save-fixtures.ts";
@@ -65,32 +65,6 @@ describe("the Checks section reads an open branch's own progress", () => {
     const { base } = harness.start({ description: "# d\n", status: MAIN_ONLY_STATUS, extra: { gitRun: run } });
     const html = await overview(base);
     expect(html).toContain(`value="${BRANCH_FILE_SHA}"`);
-  });
-});
-
-// Which rows `checklist()` offers as boxes is decided the same
-// way whether its input came off a branch or off disk — and what it
-// decides is that the `## Acceptance criteria` rows are the person's
-// and the Phase tables are the implement run's own record.
-describe("the Acceptance-only rule still holds for a branch read", () => {
-  test("an open Phase row on the branch is not a box, and not in the tick block", async () => {
-    const branchStatus = [
-      "# Queue - Status",
-      "",
-      phaseSection(EARLIER_PHASE, [OPEN_ROW]),
-      phaseSection("Acceptance criteria", [EARLIER_DONE_ROW]),
-    ].join("\n");
-    const { run } = branchAwareGitRunner({ open: true, branchText: branchStatus });
-    const { base } = harness.start({ description: "# d\n", status: MAIN_ONLY_STATUS, extra: { gitRun: run } });
-    const html = (await overview(base)).match(/<section class="checks">[\s\S]*?<\/section>/)?.[0] ?? "";
-    // The Phase section's own open row is the run's record: not in the
-    // tick block, so no box stands for it.
-    expect(html).not.toContain("Manual check at 375px in a real browser");
-    // The Acceptance row is the one this page carries — already done
-    // here, so a box that is ticked, and the only box on the page.
-    expect(html).toContain("Write the code");
-    expect(html.match(/name="tick"/g)!).toHaveLength(1);
-    expect(html).toContain(`value="${EARLIER_DONE_ROW}" checked aria-label=`);
   });
 });
 

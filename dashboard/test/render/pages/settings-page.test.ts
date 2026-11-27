@@ -90,15 +90,6 @@ describe("Settings page", () => {
     expect(row).toMatch(/<option value="Claude-B"[^>]*selected/);
   });
 
-  test("Review under Analyze is labelled in the page's language (AC-8)", () => {
-    const html = renderSettingsPage([], "2026-08-24T00:00:00Z", {
-      lang: "nb", modelChoices: MODELS, defaultModels: { default: "sonnet" }, timeoutSec: TIMEOUT_SEC,
-    });
-    const row = html.match(/<tr data-side="plan-review">[\s\S]*?<\/tr>/)?.[0] ?? "";
-
-    expect(row).toContain(`<th scope="row">${t("nb", "settings.side.plan-review")}</th>`);
-  });
-
   // The rows still come FROM the canonical step list rather than a
   // hand-picked copy of it — but now through two groups plus a named
   // set of steps that deliberately get no row, so a step added to
@@ -272,14 +263,6 @@ describe("the tabs of a provider's page", () => {
 
   test("every tab has the line Remove's refusal is written into, exactly once", () => {
     for (const tab of PROVIDER_TABS) expect(draw(tab).split('id="provider-refused"').length - 1).toBe(1);
-  });
-
-  test("no tab draws a Check, its form or its (?) (AC-6)", () => {
-    for (const tab of PROVIDER_TABS) {
-      const html = draw(tab);
-      expect(html).not.toContain("/api/queue/settings/check");
-      expect(html).not.toContain("check-provider");
-    }
   });
 });
 

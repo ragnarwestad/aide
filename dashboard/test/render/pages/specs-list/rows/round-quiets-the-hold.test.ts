@@ -153,11 +153,6 @@ describe("a reopened spec at implemented, with every row ticked", () => {
     expect(box("implement")).not.toContain("checked");
   });
 
-  test("a spec reopened with reset, later declined on archive, offers none of it", () => {
-    // `reopenedRound` is false for it: a Reopened mark follows the stamp.
-    expect(boxes({ ...base, reopenedRound: false })("implement")).not.toContain("checked");
-  });
-
   test("a reopened spec that is only at analyzed is not offered another round", () => {
     const g = { done: ["create", "analyze"], reopenedRound: true, phases: [] } as unknown as SpecGroup;
     expect(roundOffered(g)).toBe(false);

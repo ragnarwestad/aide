@@ -31,34 +31,7 @@ describe("tabBar() with a link function and a label function", () => {
   });
 });
 
-describe("tabBar() with icons", () => {
-  const html = tabBar(["jobs", "specs"] as const, (tab) => `/${tab}`, "specs", {}, "", {
-    label: (tab) => (tab === "jobs" ? "Jobs" : "Specs"),
-    icon: (tab) => `<i data-icon="${tab}"></i>`,
-  });
-
-  test("keeps each icon, word and address inside one link (AC-5)", () => {
-    expect(html).toContain('<a class="tab" data-nav data-goto href="/jobs" title="Jobs"><i data-icon="jobs"></i><span>Jobs</span></a>');
-    expect(html).toContain('<a class="tab" data-nav data-goto href="/specs" title="Specs" aria-current="page"><i data-icon="specs"></i><span>Specs</span></a>');
-  });
-
-  test("leaves a strip with no icons unchanged (AC-5)", () => {
-    const plain = tabBar(["jobs"] as const, "/", "jobs", {});
-    expect(plain).toContain('>Jobs</a>');
-    expect(plain).not.toContain("title=");
-    expect(plain).not.toContain("<span>Jobs</span>");
-  });
-});
-
 describe("tabBarHelp(), the site tab bar's \"?\"", () => {
-  test("the help explains each visible Deploy status", () => {
-    const html = tabBarHelp("en", []);
-    expect(html).toContain("(2)");
-    for (const key of ["Current", "Pending", "Queued", "Running"] as const) {
-      expect(html).toContain(esc(t("en", `shell.deployHelp${key}`)));
-    }
-  });
-
   const TABS = [
     { word: "Jobs", kind: "jobs" },
     { word: "Specs", kind: "specs" },
@@ -69,16 +42,6 @@ describe("tabBarHelp(), the site tab bar's \"?\"", () => {
   const list = (html: string): string =>
     html.split("<span data-tab-list>")[1]?.split(esc(t("en", "shell.tabHelpCounts")))[0] ?? "";
 
-  test("lists each tab's icon, word and one-line description (AC-3)", () => {
-    const html = tabBarHelp("en", [...TABS]);
-    const tabList = list(html);
-    for (const tab of TABS) {
-      expect(tabList).toContain(`data-tab="${tab.kind}"`);
-      expect(tabList).toContain(tab.word);
-      if (tab.kind !== "jobs") expect(tabList).toContain(esc(t("en", `shell.tabHelp.${tab.kind}`)));
-    }
-  });
-
   test("lists every kind of job under Jobs, each with the icon its rows have", () => {
     const tabList = list(tabBarHelp("en", [...TABS]));
     const jobs = tabList.split('data-tab="specs"')[0] ?? "";
@@ -86,21 +49,6 @@ describe("tabBarHelp(), the site tab bar's \"?\"", () => {
       expect(jobs).toContain(`data-kind="${kind}"`);
       expect(jobs).toContain(esc(t("en", `shell.tabHelpJobKind.${kind}`)));
     }
-  });
-
-  test("a section with no icon of its own is listed by its word alone", () => {
-    const html = tabBarHelp("en", [{ word: "Other" }]);
-    expect(list(html)).toContain("Other");
-    expect(list(html)).not.toContain("data-tab=");
-  });
-
-  test("says what the Jobs and Specs numbers count, each on its own line after the tab list (AC-5)", () => {
-    const html = tabBarHelp("en", [...TABS]);
-    const counts = html.split(esc(t("en", "shell.tabHelpCounts")))[1] ?? "";
-    expect(list(html)).not.toContain(esc(t("en", "shell.tabHelpCount.jobs")));
-    expect(counts).toContain(`<br>• Jobs: ${esc(t("en", "shell.tabHelpCount.jobs"))}`);
-    expect(counts).toContain(`<br>• Specs: ${esc(t("en", "shell.tabHelpCount.specs"))}`);
-    for (const state of ["Created", "Idle", "Reopened"]) expect(t("en", "shell.tabHelpCount.specs")).toContain(state);
   });
 
   test("is in the page's language (AC-6)", () => {

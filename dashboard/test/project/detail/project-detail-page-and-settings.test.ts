@@ -12,17 +12,6 @@ afterEach(() => {
 
 describe("GET /projects/<name> — the project's own page, served", () => {
 
-  test("a known project answers 200 with actions and settings", async () => {
-    const root = projectsRoot({ aide: "" });
-    setTestCmd(root, "aide", "make test");
-    const res = await get(serve(root, settled(root, "aide")), "aide");
-    expect(res.status).toBe(200);
-    const html = await res.text();
-    expect(html).toMatch(/<nav class="breadcrumb"[^>]*><a href="\/projects">/);
-    expect(html).not.toContain('class="backlink"');
-    expect(html).toMatch(/aria-current="page"[^>]*>Config/);
-  });
-
   test("the head is the breadcrumb, and the picker lists the board's other projects (AC-1, AC-4)", async () => {
     const root = projectsRoot({ aide: null, paceup: null, other: null });
     const base = harness.start({

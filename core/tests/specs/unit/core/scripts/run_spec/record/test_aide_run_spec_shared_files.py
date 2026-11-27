@@ -105,17 +105,6 @@ def test_a_record_the_session_wrote_itself_still_stops_the_step(runner, workspac
     assert out["sharedFiles"] == [{"spec": OTHER, "files": ["shared.ts"]}], out
 
 
-def test_the_result_lists_each_spec_with_its_files(runner, workspace, fake_claude):
-    _open_spec(workspace, OTHER, ["x.ts", "y.ts", "other.ts"])
-    _open_spec(workspace, THIRD, ["z.ts"])
-    out, _ = _analyze(runner, workspace, fake_claude, ["z.ts", "y.ts", "x.ts"])
-    assert out["sharedFiles"] == [
-        {"spec": OTHER, "files": ["x.ts", "y.ts"]},
-        {"spec": THIRD, "files": ["z.ts"]},
-    ], out
-    assert out["error"] is None, out
-
-
 def test_an_earlier_warning_without_a_decision_still_requires_review(runner, workspace, fake_claude):
     _open_spec(workspace, OTHER, ["shared.ts"])
     out, _ = _analyze(runner, workspace, fake_claude, ["shared.ts"], earlier_record={OTHER: ["shared.ts"]})

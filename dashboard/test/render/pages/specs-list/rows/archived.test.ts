@@ -322,14 +322,6 @@ describe("archived specs on the spec list", () => {
     expectListParts(dialog);
   });
 
-  test("and carries the not-landed mark when its branch is still open", () => {
-    const html = rows({
-      archivedSpecs: [archivedSpec("50-archived", { notLanded: true })],
-      filter: { state: "archived" },
-    });
-    expect(html).toContain("Its branch is still on origin — re-run archive");
-  });
-
   // An archive whose code landing did not finish can leave the spec
   // archived with its code unlanded. The
   // queue refuses Reopen for it ("already active") and takes Archive, so

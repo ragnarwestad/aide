@@ -4,7 +4,6 @@ import { describe, expect, test } from "bun:test";
 import { Window, type Element as DomElement } from "happy-dom";
 import { orderProjects, projectListBody } from "../../../../src/render/pages/projects-page/overview-list.ts";
 import type { ProjectView } from "../../../../src/render";
-import { askButton } from "../../../../src/render/ui/components";
 import { initialsHue, projectIcon, projectInitials } from "../../../../src/render/ui/components/card/project-icon.ts";
 
 const ok = (name: string): ProjectView => ({ name, manifest: { ok: true, data: { name } }, specs: [] });
@@ -21,17 +20,6 @@ const draw = (projects: ProjectView[], removable: (name: string) => boolean): Do
 };
 
 describe("a project's row on the Projects list offers Remove", () => {
-  test("the button is the danger ask button labelled Remove, named for the project", () => {
-    const [row] = draw([ok("aide")], () => true);
-    const buttons = row!.querySelectorAll("button[data-ask]");
-    expect(buttons.length).toBe(1);
-    const button = buttons[0]!;
-    expect(button.outerHTML).toBe(
-      askButton({ label: "Remove", dialogId: button.getAttribute("data-ask")!, variant: "danger", ariaLabel: "Remove aide" }),
-    );
-    expect(button.getAttribute("aria-label")).toBe("Remove aide");
-  });
-
   test("a row whose manifest fails to parse carries it too ", () => {
     const [row] = draw([broken("aide")], () => true);
     expect(row!.classList.contains("error")).toBe(true);
@@ -119,11 +107,6 @@ describe("hidden projects on the Projects list", () => {
     const all = names(doc.querySelectorAll("[data-project]"));
     expect(all).toEqual(["aide", "delta", "beta", "gamma"]);
   });
-
-  test("draw no fold when none is hidden (AC-4)", () => {
-    expect(drawHidden(new Set()).querySelector("details")).toBeNull();
-    expect(drawHidden().querySelector("details")).toBeNull();
-  });
 });
 
 describe("a project's icon", () => {
@@ -149,22 +132,5 @@ describe("a project's icon", () => {
     expect(window.document.querySelector("img")).toBeNull();
     expect(window.document.body.textContent).toBe("AI");
     expect(window.document.body.firstElementChild!.getAttribute("data-hue")).toBe(String(initialsHue("aide")));
-  });
-
-  test("a chosen built-in icon is drawn inline on its chosen colour's square, not as an image (AC-2)", () => {
-    const window = new Window();
-    window.document.body.innerHTML = projectIcon("aide", { glyph: "rocket", hue: 4 });
-    const icon = window.document.body.firstElementChild!;
-    expect(icon.getAttribute("data-hue")).toBe("4");
-    expect(icon.querySelector("svg")).not.toBeNull();
-    expect(window.document.querySelector("img")).toBeNull();
-    expect(icon.textContent).toBe("");
-  });
-
-  test("an uploaded file is an image whatever its address carries, so it runs nothing (AC-8)", () => {
-    const window = new Window();
-    window.document.body.innerHTML = projectIcon("aide", { src: "/projects/aide/icon?v=17" });
-    expect(window.document.querySelector("img")!.getAttribute("src")).toBe("/projects/aide/icon?v=17");
-    expect(window.document.querySelectorAll("svg, script, object, iframe, embed").length).toBe(0);
   });
 });

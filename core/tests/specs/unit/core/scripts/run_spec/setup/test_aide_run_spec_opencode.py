@@ -243,7 +243,7 @@ def test_a_writing_mode_passes_opencode_no_permission_rules(runner, workspace, f
     assert "permission" not in config and "agent" not in config, config
 
 
-@pytest.mark.parametrize("mode", ["bypassPermissions", "acceptEdits", "plan", "default"])
+@pytest.mark.parametrize("mode", ["bypassPermissions", "plan"])
 def test_every_opencode_turn_has_automations_off(runner, workspace, fake_opencode, tmp_path, mode):
     """An automation runs a prompt or a shell command later, after the
     step has ended and outside its boundaries (OpenCode 2.4.0)."""

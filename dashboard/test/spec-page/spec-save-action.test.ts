@@ -175,16 +175,6 @@ describe("the size of a real description", () => {
     expect(res.status).toBe(413);
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(DESCRIPTION);
   });
-
-  test("the cap the other routes keep is unchanged", async () => {
-    const { base } = start(savable("/host"));
-    const res = await fetch(`${base}/api/queue`, {
-      method: "POST",
-      headers: { "content-type": "application/json", accept: "application/json" },
-      body: JSON.stringify({ project: "aide", specFolder: SPEC, steps: ["analyze"], note: "x".repeat(5000) }),
-    });
-    expect(res.status).toBe(413);
-  });
 });
 
 // --- A description holds at most 10,000 characters -----------------

@@ -5,7 +5,6 @@
 
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { store, enqueue, makeRunner, okResult, resetHarness, cleanupHarness } from "../runner-fixtures.ts";
-import { formatSentence } from "../../../../src/messages/format.ts";
 import { getCliErrorMessage } from "../../../../src/messages/jobs/outcomes.ts";
 import { withoutStepFailed } from "../../../../src/messages/format.ts";
 
@@ -82,11 +81,5 @@ describe("a Codex step that was not logged in", () => {
     expect(after?.state).toBe("failed");
     expect(withoutStepFailed(after?.error)).toEqual({ key: "runner.cliErrorLogin", values: { tool: "Codex", cause: "unexpected status 401", button: "Implement" } });
     expect(after?.errorDetail).toBe(CODEX_401);
-  });
-
-  test("reads in Norwegian as the tool not being logged in on the machine that runs Aide", () => {
-    const text = formatSentence("nb", notLoggedIn()?.error as Parameters<typeof formatSentence>[1]) ?? "";
-    expect(text).toContain("Codex er ikke logget inn på maskinen som kjører Aide");
-    expect(text).toContain("trykk så Implementer igjen");
   });
 });

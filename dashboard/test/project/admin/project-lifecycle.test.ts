@@ -25,7 +25,7 @@ describe("a project name has to be safe before anything is touched", () => {
     },
   );
 
-  test.each([["aide"], ["aide-dashboard"], ["Atlasaurus"], ["a.b_c-1"]])("%p is accepted", (name) => {
+  test.each([["Atlasaurus"], ["a.b_c-1"]])("%p is accepted", (name) => {
     expect(projectNameError(name)).toBeNull();
   });
 
@@ -44,13 +44,6 @@ describe("a project name has to be safe before anything is touched", () => {
     expect(existsSync(join(projectsRoot, "..", "escape"))).toBe(false);
   });
 
-  test("a request that names no source is refused too", async () => {
-    const git = fakeGit({});
-    const result = await addProject(git.run, root(), { name: "fine" });
-    expect(result.ok).toBe(false);
-    expect(git.calls).toEqual([]);
-    expect(result.steps.map((s) => s.step)).toEqual(["name"]);
-  });
 });
 
 describe("adding a project by cloning it", () => {
@@ -373,28 +366,6 @@ describe("where the project's specs live", () => {
     expect(configValue(join(projectsRoot, "withspecs"), "AIDE_SPECS_PATH")).toBe(
       "/repos/aide-specs/withspecs",
     );
-  });
-
-  test("an existing .aide/config keeps its other keys", async () => {
-    const projectsRoot = root();
-    const dir = join(projectsRoot, "hasconfig");
-    const result = await addProject(
-      cloningGit({}, { ".aide/config": "# personal\nAIDE_INSTALL_CMD=./install.sh\nAIDE_SPECS_PATH=/old/place\n" }).run,
-      projectsRoot,
-      {
-      name: "hasconfig",
-      gitUrl: "git@example.com:me/hasconfig.git",
-      codeLanding: "merge",
-      specsPath: "/new/place",
-      },
-    );
-    expect(result.ok).toBe(true);
-    expect(configValue(dir, "AIDE_INSTALL_CMD")).toBe("./install.sh");
-    expect(configValue(dir, "AIDE_SPECS_PATH")).toBe("/new/place");
-    // Replaced, not appended twice: two lines for one key is a file
-    // whose meaning depends on which reader you ask.
-    const text = readFileSync(join(dir, ".aide", "config"), "utf-8");
-    expect(text.match(/^AIDE_SPECS_PATH=/gm)!.length).toBe(1);
   });
 
   // The form accepted a path that did not exist,

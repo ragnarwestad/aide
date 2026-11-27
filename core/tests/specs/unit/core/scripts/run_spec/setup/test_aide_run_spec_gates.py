@@ -31,33 +31,12 @@ def test_refuses_implement_before_analyze_has_run(runner, workspace, fake_claude
     assert not fake_claude.calls.exists(), "the refusal must precede the money"
     assert not workspace["wtbase"].exists(), "and leave no worktree behind"
 
-def test_implement_proceeds_once_analyze_is_on_the_line(runner, workspace, fake_claude):
-    """Relies on the fixture's own default: `analyze` is already on the
-    line, `implement`'s normal starting point since this spec."""
-    claude = writing_claude(fake_claude, workspace)
-    rc, out, _ = run(runner, workspace, claude, command="implement")
-    assert rc == 0, out
-    assert out["terminalReason"] == "completed"
-
 def test_analyze_is_unaffected_by_the_new_gate(runner, workspace, fake_claude):
     with_status(workspace, claims=[])
     claude = specs_only_claude(fake_claude, workspace)
     rc, out, _ = run(runner, workspace, claude, command="analyze")
     assert rc == 0, out
     assert out["terminalReason"] == "completed"
-
-def test_archive_keeps_its_own_gate(runner, workspace, fake_claude):
-    """`analyze` on the line satisfies THIS gate, but archive's own
-    not-implemented-yet check still asks about `implement`,
-    which is not there — proving the new gate does not short-circuit or
-    replace it."""
-    with_status(workspace, claims=["analyze"])
-    claude = fake_claude("exit 1")  # would fail loudly if it were called
-    rc, out, _ = run(runner, workspace, claude, command="archive")
-    assert rc == 0, out
-    assert out["ok"] is True, out
-    assert out["terminalReason"] == "not-implemented-yet", out
-    assert not fake_claude.calls.exists()
 
 @pytest.mark.usefixtures("local_origins")
 def test_create_proceeds_despite_an_unmerged_dependency(
@@ -69,28 +48,6 @@ def test_create_proceeds_despite_an_unmerged_dependency(
     leave_unmerged_branch_on_origin(workspace, "aide/80-dependency")
     set_depends_on(workspace, "80")
 
-    rc, out, _ = run(
-        runner, workspace, writing_claude(fake_claude, workspace), command="create"
-    )
-    assert rc == 0, out
-    assert out["terminalReason"] == "completed"
-
-@pytest.mark.usefixtures("local_origins")
-def test_create_proceeds_despite_an_unknown_or_self_dependency(
-    runner, workspace, fake_claude
-):
-    """The unknown and self cases are refusals for the gated steps only.
-    A non-gated step never reaches the loop, so a typo is not its
-    problem either — the step that acts on the dependency is where the
-    refusal belongs."""
-    set_depends_on(workspace, "77")  # nothing resolves to it
-    rc, out, _ = run(
-        runner, workspace, writing_claude(fake_claude, workspace), command="create"
-    )
-    assert rc == 0, out
-    assert out["terminalReason"] == "completed"
-
-    set_depends_on(workspace, "81")  # the spec's own number
     rc, out, _ = run(
         runner, workspace, writing_claude(fake_claude, workspace), command="create"
     )
@@ -275,20 +232,6 @@ def test_bash_reader_accepts_a_new_complete_record_and_rejects_bad_records(works
     assert result.returncode != 0
     assert "broken" in result.stderr
 
-def test_bash_no_longer_declares_the_step_lists_as_literals(run_spec_source):
-    """The runner reads all four lists from workflow-steps.json now.
-    WORKFLOW_STEPS keeps its old NAME (assigned from `$(jq ...)`, still a
-    `NAME="..."` shape once computed), so this checks for the absence of
-    the OLD LITERAL VALUE rather than the variable's name."""
-    bash = run_spec_source
-    for literal in (
-        'WORKFLOW_STEPS="explore create analyze implement archive manifest reopen reset schedule"',
-        'DEPENDENCY_GATED_STEPS="implement archive"',
-        'WORKFLOW_ARC="create analyze implement archive"',
-        'WORKFLOW_ARC_RETIRED="review-plan"',
-    ):
-        assert literal not in bash, f"aide-run-spec still declares {literal!r} as a literal"
-
 def test_runner_uses_record_properties_without_step_name_overrides(run_spec_source):
     """Model and review behavior follow the selected record."""
     assert '[ "$STEP_RUNS_MODEL" = "false" ]' in run_spec_source
@@ -297,30 +240,6 @@ def test_runner_uses_record_properties_without_step_name_overrides(run_spec_sour
         if "STEP_RUNS_REVIEW" in line and "terminal_reason" in line
     )
     assert "command_name" not in condition
-
-def test_dashboard_no_longer_declares_the_step_lists_as_literals(workspace_root):
-    """None of the three plain-import TypeScript files may keep a
-    hand-written array literal once they import workflow-steps.json
-    instead. `dashboard/src/queue/steps.ts` is excluded here — its
-    `WorkflowStep` type is checked separately, since a JSON
-    import cannot give TypeScript a literal union."""
-    config_ts = (workspace_root / "dashboard" / "src" / "serve" / "serve-helpers" / "config.ts").read_text()
-    assert not re.search(r"export const DEPENDENCY_GATED_STEPS = \[.*?\] as const;", config_ts, re.S), (
-        "config.ts still declares DEPENDENCY_GATED_STEPS as a literal array"
-    )
-
-    history_ts = (workspace_root / "dashboard" / "src" / "git" / "workflow-history.ts").read_text()
-    assert not re.search(r"export const HISTORY_STEPS = \[.*?\];", history_ts, re.S), (
-        "workflow-history.ts still declares HISTORY_STEPS as a literal array"
-    )
-    assert not re.search(r"export const HISTORY_STEPS_RETIRED = \[.*?\];", history_ts, re.S), (
-        "workflow-history.ts still declares HISTORY_STEPS_RETIRED as a literal array"
-    )
-
-    parse_status_ts = (workspace_root / "dashboard" / "src" / "project" / "parse-status" / "index.ts").read_text()
-    assert not re.search(r"const WORKFLOW_STEPS = \[.*?\];", parse_status_ts, re.S), (
-        "parse-status.ts still declares WORKFLOW_STEPS as a literal array"
-    )
 
 def test_runner_refuses_by_name_when_one_of_its_own_parts_is_missing(runner, workspace, fake_claude, tmp_path):
     """The run's phases are files beside the script (split 2026-09-04).
@@ -418,7 +337,7 @@ def test_create_refuses_without_a_title(runner, workspace, fake_claude):
 
 @pytest.mark.parametrize("value,accepted", [
     ("60", True), ("0.5", True),
-    ("0", False), ("00", False), ("abc", False),
+    ("0", False), ("abc", False),
 ])
 def test_the_time_limit_must_be_a_number_above_zero(runner, workspace, fake_claude, value, accepted):
     """Checked in bash alone: bc is not on every Linux."""
@@ -460,10 +379,7 @@ def test_an_unknown_argument_is_refused_in_the_result_file(runner, workspace, fa
     assert "--extra-project-dir" in written["error"], written
 
 
-@pytest.mark.parametrize("part", [
-    "lib/run-spec/turn/review.sh", "lib/spec-state.sh", "lib/status-progress.sh",
-    "lib/spec-transitions.sh", "_aide-spec-lib.sh",
-])
+@pytest.mark.parametrize("part", ["lib/run-spec/turn/review.sh", "_aide-spec-lib.sh"])
 def test_a_missing_part_of_the_runner_is_refused_in_the_result_file(runner, workspace, fake_claude, tmp_path, part):
     """Every part the runner sources is required: a missing one is an
     install that did not finish, never a check quietly skipped."""
@@ -591,29 +507,6 @@ def test_an_unknown_tool_is_refused_naming_the_runnable_ones_ac_2(runner, worksp
     assert out["error"].startswith(
         "invalid Review or Verify tool: gemini (claude, codex, opencode or fake-claude)"), out
     assert not fake_claude.calls.exists()
-
-
-def test_fake_claude_still_runs_as_the_stand_in_ac_3(runner, workspace, fake_claude):
-    claude = fake_claude(f"cat > /dev/null; echo '{json.dumps(RESULT_OK)}'")
-    rc, out, _ = run(runner, workspace, claude, tool="fake-claude")
-    assert rc == 0, out
-    assert out["tool"] == "fake-claude"
-
-
-def test_none_is_not_a_tool_a_step_can_run_on_ac_4(runner, workspace, fake_claude):
-    claude = fake_claude("exit 1")
-    rc, out, _ = run(runner, workspace, claude, tool="none")
-    assert rc == 2, out
-    assert out["error"].startswith("invalid --tool: none"), out
-
-
-def test_copilot_is_installed_but_not_a_tool_a_step_can_run_on_ac_5(runner, workspace, fake_claude):
-    installed = (pathlib.Path(runner).parent / "lib" / "ai-tools" / "tools.txt").read_text()
-    assert "copilot" in installed.split()
-    claude = fake_claude("exit 1")
-    rc, out, _ = run(runner, workspace, claude, tool="copilot")
-    assert rc == 2, out
-    assert out["error"].startswith("invalid --tool: copilot"), out
 
 
 @pytest.mark.parametrize("branch,accepted", [

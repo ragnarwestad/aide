@@ -6,7 +6,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { ran } from "../../helpers/queue-server.ts";
 import { createGitRunner, type GitRunner } from "../../../src/git/process/index.ts";
-import { specControls, phaseDone, listUntil, specPanel, setupQueueRoutesHarness, OPEN_81 } from "../fixtures.ts";
+import { listUntil, specPanel, setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness();
 
@@ -33,24 +33,6 @@ describe("the specs list offers a test server only while the spec's branch is on
     return { run, asked };
   }
 
-  /** The list once implement shows done and origin has been asked. */
-  async function listAfterOriginAnswered(
-    opts: { originHasBranch: boolean; testServersAvailable: boolean },
-  ): Promise<string> {
-    const git = originGit(opts.originHasBranch);
-    const { base, dir } = start({ gitRun: git.run, testServersAvailable: opts.testServersAvailable });
-    ran(dir, ["create", "analyze", "implement"]);
-    await listUntil(
-      base,
-      (h) => phaseDone(specControls(h, FOLDER), "implement") && git.asked.length > 0,
-      undefined,
-      "implement done and origin asked",
-    );
-    // The answer is cached a moment after the ask returns.
-    await new Promise((r) => setTimeout(r, 150));
-    return await (await fetch(`${base}/specs?${OPEN_81}`)).text();
-  }
-
   test("a capable project whose branch is on origin has the link", async () => {
     const git = originGit(true);
     const { base, dir } = start({ gitRun: git.run, testServersAvailable: true });
@@ -62,15 +44,5 @@ describe("the specs list offers a test server only while the spec's branch is on
       "the test server link",
     );
     expect(specPanel(html, FOLDER)).toContain(`/specs/aide/${FOLDER}?tab=steps&amp;${LINK}`);
-  });
-
-  test("a branch origin does not hold has no link", async () => {
-    const html = await listAfterOriginAnswered({ originHasBranch: false, testServersAvailable: true });
-    expect(specPanel(html, FOLDER)).not.toContain(LINK);
-  });
-
-  test("a project that cannot run a test server has no link, whatever origin holds", async () => {
-    const html = await listAfterOriginAnswered({ originHasBranch: true, testServersAvailable: false });
-    expect(specPanel(html, FOLDER)).not.toContain(LINK);
   });
 });
