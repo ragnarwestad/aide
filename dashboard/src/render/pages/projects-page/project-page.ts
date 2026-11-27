@@ -173,6 +173,30 @@ function deployAsk(name: string, opts: ProjectPageOptions, lang: Language, o: { 
   );
 }
 
+/** What the Deploy tab offers: `other` for every project but the board's
+ *  own (no button), `no-install` for the board's own without an install
+ *  command, `unanswerable` when origin was asked and could not answer (no
+ *  claim, no button), and otherwise the ask button, off while origin is
+ *  not yet checked or the served commit already matches it. */
+export type DeployOffer =
+  | { kind: "other" }
+  | { kind: "no-install" }
+  | { kind: "unanswerable" }
+  | { kind: "ask"; notYetChecked: boolean; behind: number | null; stale: boolean; disabled: boolean };
+
+export function deployOffer(opts: Pick<ProjectPageOptions, "boardItself" | "drift" | "serving">): DeployOffer {
+  if (!opts.boardItself) return { kind: "other" };
+  const drift = opts.drift;
+  if (!drift) return { kind: "no-install" };
+  const notYetChecked = drift.checkedAt === null;
+  const behind = drift.behind;
+  // Only "asked, unanswerable" still bails out with no claim and no
+  // button — "never asked" falls into the ask button, off.
+  if (!notYetChecked && behind === null) return { kind: "unanswerable" };
+  const stale = !!opts.serving && !opts.serving.current;
+  return { kind: "ask", notYetChecked, behind, stale, disabled: notYetChecked || (behind === 0 && !stale) };
+}
+
 /** The board's own Deploy: plainly whether this checkout is behind
  *  origin, and — only when it is, and only when a deploy step is
  *  configured — a button that asks, and queues the deploy job.
@@ -199,25 +223,19 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
   const heading = t(lang, "project.deployHeading");
   const serving = opts.serving;
   const served = servingLine(serving, lang);
-  const drift = opts.drift;
-  if (!opts.boardItself) return otherProjectDeploy(name, drift, now, heading, served, lang);
-  if (!drift) {
+  const offer = deployOffer(opts);
+  if (offer.kind === "other") return otherProjectDeploy(name, opts.drift, now, heading, served, lang);
+  if (offer.kind === "no-install") {
     return panel(heading, rowMessage("info", t(lang, "project.noInstallCmd")) + served);
   }
   // Shown wherever `drift` is defined, never in the ungated branch above.
   const errorLine = deployErrorLine(opts.deployFailure, lang);
-  const notYetChecked = drift.checkedAt === null;
-  const behind = drift.behind;
-  // Only "asked, unanswerable" still bails out with no claim and no
-  // button — "never asked" now falls into the shared chain
-  // below.
-  if (!notYetChecked && behind === null) return checked(name, panel(heading, errorLine + served)); // asked, unanswerable — no claim, never a guess
+  if (offer.kind === "unanswerable") return checked(name, panel(heading, errorLine + served)); // asked, unanswerable — no claim, never a guess
 
   // From here the checkout's own drift is either known, or not yet
   // asked at all, so its answer and the Serving line's answer (when
   // there is one) fold into one sentence instead of stacking as two
-  const stale = !!serving && !serving.current;
-  const disabled = notYetChecked || (behind === 0 && !stale);
+  const { notYetChecked, behind, stale, disabled } = offer;
   const sentence = deploySentence(opts, now, lang, { notYetChecked, behind, stale });
   return checked(
     name,

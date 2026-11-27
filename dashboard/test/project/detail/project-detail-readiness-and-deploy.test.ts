@@ -96,20 +96,6 @@ const serveBoard = (root: string, git: { run: GitRunner }, driftPollMs?: number)
 const askTag = (html: string): string => html.match(/<button\b[^>]*data-ask="deployask"[^>]*>/)?.[0] ?? "";
 
 describe("the Deploy tab of a project that is not the board's own", () => {
-  test("a project with an install command, behind origin, has no Deploy button", async () => {
-    const root = projectsRoot({ aide: INSTALLS });
-    const html = await loadUntil(serve(root, behindBy(root, "aide", 2), 25), "aide", "2 commits behind origin", 2000, "deploy");
-    expect(html).toContain("2 commits behind origin, checked");
-    expect(deployButtons(html)).toEqual([]);
-    expect(html).not.toContain('class="deployform"');
-  });
-
-  test("a project with no install command has no Deploy button", async () => {
-    const root = projectsRoot({ aide: null });
-    const html = await (await get(serve(root, settled(root, "aide")), "aide", "deploy")).text();
-    expect(deployButtons(html)).toEqual([]);
-  });
-
   test("the tab says once that Deploy is not offered, with or without an install command, and never names the board", async () => {
     for (const config of [INSTALLS, null]) {
       const root = projectsRoot({ aide: config });
@@ -117,14 +103,6 @@ describe("the Deploy tab of a project that is not the board's own", () => {
       expect(html.split(NO_DEPLOY_SENTENCE).length - 1).toBe(1);
       expect(NO_DEPLOY_SENTENCE).not.toMatch(/board/i);
       expect(messages(html).filter((m) => m.includes(NO_DEPLOY_SENTENCE))[0]).not.toMatch(/board/i);
-    }
-  });
-
-  test("the tab bar offers Deploy, with or without an install command", async () => {
-    for (const config of [INSTALLS, null]) {
-      const root = projectsRoot({ aide: config });
-      const html = await (await get(serve(root, settled(root, "aide"), 0), "aide", "config")).text();
-      expect(html).toMatch(/<a [^>]*>Deploy<\/a>/);
     }
   });
 

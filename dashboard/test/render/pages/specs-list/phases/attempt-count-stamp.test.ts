@@ -1,19 +1,20 @@
 // A phase's own file remembers how many times it ran, past
-// both the two-hundred-deep queue's bounded memory and archiving —
-// `2-analysis.md`, "Findings" names the two gaps this file closes.
+// both the two-hundred-deep queue's bounded memory and archiving.
 //
 // The queue's own `p.attempts.length` and the file's stamped
 // `p.attemptCount` are never simply one-or-the-other the way
-// `timeSpentMs`/`cost`/`tokens` are: the display line takes the LARGER
-// of the two (`phase-rows.ts`), since a running attempt not yet stamped
-// into the file can make the queue's own count the bigger of the two
-// even while the file also has something to say.
+// `timeSpentMs`/`cost`/`tokens` are: `attemptCountOf` takes the LARGER
+// of the two, since a running attempt not yet stamped into the file can
+// make the queue's own count the bigger of the two even while the file
+// also has something to say.
 
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { renderSpecsRows, type ArchivedSpecView, type QueueRowView, type SpecTarget } from "../../../../../src/render";
+import { phasesFor, renderSpecsRows, type ArchivedSpecView, type QueueRowView } from "../../../../../src/render";
+import { attemptCountOf } from "../../../../../src/render/pages/specs-list/phase-rows.ts";
+import type { Phase } from "../../../../../src/render/pages/specs-list/data-model";
 
 const NOW = "2026-09-02T12:00:00Z";
 
@@ -33,7 +34,63 @@ const job = (id: string, extra: Partial<QueueRowView> = {}): QueueRowView => ({
   ...extra,
 });
 
-describe("a phase's attempt count outlives the queue's memory", () => {
+/** One attempt at `step` that ended with `terminalReason`. */
+const ended = (id: string, step: string, terminalReason?: string): QueueRowView =>
+  job(id, { steps: [step], results: [{ step, ok: true, costUsd: 1, at: "2026-09-02T09:05:00Z", terminalReason }] });
+
+const phase = (step: string, attempts: QueueRowView[], attemptCount?: number): Phase =>
+  ({ step, attempts, history: {}, attemptCount });
+
+describe("attemptCountOf", () => {
+  test("a phase nothing ran and no file stamped counts nothing", () => {
+    expect(attemptCountOf(phase("analyze", []))).toBe(0);
+  });
+
+  test("with no stamp, the queue's attempts are the count", () => {
+    expect(attemptCountOf(phase("analyze", [ended("a1", "analyze"), ended("a2", "analyze")]))).toBe(2);
+  });
+
+  test("the file's stamp wins once the queue has forgotten the earliest attempts", () => {
+    expect(attemptCountOf(phase("analyze", [ended("a1", "analyze"), ended("a2", "analyze")], 3))).toBe(3);
+  });
+
+  test("the queue's own count wins while an attempt is still in flight, not yet stamped", () => {
+    const running = job("a3", { state: "running", startedAt: "2026-09-02T11:00:00Z" });
+    expect(attemptCountOf(phase("analyze", [running, ended("a2", "analyze"), ended("a1", "analyze")], 2))).toBe(3);
+  });
+
+  // A run the archive gates turned away is a guard, not an attempt.
+  test("archive runs the gates refused are not counted as attempts", () => {
+    const attempts = [
+      ended("a3", "archive", "completed"),
+      ended("a2", "archive", "acceptance-criteria-unticked"),
+      ended("a1", "archive", "not-implemented-yet"),
+    ];
+    expect(attemptCountOf(phase("archive", attempts))).toBe(1);
+  });
+});
+
+describe("a live phase reads its stamp from its own file, whatever the queue holds", () => {
+  let dir: string;
+  beforeAll(() => {
+    dir = mkdtempSync(join(tmpdir(), "aide-attempt-count-"));
+    writeFileSync(
+      join(dir, "2-analysis.md"),
+      ["# 341 - Analysis", "", "## Tracking info", "", "- **Attempts:** 3", "", "## Findings", ""].join("\n"),
+    );
+  });
+  afterAll(() => rmSync(dir, { recursive: true, force: true }));
+
+  test("the queue's two attempts leave the file's 3 on the phase", () => {
+    const phases = phasesFor(
+      [ended("a1", "analyze"), ended("a2", "analyze")],
+      { project: "aide", specFolder: "aa-spec", dir },
+    );
+    expect(phases.find((p) => p.step === "analyze")?.attemptCount).toBe(3);
+  });
+});
+
+describe("the phase line draws the count", () => {
   test("an archived phase with a stamped Attempts count of 3 and no queue jobs at all shows 3 attempts", () => {
     const archived: ArchivedSpecView = {
       project: "aide",
@@ -66,99 +123,5 @@ describe("a phase's attempt count outlives the queue's memory", () => {
       Date.parse(NOW),
     );
     expect(subRow(html, "analyze")).not.toContain("attempts");
-  });
-
-  // A run the archive gates turned away is a guard, not an attempt
-  // (2026-09-11): two "held back" answers and one real archive run
-  // are one attempt, and one attempt shows no count at all.
-  test("archive runs the gates refused are not counted as attempts", () => {
-    const refused = (id: string, at: string, reason: string) =>
-      job(id, {
-        steps: ["archive"],
-        results: [{ step: "archive", ok: true, costUsd: 0, at, terminalReason: reason }],
-      });
-    const html = renderSpecsRows(
-      [
-        refused("a1", "2026-09-02T09:05:00Z", "not-implemented-yet"),
-        refused("a2", "2026-09-02T10:05:00Z", "acceptance-criteria-unticked"),
-        job("a3", {
-          steps: ["archive"],
-          results: [{ step: "archive", ok: true, costUsd: 1, at: "2026-09-02T11:05:00Z", terminalReason: "completed" }],
-        }),
-      ],
-      {
-        runnerAvailable: true,
-        targets: [{ project: "aide", specFolder: "aa-spec", done: ["analyze", "implement", "archive"] }],
-        filter: { open: "aide/aa-spec" },
-      },
-      Date.parse(NOW),
-    );
-    expect(subRow(html, "archive")).not.toContain("attempts");
-  });
-
-  test("the queue's own count wins while an attempt is still in flight, not yet stamped", () => {
-    const html = renderSpecsRows(
-      [
-        job("a1", {
-          state: "failed",
-          error: "boom",
-          results: [{ step: "analyze", ok: false, costUsd: 1, at: "2026-09-02T09:05:00Z" }],
-        }),
-        job("a2", {
-          state: "failed",
-          error: "boom again",
-          results: [{ step: "analyze", ok: false, costUsd: 1, at: "2026-09-02T10:05:00Z" }],
-        }),
-        job("a3", { state: "running", startedAt: "2026-09-02T11:00:00Z" }),
-      ],
-      {
-        runnerAvailable: true,
-        targets: [{ project: "aide", specFolder: "aa-spec" }],
-        filter: { open: "aide/aa-spec" },
-      },
-      Date.parse(NOW),
-    );
-    expect(subRow(html, "analyze")).toContain("3 attempts");
-  });
-
-  describe("the file's stamp wins once the queue has forgotten the earliest attempts", () => {
-    let dir: string;
-    beforeAll(() => {
-      dir = mkdtempSync(join(tmpdir(), "aide-attempt-count-"));
-      writeFileSync(
-        join(dir, "2-analysis.md"),
-        [
-          "# 341 - Analysis",
-          "",
-          "## Tracking info",
-          "",
-          "- **Attempts:** 3",
-          "",
-          "## Findings",
-          "",
-        ].join("\n"),
-      );
-    });
-    afterAll(() => rmSync(dir, { recursive: true, force: true }));
-
-    test("shows 3 attempts, not 2, when the queue only remembers 2 of the 3 real attempts", () => {
-      const target: SpecTarget = { project: "aide", specFolder: "aa-spec", dir };
-      const html = renderSpecsRows(
-        [
-          job("a1", {
-            state: "failed",
-            error: "boom",
-            results: [{ step: "analyze", ok: false, costUsd: 1, at: "2026-09-02T09:05:00Z" }],
-          }),
-          job("a2", {
-            results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-09-02T10:05:00Z" }],
-          }),
-        ],
-        { runnerAvailable: true, targets: [target], filter: { open: "aide/aa-spec" } },
-        Date.parse(NOW),
-      );
-      expect(subRow(html, "analyze")).toContain("3 attempts");
-      expect(subRow(html, "analyze")).not.toContain("2 attempts");
-    });
   });
 });

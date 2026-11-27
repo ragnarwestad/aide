@@ -191,7 +191,7 @@ function phaseName(step: string, lang: Language | undefined): string {
 // is a guard, not an attempt (2026-09-11) — the same two reasons
 // aide-run-spec leaves out of the file's own stamp
 // (run-spec/record/outcome.sh).
-function attemptCountOf(p: Phase): number {
+export function attemptCountOf(p: Phase): number {
   const tried = p.attempts.filter((a) => !isGuardEnding(stepResultOf(a, p.step)?.terminalReason));
   const attemptCount = Math.max(tried.length, p.attemptCount ?? 0);
   return attemptCount;

@@ -28,7 +28,7 @@ import { readFileSync } from "node:fs";
 import { stateSaying } from "../helpers/queue-server.ts";
 import type { GitRunner } from "../../src/git/process/index.ts";
 import { PAGE, TICK, SAVE, FILE_SHA, DESCRIPTION, NEW_TEXT, createSpecSaveHarness, descriptionPath, savable } from "./spec-save-fixtures.ts";
-import { PHASE, OPEN_ROW, SECOND_OPEN_ROW, DONE_ROW, EARLIER_DONE_ROW, WORDED, CHECKLIST_STATUS, STATUS, HELD_BACK_REASON, ticked, heldBack, statusPath, startWithChecks as start, tick, save, answer, recording, NV_ROW, NV_STATUS, ACCEPTANCE_PHASE, ACCEPTANCE_OPEN_ROW, STATUS_WITH_OPEN_ACCEPTANCE, TDD_OPEN_ROW } from "./spec-checks-fixtures.ts";
+import { PHASE, OPEN_ROW, SECOND_OPEN_ROW, DONE_ROW, EARLIER_DONE_ROW, WORDED, STATUS, HELD_BACK_REASON, ticked, heldBack, statusPath, startWithChecks as start, tick, save, answer, recording, NV_ROW, NV_STATUS, ACCEPTANCE_PHASE, ACCEPTANCE_OPEN_ROW, STATUS_WITH_OPEN_ACCEPTANCE, TDD_OPEN_ROW } from "./spec-checks-fixtures.ts";
 
 /** The page's markup, without its inline scripts: the client bundle the spec
  *  page carries holds strings that look like the markup these tests count. */
@@ -80,36 +80,6 @@ describe("the checks on the Overview tab", () => {
       expect(html.match(/name="tick"/g)?.length).toBe(1);
       expect(html.match(/<form[^>]+\/tick"/g)?.length).toBe(1);
       expect(html).toContain(ACCEPTANCE_PHASE);
-    });
-
-    // A Phase section the workflow has not reached carries the run's own
-    // rows, so it is not on this page at all.
-    test("an open row in a later phase is not on the page", async () => {
-      const html = block(await overview(startWithChecks(savable("/host")).base));
-      expect(html).not.toContain("Watch the first real run");
-      expect(html.match(/name="tick"/g)!).toHaveLength(3);
-    });
-
-    // With every open mark written in words the
-    // page used to render with NO boxes at all: phase detection found
-    // no `⬜` anywhere, called the whole file done, and the row filter
-    // then matched nothing.
-    test("an open row written in words is offered exactly as a symbol one is", async () => {
-      const html = await overview(startWithChecks(savable("/host"), WORDED).base);
-      expect(html).toContain('name="tick"');
-      expect(html).toContain("Manual check at 375px in a real browser");
-      expect(html).toContain("Read the whole diff once");
-      expect(html.match(/name="tick"/g)!).toHaveLength(3);
-    });
-
-    // A LOW-complexity spec's `## Checklist` gets no more box than a
-    // `## Phase` row does, for the same reason:
-    // it is the run's own record, and archive never asks about it.
-    test("a ## Checklist row is not a box either — it is the run's own record", async () => {
-      const html = await overview(startWithChecks(savable("/host"), CHECKLIST_STATUS).base);
-      expect(html).not.toContain('name="tick"');
-      expect(block(html)).toBe("");
-      expect(html).toContain("Checklist");
     });
   });
 

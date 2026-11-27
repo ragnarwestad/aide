@@ -7,7 +7,9 @@ run-spec/setup/arguments.sh.
 """
 
 import json
+import pathlib
 import re
+import subprocess
 
 import pytest
 
@@ -18,6 +20,7 @@ from ..run_spec_results import RESULT_OK
 from ..run_spec_status_files import phase_file_text, with_status
 
 FILES = ["a.ts", "b.ts", "c.ts"]
+FILES_TO_CHANGE = pathlib.Path(__file__).resolve().parents[8] / "core/scripts/lib/files-to-change.sh"
 
 
 def _describe(workspace, criteria, choose=None, checks="off", sent_back=None):
@@ -188,21 +191,27 @@ def test_a_short_analysis_listing_only_tests_and_documentation_completes(runner,
     ], err
 
 
+def _source_paths(paths):
+    """What lib/files-to-change.sh's `source_paths` keeps of a list of paths."""
+    out = subprocess.run(
+        ["bash", "-c", f'source "{FILES_TO_CHANGE}"; source_paths'],
+        input=json.dumps(paths), capture_output=True, text=True, check=True,
+    ).stdout
+    return json.loads(out)
+
+
 @pytest.mark.parametrize(
     "path",
     ["test/x.ts", "tests/x.py", "__tests__/x.js", "e2e/x.ts", "src/x.test.ts", "src/x.spec.ts", "src/test_x.py",
      "src/x_test.go", "README.md"],
 )
-def test_a_path_that_is_a_test_or_a_markdown_file_is_not_counted(runner, workspace, fake_claude, path):
-    out, _ = _analyze(runner, workspace, fake_claude, files=[*(f"src/{f}" for f in FILES), path])
-    assert out["ok"] is True, out
-    assert out["terminalReason"] == "completed", out
+def test_a_path_that_is_a_test_or_a_markdown_file_is_not_counted(path):
+    assert _source_paths(["src/a.ts", path]) == ["src/a.ts"]
 
 
 @pytest.mark.parametrize("path", ["src/latest.ts", "src/testing/helper.ts", "src/attest_x.py", "src/tests.ts"])
-def test_a_path_that_only_looks_like_a_test_is_counted(runner, workspace, fake_claude, path):
-    out, _ = _analyze(runner, workspace, fake_claude, files=[*(f"src/{f}" for f in FILES), path])
-    _failed_on_a_limit(out, "it has 4 source files to change")
+def test_a_path_that_only_looks_like_a_test_is_counted(path):
+    assert _source_paths(["src/a.ts", path]) == ["src/a.ts", path]
 
 
 def test_the_crossing_sentence_names_the_source_files_it_counted(runner, workspace, fake_claude):

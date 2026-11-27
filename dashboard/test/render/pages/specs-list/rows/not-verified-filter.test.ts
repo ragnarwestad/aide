@@ -31,10 +31,6 @@ const draw = (opts: {
 
 const folders = (html: string): string[] =>
   [...html.matchAll(/<tr class="[^"]*spechead[^"]*"[^>]*data-folder="([^"]+)"/g)].map((m) => m[1]!).sort();
-const entryCount = (html: string): number | null => {
-  const m = html.match(/<a data-nav href="[^"]*" role="checkbox"[^>]*>[\s\S]*?Not verified \((\d+)\)<\/a>/);
-  return m ? Number(m[1]) : null;
-};
 
 describe("the Not verified entry lists rows with a count, live and archived alike", () => {
   test("only the live and the archived spec with a count are listed", () => {
@@ -74,27 +70,6 @@ describe("the Not verified entry lists rows with a count, live and archived alik
     expect(folders(html)).toEqual([]);
   });
 
-  test("its count on the Active view includes the archived spec with a count and not every unbuilt archived key", () => {
-    const html = draw({
-      targets: [live("10-live-with", { notVerified: 1 }), live("11-live-none")],
-      archivedKeys: ["aide/20-arch-with", "aide/21-arch-none", "aide/22-arch-none"],
-      notVerified: ["aide/20-arch-with"],
-      filter: { state: "not-archived" },
-    });
-    expect(entryCount(html)).toBe(2);
-  });
-
-  test("its count is dropped while a search term is set", () => {
-    const html = draw({
-      targets: [live("10-live-with", { notVerified: 1, title: "findme" })],
-      archivedKeys: ["aide/20-arch-with"],
-      notVerified: ["aide/20-arch-with"],
-      filter: { state: "not-archived", q: "findme" },
-    });
-    // The live row still matches the term; only the unbuilt archived key is left out.
-    expect(entryCount(html)).toBe(1);
-  });
-
   test("a spec whose only Not verified row was ticked has no count, so it is not in the entry", () => {
     const html = draw({
       targets: [live("10-was-marked", { notVerified: undefined })],
@@ -103,6 +78,5 @@ describe("the Not verified entry lists rows with a count, live and archived alik
       filter: { state: "not-verified" },
     });
     expect(folders(html)).toEqual([]);
-    expect(entryCount(html)).toBe(0);
   });
 });

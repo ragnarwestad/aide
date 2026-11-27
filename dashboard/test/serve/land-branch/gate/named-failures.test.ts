@@ -1,7 +1,6 @@
-// A merge red twice and green on main alone names the tests that failed.
-// The same tests on both runs are the merge's doing; different tests on the
-// two runs point at unstable tests or a busy machine, and only then does
-// the sentence say so.
+// A merge red twice and green on main alone names the tests that failed,
+// as red-verdict.ts decides (its rules are proven in red-verdict.test.ts);
+// here the real gate is shown to hand on that verdict, and to a repair.
 import { describe, expect, test } from "bun:test";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -16,16 +15,16 @@ function merged(): string {
   return mergedRepo(temp("aide-named-failures-"));
 }
 
-/** A recorder green on main alone, and red on the merge with the tests
- *  `first` names on its first run and `second` on its second. */
-function recorder(first: string, second: string): string {
+/** A recorder green on main alone, and red on the merge with test_one on
+ *  both runs, each with its own error. */
+function recorder(): string {
   const bin = temp("aide-named-failures-bin-");
   writeFileSync(join(bin, "resolve"), `#!/bin/sh\nprintf '{"ok":true,"commands":["true"]}\\n'\n`, { mode: 0o755 });
   const runs = join(bin, "runs");
   writeFileSync(
     join(bin, "record"),
     namingRecorder(`[ -f "$2/spec-change" ] || exit 0\necho run >> ${runs}\n` +
-      `if [ "$(wc -l < ${runs})" -eq 1 ]; then ${first ? `echo 'FAILED t/test_a.py::${first} - first error'` : "echo 'error: command stopped before naming a test'"}; else echo 'FAILED t/test_a.py::${second} - second error'; fi\n` +
+      `if [ "$(wc -l < ${runs})" -eq 1 ]; then echo 'FAILED t/test_a.py::test_one - first error'; else echo 'FAILED t/test_a.py::test_one - second error'; fi\n` +
       `echo '{"ok":true,"exitCode":1,"terminalReason":"recorded"}'\nexit 1\n`),
     { mode: 0o755 },
   );
@@ -38,71 +37,13 @@ function recorder(first: string, second: string): string {
 const job = { project: "aide", specFolder: "81-x" };
 
 test("the same test on both runs is named with its latest error (AC-2)", async () => {
-  recorder("test_one", "test_one");
+  recorder();
   const verdict = await runProjectSuiteBeforePush(merged(), job, "aide/81-x", { button: "Archive" });
   expect(verdict.error).toEqual({
     key: "landing.testsRedOnMerge",
     values: { count: 1, branch: "aide/81-x", button: "Archive" },
     lists: { tests: ["t/test_a.py::test_one — second error"] },
   });
-}, 30_000);
-
-test("a test shared by both runs is the merge's even when the first run named another test (AC-3)", async () => {
-  recorder("test_one - first error'; echo 'FAILED t/test_a.py::test_two", "test_one");
-  const verdict = await runProjectSuiteBeforePush(merged(), job, "aide/81-x", { button: "Archive" });
-  expect(verdict.error).toEqual({
-    key: "landing.testsRedOnMerge",
-    values: { count: 1, branch: "aide/81-x", button: "Archive" },
-    lists: { tests: ["t/test_a.py::test_one — second error"] },
-  });
-}, 30_000);
-
-test("an unnamed first run does not claim that a named failure repeated (AC-5)", async () => {
-  recorder("", "test_one");
-  const verdict = await runProjectSuiteBeforePush(merged(), job, "aide/81-x", { button: "Archive" });
-  expect(verdict.error).toEqual({
-    key: "landing.testsRedOnMergeUnnamed",
-    values: { branch: "aide/81-x", button: "Archive" },
-  });
-  expect(verdict.failedTests).toBeUndefined();
-}, 30_000);
-
-test("different tests stay as separate detail items (AC-3, AC-5)", async () => {
-  recorder("test_one", "test_two");
-  const verdict = await runProjectSuiteBeforePush(merged(), job, "aide/81-x", { button: "Archive" });
-  expect(verdict.error).toEqual({
-    key: "landing.testsRedOnMergeVaried",
-    values: { count: 2, branch: "aide/81-x", button: "Archive" },
-    lists: { tests: ["t/test_a.py::test_one — first error", "t/test_a.py::test_two — second error"] },
-  });
-  expect(verdict.failedTests).toBeUndefined();
-}, 30_000);
-
-test("a repeated failure stays the merge's when the retry adds another failure (AC-3)", async () => {
-  recorder("test_one", "test_one - second error'; echo 'FAILED t/test_a.py::test_two");
-  const verdict = await runProjectSuiteBeforePush(merged(), job, "aide/81-x", { button: "Archive" });
-  expect(verdict.error).toEqual({
-    key: "landing.testsRedOnMerge",
-    values: { count: 1, branch: "aide/81-x", button: "Archive" },
-    lists: { tests: ["t/test_a.py::test_one — second error"] },
-  });
-}, 30_000);
-
-test("the sentence counts every repeated failure when detail is shortened (AC-3)", async () => {
-  const names = Array.from({ length: 10 }, (_, index) => `test_${index + 1}`).join(" - error'; echo 'FAILED t/test_a.py::");
-  recorder(names, names);
-  const verdict = await runProjectSuiteBeforePush(merged(), job, "aide/81-x", { button: "Archive" });
-  expect(verdict.error).toMatchObject({ key: "landing.testsRedOnMerge", values: { count: 10 } });
-  expect((verdict.error as { lists?: { tests?: string[] } }).lists?.tests).toHaveLength(9);
-}, 30_000);
-
-test("the tests the merge failed twice are kept with their file and error, all of them (AC-1)", async () => {
-  const names = Array.from({ length: 10 }, (_, index) => `test_${index + 1}`).join(" - error'; echo 'FAILED t/test_a.py::");
-  recorder(names, names);
-  const verdict = await runProjectSuiteBeforePush(merged(), job, "aide/81-x", { button: "Archive" });
-  expect(verdict.failedTests).toHaveLength(10);
-  expect(verdict.failedTests?.[9]).toEqual({ name: "t/test_a.py::test_10", file: "t/test_a.py", error: "second error" });
-  expect((verdict.error as { lists?: { tests?: string[] } }).lists?.tests).toHaveLength(9);
 }, 30_000);
 
 describe("failingLines", () => {
@@ -117,7 +58,7 @@ describe("failingLines", () => {
 });
 
 test("a repair sees the tested merge before cleanup and requests a fresh full gate", async () => {
-  recorder("test_one", "test_one");
+  recorder();
   const seen: string[] = [];
   const verdict = await runProjectSuiteBeforePush(merged(), job, "aide/81-x", {
     button: "Archive",
@@ -132,7 +73,7 @@ test("a repair sees the tested merge before cleanup and requests a fresh full ga
 });
 
 test("a repair-capable landing does not rerun the unchanged full suite before diagnosis", async () => {
-  const runs = recorder("test_one", "test_one");
+  const runs = recorder();
   const verdict = await runProjectSuiteBeforePush(merged(), job, "aide/81-x", { button: "Archive", repair: async () => false });
   expect(readFileSync(runs, "utf8").trim().split("\n")).toHaveLength(1);
   expect(verdict.ok).toBe(false);

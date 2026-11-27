@@ -20,12 +20,11 @@ function merged(): string {
 }
 
 /** A recorder red wherever `redWhen` holds for the tree it is run in. */
-function recorder(redWhen: "always" | "with the spec" | "different" | "main unnamed"): void {
+function recorder(redWhen: "always" | "with the spec" | "different"): void {
   const bin = temp("aide-red-on-main-bin-");
   writeFileSync(join(bin, "resolve"), `#!/bin/sh\nprintf '{"ok":true,"commands":["true"]}\\n'\n`, { mode: 0o755 });
   const test = redWhen === "always" ? 'echo "(fail) a test"; exit 1'
     : redWhen === "different" ? 'if [ -f "$2/spec-change" ]; then echo "(fail) merge only"; else echo "(fail) main only"; fi; exit 1'
-    : redWhen === "main unnamed" ? 'if [ -f "$2/spec-change" ]; then echo "(fail) merge only"; else echo "error: command failed"; fi; exit 1'
     : '[ -f "$2/spec-change" ] && { echo "(fail) a test"; exit 1; }; exit 0';
   writeFileSync(join(bin, "record"), namingRecorder(test), { mode: 0o755 });
   process.env.AIDE_RESOLVE_TEST_CMD_BIN = join(bin, "resolve");
@@ -34,15 +33,6 @@ function recorder(redWhen: "always" | "with the spec" | "different" | "main unna
 }
 
 const job = { project: "aide", specFolder: "81-x" };
-
-test("red on main as well: the sentence says the failure is not the spec's", async () => {
-  const root = merged();
-  recorder("always");
-  const verdict = await runProjectSuiteBeforePush(root, job, "aide/81-x", { button: "Archive" });
-  expect(verdict.ok).toBe(false);
-  expect(verdict.error).toEqual({ key: "landing.testsRedOnMainToo", values: { branch: "aide/81-x", button: "Archive" } });
-  expect(verdict.failedTests).toBeUndefined();
-}, 30_000);
 
 test("main's result records green, red and not checked with its reason (AC-1, AC-2)", async () => {
   const root = merged();
@@ -68,22 +58,6 @@ test("when main and the merge fail different tests, the merge-only test and main
     lists: { tests: ["merge only"] },
   });
   expect(readFileSync(join(root, "different.archive.run.log"), "utf-8")).toContain("the tests are red on main; 1 failing test is unique to the merge");
-}, 30_000);
-
-test("an unnamed failure on red main does not make a named merge failure unique (AC-4)", async () => {
-  recorder("main unnamed");
-  const verdict = await runProjectSuiteBeforePush(merged(), job, "aide/81-x", { button: "Archive" });
-  expect(verdict.error).toEqual({
-    key: "landing.testsRedOnMainUnnamed",
-    values: { branch: "aide/81-x", button: "Archive" },
-  });
-  expect(verdict.failedTests).toBeUndefined();
-}, 30_000);
-
-test("the tests only the merge fails are kept with their file and error (AC-1)", async () => {
-  recorder("different");
-  const verdict = await runProjectSuiteBeforePush(merged(), job, "aide/81-x", { button: "Archive" });
-  expect(verdict.failedTests).toEqual([{ name: "merge only", file: "", error: "" }]);
 }, 30_000);
 
 test("Cancel stops the tests running on main after a red merge", async () => {

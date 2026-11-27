@@ -85,15 +85,6 @@ export const STATUS_WITH_OPEN_ACCEPTANCE = [
  *  else differs. */
 export const WORDED = STATUS.replace(/\| ⬜ \|/g, "| Waiting |");
 
-/** A LOW-complexity spec's `4-status.md` uses `## Checklist`
- *  instead of `## Phase N: ...`: the run's own record, not a box. */
-export const CHECKLIST_OPEN_ROW = "| Run the manual browser check | ⬜ | |";
-export const checklistSection = (rows: string[]) => ["## Checklist", "", ...HEADER, ...rows, ""].join("\n");
-export const CHECKLIST_STATUS = [
-  ...STATUS_HEAD,
-  checklistSection([CHECKLIST_OPEN_ROW]),
-].join("\n");
-
 /** A spec a headless archive run declined: the hold-back section it
  *  wrote, and exactly one open row left anywhere in the file. */
 export const HELD_BACK_REASON = "- the manual browser check (Phase 4, still unchecked) — tick it on the spec's page";

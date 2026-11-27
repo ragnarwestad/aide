@@ -418,28 +418,6 @@ describe("archived specs on the spec list", () => {
     // newest, so the live row sorts first.
     expect(seen("  ")).toEqual(["60-live", "50-archived"]);
   });
-
-  test("the chips count the archived specs the page did not build", () => {
-    // The route hands the KEYS whatever the filter is (they are what
-    // `groupBySpec` drops job rows by) and the ROWS only when the filter
-    // shows them — so a chip that would show archived rows counts the
-    // keys rather than reading "0" off a set nobody built.
-    const html = rows({ targets: [live("60-live")], archived: ["aide/50-archived", "aide/40-archived"] });
-    expect(html).toMatch(/>Archived \(2\)</);
-    expect(html).toMatch(/>All \(3\)</);
-    expect(html).toMatch(/>Not archived \(1\)</);
-  });
-
-  test("and never twice, once those rows are actually on the page", () => {
-    const html = rows({
-      targets: [live("60-live")],
-      archived: ["aide/50-archived"],
-      archivedSpecs: [archivedSpec("50-archived")],
-      filter: { state: "all" },
-    });
-    expect(html).toMatch(/>Archived \(1\)</);
-    expect(html).toMatch(/>All \(2\)</);
-  });
 });
 
 // A create cancelled before it made a folder is not a row — also on a

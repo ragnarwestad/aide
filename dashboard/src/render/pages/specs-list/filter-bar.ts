@@ -54,13 +54,33 @@ export function queuePath(f: SpecsFilter, patch: SpecsFilter = {}, path = "/spec
 
 export function filterBar(groups: SpecGroup[], f: SpecsFilter, opts: SpecsPageOptions, shown: number): string {
   const lang = opts.lang ?? "en";
-  // Counts are of what the OTHER filter already allows, so the numbers
-  // add up to the table you are looking at rather than to some list
-  // nobody asked for. The search is one of those filters
-  // — an entry counting rows a term has cut would be counting a table
-  // nobody can see. They count SPECS, because that is what the table
-  // holds one line per.
-  const counted = groups.filter((g) => matchesSearch(g, f));
+  const state = stateDropdown(f, stateEntries(groups, f, opts), lang);
+  return searchForm(
+    {
+      action: "/specs",
+      hidden: FILTER_KEYS.filter((k) => k !== "q" && f[k]).map((k) => [k, f[k]!]),
+      q: f.q ?? "",
+      clearHref: queueHref(f, { q: "" }),
+      after: state + resultCount(shown) + newSpecLink(opts, lang),
+    },
+    lang,
+  );
+}
+
+/** One entry of the State dropdown: how many specs it counts, and whether it is ticked. */
+export interface StateEntry {
+  key: string;
+  count: number;
+  on: boolean;
+}
+
+/** The archived keys the page built no row for, which the State
+ *  dropdown's counts add to the rows it did build. */
+function uncountedKeys(
+  groups: SpecGroup[],
+  f: SpecsFilter,
+  opts: Pick<SpecsPageOptions, "archived" | "closed" | "notVerified">,
+): { archived: number; closed: number; notVerified: number } {
   // The archived rows are built only where the filter shows them,
   // so on the default view there are almost none to count — and
   // "Archived (0)" beside an archive of a hundred and fifty is the one
@@ -93,39 +113,32 @@ export function filterBar(groups: SpecGroup[], f: SpecsFilter, opts: SpecsPageOp
     : (opts.archived ?? []).filter((k) => !built.has(k) && closedKeys.has(k)).length;
   // The Not verified entry's own unbuilt: the archived specs that have a
   // count and no built row. Counted for this entry alone — the shared
-  // `matchesState(s, ARCHIVED_STATE)` above is true for any entry naming
+  // `matchesState(s, ARCHIVED_STATE)` in `stateEntries` is true for any entry naming
   // no `states`, and would add every unbuilt archived key to it.
   const uncountedNotVerified = searching ? 0 : (opts.notVerified ?? []).filter((k) => !built.has(k)).length;
-  const state = stateDropdown(f, counted, { archived: uncountedArchived, closed: uncountedClosed, notVerified: uncountedNotVerified }, lang);
-  return searchForm(
-    {
-      action: "/specs",
-      hidden: FILTER_KEYS.filter((k) => k !== "q" && f[k]).map((k) => [k, f[k]!]),
-      q: f.q ?? "",
-      clearHref: queueHref(f, { q: "" }),
-      after: state + resultCount(shown) + newSpecLink(opts, lang),
-    },
-    lang,
-  );
+  return { archived: uncountedArchived, closed: uncountedClosed, notVerified: uncountedNotVerified };
 }
 
-// One dropdown of checkbox links. Each link carries the whole next value,
-// so adding or removing a state works without JavaScript.
-// Labelled "State", not "Phases": this page already calls this exact concept "State" —
-// the table's own column heading — and "Phase" already means the
-// create/analyze/implement/archive workflow step two columns over.
-function stateDropdown(
+/** The State dropdown's entries, in `STATE_FILTERS` order. */
+export function stateEntries(
+  groups: SpecGroup[],
   f: SpecsFilter,
-  counted: SpecGroup[],
-  uncounted: { archived: number; closed: number; notVerified: number },
-  lang: Language,
-): string {
+  opts: Pick<SpecsPageOptions, "archived" | "closed" | "notVerified">,
+): StateEntry[] {
+  // Counts are of what the OTHER filter already allows, so the numbers
+  // add up to the table you are looking at rather than to some list
+  // nobody asked for. The search is one of those filters
+  // — an entry counting rows a term has cut would be counting a table
+  // nobody can see. They count SPECS, because that is what the table
+  // holds one line per.
+  const counted = groups.filter((g) => matchesSearch(g, f));
+  const uncounted = uncountedKeys(groups, f, opts);
   // Computed once, so the trigger and the panel option for the SAME
   // choice can never show two different counts — the trigger
   // below reads `chosen.count` off this same array rather than summing
   // its own copy.
   const ticked = stateFilters(f.state);
-  const rows = STATE_FILTERS.map((s) => {
+  return STATE_FILTERS.map((s) => {
     const on = ticked[0]?.key === "all" || ticked.some((entry) => entry.key === s.key);
     const count =
       counted.filter((g) => matchesStateFilter(s, g)).length +
@@ -133,24 +146,33 @@ function stateDropdown(
       // An unbuilt closed key never reaches "Archived"
       // (CLOSED_STATE is not in that entry's `states`), only "All".
       (!s.where && matchesState(s, CLOSED_STATE) ? uncounted.closed : 0);
-    return { s, on, count };
+    return { key: s.key, count, on };
   });
+}
+
+// One dropdown of checkbox links. Each link carries the whole next value,
+// so adding or removing a state works without JavaScript.
+// Labelled "State", not "Phases": this page already calls this exact concept "State" —
+// the table's own column heading — and "Phase" already means the
+// create/analyze/implement/archive workflow step two columns over.
+function stateDropdown(f: SpecsFilter, entries: StateEntry[], lang: Language): string {
+  const ticked = stateFilters(f.state);
   return menuDropdown({
     filter: "state",
     icon: "state",
     none: { label: t(lang, "list.state.none"), href: queueHref(f, { state: "none" }) },
     ariaLabel: t(lang, "list.statesLabel"),
     triggerLabel: t(lang, "list.statesLabel"),
-    options: rows.map(({ s, on, count }) => ({
-      key: s.key,
-      label: stateFilterLabel(s.key, lang),
+    options: entries.map(({ key, count, on }) => ({
+      key,
+      label: stateFilterLabel(key, lang),
       count,
       on,
       // Always explicit: picking All has to be able to
       // override a REMEMBERED non-default filter, and a blank `state`
       // collapses to the same bare `/` a plain navigation with no choice
       // at all produces — the one thing that would tell the two apart.
-      href: queueHref(f, { state: toggledState(STATE_FILTERS, ticked, s.key) }),
+      href: queueHref(f, { state: toggledState(STATE_FILTERS, ticked, key) }),
     })),
   });
 }

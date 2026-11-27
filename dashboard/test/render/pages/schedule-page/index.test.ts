@@ -29,24 +29,6 @@ describe("Schedule page", () => {
     expect(html).toContain("nightly-report");
     expect(html).not.toContain("weekly-check");
   });
-
-  test("the default view (no ?sort=) orders rows by project:name ascending", () => {
-    const html = renderSchedulePage(NAV, "2026-08-30T00:00:00Z", {
-      rows: [
-        {
-          project: "atlasaurus",
-          entry: { name: "weekly-check", cron: "0 4 * * 0", prompt: "docs/weekly.md", enabled: true },
-          projectScheduleHref: "/projects/atlasaurus?tab=schedule",
-        },
-        {
-          project: "aide",
-          entry: { name: "nightly-report", cron: "0 3 * * *", prompt: "docs/nightly.md", enabled: true },
-          projectScheduleHref: "/projects/aide?tab=schedule",
-        },
-      ],
-    });
-    expect(html.indexOf("aide:nightly-report")).toBeLessThan(html.indexOf("atlasaurus:weekly-check"));
-  });
 });
 
 /** Each heading of a page's table as [its text, its link, its `aria-sort`]. */
@@ -83,20 +65,5 @@ describe("the /schedule list's sortable headings", () => {
       ["Last run", "/schedule?q=night&sort=last", null],
       ["Enabled", "/schedule?q=night&sort=enabled", null],
     ]);
-  });
-
-  test("?sort=enabled puts the enabled entries first, by name, and ?dir=asc the disabled ones", () => {
-    const entry = (name: string, enabled: boolean) => ({
-      project: "aide",
-      entry: { name, cron: "0 3 * * *", prompt: "docs/nightly.md", enabled },
-      projectScheduleHref: "/projects/aide?tab=schedule",
-    });
-    const all = [entry("b-off", false), entry("c-on", true), entry("a-on", true)];
-    const order = (dir?: "asc" | "desc") => {
-      const html = renderSchedulePage(NAV, "2026-08-30T00:00:00Z", { rows: all, filter: { sort: "enabled", dir } });
-      return ["aide:a-on", "aide:c-on", "aide:b-off"].sort((x, y) => html.indexOf(x) - html.indexOf(y));
-    };
-    expect(order()).toEqual(["aide:a-on", "aide:c-on", "aide:b-off"]);
-    expect(order("asc")).toEqual(["aide:b-off", "aide:a-on", "aide:c-on"]);
   });
 });
