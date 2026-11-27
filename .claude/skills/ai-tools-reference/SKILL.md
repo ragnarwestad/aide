@@ -317,6 +317,41 @@ not offered with Zero Data Retention, the HIPAA configuration or
 customer-managed keys. Aide does not use it: Merge on the board tests the
 merged result and updates the default branch itself.
 
+### MCP capabilities in Claude and Claude Code (2026-11-24)
+
+[Source](https://claude.com/resources/articles/skills-over-mcp-tasks-and-more).
+Four capabilities, each at its own stage, reaching an account by its plan
+(Pro, Max and Ultra first; Team once an admin turns it on; Enterprise
+later):
+
+- **Skills over MCP** (public beta): a server ships skills beside its
+  tools, and Claude loads one only when it is needed.
+- **Tasks** (generally available): a server runs a long operation in the
+  background, and Claude picks up the result later.
+- **Elicitation** (generally available): a server stops to ask the user
+  through a form or a link. In `claude -p` every request is still
+  cancelled at once (see the support matrix), so a headless run never
+  waits.
+- **File uploads** (not out yet): files go to a server without passing
+  through the context window.
+
+### Code Mode (experimental)
+
+[Source](https://code.claude.com/docs/en/code-mode). Claude writes
+JavaScript that makes several tool calls in one step.
+
+- Off by default. `CLAUDE_CODE_EXPERIMENTAL_CODE_MODE=1` turns it on, in
+  the shell or the `env` block of `~/.claude/settings.json`; project
+  settings files cannot. It may change or be removed in any release.
+- It needs an interactive session (v2.1.323 or later, native build): not
+  `-p`, background jobs, the VS Code panel, the Desktop app, cloud
+  sessions, zero data retention or the HIPAA configuration.
+- Deny and ask rules and `PreToolUse` hooks apply to each tool's own name.
+  The sandbox covers shell commands only: the JavaScript and its file, web
+  and MCP calls run outside it.
+- The docs promise no saving in cost or context.
+- Aide does not turn it on, and no board step runs in it.
+
 ### Skill/Agent frontmatter
 
 Skills and agents support these frontmatter fields:
@@ -571,6 +606,7 @@ structured inter-agent messaging.
 - Hooks: <https://code.claude.com/docs/en/hooks.md>
 - Plugins: <https://code.claude.com/docs/en/plugins/manifest-reference.md>
 - MCP: <https://code.claude.com/docs/en/mcp.md>
+- Code Mode: <https://code.claude.com/docs/en/code-mode>
 - Permission modes: <https://code.claude.com/docs/en/permission-modes>
 - Release notes: <https://github.com/anthropics/claude-code/releases>
 - Haiku 5.5 refusals: <https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-haiku-5-5>

@@ -190,6 +190,18 @@ Which files each tool reads automatically:
   `{"action":"cancel"}` at once, so the tool gets a refusal and the run
   goes on (verified 2.1.310). `aide-run-spec` therefore does not deny
   elicitation: no headless run waits for an answer.
+- **MCP capabilities, each at its own stage (2026-11-24):** skills shipped
+  by an MCP server are in public beta; Tasks (a server works in the
+  background) and Elicitation (a server asks the user through a form or a
+  link) are generally available; file uploads to a server are not out yet.
+  The plan decides when each reaches an account. Elicitation being
+  generally available does not change the `claude -p` behaviour above.
+- **Code Mode:** experimental and off by default, turned on with
+  `CLAUDE_CODE_EXPERIMENTAL_CODE_MODE=1` in the shell or in the user's
+  settings, never in a project's. It needs an interactive session, so no
+  step on the board runs in it. Its JavaScript and that code's file, web
+  and MCP calls run outside the sandbox. The docs promise no lower cost
+  or context use. Aide does not turn it on.
 - **Sandbox in a headless step:** `aide-run-spec` passes `--settings` with
   `sandbox.enabled`, `failIfUnavailable: true` (2.1.316),
   `allowUnsandboxedCommands: false`,
