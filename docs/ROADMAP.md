@@ -31,6 +31,7 @@
   - [33. Domain Specific / Standard Agents](#33-domain-specific--standard-agents)
   - [35. Claude Ship on a project that lands through pull requests](#35-claude-ship-on-a-project-that-lands-through-pull-requests)
   - [36. A pull request that shows the criteria it touches and the tests that prove them](#36-a-pull-request-that-shows-the-criteria-it-touches-and-the-tests-that-prove-them)
+  - [37. Cancel reaches work an agent started outside the machine](#37-cancel-reaches-work-an-agent-started-outside-the-machine)
 
 ---
 
@@ -46,7 +47,7 @@ An idea that becomes a spec names it, and leaves this page once the spec is arch
 
 Each idea has a number that stays with it. A new idea gets the next number after the highest one ever given, and
 the number of an idea taken off the page is never used again, so a number can be referred to and still mean the
-same idea later. The next number is 37.
+same idea later. The next number is 38.
 
 ## To consider
 
@@ -835,3 +836,13 @@ Open questions:
 - The criteria must be the person's own. When the create step fills in missing criteria and acceptance ticking is
   turned off, the list shows what an agent wrote that nobody read.
 - How a property test's random inputs stay repeatable in Merge and CI, so a red result can be run again.
+
+### 37. Cancel reaches work an agent started outside the machine
+
+From [Are We Ready?](https://www.youtube.com/watch?v=gEiM4HBtPAU) (Agentic AI Foundation, Nov 26,
+2026): whoever runs an agent must be able to stop it, and stopping it must take back what it was allowed to do.
+
+Cancel on the board sends `SIGTERM` to the job's whole process group on the serving host. It cannot stop work the
+agent started elsewhere, such as a background task on an MCP server, and no step does that today. Worth taking up
+when a step gets an MCP server that runs tasks of its own: Cancel then has to stop those tasks too, or the board has
+to say that it could not.
