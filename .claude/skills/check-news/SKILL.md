@@ -36,6 +36,7 @@ x_output="${AIDE_SCHEDULE_OUTPUT_DIR:-$HOME/.aide/news-check}"
 python3 scripts/news/fetch-x-list.py --output "$x_output/x-posts.json"
 ```
 
+The script reads the list through the X API with the token in `~/.aide/x-bearer-token` ([x-list-api.md](../../../docs/prompts/x-list-api.md)).
 Do not pass `--job-result`: failure of this one source must not fail the entire news check. Check `complete` in
 `x-posts.json` before reading any posts. A nonzero exit, missing file or `complete: false` means X was not read;
 name the error in the review and report and continue with every other source. Never substitute an older digest

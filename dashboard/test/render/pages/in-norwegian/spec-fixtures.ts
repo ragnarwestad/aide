@@ -9,6 +9,7 @@ import { SPEC_TABS } from "../../../../src/render/pages/spec-page/tabs.ts";
 import { hostname } from "node:os";
 import { clearCheckoutFaults } from "../../../../src/render/ui/checkout-faults.ts";
 import { setPendingRestartNotice } from "../../../../src/render/ui/pending-restart.ts";
+import { setBoardInfo } from "../../../../src/render/ui/board-info.ts";
 import type { PageState } from "./fixtures.ts";
 
 const AT = "2026-11-03T08:00:00.000Z";
@@ -82,6 +83,7 @@ export function shellStates(): PageState[] {
   // test file in the same process, are not this page's words.
   clearCheckoutFaults();
   setPendingRestartNotice([]);
+  setBoardInfo(undefined);
   return [{
     page: "Page shell › header and About",
     html: renderProjectsPage([], NOW, navEntries(), { lang: nb }),
