@@ -67,26 +67,18 @@ def test_bypass_permissions_becomes_codex_s_one_bypass_flag(runner, workspace, f
     assert "--dangerously-bypass-approvals-and-sandbox" in argv
     assert "--sandbox" not in argv
 
-def test_accept_edits_becomes_a_writable_workspace(runner, workspace, fake_codex):
-    """`codex exec` is non-interactive and has no
-    `--ask-for-approval` flag at all (verified against codex-cli 0.147.0
-    — that flag is the interactive command's); the sandbox mode is the
-    whole of what it takes."""
+@pytest.mark.parametrize("mode", ["acceptEdits", "plan"])
+def test_every_mode_runs_codex_with_its_own_sandbox_off(runner, workspace, fake_codex, mode):
+    """Codex's own sandbox cannot start inside srt, which decides what each
+    mode may write (test_aide_run_spec_srt.py). `codex exec` has no
+    `--ask-for-approval` flag at all; that flag is the interactive
+    command's."""
     codex = fake_codex(emits(CODEX_STREAM_OK))
-    rc, out, _ = run(runner, workspace, tool="codex", codex=codex,
-                     permission_mode="acceptEdits")
+    rc, out, _ = run(runner, workspace, tool="codex", codex=codex, permission_mode=mode)
     assert rc == 0, out
     argv = fake_codex.calls.read_text().split()
-    assert "--sandbox" in argv
-    assert argv[argv.index("--sandbox") + 1] == "workspace-write"
-    assert "--ask-for-approval" not in argv
-
-def test_plan_mode_becomes_a_read_only_sandbox(runner, workspace, fake_codex):
-    codex = fake_codex(emits(CODEX_STREAM_OK))
-    rc, out, _ = run(runner, workspace, tool="codex", codex=codex, permission_mode="plan")
-    assert rc == 0, out
-    argv = fake_codex.calls.read_text().split()
-    assert argv[argv.index("--sandbox") + 1] == "read-only"
+    assert "--dangerously-bypass-approvals-and-sandbox" in argv
+    assert "--sandbox" not in argv and "--ask-for-approval" not in argv
 
 def test_an_unrecognised_permission_mode_refuses_before_codex_starts(runner, workspace, fake_codex):
     """The same "typed out or the run does not start"

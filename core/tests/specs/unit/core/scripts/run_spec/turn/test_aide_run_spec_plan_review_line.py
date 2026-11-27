@@ -201,7 +201,7 @@ def test_a_handed_over_review_runs_on_codex_read_only_with_the_spec_named_ac_2(
                           plan_review_tool="codex", plan_review_model="m", return_stderr=True)
     assert out["terminalReason"] == "completed", out
     (review,) = fake_codex.calls.read_text().splitlines()
-    assert review.startswith("exec --json --sandbox read-only --model m"), review
+    assert review.startswith("exec --json --dangerously-bypass-approvals-and-sandbox --model m"), review
     prompt = (tmp_path / "codex-prompt.txt").read_text() + review
     assert "aide-analyze/references/plan-review.md" in prompt, prompt
     assert workspace["folder"] in prompt, prompt

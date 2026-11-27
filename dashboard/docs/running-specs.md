@@ -450,6 +450,7 @@ tool checks alike. A directory that does not exist is not added.
 `AIDE_CLAUDE_BIN`, `AIDE_CODEX_BIN` and `AIDE_OPENCODE_BIN` point a run at a particular binary instead, and win over the
 `PATH` search. All three are read from the environment. `AIDE_CLAUDE_BIN` is also read from the project's `.aide/config`,
 which is how a project points its runs at a stand-in binary; a value written there for the other two does nothing.
+`AIDE_SRT_BIN`, read from the environment alone, does the same for srt, which every Codex and OpenCode turn runs in.
 
 The tool checks run when the board starts, when a provider's Installation tab is opened, and for the tool a queued job's next step will run on,
 at most once a minute per tool. A check that finds something wrong puts a line at the top of every page, but only for a

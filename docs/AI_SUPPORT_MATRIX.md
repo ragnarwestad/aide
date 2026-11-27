@@ -330,16 +330,18 @@ core/implementations/copilot/
 - **MCP:** Support via `~/.codex/config.toml`. From 0.172.0 an optional
   stdio server with a cached tool list starts on its first tool call
 - **Parallel execution** — can work on several tasks at once
-- **Sandbox in a headless step:** `aide-run-spec` keeps
-  `--dangerously-bypass-approvals-and-sandbox` for `bypassPermissions`.
-  Checked on 0.164.0, `workspace-write` (with network access on) stops
-  `git` in a worktree, whose git directory lies in the main checkout,
-  stops writes to `~/.cache`, and still lets a command read `~/.ssh`: its
-  sandbox confines writing but cannot deny reading.
+- **Sandbox in a headless step:** `aide-run-spec` starts every Codex turn
+  inside srt (`@anthropic-ai/sandbox-runtime` 0.0.83), always with
+  `--dangerously-bypass-approvals-and-sandbox`. Checked on 2026-11-23:
+  - Codex's own sandbox cannot start inside srt. Every command fails with
+    `sandbox_apply: Operation not permitted`, and Codex still exits 0.
+  - Codex reaches its provider only when srt lets it use the macOS
+    certificate service (`enableWeakerNetworkIsolation`).
+  - Codex's own `workspace-write` stops `git` in a worktree and cannot
+    deny reading (0.164.0), which is why srt replaced it.
 - **Resumed thread:** from 0.172.0 `codex exec resume` keeps the sandbox
-  the thread started with. `aide-run-spec` passes the step's own as
-  `-c sandbox_mode=…`, so an implement that continues a read-only
-  analysis can still write.
+  the thread started with. Every turn starts with Codex's own sandbox off,
+  so a resumed turn passes the same flag.
 
 ### Implementation
 

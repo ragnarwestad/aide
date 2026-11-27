@@ -29,7 +29,7 @@ turn_result_capture() { printf -v "$1" '%s' '{}'; }
 turn_result_apply() { :; }
 turn_result_field() { :; }
 run_model_turn() { seen_config="${opencode_config:-}"; seen_argv="${argv[*]}"; printf -v "$2" '%s' '{}'; }
-transcript=/dev/null; sandbox=no; invocation_add_dirs=()
+transcript=/dev/null; sandbox=no; invocation_add_dirs=(); srt_bin=/bin/echo
 """
     done = subprocess.run(
         ["/bin/bash", "-c", stubs + functions + body],

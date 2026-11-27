@@ -57,9 +57,11 @@ before starting:
   goes on the list. A second list is denied for writing only: what runs
   outside the sandbox later (shell startup files, PATH, git and AI-tool
   settings, `queue-config.json`, every checkout's `.git/hooks`,
-  `.git/config` and `settings.yaml`). Codex and OpenCode run without it, and
-  so does a schedule entry with `"sandbox": false` (`docs/the-runner.md`,
-  "What a step can reach").
+  `.git/config` and `settings.yaml`). A schedule entry with
+  `"sandbox": false` runs without it. A Codex or OpenCode turn runs inside
+  srt instead (`run-spec/setup/srt.sh`), with the same lists but its own
+  login readable, Codex's own sandbox off, and the network cut to a fixed
+  list of hosts (`docs/the-runner.md`, "What a step can reach").
 - The script runs from a private copy of itself — an `implement` step
   reinstalls it under bash's feet — and the copy's marker is unset before
   `claude` starts, since an inherited flag would make the next nested

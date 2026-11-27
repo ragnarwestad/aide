@@ -276,18 +276,18 @@ Two ways to narrow it:
 Neither keeps a run from damaging or reading its own repository, or from sending what it reads out, unless the
 network is narrowed too.
 
-Option a is in place for Claude steps: a fixed deny list of credentials and the board's secrets, and a list of what
-runs outside the sandbox that a step may read but not write, with the network open; the runner's and the merge's
+Option a is in place for every step: Claude steps in Claude Code's sandbox, Codex and OpenCode turns in srt with the
+network cut to a fixed list of hosts. Each has a fixed deny list of credentials and the board's secrets, and a list of what
+runs outside the sandbox that a step may read but not write; the runner's and the merge's
 own git run no hooks, and the runner's own git in a worktree uses the git directory recorded when it was cut
 (`dashboard/docs/the-runner.md`, "What a step can reach"). What is left:
 
-- Codex steps, whose sandbox cannot deny reading and stops `git` in a worktree.
-- OpenCode steps, which have no sandbox.
+- A Codex or OpenCode turn can read its own login, which srt has to leave readable for the tool itself.
 - The main checkouts' working trees, the step's own project's included, which a step can still read and write; a
   file the board or the runner reads from there (a project's own `.claude/` settings, `.mcp.json`) is not protected.
 - The main checkouts' git directories, apart from their hooks and settings: a step can still move a checkout's `HEAD`
   or refs (and so the commit a scheduled job's prompt is read from), or swap a worktree's git directory for a link.
-- The network, which is still open.
+- The network, which is still open to Claude steps.
 - The runner's own test run, which executes what the step wrote outside the sandbox, with the denied paths
   reachable. Only b closes this.
 

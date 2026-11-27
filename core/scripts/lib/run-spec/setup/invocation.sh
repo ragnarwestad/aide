@@ -45,6 +45,13 @@ else
   claude_bin="$(find_bin "$claude_override" claude)"
   [ -n "$claude_bin" ] && [ -x "$claude_bin" ] || refuse_fix "cannot find the claude binary" "set AIDE_CLAUDE_BIN"
 fi
+# srt, which every Codex and OpenCode turn runs in (setup/srt.sh). A step on
+# either does not start without it; a side turn on either is not run.
+srt_bin="$(find_bin "${AIDE_SRT_BIN:-}" srt)"
+case "$tool" in codex|opencode)
+  [ -n "$srt_bin" ] && [ -x "$srt_bin" ] \
+    || refuse_fix "cannot find srt, the sandbox a $tool step runs in" "install it with: mise use -g $SRT_PACKAGE" ;;
+esac
 
 # Claude's safety is ONE string; Codex's is a sandbox mode and (in the
 # interactive command only) an approval policy. The queue stores
@@ -106,11 +113,13 @@ opencode_safety_flags() {
   esac
 }
 
+# Codex's own sandbox cannot start inside srt, which every Codex turn runs
+# in (setup/srt.sh): it is always off, and srt's settings say what each
+# mode may write.
 codex_safety_flags() {
   case "$1" in
-    bypassPermissions) safety_flags=(--dangerously-bypass-approvals-and-sandbox) ;;
-    acceptEdits)       safety_flags=(--sandbox workspace-write) ;;
-    plan|default)      safety_flags=(--sandbox read-only) ;;
+    bypassPermissions|acceptEdits|plan|default)
+      safety_flags=(--dangerously-bypass-approvals-and-sandbox) ;;
     *) return 1 ;;
   esac
 }
@@ -139,10 +148,7 @@ invocation_build() {  # <tool> <bin> <permission> <model> <effort> <requested-id
   case "$invocation_tool" in
     codex)
       if [ -n "$invocation_resume" ]; then
-        # `exec resume` takes no --sandbox, and without an override keeps
-        # the sandbox the thread started with: the mode goes in as config.
         codex_safety_flags "$invocation_permission" || return 1
-        [ "${safety_flags[0]}" = "--sandbox" ] && safety_flags=(-c "sandbox_mode=\"${safety_flags[1]}\"")
         invocation_argv=("$invocation_bin" exec resume --json "${safety_flags[@]}")
       else
         codex_safety_flags "$invocation_permission" || return 1
@@ -215,11 +221,12 @@ what you would have asked, and finish the step. Never run tests or any
 other work in the background and never end your turn to wait for it:
 the run ends the moment you stop, and nothing resumes you. Run every
 test suite in the foreground and finish the step in this same turn.)"
-# Only Claude runs in the sandbox (setup/sandbox.sh), so only it is told,
-# and not a schedule entry run without it (--no-sandbox).
-case "$tool" in codex|opencode) ;; *) [ "$sandbox" = "no" ] || headless_note="$headless_note
+# Every step runs in a sandbox, Claude's own (setup/sandbox.sh) or srt
+# (setup/srt.sh), and is told so; a schedule entry run without it
+# (--no-sandbox) is not.
+[ "$sandbox" = "no" ] || headless_note="$headless_note
 
-$sandbox_note" ;; esac
+$sandbox_note"
 # The skill's own numbered steps, marked in the log. The instruction is in
 # each skill, beside every step heading, and a headless run skipped it:
 # the prompt is what the model reads first, so it is said here as well.

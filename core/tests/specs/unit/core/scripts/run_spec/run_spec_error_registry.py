@@ -30,6 +30,7 @@ RUNNER_ERROR_REGISTRY: list[dict] = [
     {"pattern": r'refuse_fix "the specs root is', "solution": "set the specs root to that folder"},
     {"pattern": r'refuse_fix "cannot find the codex binary', "solution": "set AIDE_CODEX_BIN"},
     {"pattern": r'refuse_fix "cannot find the opencode binary', "solution": "set AIDE_OPENCODE_BIN"},
+    {"pattern": r'refuse_fix "cannot find srt', "solution": "install it with: mise use -g"},
     {"pattern": r'refuse_fix "cannot find the claude binary', "solution": "set AIDE_CLAUDE_BIN"},
     {"pattern": r'refuse_fix "--tool fake-claude', "solution": "set AIDE_CLAUDE_BIN"},
     {"pattern": r'did not reach origin', "solution": "fix the branch in the checkout on the serving host"},

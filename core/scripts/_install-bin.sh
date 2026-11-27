@@ -63,6 +63,12 @@ COMMON_BIN_LIB_SCRIPTS="$(_core_lib_files "$(cd "$(dirname "${BASH_SOURCE[0]}")"
 # own "no mise" warning. TestRequiredToolsAreDeclared fails when a
 # script or installer checks for a tool that is not in this list.
 MISE_DECLARED_TOOLS="npm:markdownlint-cli2 jq gh bun pandoc npm:md-to-pdf yt-dlp"
+# Declared at one version and never upgraded by upgrade-ai-tools, each as
+# <package>@<version>=<command>. srt, the sandbox a Codex or OpenCode step
+# runs in, refuses a settings file its schema does not accept, so the
+# runner's settings and srt move together (SRT_PACKAGE in
+# lib/run-spec/setup/srt.sh names the same version).
+MISE_PINNED_TOOLS="npm:@anthropic-ai/sandbox-runtime@0.0.83=srt"
 _CORE_SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Replace an installed script by RENAME, never by writing into it: bash
@@ -170,6 +176,14 @@ install_mise_declared_tools() {
       echo "   ✅ Already on PATH: $bin (mise could not declare it)"
     else
       echo "   ⚠️  [aide tools] mise use -g $tool@latest failed and $bin is not on PATH — install it, then re-run this installer"
+    fi
+  done
+  for tool in $MISE_PINNED_TOOLS; do
+    bin="${tool##*=}"; tool="${tool%=*}"
+    if mise use -g "$tool" &> /dev/null; then
+      echo "   ✅ Declared via mise: $tool"
+    else
+      echo "   ⚠️  [aide tools] mise use -g $tool failed — install it, then re-run this installer ($bin)"
     fi
   done
 }

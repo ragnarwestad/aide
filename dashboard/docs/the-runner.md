@@ -351,15 +351,15 @@ Everything else is reachable:
 - shell commands may write anywhere else in the home directory and in the temporary directories;
 - the step's own worktree and its spec's worktree in the specs repository are writable, and so is the main checkout's
   git directory they point into;
-- the network is open, and a command may start a server on localhost and reach it.
+- the network is open to a Claude step, and a command may start a server on localhost and reach it.
 
 The sandbox confines shell commands only. Claude's file tools follow permission rules instead, so the runner passes the
 same paths as `Read(...)` and `Edit(...)` deny rules, which win over the user's own global `allow` of `Edit` and
 `Write`. A command cannot ask to run outside the sandbox, and a step whose sandbox cannot start stops instead of
 running its commands unconfined.
 
-**A browser cannot start in the sandbox.** Chromium registers a macOS service the sandbox has no setting for. A Claude
-step is told so in its prompt and does not run browser tests itself; the runner's own test run, outside the sandbox,
+**A browser cannot start in the sandbox**, Claude's or srt. Chromium registers a macOS service neither has a setting
+for. Every step is told so in its prompt and does not run browser tests itself; the runner's own test run, outside the sandbox,
 runs them before the work can merge. A scheduled job whose own commands start a browser runs without the sandbox: its
 entry's Sandbox is set to Off on its Settings tab (`"sandbox": false`, `aide-run-spec --no-sandbox`).
 
@@ -369,9 +369,30 @@ step talked into writing a test that reads a key gets that key read when the run
 never sees the output of a passing run, but the test can send what it read over the open network. Only a container
 per run (`docs/ROADMAP.md`, idea 18b) closes this.
 
-**A Codex step and an OpenCode step run without it.** Codex's sandbox can confine writing but not reading, and `git`
-in a worktree fails under `workspace-write`, because the worktree's git directory lies in the main checkout. OpenCode
-has no sandbox of its own. `docs/AI_SUPPORT_MATRIX.md` has the versions this was checked against.
+**A Codex turn and an OpenCode turn run inside srt** (`@anthropic-ai/sandbox-runtime`, the engine of Claude Code's
+own sandbox), the step's own and a review, verification or plan review beside a Claude step alike. srt confines the
+whole tool, not only its commands. It lives in `run-spec/setup/srt.sh`, and it differs from Claude's sandbox in these ways:
+
+- The same two lists are denied, except the tool's own login: Codex reads `auth.json` in the Codex folder it runs
+  from, OpenCode its own. Every other login stays denied.
+- Codex writes its sessions and databases in that Codex folder. Its settings, instructions, prompts, hooks, skills and
+  rules there stay denied for writing, and every other Codex folder stays denied whole. OpenCode writes its own state
+  folders, except the programs it runs from `~/.cache/opencode/bin`.
+- Codex's own sandbox cannot start inside srt, so Codex always runs with it off. srt sets what each permission mode
+  may write instead:
+  - `bypassPermissions`: the home directory, as a Claude step;
+  - `acceptEdits`: the step's worktrees;
+  - `plan` (every review, verification and plan review): nothing.
+
+  Every mode may also write the temporary directories and the tool's own state folders.
+- The network reaches only a fixed list of hosts: the AI providers, and for a turn that may write, GitHub and the npm
+  and Python registries too. A command may still start a server on localhost and reach it.
+- Codex is let through to the macOS certificate service (`enableWeakerNetworkIsolation`). Without it, no request of
+  Codex gets through.
+
+srt is installed by Aide's installer at a fixed version, since srt refuses a settings file its schema does not accept.
+A Codex or OpenCode step does not start without it. A review or verification on either stops the step and says srt is
+missing.
 
 The runner's own commit, push and merging run outside the sandbox.
 

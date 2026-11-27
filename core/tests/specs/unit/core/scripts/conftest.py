@@ -259,6 +259,24 @@ def fake_opencode(tmp_path, fake_launcher):
     return make
 
 
+FAKE_SRT = (
+    "#!/usr/bin/env bash\n"
+    'dir="$(dirname "$0")"\n'
+    'printf "%s\\n" "$*" >> "$dir/srt-calls.txt"\n'
+    'n="$(ls "$dir" | grep -c "^srt-settings-")"\n'
+    'cp "$2" "$dir/srt-settings-$n.json"\n'
+    "shift 3\n"
+    'exec "$@"\n'
+)
+
+
+def fake_srt(ws):
+    """A stand-in `srt` beside the workspace: it records its arguments in
+    `srt-calls.txt` and each turn's settings as `srt-settings-<n>.json`,
+    then runs the tool it was handed."""
+    return stand_in(ws["project"].parent / "fake-srt", FAKE_SRT)
+
+
 def run(runner, ws, claude=None, codex=None, opencode=None, return_stderr=False, **kwargs):
     """Invoke the runner; return (returncode, parsed json line, stdout).
 
@@ -309,6 +327,9 @@ def run(runner, ws, claude=None, codex=None, opencode=None, return_stderr=False,
         env["AIDE_CODEX_BIN"] = str(codex)
     if opencode:
         env["AIDE_OPENCODE_BIN"] = str(opencode)
+    # Every Codex and OpenCode turn starts inside srt, a step's own or a
+    # side turn beside a Claude step.
+    env.setdefault("AIDE_SRT_BIN", str(fake_srt(ws)))
     proc = subprocess.run(args, capture_output=True, text=True, env=env)
     line = proc.stdout.strip().splitlines()[-1] if proc.stdout.strip() else "{}"
     if return_stderr:

@@ -67,21 +67,15 @@ model_turn_launch() {
   # directory is the throwaway checkout, which is the tree this run will
   # commit from. `exec` keeps the pid, so $! is still the process group we
   # later signal.
-  # opencode's read-only config ($opencode_config, setup/invocation.sh) is
-  # exported in the subshell alone, so the step's own test run never sees it.
+  # The turn's environment and command line are set in the subshell alone
+  # (model-turn/launch.sh), so the step's own test run never sees them.
   # ENABLE_CLAUDEAI_MCP_SERVERS=false keeps the claude.ai account's own
   # connectors (Gmail, Slack, Drive, Calendar, Docs) out of the session: claude
   # loads them into every session, `-p` too, and no step needs them. `--chrome`
   # and a project's own MCP servers are left as they are (verified 2.1.310).
   ( cd "$project_wt" || exit
-    [ -n "${opencode_config:-}" ] && export OPENCODE_CONFIG_CONTENT="$opencode_config"
-    # The step's Claude account, for every Claude turn: the step's own, its
-    # review and verification, and the fix turns. A Codex or OpenCode side
-    # turn beside it is not given it.
-    case "$tool" in codex|opencode) ;; *) [ -n "${claude_config_dir:-}" ] && export CLAUDE_CONFIG_DIR="$claude_config_dir" ;; esac
-    # The tests the session runs itself keep to the same share as the runner's own run.
-    workers="$(test_workers_now)"; [ -n "$workers" ] && export AIDE_TEST_WORKERS="$workers"
-    AIDE_HEADLESS=1 ENABLE_CLAUDEAI_MCP_SERVERS=false exec "${argv[@]}" ) < "$1" >> "$transcript" 2>> "$work_dir/err" &
+    turn_launch || exit 126
+    AIDE_HEADLESS=1 ENABLE_CLAUDEAI_MCP_SERVERS=false exec "${launch_argv[@]}" ) < "$1" >> "$transcript" 2>> "$work_dir/err" &
   child=$!
   set +m
 }

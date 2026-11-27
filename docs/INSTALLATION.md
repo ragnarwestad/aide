@@ -59,7 +59,8 @@ and the install carries on with what it can do without it.
 - ✅ Git, and your projects cloned and working
 - ✅ [mise](https://mise.jdx.dev) with a node installed — the installers put the shared tools
   (markdownlint-cli2, jq, gh, bun, pandoc, md-to-pdf, yt-dlp) in place through it, and `jq` is what every spec script
-  needs; without mise they are all skipped with a warning
+  needs; without mise they are all skipped with a warning. srt, the sandbox a Codex or OpenCode step runs in, is put in
+  place the same way at a fixed version that the daily upgrade leaves alone
 
   ```bash
   curl https://mise.run | sh   # mise's own installer prints the line to add to your shell's startup file

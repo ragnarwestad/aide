@@ -13,10 +13,10 @@ import subprocess
 
 import pytest
 
-from ...conftest import run
-from ..run_spec_results import CODEX_STREAM_OK, emits
-from ..run_spec_status_files import with_status
-from ..turn.test_aide_run_spec_review import _reviewing_claude
+from ....conftest import run
+from ...run_spec_results import CODEX_STREAM_OK, emits
+from ...run_spec_status_files import with_status
+from ...turn.test_aide_run_spec_review import _reviewing_claude
 
 
 def _settings(argv):
@@ -175,12 +175,14 @@ def test_a_claude_step_is_told_it_cannot_run_browser_tests(runner, workspace, wo
     assert note in out["prompt"], out["prompt"]
 
 
-def test_a_codex_step_is_not_told_about_a_sandbox_it_does_not_run_in(
+def test_a_codex_step_is_told_it_runs_in_a_sandbox_too(
     runner, workspace, workspace_root, fake_codex
 ):
+    """A Codex or OpenCode turn starts inside srt, where a browser cannot
+    start either."""
     rc, out, _ = run(runner, workspace, tool="codex", codex=fake_codex("exit 1"), dry_run=True)
     assert rc == 0, out
-    assert _note(workspace_root) not in out["prompt"]
+    assert _note(workspace_root) in out["prompt"]
 
 
 def test_commands_may_write_the_temporary_directories_and_listen_on_localhost(runner, workspace):
@@ -196,7 +198,7 @@ def test_a_schedule_entry_may_run_claude_without_the_sandbox(runner, workspace, 
     """A scheduled job whose commands start a browser runs without it
     (`--no-sandbox`, its entry's own `sandbox: false`), and is not told
     about a sandbox it does not run in."""
-    from ..turn.test_aide_run_spec_schedule import FINISHED, job, schedule, with_prompt
+    from ...turn.test_aide_run_spec_schedule import FINISHED, job, schedule, with_prompt
 
     with_prompt(workspace)
     rc, out, _ = schedule(runner, workspace, job(fake_claude, FINISHED), no_sandbox=True)
@@ -209,7 +211,7 @@ def test_a_schedule_entry_may_run_claude_without_the_sandbox(runner, workspace, 
 
 @pytest.mark.parametrize("asked, why", [({"command": "analyze"}, "--command schedule"), ({"tool": "codex"}, "--tool claude")])
 def test_no_sandbox_is_refused_outside_a_scheduled_claude_job(runner, workspace, fake_claude, asked, why):
-    from ..turn.test_aide_run_spec_schedule import FINISHED, job, schedule, with_prompt
+    from ...turn.test_aide_run_spec_schedule import FINISHED, job, schedule, with_prompt
 
     with_prompt(workspace)
     rc, out, _ = schedule(runner, workspace, job(fake_claude, FINISHED), no_sandbox=True, **asked)
@@ -222,7 +224,7 @@ def test_a_schedule_prompt_is_read_as_committed_never_off_the_disk(runner, works
     """A step's shell may write the main checkout, and a schedule entry may
     run without the sandbox: what such a run is told must be what was
     committed, not what a step left in the file."""
-    from ..turn.test_aide_run_spec_schedule import FINISHED, job, schedule, with_prompt
+    from ...turn.test_aide_run_spec_schedule import FINISHED, job, schedule, with_prompt
 
     with_prompt(workspace)
     (workspace["project"] / "docs" / "nightly-report.md").write_text("Planted by a step.\n")
@@ -237,7 +239,7 @@ def test_a_worktree_git_file_the_step_rewrote_is_put_back_before_the_runner_runs
 ):
     """A `.git` file pointed at a git directory of the step's own would hand
     the runner's git, outside the sandbox, hooks of the step's choosing."""
-    from ..turn.test_aide_run_spec_schedule import FINISHED, job, schedule, with_prompt
+    from ...turn.test_aide_run_spec_schedule import FINISHED, job, schedule, with_prompt
 
     with_prompt(workspace)
     planted = tmp_path / "planted-gitdir"

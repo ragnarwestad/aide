@@ -236,8 +236,8 @@ def test_a_full_codex_thread_starts_fresh_and_later_resumes_that_thread_ac_8(
     assert rc == 0, out
     calls = fake_codex.calls.read_text().splitlines()
     assert calls[1].startswith("exec --json") and "exec resume" not in calls[1], calls[1]
-    assert "--sandbox" in calls[1], calls[1]
-    assert calls[2].startswith("exec resume --json"), calls[2]
-    assert calls[2].endswith(f"{FRESH_SESSION} -"), calls[2]
-    assert '-c sandbox_mode="workspace-write"' in calls[2], calls[2]
+    # Codex's own sandbox stays off in a resumed thread too: it cannot start inside srt.
+    assert "--dangerously-bypass-approvals-and-sandbox" in calls[1], calls[1]
+    assert calls[2].startswith(f"exec resume --json --dangerously-bypass-approvals-and-sandbox {FRESH_SESSION} -"), calls[2]
+    assert "--add-dir" not in calls[2], calls[2]
     assert out["sessionId"] == CODEX_THREAD_ID, out

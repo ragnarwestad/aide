@@ -133,7 +133,7 @@ def test_a_review_on_codex_beside_a_claude_step_runs_read_only_and_the_fix_resum
     assert out["terminalReason"] == "completed", out
     assert out["sessionId"] == IMPLEMENT_SESSION, out
     (review,) = fake_codex.calls.read_text().splitlines()
-    assert review.startswith("exec --json --sandbox read-only --model gpt-6.1-sol"), review
+    assert review.startswith("exec --json --dangerously-bypass-approvals-and-sandbox --model gpt-6.1-sol"), review
     calls = fake_claude.calls.read_text().splitlines()
     assert len(calls) == 2, calls
     assert f"--resume {IMPLEMENT_SESSION}" in calls[1], calls[1]

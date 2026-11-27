@@ -58,6 +58,11 @@ side_argv_for() {  # <tool> <model> <name> [<bin>]
       ;;
     *) return 1 ;;
   esac
+  # A Codex or OpenCode turn runs only inside srt (setup/srt.sh).
+  case "$side_tool" in codex|opencode)
+    [ -n "${srt_bin:-}" ] && [ -x "$srt_bin" ] \
+      || { side_error="cannot find srt, the sandbox a $side_tool turn runs in"; return 1; } ;;
+  esac
   # Building sets the shared invocation globals; the side turn keeps what it
   # built as its own and the step's are put back at once.
   opencode_config=""
@@ -81,6 +86,8 @@ side_turn() {  # <tool> <prompt-file> <claude-config-dir> <codex-home>
   local -a saved_argv=("${argv[@]}")
   turn_result_capture main_result
   tool="$1"; argv=("${side_argv[@]}"); claude_config_dir="$3"
+  # A side session is read-only, and srt is told so (setup/srt.sh).
+  turn_permission="plan"
   invocation_requested_id="${side_requested_id:-}"; invocation_resume_id="${side_resume_id:-}"
   opencode_config="${side_opencode_config:-}"
   if [ -n "$4" ]; then export CODEX_HOME="$4"; else unset CODEX_HOME; fi
@@ -101,7 +108,7 @@ side_turn() {  # <tool> <prompt-file> <claude-config-dir> <codex-home>
   side_capacity="$(turn_result_field "$side_result" atCapacity)"
   side_provider_error="$(jq -c '.providerError // empty' <<<"$side_result")"
   side_time_limit="$(jq -c '.timeLimit // empty' <<<"$side_result")"
-  tool="$saved_tool"; argv=("${saved_argv[@]}")
+  tool="$saved_tool"; argv=("${saved_argv[@]}"); turn_permission=""
   turn_result_apply "$main_result"
   claude_config_dir="$saved_claude_dir"
   opencode_config="$saved_opencode_config"
