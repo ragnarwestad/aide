@@ -8,6 +8,7 @@
   - [YouTube channels](#youtube-channels)
 - [Notation](#notation)
 - [News log](#news-log)
+  - [2026-11-27](#2026-11-27)
   - [2026-11-26](#2026-11-26)
   - [2026-11-25](#2026-11-25)
   - [2026-11-24](#2026-11-24)
@@ -47,7 +48,6 @@
   - [2026-10-04](#2026-10-04)
   - [2026-09-30](#2026-09-30)
   - [2026-09-28](#2026-09-28)
-  - [2026-09-26](#2026-09-26)
 
 ---
 
@@ -167,6 +167,61 @@ Relevance markers in each review's `Relevance for aide` section:
 ---
 
 ## News log
+
+### 2026-11-27
+
+Review period: 2026-11-26 to 2026-11-27. All 16 source addresses, 28 watched pages and 14 YouTube channels fetched.
+Fresh MyAI failed with HTTP 503; no X posts assessed. Five selected videos had captions, all read and assessed.
+
+**Claude Code (review period):**
+
+| Date      | Version | News                                                                                                                                                                               | Source                                                       |
+|-----------|---------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------|
+| Nov 26–27 | —       | No new release since the last review. Blog/resources latest Nov 24; Anthropic news latest dated article Nov 20. The page header date is not a publication date.                    | [Source](https://github.com/anthropics/claude-code/releases) |
+| Nov 26    | video   | Chase AI release roundup: Code Mode is experimental; MCP skills are beta, Tasks/Elicitation GA, uploads forthcoming. Elicitation does not guarantee dangerous actions are stopped. | [Source](https://www.youtube.com/watch?v=3IYk1E0kQLI)        |
+
+**GitHub Copilot CLI (review period):**
+
+| Date                | Version                   | News                                                                                                                                                                      | Source                                                   |
+|---------------------|---------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------|
+| Nov 26–27           | 1.0.117-2…5 (pre-release) | Pre-releases: MCP approval scoping and worktree fixes, extension launch approvals, custom sandbox CA certificates. No stable release; no action assessment before stable. | [Source](https://github.com/github/copilot-cli/releases) |
+| Nov 26–27 (checked) | —                         | Changelog latest Nov 25; newest blog article publication metadata Nov 25, already reviewed. No new dated article.                                                         | [Source](https://github.blog/ai-and-ml/github-copilot/)  |
+
+**OpenAI Codex CLI (review period):**
+
+| Date                | Version           | News                                                                        | Source                                             |
+|---------------------|-------------------|-----------------------------------------------------------------------------|----------------------------------------------------|
+| Nov 26              | 0.174.0-alpha.7…8 | Pre-release builds with generic release notes; no stable behavior inferred. | [Source](https://github.com/openai/codex/releases) |
+| Nov 26–27 (checked) | —                 | Changelog and developer blog latest Nov 24; no new dated item.              | [Source](https://developers.openai.com/blog)       |
+
+**OpenCode (review period):**
+
+| Date   | Version | News                                                                                                                                         | Source                                                              |
+|--------|---------|----------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------|
+| Nov 26 | 2.4.2   | Already assessed Nov 26: site-scoped web-fetch approvals, automation failures/timeouts and plan/plugin instructions. No duplicate follow-up. | [Source](https://github.com/anomalyco/opencode/releases/tag/v2.4.2) |
+
+**Across tools (review period):**
+
+| Date                | Version      | News                                                                                                                                                                                                                                   | Source                                                       |
+|---------------------|--------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------|
+| Nov 26–27 (checked) | —            | Cookbooks latest commit Nov 20; Fowler latest dated article Nov 12. Artificial Analysis harness comparison is present, but chart values remain unavailable in fetched text; no ranking inferred.                                       | [Source](https://artificialanalysis.ai/agents/coding-agents) |
+| Nov 27 (changed)    | watched page | agents.md repository counter changed 4835 → 4842 only; no changed advice.                                                                                                                                                              | [Source](https://agents.md)                                  |
+| Nov 26              | video        | Execution Is Free. How Ambitious Are You? — Jason Liu, OpenAI: own shipped work and describe quality concretely; token volume is not ambition. Consistent with human review and acceptance criteria.                                   | [Source](https://www.youtube.com/watch?v=bFcob2p6u3A)        |
+| Nov 26              | video        | Stop Building Software Factories — Justin McCarthy, Diffusion: explore uncertain needs; maintain existing promises with measured feedback loops. Claimed one-week setup and future performance improvements are personal expectations. | [Source](https://www.youtube.com/watch?v=1S4hx3wgvBE)        |
+| Nov 26              | video        | Are We Ready? Security in a Headless World: identify the owner, constrain actions, observe and revoke access. Panel opinions are not product guarantees; legal speculation is not adopted.                                             | [Source](https://www.youtube.com/watch?v=gEiM4HBtPAU)        |
+| Nov 26              | video        | Agent Governance Lives in the OS — Alexander Sklar and Roberth Karman, Microsoft: policy comes from outside the agent and must cover the agent process as well as spawned tools. MXC capabilities depend on backend and host.          | [Source](https://www.youtube.com/watch?v=QcRXgSNsgb4)        |
+
+**Relevance for aide:**
+
+- ✅ Jason Liu’s talk reinforces spec acceptance criteria and human review: make quality concrete and keep responsibility for shipped results with maintainers. [Source](https://www.youtube.com/watch?v=bFcob2p6u3A).
+- ⭐ Diffusion’s talk touches exploration, analysis and recurring maintenance: keep uncertain product discovery in exploration; describe existing promises as measurable checks and use outcome/cost feedback before expanding automatic maintenance. Aide has exploration and TDD, but not this complete feedback contract. [Source](https://www.youtube.com/watch?v=1S4hx3wgvBE).
+- ⭐ The headless-security panel touches runner permissions, cancellation and scheduled reports: establish whether stopping a run also revokes external authority, and record the owner and effective authority. Do not assume killing a process cancels remote MCP tasks. [Source](https://www.youtube.com/watch?v=gEiM4HBtPAU). [Source](https://code.claude.com/docs/en/security).
+- ⭐ Microsoft’s talk touches the runner sandbox and support matrix: evaluate a host-controlled boundary around the agent process and descendants, not only shell tools. Aide already documents shell-only confinement and bypass modes; MXC is an option to assess, not a mandatory dependency or a proven integration. [Source](https://www.youtube.com/watch?v=QcRXgSNsgb4). [Source](https://learn.microsoft.com/en-us/windows/apps/develop/mxc/).
+- ⚠️ Chase AI’s roundup is useful as a source of questions, not a universal MCP or CLI guarantee. Clarify capability rollout and headless elicitation in the matrix/reference; keep Code Mode opt-in. Official docs distinguish Skills beta, Tasks/Elicitation GA and forthcoming uploads, and Code Mode permissions still matter. Existing /ship notes already cover the board’s separate Merge behavior. [Source](https://www.youtube.com/watch?v=3IYk1E0kQLI). [Source](https://claude.com/resources/articles/skills-over-mcp-tasks-and-more). [Source](https://code.claude.com/docs/en/code-mode).
+- ℹ agents.md changed a repository counter only; all other 27 watched pages were unchanged. No changed best-practice advice. [Source](https://agents.md).
+- ℹ Coverage gap: fresh MyAI returned HTTP Error 503: Service Unavailable; complete=false, zero collected and zero retained. No X posts assessed; no older digest substituted.
+- ℹ All 16 source addresses and all 14 YouTube channels were read. Bart Slodyczka feed returned curl (56), HTTP 503; yt-dlp fallback succeeded with zero videos. All five selected videos yielded captions. Artificial Analysis chart values remain unavailable in plain fetched text.
+
 
 ### 2026-11-26
 
@@ -2575,67 +2630,3 @@ v1.0.89-5 adds `.claude/rules` support**, confirming the row `docs/AI_SUPPORT_MA
 - ⭐ **Copilot CLI v1.0.89-5 adds `.claude/rules` support** — confirms the row `docs/AI_SUPPORT_MATRIX.md` carried as
   unverified; see the separate spec proposing the matrix update.
 - ℹ Codex 0.158.0/0.159.0 alphas, OpenCode v1.18.33, and Copilot's other v1.0.89-5 items — no Aide action.
-
-### 2026-09-26
-
-Sep 21 – Sep 26, from the scheduled Nyhetssjekk run's report, with OpenCode added by hand (the report's sources did not
-include it yet). New models across the tools; nothing that changes how Aide installs or runs. Three proposals from
-2026-09-21 were never followed up and are carried over below.
-
-**Claude Code (Sep 22 – Sep 25, v2.1.280 → v2.1.283):**
-
-| Date   | Version  | News                                                                                                                                                                                                          | Source                                                                |
-|--------|----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|
-| Sep 22 | —        | Claude Opus 5.5: comparable to Fable 5.1 at 40% lower cost                                                                                                                                                    | [Anthropic news](https://www.anthropic.com/news)                      |
-| Sep 25 | v2.1.283 | Opt-in gateway hint header `x-claude-code-prompt-id` (`CLAUDE_CODE_GATEWAY_HINT_HEADERS=1`); managed settings `availableModelsMatch` and `deniedModels`; MCP tool output saved to files; faster first request | [GitHub Releases](https://github.com/anthropics/claude-code/releases) |
-
-Versions v2.1.280–282 were not itemised on the releases page.
-
-**GitHub Copilot CLI (Sep 21 – Sep 25, v1.0.87 → v1.0.89-4):**
-
-| Date   | Version         | News                                                                                                    | Source                                                            |
-|--------|-----------------|---------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|
-| Sep 21 | v1.0.87         | Auto routing tier startup defaults with policy; `worktreePathTemplate` setting; Windows sandbox proxy   | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
-| Sep 22 | v1.0.88         | OSC 777 notifications; managed settings apply to ACP and AHP modes; MCP indexed search with glob filter | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
-| Sep 22 | v1.0.89-0 (pre) | Claude Opus 5.5 support                                                                                 | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
-| Sep 23 | v1.0.89-1 (pre) | GPT-6 Sol and Luna support                                                                              | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
-| Sep 25 | v1.0.89-4 (pre) | Auto suggests a routing tier; direct plugin installs can be enabled and disabled                        | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
-| Sep 21 | —               | Grok 4.7 available in Copilot                                                                           | [GitHub Blog](https://github.blog/changelog/label/copilot/)       |
-
-**OpenAI Codex CLI (Sep 22 – Sep 26, v0.156.0 → v0.157.1):**
-
-| Date   | Version  | News                                                                                                                  | Source                                                      |
-|--------|----------|-----------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------|
-| Sep 22 | v0.156.0 | Optional fullscreen UI, voice conversations by default, `/usage` dashboard; GPT-6 Sol and Luna rolled out to Codex    | [Codex changelog](https://learn.chatgpt.com/docs/changelog) |
-| Sep 25 | v0.157.0 | GPT-6 Sol/Luna on Amazon Bedrock; fullscreen transcripts by default; background server starts in interactive sessions | [GitHub](https://github.com/openai/codex/releases)          |
-
-**OpenCode (Sep 14 – Sep 21, v1.18.31 → v1.18.32):**
-
-| Date   | Version  | News                                                                                                        | Source                                                            |
-|--------|----------|-------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|
-| Sep 14 | v1.18.31 | ACP sessions keep their model, effort and mode on resume and fork; remote config auth errors fail startup   | [GitHub Releases](https://github.com/anomalyco/opencode/releases) |
-| Sep 21 | v1.18.32 | Bedrock image attachments fixed; Together AI usage reporting fixed; Grok 4.7 and DeepSeek V4.1 Flash in Zen | [GitHub Releases](https://github.com/anomalyco/opencode/releases) |
-
-**Relevance for Aide:**
-
-- ⭐ **GPT-6 Sol and Luna in Codex** — added to the board's `modelChoices` as `gpt-6-sol` and `gpt-6-luna` (both answered
-  `codex exec -m` on 0.157.1).
-- ✅ **Claude Opus 5.5** — no change: the board's "Opus" names the `opus` alias, which follows the newest Opus.
-- ℹ **Codex 0.157's background server** starts in interactive sessions only; the runner uses `codex exec`.
-- ℹ **Claude Code `deniedModels`/`availableModelsMatch`** apply to organisation-managed settings, which Aide does not use.
-- ℹ **Copilot `worktreePathTemplate`, plugin toggles, MCP indexing** — the runner does not drive Copilot; no Aide action.
-- ⚠️ **GPT-5.5 retires Oct 14** (from 2026-09-21) — done: `gpt-5.5` is out of the board's `modelChoices`; no default,
-  schedule or queued job named it.
-
-**Carried over from 2026-09-21, awaiting approval:**
-
-- Done: `.claude/skills/ai-tools-reference/SKILL.md` notes that Claude Code reads `AGENTS.md` when a project has no
-  `CLAUDE.md` (v2.1.277; not on Bedrock/Vertex/Foundry).
-- Done: `.claude/skills/ai-tools-reference/SKILL.md` lists `syncClaudeAiSkills`/`syncClaudeAiPlugins` among Claude Code's
-  configuration files (v2.1.275).
-- Declined: `include-custom-instructions` for Copilot's custom agents is not added to `docs/AI_SUPPORT_MATRIX.md`. It
-  could not be verified on 1.0.88 without a live run, and the runner does not drive Copilot.
-- Done here: the Codex changelog address is now `learn.chatgpt.com/docs/changelog` in the Sources table and in the
-  check-news skill.
-
----
