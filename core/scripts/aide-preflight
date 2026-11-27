@@ -108,41 +108,6 @@ preflight_local_settings() {
   fi
 }
 
-preflight_claude() {
-  echo "Claude Code"
-  echo "-----------"
-  probe "Claude Code" claude
-  places claude
-  preflight_local_settings
-  echo ""
-}
-
-preflight_copilot() {
-  echo "GitHub Copilot"
-  echo "--------------"
-  probe "Copilot CLI" copilot
-  places copilot
-  echo "   Note: the Copilot CLI reads personal skills from ~/.agents/skills/,"
-  echo "   not ~/.claude/skills/ (verified against 1.0.79). ~/.claude/rules/ is"
-  echo "   NOT read by Copilot; the rules reach it through the instructions file."
-  echo ""
-}
-
-preflight_opencode() {
-  echo ""
-  echo "🔧 OpenCode"
-  probe "OpenCode" opencode
-  places opencode
-}
-
-preflight_codex() {
-  echo "OpenAI Codex"
-  echo "------------"
-  probe "Codex CLI" codex
-  places codex
-  echo ""
-}
-
 preflight_tool() {
   local id="$1" name cli underline note
   name="$(ai_tool_field "$id" name)" || return 1

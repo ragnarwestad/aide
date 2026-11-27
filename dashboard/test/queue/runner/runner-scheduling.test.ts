@@ -252,7 +252,7 @@ describe("schedule jobs share the queue with spec work", () => {
   test("starts alongside implement and clears a previous project hold", () => {
     const spec = enqueue({ steps: ["implement"] });
     const schedule = enqueue({ specFolder: "schedule-nightly", steps: ["schedule"] });
-    store.update(schedule.id, { errorReason: "held-back", error: { key: "runner.scheduleWaitsOnJob", values: { doing: "implement", spec: "aide:81" } } });
+    store.update(schedule.id, { errorReason: "held-back", error: { key: "runner.archiveRunning" } });
     makeRunner({ maxConcurrent: 2 }).tick();
     expect(store.get(spec.id)?.state).toBe("running");
     expect(store.get(schedule.id)?.state).toBe("running");

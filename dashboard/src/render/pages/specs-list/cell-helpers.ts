@@ -30,6 +30,10 @@ import { isArchivedRow, phaseDuration, type Phase, type SpecGroup } from "./data
 export const stateCell = (r: QueueRowView, lang: Language, resting: RestingState = {}): string =>
   specStateChip(r, lang, resting);
 
+/** Whether a phase's state cell shows how many times it ran: only a
+ *  phase run more than once does — a single run is the ordinary case. */
+export const showsAttemptCount = (attempts: number): boolean => attempts > 1;
+
 // The same two-part shape, for a PHASE — whose state is the file's
 // answer (`wordPhase`), not the last job's. No badge at all means the
 // phase has neither happened nor been attempted. The attempt's own
@@ -61,12 +65,12 @@ export const phaseWordCell = (
   (w.waiting?.id ? queueBadge(lang, w.waiting.id, w.waiting.n, w.waiting.total, w.waiting.reason) : w.badge
     ? badge(
         w.badge.variant,
-        attempts > 1 ? `${w.badge.label} (${attempts})` : w.badge.label,
+        showsAttemptCount(attempts) ? `${w.badge.label} (${attempts})` : w.badge.label,
         // Always set: a phone's own state cell
         // is a fixed width and can ellipsis-clip the visible label
         // (narrow.css, tr.subrow[data-step] td[data-col="state"] .badge),
         // so the full text has to stay reachable through the title.
-        attempts > 1 ? `${w.badge.label} (${attempts}) — ${attempts} attempts` : w.badge.label,
+        showsAttemptCount(attempts) ? `${w.badge.label} (${attempts}) — ${attempts} attempts` : w.badge.label,
       )
     // A dash, the same one Created and Cost draw for "nothing here"
     // (2026-09-08): the sentence "not run yet" said in words what an
@@ -80,8 +84,8 @@ export const phaseWordCell = (
     // its own padding, so a bare dash left at the cell's edge sat four
     // characters left of every word under it and read as stuck to the
     // column's left edge.
-    : `<span class="muted small" data-none${attempts > 1 ? ` title="${attempts} attempts"` : ""}>` +
-      `–${attempts > 1 ? ` (${attempts})` : ""}</span>`);
+    : `<span class="muted small" data-none${showsAttemptCount(attempts) ? ` title="${attempts} attempts"` : ""}>` +
+      `–${showsAttemptCount(attempts) ? ` (${attempts})` : ""}</span>`);
 
 /** The spec header row's own time cell: what its phases have come to so
  *  far, summed.

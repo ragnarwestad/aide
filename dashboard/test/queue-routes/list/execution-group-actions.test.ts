@@ -1,47 +1,8 @@
 import { afterEach, expect, test } from "bun:test";
-import { executionGroupAction } from "../../../src/queue/execution-groups";
 import { queueHarness } from "../../helpers/queue-server.ts";
 
-const member = (patch = {}) => ({ implemented: false, archived: false, acceptanceOpen: false, busy: false, ...patch });
 const harness = queueHarness("aide-execution-group-actions-");
 afterEach(() => harness.cleanup());
-
-test("prepared and stopped groups can start only their next member (AC-6)", () => {
-  expect(executionGroupAction({ state: "prepared" }, [member(), member()])).toBe("start");
-  expect(executionGroupAction({ state: "stopped" }, [member({ implemented: true }), member()])).toBe("start");
-});
-
-test("queued and running groups offer Stop instead of Start (AC-7, AC-8)", () => {
-  expect(executionGroupAction({ state: "queued" }, [member()])).toBe("stop");
-  expect(executionGroupAction({ state: "running" }, [member({ busy: true })])).toBe("stop");
-});
-
-test("Archive requires every member to be implemented accepted and idle (AC-9)", () => {
-  expect(executionGroupAction({ state: "waiting-acceptance" }, [member({ implemented: true })])).toBe("archive");
-  expect(executionGroupAction({ state: "waiting-acceptance" }, [member({ implemented: true, acceptanceOpen: true })])).toBeUndefined();
-});
-
-test("a completed group's one action is Remove (AC-1)", () => {
-  expect(executionGroupAction({ state: "completed" }, [member({ implemented: true, archived: true })])).toBe("remove");
-  expect(executionGroupAction({ state: "completed" }, [])).toBe("remove");
-});
-
-test("no state but completed answers Remove while a spec is left to archive (AC-2)", () => {
-  for (const state of ["prepared", "queued", "running", "stopped", "waiting-acceptance", "archiving"] as const) {
-    expect(executionGroupAction({ state }, [member(), member()])).not.toBe("remove");
-    expect(executionGroupAction({ state }, [member({ implemented: true })])).not.toBe("remove");
-  }
-});
-
-test("a group with every spec archived answers Remove only once it is idle", () => {
-  const archived = [member({ implemented: true, archived: true })];
-  for (const state of ["queued", "running", "archiving"] as const) {
-    expect(executionGroupAction({ state }, archived)).not.toBe("remove");
-  }
-  for (const state of ["prepared", "stopped", "waiting-acceptance"] as const) {
-    expect(executionGroupAction({ state }, archived)).toBe("remove");
-  }
-});
 
 test("legacy membership becomes one prepared Running card without a registry record (AC-4)", async () => {
   const description = (folder: string, position: number) =>

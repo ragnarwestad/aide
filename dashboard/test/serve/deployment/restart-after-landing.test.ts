@@ -23,17 +23,10 @@ function sentence(s: unknown): string {
   return formatSentence("en", s as Parameters<typeof formatSentence>[1]) ?? "";
 }
 
-import {
-  setupQueueRoutesHarness,
-} from "../fixtures.ts";
-
-const { harness } = setupQueueRoutesHarness();
-
-/** Temp directories this suite makes for itself, outside the harness. */
+/** Temp directories this suite makes for itself. */
 const ownDirs: string[] = [];
 
 afterEach(() => {
-  harness.cleanup();
   while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 

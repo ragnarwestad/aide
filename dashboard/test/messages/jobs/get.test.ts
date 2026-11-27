@@ -78,7 +78,7 @@ describe("the line under a job row's state", () => {
   });
 
   test("a held-back job shows its reason instead of its provider", () => {
-    const error = { key: "runner.scheduleWaitsOnJob", values: { doing: "implement", spec: "aide:756" } } as const;
+    const error = { key: "runner.archiveRunning" } as const;
     const notice = getJobMessage({
       id: "held", state: "queued", steps: ["schedule"], stepIndex: 0,
       errorReason: "held-back", error, provider: "Claude-Capra",

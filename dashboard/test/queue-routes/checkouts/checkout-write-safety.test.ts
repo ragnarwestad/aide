@@ -4,7 +4,7 @@ import { join } from "node:path";
 import {
   createServer,
 } from "../../../src/serve/serve.ts";
-import { parseArgs, runnerArgv } from "../../../src/serve/serve-helpers";
+import { parseArgs } from "../../../src/serve/serve-helpers";
 import { checkoutSafetySuite } from "./checkout-safety-fixtures.ts";
 
 /** The temp directories this suite makes for itself, outside the harness,
@@ -24,27 +24,12 @@ const { git, realProject, recording } = checkoutSafetySuite();
 // directory it was handed could not tell the two apart.
 //
 // Split out of checkout-and-render-safety.test.ts by theme: this file
-// carries the write-direction tests — the argv, the flag, and the two
+// carries the write-direction tests — the flag and the two
 // end-to-end saves. The checkout-freshness and checkout-listing
 // tests are their own sibling files, sharing `git`,
 // `realProject` and `recording` via ./checkout-safety-fixtures.ts.
 describe("the dashboard works in checkouts of its own", () => {
   const AUTH = { "content-type": "application/json", accept: "application/json" };
-
-  // And the whole point: `--project-dir` is what decides
-  // which checkout a run branches, switches and cuts its worktree from.
-  test("the runner is pointed at the dashboard's own checkout, never the person's", () => {
-    const job = {
-      id: "j1", project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"], stepIndex: 0,
-       model: {}, timeoutSec: {}, permissionMode: {}, state: "queued", createdAt: "", results: [],
-    } as unknown as Parameters<typeof runnerArgv>[0];
-    const argv = runnerArgv(job, "analyze", "/tmp/r.json", {
-      runnerBin: "/bin/aide-run-spec",
-      projectDir: "/home/dev/aide-dashboard/checkouts/aide/code",
-      push: "branch",
-    });
-    expect(argv[argv.indexOf("--project-dir") + 1]).toBe("/home/dev/aide-dashboard/checkouts/aide/code");
-  });
 
   // Named on the command line, because the serving host is where these
   // clones actually take up disk and the default is a directory under

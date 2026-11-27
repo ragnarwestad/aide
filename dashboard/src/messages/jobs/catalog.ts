@@ -353,28 +353,6 @@ export const JOBS_CATALOG = {
       fr: "mergez-le à la main, dans le checkout sur le serveur",
     },
   },
-  "runner.scheduleWaitsOnJob": {
-    en: "held back: {doing} is running on {spec} — this starts when the other jobs in this project have finished",
-    nb: "holdt tilbake: {doing} på {spec} — jobben starter når de andre jobbene i prosjektet er ferdige",
-    es: "retenido: {doing} en {spec} — empieza cuando terminen los otros trabajos de este proyecto",
-    de: "zurückgehalten: {doing} für {spec} — startet, wenn die anderen Jobs in diesem Projekt fertig sind",
-    fr: "retenu : {doing} pour {spec} — démarre quand les autres tâches de ce projet sont terminées",
-    statement: "the schedule starts by itself when the project's other work finishes",
-  },
-  "runner.scheduleWaitsOnProject": {
-    en: "held back: another job is running or merging in this project",
-    nb: "holdt tilbake: en annen jobb kjører eller merges i dette prosjektet",
-    es: "retenido: otro trabajo está en curso o mergeándose en este proyecto",
-    de: "zurückgehalten: in diesem Projekt läuft oder mergt bereits ein anderer Job",
-    fr: "retenu : une autre tâche est en cours ou en train de merger dans ce projet",
-    solution: {
-      en: "it starts when that one has finished",
-      nb: "dette starter når den er ferdig",
-      es: "esto empieza cuando ese haya terminado",
-      de: "das startet, sobald der fertig ist",
-      fr: "cela démarre une fois celle-là terminée",
-    },
-  },
   "runner.mergeUnfinishedArchive": {
     en: "it reported success, but dropped the merge with main it was handed open — the branch is still behind main, and the same conflict waits at the next merge",
     nb: "steget meldte ferdig, men kastet mergen med main den fikk åpen — grenen ligger fortsatt bak main, og den samme konflikten venter ved neste merge",

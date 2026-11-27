@@ -1,4 +1,4 @@
-// The spec folders and branch reads the runner-route tests build on: a
+// The spec folders and branch reads the schedule tests build on: a
 // projects root with one spec depending on another, and a branch-file
 // checker that has already read a spec's open `aide/<folder>` branch.
 import { mkdirSync, writeFileSync } from "node:fs";

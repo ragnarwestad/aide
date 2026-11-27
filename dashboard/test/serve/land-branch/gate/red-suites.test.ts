@@ -1,6 +1,7 @@
-// A landing whose suite is red runs only the red suites on main alone, and
-// after a repair only those and the ones the repair's own changes need —
-// unless main has moved, when the whole suite runs again.
+// The gate wires the red-suite decisions (suite-rerun.test.ts) to a real
+// merge: a repaired landing with main where it was narrows its run to the
+// suites that were red, main alone runs the suites the merge's report named
+// red, and the verdict keeps them with the commits git gives.
 import { expect, test } from "bun:test";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -34,22 +35,12 @@ echo '{"suite":"dashboard","ok":true}' >> "$AIDE_TEST_SUITES_REPORT"; exit 0`), 
 const job = { project: "aide", specFolder: "81-x" };
 const runs = (file: string) => readFileSync(file, "utf8").trim().split("\n");
 
-test("main alone runs only the suites that were red, and the verdict keeps them for a repair", async () => {
-  const root = merged();
-  const log = recorder();
-  const verdict = await runProjectSuiteBeforePush(root, job, "aide/81-x", { button: "Archive", repair: async () => false });
-  expect((verdict.error as { key: string }).key).toBe("landing.testsRedOnMerge");
-  expect(runs(log)).toEqual(["all|", "dashboard|"]);
-  expect(verdict.red).toEqual({ red: ["dashboard"], testedHead: git(root, "rev-parse", "HEAD").trim(), mainSha: git(root, "rev-parse", "main").trim() });
-}, 30_000);
-
-test("after a repair, with main where it was, only the red suites and the repair's own run; with main moved, all", async () => {
+test("a repaired landing runs the red suites, main alone the ones its report named red, and the verdict keeps them", async () => {
   const root = merged();
   const log = recorder();
   const mainSha = git(root, "rev-parse", "main").trim();
-  await runProjectSuiteBeforePush(root, job, "aide/81-x", { button: "Archive", red: { red: ["dashboard"], testedHead: "abc", mainSha } });
-  expect(runs(log)[0]).toBe("dashboard|abc");
-  writeFileSync(log, "");
-  await runProjectSuiteBeforePush(root, job, "aide/81-x", { button: "Archive", red: { red: ["dashboard"], testedHead: "abc", mainSha: "elsewhere" } });
-  expect(runs(log)[0]).toBe("all|");
+  const red = { red: ["dashboard"], testedHead: "abc", mainSha };
+  const verdict = await runProjectSuiteBeforePush(root, job, "aide/81-x", { button: "Archive", red, repair: async () => false });
+  expect(runs(log)).toEqual(["dashboard|abc", "dashboard|"]);
+  expect(verdict.red).toEqual({ red: ["dashboard"], testedHead: git(root, "rev-parse", "HEAD").trim(), mainSha });
 }, 30_000);

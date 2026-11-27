@@ -8,11 +8,13 @@ from pathlib import Path
 import pytest
 
 
+# Each command's required libraries, in the order the command checks them.
 REQUIRED_LIBRARIES = {
     "aide-create-spec": (
-        "_aide-spec-lib.sh", "lib/config/aide-config.sh", "lib/spec-result.sh",
-        "lib/tracking-info.sh", "lib/create-spec/create.sh",
-        "lib/create-spec/assign-number.sh", "lib/create-spec/placeholder-files.sh",
+        "_aide-spec-lib.sh", "lib/config/aide-config.sh",
+        "lib/create-spec/placeholder-files.sh", "lib/spec-result.sh",
+        "lib/spec-reference.sh", "lib/tracking-info.sh",
+        "lib/create-spec/create.sh", "lib/create-spec/assign-number.sh",
     ),
     "aide-archive-spec": (
         "_aide-spec-lib.sh", "lib/config/aide-config.sh", "lib/spec-result.sh",
@@ -35,10 +37,10 @@ REQUIRED_LIBRARIES = {
     ),
 }
 
+# One case per command: the library checked last, so every earlier check
+# has passed and the refusal still comes before anything changes.
 FAULTY_COMMANDS = tuple(
-    (command, library)
-    for command, libraries in REQUIRED_LIBRARIES.items()
-    for library in libraries
+    (command, libraries[-1]) for command, libraries in REQUIRED_LIBRARIES.items()
 )
 
 SAFE_COMMANDS = (

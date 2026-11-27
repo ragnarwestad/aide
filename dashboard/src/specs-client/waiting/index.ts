@@ -1,8 +1,8 @@
-import { legalMove } from "../../queue/waiting/movement.ts";
 import { credentialOf } from "../../queue/waiting/credential.ts";
 import { showAsk } from "../ask.ts";
 import type { Owner, WaitingEntry } from "../../queue/waiting";
 import { bindPointerMoves } from "./reorder.ts";
+import { entryText, losesOwnership, moveAllowed, movedIds, positionText, reconcileRows, refreshAllowed, rowControls, saveAllowed, saveBody, targetGone, type DraftRules } from "./draft.ts";
 import { swapRows } from "../row-swap";
 
 async function post(action: string, body: unknown, keepalive = false): Promise<any> {
@@ -85,43 +85,39 @@ class WaitingEditor {
     return this.rows().map(row => row.dataset.waitingId!);
   }
 
-  private readonly allowed = (next: string[]): boolean =>
-    this.certain && this.current.has(this.state.owner.targetId) && legalMove(this.snapshotIds, next, this.state.owner.targetId, this.state.owner.openingIds);
-
-  private movedIds(row: HTMLElement, offset: number): string[] {
-    const next = this.ids(); const from = next.indexOf(row.dataset.waitingId!);
-    if (from + offset < 0 || from + offset >= next.length) return [];
-    next.splice(from, 1); next.splice(from + offset, 0, row.dataset.waitingId!); return next;
+  private rules(): DraftRules {
+    return { certain: this.certain, present: this.current, snapshotIds: this.snapshotIds, owner: this.state.owner };
   }
+
+  private readonly allowed = (next: string[]): boolean => moveAllowed(this.rules(), next);
 
   /** Each row's move buttons and handle as the moves allow, and the selected row's place. */
   private readonly numbered = (): void => {
-    const rows = this.rows();
-    const targetId = this.state.owner.targetId;
+    const rows = this.rows(); const ids = this.ids(); const rules = this.rules();
     const selected = document.activeElement?.closest<HTMLElement>("[data-waiting-id]");
-    rows.forEach(row => {
-      row.querySelector<HTMLButtonElement>('[data-waiting-move="up"]')?.toggleAttribute("disabled", row.dataset.waitingId !== targetId || !this.allowed(this.movedIds(row, -1)));
-      row.querySelector<HTMLButtonElement>('[data-waiting-move="down"]')?.toggleAttribute("disabled", row.dataset.waitingId !== targetId || !this.allowed(this.movedIds(row, 1)));
-    });
     for (const row of rows) {
+      const disabled = rowControls(rules, ids, row.dataset.waitingId!);
+      row.querySelector<HTMLButtonElement>('[data-waiting-move="up"]')?.toggleAttribute("disabled", disabled.up);
+      row.querySelector<HTMLButtonElement>('[data-waiting-move="down"]')?.toggleAttribute("disabled", disabled.down);
       const handle = row.querySelector<HTMLButtonElement>("[data-waiting-drag]");
-      if (handle) handle.disabled = !this.certain || row.dataset.waitingId !== targetId;
+      if (handle) handle.disabled = disabled.drag;
     }
     if (selected && (document.activeElement as HTMLButtonElement)?.disabled) selected.focus();
-    if (selected) this.position.textContent = `${rows.indexOf(selected) + 1}/${rows.length}`;
+    if (selected) this.position.textContent = positionText(rows.map(row => row.dataset.waitingId!), selected.dataset.waitingId!);
   };
 
   private render(entries: WaitingEntry[]): void {
     this.current = new Map(entries.map(entry => [entry.id, entry]));
-    for (const row of this.rows()) if (!this.current.has(row.dataset.waitingId!)) row.remove();
+    const { removed, added } = reconcileRows(this.ids(), entries.map(entry => entry.id));
+    for (const row of this.rows()) if (removed.includes(row.dataset.waitingId!)) row.remove();
     for (const entry of entries) {
       let row = this.rows().find(row => row.dataset.waitingId === entry.id);
-      if (!row) {
+      if (added.includes(entry.id)) {
         row = document.createElement("li"); row.dataset.waitingId = entry.id; row.tabIndex = -1;
         const text = document.createElement("span"); text.dataset.waitingText = ""; row.append(text);
         if (entry.id === this.state.owner.targetId) row.append(this.dialog.querySelector<HTMLTemplateElement>("[data-waiting-controls]")!.content.cloneNode(true)); this.list.append(row);
       }
-      row.querySelector<HTMLElement>("[data-waiting-text]")!.textContent = `${entry.project}: ${entry.label} · ${entry.operation}${entry.reason ? ` — ${entry.reason}` : ""}`;
+      row!.querySelector<HTMLElement>("[data-waiting-text]")!.textContent = entryText(entry);
     }
     if (!entries.length) this.note.textContent = this.box.dataset.empty!;
     this.numbered();
@@ -130,7 +126,7 @@ class WaitingEditor {
   private readonly onListClick = (event: Event): void => {
     const control = (event.target as Element).closest<HTMLElement>("[data-waiting-move]");
     const row = control?.closest<HTMLElement>("[data-waiting-id]");
-    if (!row || row.dataset.waitingId !== this.state.owner.targetId || !this.allowed(this.movedIds(row, control!.dataset.waitingMove === "up" ? -1 : 1))) return;
+    if (!row || row.dataset.waitingId !== this.state.owner.targetId || !this.allowed(movedIds(this.ids(), row.dataset.waitingId!, control!.dataset.waitingMove === "up" ? -1 : 1))) return;
     if (control!.dataset.waitingMove === "up" && row.previousElementSibling) this.list.insertBefore(row, row.previousElementSibling);
     else if (control!.dataset.waitingMove === "down" && row.nextElementSibling) this.list.insertBefore(row.nextElementSibling, row);
     control!.focus(); this.numbered();
@@ -142,27 +138,27 @@ class WaitingEditor {
   }
 
   private async refresh(action = "snapshot"): Promise<void> {
-    if (this.closed || this.saving) return;
+    if (!refreshAllowed({ closed: this.closed, saving: this.saving })) return;
     try {
       const next: Owner = await post(action, credentialOf(this.state.owner));
-      if (this.closed || this.saving) return;
+      if (!refreshAllowed({ closed: this.closed, saving: this.saving })) return;
       this.state.owner = next; this.snapshotIds = next.entries.map(entry => entry.id);
       this.certain = true; this.render(next.entries);
-      if (!this.current.has(next.targetId)) { this.lost(new Error(this.box.dataset.removed)); return; }
+      if (targetGone(next)) { this.lost(new Error(this.box.dataset.removed)); return; }
       this.save.disabled = false;
     } catch (error) { this.lost(error); }
   }
 
   private readonly onSubmit = async (event: Event): Promise<void> => {
     event.preventDefault(); event.stopImmediatePropagation();
-    if (!this.certain || this.saving) return;
+    if (!saveAllowed({ certain: this.certain, saving: this.saving })) return;
     this.saving = true; this.save.disabled = true;
     try {
-      await post("save", { ...credentialOf(this.state.owner), snapshotIds: this.snapshotIds, ids: this.ids() });
+      await post("save", saveBody(this.state.owner, this.snapshotIds, this.ids()));
       this.closed = true; this.dialog.close(); void swapRows();
     } catch (error) {
       this.refused.textContent = error instanceof Error ? error.message : String(error);
-      if (/ownership|order has changed/.test(this.refused.textContent)) this.lost(error);
+      if (losesOwnership(this.refused.textContent)) this.lost(error);
       this.save.disabled = !this.certain;
     } finally { this.saving = false; }
   };

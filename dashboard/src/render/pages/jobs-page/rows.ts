@@ -132,13 +132,7 @@ const byQueue = (a: TabPlace, b: TabPlace): number =>
 
 /** Standalone job cards: every attempt, Merge attempts for one branch
  *  included, until Remove takes one off. Nothing leaves Jobs on its own. */
-export function jobsShown<T extends JobLike>(
-  jobs: T[],
-  o: {
-    scheduleEntryExists: (project: string, name: string) => boolean;
-  },
-): T[] {
-  void o;
+export function jobsShown<T extends JobLike>(jobs: T[]): T[] {
   return jobs.filter((job) => !job.removedAt && requireWorkflowStep(job.steps[job.stepIndex] ?? "").ownRow);
 }
 

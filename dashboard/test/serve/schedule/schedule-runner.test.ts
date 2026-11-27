@@ -216,7 +216,7 @@ for (const first of ["poll", "runner"] as const) {
 
 test("a queued attempt a usage limit holds back fails when the next scheduled run is due", async () => {
   const { QueueStore } = await import("../../../src/queue/queue.ts");
-  for (const hold of ["runner.usageLimitHeld", "runner.scheduleWaitsOnProject"] as const) {
+  for (const hold of ["runner.usageLimitHeld", "runner.archiveRunning"] as const) {
     const queue = new QueueStore({ defaults: { timeoutSec: {}, permissionMode: {}, model: {} }, resolve: () => ({ specFolders: [] }) });
     const made = queue.enqueue({ project: "aide", specFolder: "schedule-nightly-report", steps: ["schedule"] });
     if (!made.ok) throw new Error(made.error);

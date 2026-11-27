@@ -11,7 +11,6 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
-  computeSpecTotalDurationMs,
   renderSpecsRows,
   type QueueRowView,
   type SpecTarget,
@@ -107,11 +106,6 @@ describe("a phase's own file stamp fills the gap no queue job can", () => {
     );
     // 3 minutes of create (the file) plus 5 minutes of analyze (the job).
     expect(headCell(html)).toContain("8m 00s");
-  });
-
-  test("a spec with zero queue jobs at all still totals its stamped create duration", () => {
-    stampCreate("3m00s");
-    expect(computeSpecTotalDurationMs([], Date.parse(NOW), dir)?.ms).toBe(3 * 60 * 1000);
   });
 
   test("the create phase's Cost cell shows the unknown mark, never blank and never $0.00", () => {

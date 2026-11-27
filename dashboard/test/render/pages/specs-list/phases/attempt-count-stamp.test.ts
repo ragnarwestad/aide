@@ -14,9 +14,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { phasesFor, renderSpecsRows, type ArchivedSpecView, type QueueRowView } from "../../../../../src/render";
 import { attemptCountOf } from "../../../../../src/render/pages/specs-list/phase-rows.ts";
+import { showsAttemptCount } from "../../../../../src/render/pages/specs-list/cell-helpers.ts";
 import type { Phase } from "../../../../../src/render/pages/specs-list/data-model";
-
-const NOW = "2026-09-02T12:00:00Z";
 
 const subRow = (html: string, step: string): string =>
   html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${step}">.*?</tr>`))?.[0] ?? "";
@@ -40,6 +39,16 @@ const ended = (id: string, step: string, terminalReason?: string): QueueRowView 
 
 const phase = (step: string, attempts: QueueRowView[], attemptCount?: number): Phase =>
   ({ step, attempts, history: {}, attemptCount });
+
+describe("which attempt counts a phase's state cell shows", () => {
+  test("a phase run once, or not at all, shows no count", () => {
+    expect([0, 1].map(showsAttemptCount)).toEqual([false, false]);
+  });
+
+  test("a phase run more than once shows its count", () => {
+    expect([2, 5].map(showsAttemptCount)).toEqual([true, true]);
+  });
+});
 
 describe("attemptCountOf", () => {
   test("a phase nothing ran and no file stamped counts nothing", () => {
@@ -106,22 +115,5 @@ describe("the phase line draws the count", () => {
       filter: { open: "aide/aa-spec" },
     });
     expect(subRow(html, "analyze")).toContain("3 attempts");
-  });
-
-  test("a phase run exactly once shows nothing, stamp included", () => {
-    const html = renderSpecsRows(
-      [
-        job("a1", {
-          results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-09-02T09:05:00Z" }],
-        }),
-      ],
-      {
-        runnerAvailable: true,
-        targets: [{ project: "aide", specFolder: "aa-spec", done: ["analyze"] }],
-        filter: { open: "aide/aa-spec" },
-      },
-      Date.parse(NOW),
-    );
-    expect(subRow(html, "analyze")).not.toContain("attempts");
   });
 });

@@ -115,7 +115,7 @@ Each side has a test of its own, and neither reads the other:
   - a root that is not there is refused by name, except for `create`,
     which makes a missing root that lies inside the project. The test
     covers a root outside the project only.
-- `dashboard/test/queue-routes/runner/runner-specs-root-argv.test.ts` —
+- `dashboard/test/serve/serve-helpers/runner-argv/specs-root.test.ts` —
   holds `runnerArgv`: it passes on the root it is handed, ahead of
   `--command`.
 

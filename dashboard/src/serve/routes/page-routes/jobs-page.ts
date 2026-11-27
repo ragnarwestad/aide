@@ -62,9 +62,7 @@ export async function jobsPage(
   const choice = jobsViewChoice(url, req, ctx.serverPort());
   const jobs = ctx.queue.list();
   // The scheduled jobs and the Close, Reopen and deploy jobs, by the rules they follow.
-  const shown = jobsShown(jobs, {
-    scheduleEntryExists: (project, name) => ctx.scheduleStore.list(project).some((e) => e.name === name),
-  });
+  const shown = jobsShown(jobs);
   // The jobs a spec's row is drawn from, as the Specs list draws it.
   const specJobs = listedSpecJobs(ctx, jobs);
   const executionGroups = waitingGroups(ctx.queue);

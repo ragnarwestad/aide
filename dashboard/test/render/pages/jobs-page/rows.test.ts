@@ -43,8 +43,7 @@ const sched = (o: Partial<J> = {}): J => job({ specFolder: "schedule-nightly", s
 const T = (day: number): string => `2026-10-${String(day).padStart(2, "0")}T10:00:00Z`;
 const ms = (day: number): number => Date.parse(T(day));
 
-const none: Parameters<typeof jobsShown>[1] = { scheduleEntryExists: () => true };
-const ids = (jobs: J[], o = none): string[] => jobsShown(jobs, o).map((j) => j.id);
+const ids = (jobs: J[]): string[] => jobsShown(jobs).map((j) => j.id);
 
 /** A spec's group, as far as its place on the tab reads it. */
 const group = (o: { state: string; lead?: Partial<Lead>; createdAt?: string }): Parameters<typeof specPlace>[0] =>
