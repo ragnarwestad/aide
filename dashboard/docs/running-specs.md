@@ -122,13 +122,13 @@ every required acceptance row is ticked, the group header offers Archive. That p
 together, runs the project's test gate once and merges the shared branch once. A member already archived counts as done,
 and Archive moves the rest. The card follows the shared job until merging finishes and counts its time and usage once.
 While Archive is queued, the collapsed card shows Queued with its queue position. All member pips carry A and follow
-the shared Archive: orange while queued, moving red while running or merge, and green once the group completes.
+the shared Archive: orange while queued, moving red while running or merging, and green once the group completes.
 A stopped or failed attempt keeps its reason and the Archive retry action on the group.
 An archived member waiting for the group's shared Archive is not reported as an individual merge failure merely because the branch is still open.
 Cancel on the group cancels all its queued and running jobs, including a member whose branch is still being tested and merged.
 Cancel also stops a merge's comparison test run on main. An interrupted individual Archive in an old member job is not resumed after a restart.
 
-The … menu offers Remove for prepared, stopped, waiting-for-acceptance and completed groups, while no member job is queued, running or merge. It asks in the shared progress dialog, blocks input
+The … menu offers Remove for prepared, stopped, waiting-for-acceptance and completed groups, while no member job is queued, running or merging. It asks in the shared progress dialog, blocks input
 while removing and refreshes the list before lifting the cover. Remove takes the card off the Jobs tab and draws the
 group's specs as ordinary rows there. It keeps the group's record — members, branch, dates, jobs and pull-request
 link — and deletes no spec or code branch. For an unfinished group, it removes the Group and Group position lines
@@ -926,7 +926,7 @@ The first view draws 50 cards. **Show more** adds the next 50 without reloading 
 sorting use the entire history, including cards not yet loaded. A card opened by its address is always drawn.
 
 A Merge job has its own Types entry and an icon showing two branches joining. Its title names the exact source branch,
-such as `Land: fix/example`. Cancel stops a queued Merge, or interrupts merge or testing and keeps the source branch;
+such as `Merge to main · fix/example`. Cancel stops a queued Merge, or interrupts merge or testing and keeps the source branch;
 after push begins Cancel is unavailable.
 
 Every row starts with an icon for its kind: a spec, a Merge, a deploy, a scheduled job, the cleanup or an execution group.

@@ -85,8 +85,8 @@ group. For each queued job it uses this ordered list; the first hold that applie
 - Skips a job that has `landing` set: its next step waits for its own merge.
 - Skips a job whose spec already has a running job.
 - Leaves an `archive` queued, with the reason on it, while another `archive` in the same project is running or
-  merge.
-- Leaves a `schedule` job queued, with a reason, while anything else in its project is running or merge.
+  merging.
+- Leaves a `schedule` job queued, with a reason, while anything else in its project is running or merging.
 - Leaves a deploy queued, with a reason, while a merge is in flight.
 - Leaves a job queued with "held back: not analyzed yet — run Analyze first" until its spec's `analyze` has
   completed.
@@ -121,7 +121,7 @@ A held-back job keeps its state; the reason is on the row and clears on a later 
   `providerLimit`: which window ran out, when it resets, the other windows' figures, and the plan or refused credit
   where the tool names them ([how the runner tells](the-runner.md#when-a-provider-limit-ends-a-step)). The row and
   the Logs tab say it in one sentence, in place of the runner's own summary. What such a step merges is in
-  [merge.md](landing.md#branches-and-merging-them); a merge that does run leaves the job's `error` in place.
+  [Branches and merging](landing.md#branches-and-merging-them); a merge that does run leaves the job's `error` in place.
 - A `provider-limit` stop also writes `usageLimitWait`: when the board queues the step again. It is the reset time
   the tool named when that is later than the stop, and an hour after the stop otherwise (`resetKnown` says which).
   The board starts no other queued step on that provider until then, and at that time `limit-reset` moves the job from

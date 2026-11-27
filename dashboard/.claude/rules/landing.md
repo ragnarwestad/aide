@@ -2,10 +2,10 @@
 paths:
   - "src/serve/land-branch/**"
   - "src/serve/runner-setup/**"
-  - "src/serve/setup/merge.ts"
+  - "src/serve/setup/land.ts"
   - "src/serve/spec-views/**"
   - "src/git/branch-merge/**"
-  - "src/git/spec-folder-merge.ts"
+  - "src/git/spec-folder-landing.ts"
   - "src/git/merge-hooks.ts"
   - "src/queue/runner/**"
   - "src/render/pages/specs-list/**"
@@ -48,7 +48,7 @@ reads what a merge left.
   `acceptance-criteria-unticked`) is `ok` and the job is `done` — the
   row reads "archive held back" from `4-status.md` — but nothing was
   archived, and `already-landed` has nothing left to merge. Neither
-  reaches `landArchivedSpec`: merge a refusal would merge implement's
+  reaches `landArchivedSpec`: merging a refusal would merge implement's
   code branch into main with the spec still active. A stopped, failed or
   interrupted archive merges nothing either: its pre-check moves the folder
   on the branch, and the move reaches the default branch only when the

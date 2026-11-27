@@ -29,7 +29,7 @@ Both can run the tests.
 
 The step's time limit counts the AI's turns, not these runs: each run has a limit of its own, an hour unless
 `AIDE_TEST_RUN_LIMIT_SEC` says otherwise. A run still going at that limit is stopped, and the step ends there with the
-work so far committed. The merge is described in full in [merge.md](landing.md).
+work so far committed. The merge is described in full in [Branches and merging](landing.md).
 
 ---
 

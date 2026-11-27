@@ -168,7 +168,7 @@ carries the moment it was written, and a test board that the dashboard
 stops gets a line saying who asked and which process group was signalled.
 
 **The repo it clones there is the dashboard's OWN checkout —
-`~/.aide/dashboard/checkouts/aide/code` — not a checkout a user edits.** That is the directory a code merge goes into
+`~/.aide/dashboard/checkouts/aide/code` — not a checkout a user edits.** That is the directory a code merge goes
 into. The merge neither installs nor restarts there: a restart takes down every merge in flight, and an install
 alone would leave the runner newer than the served page that calls it. It logs that the served page and the installed
 scripts run older code than main, and the user deploys when it suits — the Deploy button on the project's own page

@@ -70,7 +70,7 @@ repository, a timeout) the field keeps the hint it was drawn with. The placehold
 
 **A project is added by its git address and cloned — there is no way to register a directory already on the host.**
 That leaves ONE layout for every project: the entry under the projects root is a checkout the dashboard itself made.
-Where the clone merges depends on what the projects root is:
+Where the clone ends up depends on what the projects root is:
 
 - **An ordinary directory**, such as a laptop's own `~/develop`: Add clones into `<projects root>/<name>`, and then
   makes the dashboard's own checkout, `~/.aide/dashboard/checkouts/<name>/code`, as a second clone.
@@ -229,7 +229,7 @@ from.
 ### A project's own page
 
 `/projects/<name>` has three tabs — **Deploy**, **Config** and **Schedule** — chosen with `?tab=` and defaulting to
-Deploy, which is also where an unrecognised value merges.
+Deploy, which is also where an unrecognised value ends up.
 Every tab is drawn as cards of rows, the layout the Projects list has.
 The heading is a breadcrumb, **Projects / <name>**: Projects opens the Projects list, and the project's name is the
 page itself, not a link. At the line's far end a project picker shows the project's icon and name; it lists every

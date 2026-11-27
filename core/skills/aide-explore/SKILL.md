@@ -32,8 +32,8 @@ understanding, and an offer to crystallize it.
 Adapt to what the user brings — a vague itch needs different help than a
 finished plan looking for holes. Useful moves:
 
-1. **Restate the problem** in one sentence and check it merged. Many
-   explorations end right here, with "no, the actual problem is ...".
+1. **Restate the problem** in one sentence and check that the user agrees
+   with it. Many explorations end right here, with "no, the actual problem is ...".
 2. **Look before speculating.** Read the relevant code first; ground every
    claim in `file:line`, not in what the code probably does.
 3. **Lay out 2-3 approaches** with real trade-offs — including "do

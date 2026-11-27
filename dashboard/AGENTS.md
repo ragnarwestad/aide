@@ -140,7 +140,7 @@ before starting:
   guard; `aide-run-spec` resolves the specs root it is handed for the
   same reason.
 - **A project is added by its git address, so no directory already on
-  the host is ever registered.** Where the clone merges depends on the
+  the host is ever registered.** Where the clone ends up depends on the
   projects root. On the directory of links a serving host uses, the
   entry is a link to the dashboard's own checkout, so `personDir` and
   that checkout are one directory. On an ordinary projects root, Add

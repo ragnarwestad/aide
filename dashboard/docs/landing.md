@@ -66,7 +66,7 @@ point.
 The merge is the last step of the step's own skill, and the step is not finished until it is. The step's Log marks
 it in the words of that skill's last heading:
 
-- `--- Step 7 of 7: Merge spec files into main — started` when a create merging begins
+- `--- Step 7 of 7: Merge spec files into main — started` when a create's merge begins
 - `— done` when every repo merged
 - `— stopped: <why> — the archive is not finished`, an error line, when it did not
 
@@ -113,7 +113,7 @@ its name. Every retry below is bounded in one place, `LANDING_RETRIES` in `src/g
 - **The shared checkout moves under the runner's lock.** The fetch, the `worktree add` and the catch-up after the
   push wait for the checkout's lock ([the per-root lock](the-runner.md)), so a run is never in its own section at the
   same moment, and each is run once. A wait that runs out refuses the merge, naming the lock; for the catch-up it is
-  logged, and the merge stays merged.
+  logged, and the merge already made stands.
 - **Publishing uses the same checkout lock as Create.** Create holds it from pulling to pushing its new spec.
   A Merge holds it while pushing to the default branch and rebuilds on the newer base if Create got there first.
 - **A lost lock is not a conflict.** When the merge in the merge's own worktree fails and git's stderr names a lock

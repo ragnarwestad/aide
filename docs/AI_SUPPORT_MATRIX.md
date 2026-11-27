@@ -4,7 +4,7 @@
 
 - [Supported versions](#supported-versions)
 - [Fidelity levels](#fidelity-levels)
-- [How the Aide pieces merge](#how-the-aide-pieces-merge)
+- [Where the Aide pieces end up](#where-the-aide-pieces-end-up)
 - [Current models](#current-models)
 - [Cross-tool capabilities](#cross-tool-capabilities)
 - [Open follow-up items](#open-follow-up-items)
@@ -62,7 +62,7 @@ everyone believed was an E is how rules break silently.
 
 ---
 
-## How the Aide pieces merge
+## Where the Aide pieces end up
 
 | Aide piece                                                      | Claude Code                                    | Copilot                                              | Codex                                                                                                                                                                                 | OpenCode                                                       |
 |-----------------------------------------------------------------|------------------------------------------------|------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------|

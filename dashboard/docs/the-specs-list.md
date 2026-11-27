@@ -148,7 +148,7 @@ no list to pick from and no Save or Cancel, as the phase lines above it are lock
 from. Under the picker, in the same form and saved by the same Save, are the four settings the spec was created
 with, using the same settings as New spec: the three analyze reads — Acceptance ticking required, "Acceptance criteria
 checks" and "Let me choose the approach" — take a change until analyze has run and while no job of the spec is queued,
-running or merge; "Let AI formulate acceptance criteria", which create has already used, is locked with
+running or merging; "Let AI formulate acceptance criteria", which create has already used, is locked with
 no field name. A change not yet saved outlives a redraw and offers Save and Cancel, which are pressable only while a field differs from what was saved, as a tick does, and it outlives a job too: the locked card shows
 what was saved meanwhile, and the change comes back when the job ends on a field that can still be changed. What can be changed,
 whether Save and Cancel show, and what Cancel puts back are decided in one place, `cardStep` (`src/project/spec-card.ts`), which the
@@ -499,7 +499,7 @@ value explicitly, so choosing one always overrides whatever is remembered (see b
 **The ticked entries are remembered across visits, the same way the sort column is.** Choosing one sets the
 `aide_state_<port>` cookie (`HttpOnly; SameSite=Lax; Path=/; Max-Age=31536000`), port-suffixed so a test board and
 the real one do not overwrite each other's memory; a request with no `state=` in the query string — the Specs tab's own
-link, a bookmark, the back button — falls back to that cookie instead of always merging on "All". An explicit
+link, a bookmark, the back button — falls back to that cookie instead of always opening on "All". An explicit
 `?state=` always wins and becomes the new memory. The search term (`?q=`) is never remembered this way.
 
 **An archived spec is a row on this list**, and nowhere else — there is no separate archive page. Its row is a READER
@@ -563,7 +563,7 @@ tab's file, its stamp and the banner's facts about the description are read off 
 branch where one is open, as of its last fetch, and off the specs checkout where none is. The Status tab
 draws the acceptance criteria first, as real boxes with a Save of their own (each with its note and the tests that
 name it), then the rest of `4-status.md` rendered read-only; an archived spec, or one with a job in flight, shows the
-same criteria without boxes while a job is running or merge; a queued job does not lock the editor or the boxes.
+same criteria without boxes while a job is running or merging; a queued job does not lock the editor or the boxes.
 An old `?tab=checks` link opens the Status tab. What a spec runs on and
 with — each phase's AI and model, its Depends on and the four settings it was created with — is chosen on its open row
 on the Running tab, not here (see [The row's controls](#the-rows-controls)). The banner holds what belongs to the spec
@@ -637,11 +637,11 @@ mark, never its prose.
 carried, and the page script loads that tab again; a save that committed nothing says so in the line under the banner
 instead. ONE commit, ONE file. It writes to the spec's own `aide/<folder>` branch where
 one is open, and to the specs repo's default branch where none is — the same branch-aware choice `/tick` makes. Save
-and Tick both refuse while a job is running or merge, and both accept while a job is only queued.
+and Tick both refuse while a job is running or merging, and both accept while a job is only queued.
 
 `POST /api/queue/specs/<project>/<spec>/tracking` is the banner's own route: whether the spec requires acceptance
 ticking, merged into `1-description.md`'s Tracking info in one commit, refused once `analyze` has already decided the
-question, and refused with 409 while a job of the spec is queued, running or merge. A request that names `dependsOn` writes the Depends on line in the same commit, and an empty entry
+question, and refused with 409 while a job of the spec is queued, running or merging. A request that names `dependsOn` writes the Depends on line in the same commit, and an empty entry
 (`dependsOn=`) beside the boxes is how the Running tab's picker with every box cleared removes it; one that names no
 `dependsOn` at all, as the banner's form does not, leaves the line as it is. A refusal answers `{ error, spec }`, so the
 Running tab writes it under the row the save was pressed on. The Description tab's `/save` keeps the line too: the tab shows the description without
@@ -701,7 +701,7 @@ The page's own browser code does one thing to the controls: it keeps the reader 
   redraw waits, so the rows do not take it away.
 - **A Close or Reopen is a row of its own on the Running tab**, as a scheduled job is, never its spec's. A job
   whose current step is `close` or `reopen` (`closeOrReopenStep`, `queue/steps.ts`) has a row while it is queued,
-  running or merge, and while it waits for a person after failing or stopping, until a newer job of the spec is
+  running or merging, and while it waits for a person after failing or stopping, until a newer job of the spec is
   created (`jobsShown`, `render/pages/jobs-page/rows.ts`). The row is named for the step and the spec ("Reopen
   534-…"), its key is `<project>/<spec>:<step>` so it never folds with the spec's own row, and it has no links under
   its title; when it fails or stops, a line under its state says why and ends with a Log link. It offers no
@@ -709,7 +709,7 @@ The page's own browser code does one thing to the controls: it keeps the reader 
   places. The spec's own row is left as it is, on this tab and on the Specs list alike (`listedSpecJobs`,
   `serve/routes/page-routes/spec-row-options.ts`): an archived or closed spec gets no row on the tab for it, and a
   live spec's row keeps its four phases, its own badge and its own notice. While the Close or Reopen is queued,
-  running or merge, the tab draws the job's row alone and leaves out the spec's own row, so the spec is not on the
+  running or merging, the tab draws the job's row alone and leaves out the spec's own row, so the spec is not on the
   tab twice (`specsStoodForByJobs`); a failed or stopped one has its row beside the spec's. The open job row has a line per step the job will run —
   Aide's own parts, the skill's steps and the merge into main, from the skill's `Step N of X` headings
   (`stepPlan()`) — in the row's own columns: the step's state as a badge under State/Action, from the job's log
@@ -770,7 +770,7 @@ The page's own browser code does one thing to the controls: it keeps the reader 
   the list goes into the list's own line above the rows. The address is left as it is, so the filter, the sort and the
   fold stay the reader's.
 - **The New-spec form is the one exception, and it is not on this page.** It is the whole of `/new`, so it is bound
-  directly rather than by delegation, and there is nothing on that page to keep. A refused create has no row to merge
+  directly rather than by delegation, and there is nothing on that page to keep. A refused create has no row to show it
   on — the spec it named was never made — so its reason is written beside the form; a successful one sends the
   browser to the list, where the new job is a row.
 

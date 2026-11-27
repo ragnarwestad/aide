@@ -180,6 +180,6 @@ one set, for exactly this reason: an older job's failed push must not outlive a 
 
 ## Words the reader does not use
 
-A message does not use these words, in either language: "merge" (say merge), "spesifikasjon" (say spec),
+A message does not use these words, in either language: "landing" (say merge), "spesifikasjon" (say spec),
 "sammenslåing"/"slå ... sammen" (say merge), "gate" (say test, test log or test run), and "Run again" (name the
 phase's own button: "{button} again").

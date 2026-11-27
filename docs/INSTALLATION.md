@@ -231,7 +231,7 @@ The sections below describe what each individual installer does.
 ### Check what is installed
 
 Every installer starts by running `aide-preflight`, which reports for each AI tool whether its CLI is on `PATH`, with
-its version, and where each Aide piece merges: the skills, the rules, the hooks and the shared scripts. It only
+its version, and where each Aide piece ends up: the skills, the rules, the hooks and the shared scripts. It only
 reports. A tool that is missing is listed as not found and the files install anyway; they take effect once the tool
 is installed.
 
