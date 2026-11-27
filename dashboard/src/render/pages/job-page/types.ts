@@ -1,5 +1,6 @@
 // The job page's own view types. Split out of job-page.ts by theme.
 
+import type { TestChange } from "../../../queue/runner/types.ts";
 import type { QueueRowView } from "../../ui/job-state";
 import type { DiffStatEntry } from "../../../git/diff-stat.ts";
 import type { ProviderLimit } from "../../../queue/queue.ts";
@@ -63,6 +64,8 @@ export interface JobStepResultView {
    *  recorded — a result written before this field existed); an empty
    *  array means "checked, nothing changed" (`headBefore === headAfter`). */
   changedFiles?: DiffStatEntry[];
+  /** The tests the step's own commits added and removed, by directory. */
+  testChanges?: TestChange[];
   /** The pictures an implement took of the pages it changed, by file name,
    *  each with the address that serves it. Absent when the step kept none. */
   screenshots?: { file: string; href: string }[];

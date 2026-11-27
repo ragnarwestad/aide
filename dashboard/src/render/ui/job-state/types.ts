@@ -2,6 +2,7 @@
 // single-job page need this, and neither owns it.
 
 import type { ProviderLimit } from "../../../queue/queue.ts";
+import type { TestChange } from "../../../queue/runner/types.ts";
 import type { TddPhase } from "../../../queue/aide-run-store.ts";
 import type { Sentence } from "../../../messages/types.ts";
 import type { ErrorReason, JobState } from "../../../job-states.ts";
@@ -178,6 +179,8 @@ export interface StepResultView {
    *  session. */
   review?: SideRunView;
   verify?: SideRunView;
+  /** The tests the step's own commits added and removed, by directory. */
+  testChanges?: TestChange[];
   /** The usage limit that stopped this step, as the tool reported it —
    *  present only on such a step. */
   providerLimit?: ProviderLimit;

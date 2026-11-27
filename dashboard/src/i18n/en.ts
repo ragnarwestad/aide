@@ -177,6 +177,8 @@ export const en = {
   "list.checksOpenTab": "Open the Status tab",
   "list.planReviewSkipped": "Skipped",
   "list.planReviewSkippedTitle": "A short analysis writes no step-by-step plan, so there is no plan to review",
+  "list.testsLine": "Tests",
+  "list.testsLineTitle": "Tests this implement added and removed, by folder",
   "list.sentBack": "sent back to a full analysis: {why}",
   "list.phaseFoldTitle": "{action} the latest messages of {phase}",
   "list.phaseNoneKept": "No messages are kept for this phase.",
@@ -318,6 +320,7 @@ export const en = {
   "job.noErrors": "The log has no error lines.",
   "job.screenshots": "Screenshots",
   "job.noChangedFiles": "No file changed in this step.",
+  "job.testsHeading": "Tests added and removed",
   "job.filesNotKnown": "The changed files were not recorded for this step.",
   "job.filesRunning": "The changed files are known when the step ends.",
 

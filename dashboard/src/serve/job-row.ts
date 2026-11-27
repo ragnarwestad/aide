@@ -153,6 +153,8 @@ function resultView(r: Job["results"][number]) {
     costMeasured: r.costMeasured,
     // The review and the verification, each on its own, with tokens as the total.
     review: sideView(r.review), verify: sideView(r.verify),
+    // The tests the step brought, for the Tests line under Implement.
+    testChanges: r.testChanges,
     // Why `gh` opened no pull request: the step's own answer, said in
     // that phase's log.
     prError: r.prError,

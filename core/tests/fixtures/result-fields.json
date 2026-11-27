@@ -210,6 +210,28 @@
         "written": { "outcome": "timeout", "tool": "codex", "durationSec": 600 },
         "read": { "outcome": "timeout", "tool": "codex", "durationSec": 600 }
       }
+    ],
+    "testChanges": [
+      {
+        "name": "tests added and removed in two directories",
+        "written": [
+          { "dir": "dashboard/test/render", "added": 9, "removed": 2 },
+          { "dir": "core/tests", "added": 3, "removed": 0 }
+        ],
+        "read": [
+          { "dir": "dashboard/test/render", "added": 9, "removed": 2 },
+          { "dir": "core/tests", "added": 3, "removed": 0 }
+        ]
+      },
+      {
+        "name": "an entry without a directory or with a count that is not a number is left out",
+        "written": [
+          { "dir": "", "added": 1, "removed": 0 },
+          { "dir": "x", "added": "many", "removed": 0 },
+          { "dir": "y", "added": 1, "removed": 1 }
+        ],
+        "read": [{ "dir": "y", "added": 1, "removed": 1 }]
+      }
     ]
   }
 }

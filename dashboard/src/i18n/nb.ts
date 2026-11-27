@@ -176,6 +176,8 @@ export const nb: Record<TranslationKey, string> = {
   "list.checksOpenTab": "Åpne Status-fanen",
   "list.planReviewSkipped": "Hoppet over",
   "list.planReviewSkippedTitle": "En kort analyse skriver ingen trinnvis plan, så det er ingen plan å gå gjennom",
+  "list.testsLine": "Tester",
+  "list.testsLineTitle": "Tester denne implementeringen la til og fjernet, per mappe",
   "list.sentBack": "sendt tilbake til en full analyse: {why}",
   "list.phaseFoldTitle": "{action} de siste meldingene fra {phase}",
   "list.phaseNoneKept": "Ingen meldinger er lagret for denne fasen.",
@@ -313,6 +315,7 @@ export const nb: Record<TranslationKey, string> = {
   "job.noErrors": "Loggen har ingen feillinjer.",
   "job.screenshots": "Skjermbilder",
   "job.noChangedFiles": "Ingen filer ble endret i dette steget.",
+  "job.testsHeading": "Tester lagt til og fjernet",
   "job.filesNotKnown": "Endrede filer ble ikke registrert for dette steget.",
   "job.filesRunning": "Endrede filer er kjent når steget er ferdig.",
 

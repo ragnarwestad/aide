@@ -118,6 +118,40 @@ if [ "$terminal_reason" = "completed" ]; then
   esac
 fi
 
+# --- the tests the step added and removed ------------------------------------
+# Counted in the step's own commit range, per directory of test files, so the
+# specs list can say how many tests a step brought before it merges. Only
+# files named as tests are read, and a declaration is a line that opens one:
+# `test(`/`it(` (with `.each(...)` and the like) or `def test_`.
+test_changes_tsv() {
+  local root="$1" before="$2" after="$3"
+  [ -n "$before" ] && [ -n "$after" ] && [ "$before" != "$after" ] || return 0
+  git -C "$root" diff -U0 --no-color --no-ext-diff "$before" "$after" -- \
+      '*.test.ts' '*.test.tsx' '*.test.js' '*.test.mjs' '*.spec.ts' '*.spec.js' \
+      'test_*.py' '*/test_*.py' '*_test.py' 2>/dev/null |
+    awk '
+      /^(\+\+\+|---) / { f = substr($0, 5); if (f != "/dev/null") file = substr(f, 3); next }
+      /^[+-]/ {
+        if ($0 !~ /^[+-][ \t]*(async[ \t]+)?def[ \t]+test_/ &&
+            $0 !~ /^[+-][ \t]*(test|it)(\.[A-Za-z]+)*(\([^)]*\))?[ \t]*\(/) next
+        n = split(file, part, "/")
+        dir = n > 1 ? substr(file, 1, length(file) - length(part[n]) - 1) : "."
+        seen[dir] = 1
+        if (substr($0, 1, 1) == "+") added[dir]++; else removed[dir]++
+      }
+      END { for (d in seen) printf "%s\t%d\t%d\n", d, added[d], removed[d] }'
+}
+
+test_changes_lines=""
+i=0
+for root in "${roots[@]}"; do
+  test_changes_lines+="$(test_changes_tsv "$root" "${head_before[$i]}" "${head_after_per_root[$i]}")"$'\n'
+  i=$(( i + 1 ))
+done
+test_changes_json="$(printf '%s' "$test_changes_lines" | jq -Rn '
+  [inputs | select(length > 0) | split("\t") | {dir: .[0], added: (.[1] | tonumber), removed: (.[2] | tonumber)}]
+  | group_by(.dir) | map({dir: .[0].dir, added: (map(.added) | add), removed: (map(.removed) | add)})')"
+
 # --- $repos_json, built ONCE, from the run's true start and final end -------
 # Not built inside commit_and_push_roots any more: a second call's own
 # "nothing changed here" must never overwrite a first call's real
@@ -242,6 +276,7 @@ line="$(jq -cn \
   --argjson sharedFiles "${shared_files_json:-null}" \
   --argjson testsNotStarted "${tests_not_started_json:-null}" \
   --argjson testsRed "${tests_red_json:-null}" \
+  --argjson testChanges "${test_changes_json:-[]}" \
   --argjson providerError "${provider_error_out:-null}" \
   --argjson timeLimit "${time_limit_json:-null}" \
   --arg scopeViolation "${scope_violation:-}" \
@@ -310,6 +345,9 @@ line="$(jq -cn \
    # And for the tests a red implement run named (lib/failing-tests.sh):
    # at most eight, the counts, and whether they point at the change.
    + (if $testsRed == null then {} else {testsRed:$testsRed} end)
+   # And for the tests the commits of the step added and removed, by
+   # directory: absent when it touched none.
+   + (if $testChanges == [] then {} else {testChanges:$testChanges} end)
    # And for the error the provider gave on a step that ended cli-error
    # (run-spec/turn/provider-error.sh): its kind and its first line.
    + (if $providerError == null then {} else {providerError:$providerError} end)

@@ -176,6 +176,8 @@ export const fr: Record<TranslationKey, string> = {
   "list.checksOpenTab": "Ouvrir l'onglet Status",
   "list.planReviewSkipped": "Ignorée",
   "list.planReviewSkippedTitle": "Une analyse courte n’écrit pas de plan étape par étape, il n’y a donc pas de plan à relire",
+  "list.testsLine": "Tests",
+  "list.testsLineTitle": "Tests que cette implémentation a ajoutés et retirés, par dossier",
   "list.sentBack": "renvoyée vers une analyse complète : {why}",
   "list.phaseFoldTitle": "{action} les derniers messages de {phase}",
   "list.phaseNoneKept": "Aucun message n'est conservé pour cette phase.",
@@ -311,6 +313,7 @@ export const fr: Record<TranslationKey, string> = {
   "job.noErrors": "Le journal ne contient aucune ligne d'erreur.",
   "job.screenshots": "Captures d'écran",
   "job.noChangedFiles": "Aucun fichier n'a changé dans cette étape.",
+  "job.testsHeading": "Tests ajoutés et retirés",
   "job.filesNotKnown": "Les fichiers modifiés n'ont pas été enregistrés pour cette étape.",
   "job.filesRunning": "Les fichiers modifiés sont connus à la fin de l'étape.",
 

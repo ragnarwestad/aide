@@ -348,6 +348,12 @@ Implement line shows the total less the two side sessions. A session that did no
 closed spec shows the figures only while the queue still holds the run, since the phase file records the phase as one
 figure.
 
+**The Tests line under Implement counts the tests the newest implement brought.** The runner counts, in the step's
+own commits, the test declarations added and removed per directory of test files (`test(`/`it(` in files named
+`*.test.*` or `*.spec.*`, `def test_` in `test_*.py` or `*_test.py`) and writes them to the result as `testChanges`.
+The line shows the totals, `+14 −2`, with the count per directory in its title, and the step's Files tab lists them
+per directory above the changed files. An implement that touched no test file has no Tests line.
+
 **The Review line under Analyze chooses the AI and model of the plan review.** It offers the same AI and model pickers
 as Implement's Review line, and they are locked where Analyze's own are. With no pick of its own and none in Settings,
 it shows the AI and model Analyze runs on next. Its State is Done once the spec's `3-solution.md` holds a Plan review

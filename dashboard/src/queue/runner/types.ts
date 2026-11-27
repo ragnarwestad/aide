@@ -90,6 +90,8 @@ export interface StepOutcome {
   modelId?: string;
   providerLimit?: unknown;
   testedGreen?: unknown;
+  /** The tests the step's own commits added and removed, by directory; read by `testChanges()` below. */
+  testChanges?: unknown;
   /** An analyze's check that what the spec asks for already holds; read by `noChangeNeeded()` below. */
   noChangeNeeded?: unknown;
   /** The faults an analyze stopped on its acceptance criteria named, by
@@ -286,6 +288,27 @@ export function testedGreen(raw: unknown): TestedGreen | undefined {
     return undefined;
   }
   return { tree: r.tree, commands: r.commands as string[] };
+}
+
+/** The tests one directory of test files gained and lost in a step's own commits. */
+export interface TestChange {
+  dir: string;
+  added: number;
+  removed: number;
+}
+
+/** `outcome.testChanges`, read as defensively: an entry without a
+ *  directory or with a count that is not a whole number is dropped. */
+export function testChanges(raw: unknown): TestChange[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const count = (n: unknown): n is number => typeof n === "number" && Number.isInteger(n) && n >= 0;
+  const out = raw.flatMap((entry): TestChange[] => {
+    const r = (entry ?? {}) as Record<string, unknown>;
+    return typeof r.dir === "string" && r.dir !== "" && count(r.added) && count(r.removed)
+      ? [{ dir: r.dir, added: r.added, removed: r.removed }]
+      : [];
+  });
+  return out.length > 0 ? out : undefined;
 }
 
 /** `outcome.noChangeNeeded`, read as defensively: a check and a reason,

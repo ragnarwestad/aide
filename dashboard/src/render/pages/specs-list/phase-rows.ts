@@ -15,6 +15,7 @@ import { aiModel, analyzeRests } from "./model-picker/ai-model.ts";
 import { chosenSteps, runFormId, specLocked, specRunChoices } from "./row-state.ts";
 import { phaseHasRun, phaseMessagesFold, phaseMessagesRow } from "./phase-messages";
 import { sideLines, sideRunOf } from "./phase-messages/side-lines.ts";
+import { testsLine } from "./phase-messages/tests-line.ts";
 import { dependsOnLine } from "./depends-on";
 import { PLAN_REVIEW, SIDE_PARTS_OF } from "../../../queue/providers/side-tools.ts";
 import { isGuardEnding } from "../../../step-endings.ts";
@@ -375,6 +376,7 @@ function phaseSideLines(g: SpecGroup, opts: SpecsPageOptions, p: Phase, latest: 
       lines.push(...sideLines(g, p, opts, part, pickers));
     }
   }
+  if (p.step === "implement") lines.push(...testsLine(p, opts));
   return lines;
 }
 

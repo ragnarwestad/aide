@@ -19,7 +19,7 @@ export const resolveStepTab = (raw: string | undefined): StepTab => pickTab(STEP
 
 /** What the panel draws: a finished step's view already is this, and a
  *  running step's is built from its live log with `running` set. */
-export type StepPanelData = Pick<JobStepResultView, "logs" | "errors" | "aiModel" | "changedFiles" | "terminalReason" | "screenshots"> & {
+export type StepPanelData = Pick<JobStepResultView, "logs" | "errors" | "aiModel" | "changedFiles" | "testChanges" | "terminalReason" | "screenshots"> & {
   running?: boolean;
 };
 
@@ -82,7 +82,10 @@ function filesTab(r: StepPanelData, lang: Language): string {
   if (r.running) return `<p class="muted">${esc(t(lang, "job.filesRunning"))}</p>`;
   if (!r.changedFiles) return `<p class="muted">${esc(t(lang, "job.filesNotKnown"))}</p>`;
   if (r.changedFiles.length === 0) return `<p class="muted">${esc(t(lang, "job.noChangedFiles"))}</p>`;
-  return `<ul>${r.changedFiles
+  const tests = r.testChanges?.length
+    ? `<p>${esc(t(lang, "job.testsHeading"))}</p><ul>${r.testChanges.map((d) => `<li>${esc(d.dir)} +${d.added} -${d.removed}</li>`).join("")}</ul>`
+    : "";
+  return `${tests}<ul>${r.changedFiles
     .map((f) =>
       f.binary
         ? `<li>${esc(f.path)} <span class="muted small">binary</span></li>`

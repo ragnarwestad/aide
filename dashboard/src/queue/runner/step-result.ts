@@ -11,7 +11,7 @@ import {
 import { asResultTool } from "../steps.ts";
 import { resolveStepProvider } from "../providers/index.ts";
 import { sideRun } from "./side-run.ts";
-import { contextUse, noChangeNeeded, providerLimit, sharedFiles, stepRepoRanges, testedGreen, type StepOutcome } from "./types.ts";
+import { contextUse, noChangeNeeded, providerLimit, sharedFiles, stepRepoRanges, testChanges, testedGreen, type StepOutcome } from "./types.ts";
 
 export interface StepMeasures {
   cost: number;
@@ -61,6 +61,7 @@ export function stepResultEntry(
     review: sideRun(outcome.review, providerOfResult(job, step, tool, defaults, "review")),
     verify: sideRun(outcome.verify, providerOfResult(job, step, tool, defaults, "verify")),
     providerLimit: providerLimit(outcome.providerLimit), testedGreen: testedGreen(outcome.testedGreen),
+    testChanges: testChanges(outcome.testChanges),
     noChangeNeeded: noChangeNeeded(outcome.noChangeNeeded),
     costMeasured: outcome.costMeasured !== false,
     terminalReason: outcome.terminalReason ?? "no reason recorded",

@@ -6,7 +6,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { providerError, testsNotStarted, testsRed, timeLimit } from "../../../../src/queue/runner/types.ts";
+import { providerError, testChanges, testsNotStarted, testsRed, timeLimit } from "../../../../src/queue/runner/types.ts";
 import { scopeAnalyzeChecks } from "../../../../src/messages/jobs/outcomes.ts";
 import { sideRun } from "../../../../src/queue/runner/side-run.ts";
 
@@ -23,6 +23,7 @@ const PARSERS: Record<string, (raw: unknown) => unknown> = {
   scopeAnalyze: scopeAnalyzeChecks,
   review: sideRun,
   verify: sideRun,
+  testChanges,
 };
 
 test("every field in the fixture has a parser here", () => {
