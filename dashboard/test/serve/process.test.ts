@@ -40,3 +40,14 @@ test("what the script left running is stopped, and its output still comes back (
   await Bun.sleep(200);
   expect(alive(pid)).toBe(false);
 });
+
+test("a script that ignores TERM is killed after its timeout, not waited on", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "aide-run-script-"));
+  dirs.push(dir);
+  const script = join(dir, "ignores-term.sh");
+  writeFileSync(script, `#!/bin/bash\ntrap '' TERM\nsleep 300\n`);
+  const began = Date.now();
+  const out = await runScript(["bash", script], dir, 200);
+  expect(Date.now() - began).toBeLessThan(8_000);
+  expect(out.timedOut).toBe(true);
+}, 15_000);

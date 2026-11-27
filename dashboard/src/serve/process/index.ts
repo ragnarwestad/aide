@@ -3,7 +3,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { scriptArgv } from "../../integrations/script-argv.ts";
 import { spawnEnv } from "../tool-path.ts";
-import { signalGroup } from "../serve-helpers/signal-group.ts";
+import { stopGroup } from "../serve-helpers/signal-group.ts";
 
 export interface ProcessHooks {
   started?: (pid: number) => void;
@@ -31,19 +31,20 @@ export async function runProcess(
   const proc = Bun.spawn({ cmd: scriptArgv(argv, env.PATH), cwd, env, stdout: "pipe", stderr: "pipe", detached: true });
   hooks.started?.(proc.pid);
   let timedOut = false;
+  let stopping = () => {};
   const timer = setTimeout(() => {
     timedOut = true;
-    signalGroup(proc.pid);
+    stopping = stopGroup(proc.pid);
   }, timeoutMs);
   const stdout = new Response(proc.stdout).text();
   const stderr = new Response(proc.stderr).text();
   const code = await proc.exited;
   clearTimeout(timer);
   hooks.ended?.(proc.pid);
-  signalGroup(proc.pid);
-  const hard = setTimeout(() => signalGroup(proc.pid, "SIGKILL"), 3_000);
+  const leftovers = stopGroup(proc.pid);
   const out = { code, stdout: await stdout, stderr: await stderr, timedOut };
-  clearTimeout(hard);
+  leftovers();
+  stopping();
   return out;
 }
 

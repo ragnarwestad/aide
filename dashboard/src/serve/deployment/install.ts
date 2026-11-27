@@ -6,6 +6,7 @@ import { SETTING_LABELS } from "../../project/setting-labels.ts";
 import { INSTALL_TIMEOUT_MS } from "../serve-helpers";
 import { scriptArgv } from "../../integrations/script-argv.ts";
 import { outputTail } from "../../format/output-tail.ts";
+import { stopGroup } from "../serve-helpers/signal-group.ts";
 import type { Sentence } from "../../messages/types.ts";
 
 export type InstallResult =
@@ -38,11 +39,14 @@ export async function installCheckout(root: string, timeoutMs = INSTALL_TIMEOUT_
   try {
     // argv, no shell — the same shape the notify command already has,
     // so nothing here has to get quoting right on someone's behalf.
-    const proc = Bun.spawn({ cmd: scriptArgv(cmd.split(/\s+/)), cwd: root, stdout: "pipe", stderr: "pipe" });
+    // Its own group, so a timeout stops what it started too: a child
+    // holding the output open would otherwise keep the read waiting.
+    const proc = Bun.spawn({ cmd: scriptArgv(cmd.split(/\s+/)), cwd: root, stdout: "pipe", stderr: "pipe", detached: true });
     let timedOut = false;
+    let stopping = () => {};
     const timer = setTimeout(() => {
       timedOut = true;
-      proc.kill();
+      stopping = stopGroup(proc.pid);
     }, timeoutMs);
     let out = "";
     let err = "";
@@ -50,6 +54,7 @@ export async function installCheckout(root: string, timeoutMs = INSTALL_TIMEOUT_
       [out, err] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text()]);
     } finally {
       clearTimeout(timer);
+      stopping();
     }
     const code = await proc.exited;
     // What the command printed, its last whole lines, behind the (?):

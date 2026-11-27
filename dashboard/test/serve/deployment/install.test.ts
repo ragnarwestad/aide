@@ -51,6 +51,24 @@ describe("an install that fails", () => {
   });
 });
 
+describe("an install that runs past its timeout", () => {
+  test("that ignores TERM is killed and reported as timed out", async () => {
+    const { root } = checkout("trap '' TERM; sleep 300");
+    const began = Date.now();
+    const result = await installCheckout(root, 200);
+    expect(Date.now() - began).toBeLessThan(8_000);
+    expect(result).toMatchObject({ ok: false, error: { key: "landing.installCommandTimedOut" } });
+  }, 15_000);
+
+  test("whose child holds its output open is stopped with it", async () => {
+    const { root } = checkout("sleep 300 &\necho started");
+    const began = Date.now();
+    const result = await installCheckout(root, 200);
+    expect(Date.now() - began).toBeLessThan(8_000);
+    expect(result).toMatchObject({ ok: false, error: { key: "landing.installCommandTimedOut" } });
+  }, 15_000);
+});
+
 describe("outputTail", () => {
   test("keeps whole lines from the end, without colour codes, carriage returns or blank lines", () => {
     expect(outputTail("a\r\n\n\x1b[31mb\x1b[0m\rc\n", 2)).toBe("b\nc");

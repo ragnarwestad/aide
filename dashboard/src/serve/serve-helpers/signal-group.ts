@@ -52,3 +52,12 @@ export function groupAlive(pid: unknown): boolean {
     return (e as { code?: unknown }).code !== "ESRCH";
   }
 }
+
+/** TERM the group `pid` leads, and KILL it `graceMs` later in case
+ *  something in it ignores TERM. Returns the cancel for the KILL, to
+ *  call once the group's output has closed. */
+export function stopGroup(pid: unknown, graceMs = 3_000): () => void {
+  signalGroup(pid);
+  const hard = setTimeout(() => signalGroup(pid, "SIGKILL"), graceMs);
+  return () => clearTimeout(hard);
+}
