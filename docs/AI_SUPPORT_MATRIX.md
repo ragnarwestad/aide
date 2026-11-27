@@ -112,7 +112,7 @@ All three tools have skills, stable hooks, subagents and a plan/analysis mode.
 
 ## Open follow-up items
 
-- ⏳ **The Copilot cells that need a real model call are unverified:** `CLAUDE.md`, repo `AGENTS.md` and project-level `.claude/agents/`, and the instructions files. The verified-stamped cells (skills and commands, read with `copilot skill list`) hold. Finish the sweep when a model call can be made from this machine.
+- ⏳ **The Copilot cells that need a real model call are unverified:** repo `AGENTS.md` and project-level `.claude/agents/`, and the instructions files. The verified-stamped cells (skills and commands, read with `copilot skill list`) hold. Finish the sweep when a model call can be made from this machine.
 - The `effort` frontmatter on skills is in use (`low`/`medium`/`high`/`xhigh`) — Claude Code-specific.
 
 ---
@@ -123,7 +123,7 @@ Which files each tool reads automatically:
 
 | File/directory                              |    Claude Code    |               Copilot                |                    Codex                    |
 |---------------------------------------------|:-----------------:|:------------------------------------:|:-------------------------------------------:|
-| `CLAUDE.md`                                 |    ✅ primary     |               ✅ read                | ✅ fallback, set by Aide (verified 0.171.0) |
+| `CLAUDE.md`                                 |    ✅ primary     |      ✅ read (verified 1.0.116)      | ✅ fallback, set by Aide (verified 0.171.0) |
 | `AGENTS.md`                                 |    ✅ fallback    |               ✅ read                |        ✅ primary (verified 0.147.0)        |
 | `.claude/rules/*.md`                        |  ✅ auto-include  |    ✅ read (confirmed v1.0.89-5)     |                      —                      |
 | `.claude/skills/`                           | ✅ native skills  |      ✅ read (verified 1.0.79)       |                      —                      |

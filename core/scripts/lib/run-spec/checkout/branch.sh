@@ -16,10 +16,9 @@
 # stylistic one: the loop below checks `aide/<folder>` out in a worktree
 # of its own, and git refuses to delete a branch that is checked out. A
 # skill running inside the step could not do it if it tried. The skill
-# still carries the same deletion for the OTHER surface — `/aide-reopen`
-# at a keyboard, where no worktree exists — which is the same shape as
-# `archive`'s merge: the script's own guard is what makes the promise
-# hold whatever the model does.
+# carries the same deletion too, which is the same shape as `archive`'s
+# merge: the script's own guard is what makes the promise hold whatever
+# the model does.
 #
 # Every deletion tolerates "already gone": a spec whose branch was
 # cleaned up by the landing that archived it is the normal case, and a

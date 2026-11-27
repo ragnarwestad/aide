@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # aide-ac-prefix — what a test's name puts before a criterion's id, the one
-# place it is worked out. `/aide-implement` runs this literal script, so
-# every tool and every kind of run (at a keyboard or headless) names a
-# project's tests the same way.
+# place it is worked out. The implement step runs this literal script, so
+# every tool names a project's tests the same way.
 #
 # The prefix is the manifest's `acPrefix:` with `{spec}` replaced by the
 # spec's number as its folder writes it (`652`, `02`), read in

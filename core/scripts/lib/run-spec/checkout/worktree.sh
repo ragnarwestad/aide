@@ -71,7 +71,7 @@ base_ref_for() {   # sets $base_ref
 # default branch is its own problem to solve and not a phase of its own
 # (there is no standalone `resolve` step). It is handed
 # the worktree exactly as git left it — MERGE_HEAD set, the markers in
-# the files — and /aide-archive decides, resolving and running the
+# the files — and the archive step decides, resolving and running the
 # project's tests before it does anything else. The condition is the
 # literal string `archive` and nothing else, never a denylist: a step
 # this got backwards would carry conflict markers into a commit, which is

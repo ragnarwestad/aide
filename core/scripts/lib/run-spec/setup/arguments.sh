@@ -102,7 +102,7 @@ bin_arg=""; review_bin=""; verify_bin=""
 autocompact=""
 # What a `create` step is FOR. Every other step names a folder
 # that is already on disk; this one makes it, so the two things
-# /aide-create needs come in as arguments instead. Required for a create
+# the create step needs come in as arguments instead. Required for a create
 # whose --spec does not resolve, meaningless everywhere else.
 title=""; description=""
 # What the new spec BUILDS ON: the `Depends on:` line, which

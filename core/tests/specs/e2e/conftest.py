@@ -1,38 +1,38 @@
-"""The create -> analyze workflow every tool's e2e test runs.
+"""What the e2e tests share: where the CLIs are found, and the analyze
+step every runnable tool's test runs through the real runner.
 
-Each test file hands in one thing: how its CLI runs a skill with an
-argument. The rest is the same for every tool — the specs root, the two
-steps, where the spec lands and what a real analysis leaves in it — so a
-change to the workflow is made here once.
-
-The skills come from what is installed on this machine (./install-all.sh),
-the way a person's own run finds them.
+The board runs a spec's steps through core/scripts/aide-run-spec, which
+tells the tool to read the step's instructions from
+core/scripts/lib/steps/<step>/SKILL.md; no AI CLI offers the steps as
+skills of its own. So a tool's e2e test creates a spec with
+aide-create-spec (no AI), runs `analyze` on it through the runner with
+the real CLI on a cheap model, and checks what a real analysis leaves
+behind. The project and specs repos, and the call to the runner, are
+the ones the runner's unit tests use (core/tests/specs/unit/core/scripts/
+conftest.py), with the real CLI where those put a stand-in.
 """
+import json
 import os
 import re
 import shutil
 import subprocess
 from pathlib import Path
-from typing import Callable
 
 import pytest
 
-# The analysis template's own placeholders: still there means the AI
-# never filled the template in.
-TEMPLATE_PLACEHOLDERS = [
-    "[filled in by analysis]",
-    "[How the analysis was performed",
-    "[description of change]",
-    "[Detailed findings from",
-]
+from ..unit.core.scripts.conftest import run, runner, workspace  # noqa: F401
+from ..unit.core.scripts.spec.spec_repos import git
 
-REQUIRED_SECTIONS = ["## Mapping", "## Findings"]
+# The templates' own placeholders (core/scripts/lib/create-spec/
+# placeholder-files.sh): still there means the AI never filled them in.
+TEMPLATE_PLACEHOLDERS = ["(Filled in by /aide-analyze", "[not analyzed yet]"]
 
-FOLDER_NAME = "e2e-greeting"
+TITLE = "E2E greeting"
 DESCRIPTION = "Create a simple greeting function with greet(name)"
 
-# (skill, argument, timeout in seconds) -> the finished process
-Invoke = Callable[[str, str, int], subprocess.CompletedProcess]
+# The time the board gives an analyze is far longer; a cheap model on an
+# empty project needs minutes, not an hour.
+ANALYZE_TIMEOUT_SEC = 900
 
 
 def mise_path() -> str:
@@ -46,15 +46,38 @@ def available(cli: str) -> bool:
     return shutil.which(cli, path=mise_path()) is not None
 
 
-def _assert_filled(content: str) -> None:
-    left = [p for p in TEMPLATE_PLACEHOLDERS if p in content]
-    assert not left, f"2-analysis.md still holds template placeholders: {left}"
-    for section in REQUIRED_SECTIONS:
-        assert section in content, f"2-analysis.md is missing {section}"
-        after = content[content.find(section) + len(section):]
-        end = after.find("\n## ")
-        body = re.sub(r"[\s\-#*`]", "", (after[:end] if end != -1 else after).strip())
-        assert len(body) > 20, f"2-analysis.md's {section} is empty"
+def _section(content: str, heading: str) -> str:
+    """The text under <heading>, up to the next heading of its level or above."""
+    level = heading.split(" ", 1)[0]
+    start = content.find(f"\n{heading}\n")
+    assert start != -1, f"missing {heading}"
+    after = content[start + len(heading) + 2:]
+    ends = [i for i in (after.find(f"\n{'#' * n} ") for n in range(1, len(level) + 1)) if i != -1]
+    return after[:min(ends)] if ends else after
+
+
+def _assert_written(file: str, content: str, heading: str) -> None:
+    body = re.sub(r"[\s\-#*`]", "", _section(content, heading))
+    assert len(body) > 20, f"{file}'s {heading} is empty"
+
+
+def assert_analyzed(analysis: str, solution: str) -> None:
+    """What the analyze step's instructions (core/scripts/lib/steps/
+    aide-analyze) make it write, short analysis or full."""
+    for file, content in (("2-analysis.md", analysis), ("3-solution.md", solution)):
+        left = [p for p in TEMPLATE_PLACEHOLDERS if p in content]
+        assert not left, f"{file} still holds template placeholders: {left}"
+    _assert_written("2-analysis.md", analysis, "## Findings")
+    files = _section(analysis, "### Files to change")
+    assert re.search(r"^- `[^`]+`", files, re.M), "2-analysis.md lists no file under Files to change"
+    assert "greet" in analysis.lower(), "2-analysis.md does not mention the greeting function"
+    assert re.search(r"^- \*\*Grade:\*\* (LOW|MEDIUM|HIGH)", solution, re.M), "3-solution.md records no grade"
+    if re.search(r"^- \*\*Analysis:\*\* short", analysis, re.M):
+        _assert_written("3-solution.md", solution, "## Short analysis")
+        _assert_written("3-solution.md", solution, "## Testing")
+    else:
+        _assert_written("2-analysis.md", analysis, "## Mapping")
+        _assert_written("3-solution.md", solution, "## Implementation plan")
 
 
 @pytest.fixture
@@ -68,28 +91,57 @@ def e2e_env(e2e_workspace):
     return e2e_workspace, specs, env
 
 
-def run_workflow(invoke: Invoke, specs: Path) -> None:
-    """/aide-create a spec, find its folder, /aide-analyze it, and check
-    the analysis and the plan were really written."""
-    created = invoke("aide-create", f'"E2E greeting" {DESCRIPTION}', 180)
-    assert created.returncode == 0, f"aide-create failed: {created.stderr}"
+@pytest.fixture
+def real_cli(monkeypatch):
+    """The environment the runner starts the real CLI in: mise's shims on
+    PATH, and the real srt for the Codex and OpenCode turns that run
+    inside it (the runner helper puts a stand-in there otherwise)."""
+    monkeypatch.setenv("PATH", mise_path())
+    srt = shutil.which("srt", path=mise_path())
+    if srt:
+        monkeypatch.setenv("AIDE_SRT_BIN", srt)
+    else:
+        monkeypatch.delenv("AIDE_SRT_BIN", raising=False)
 
-    folders = sorted(specs.glob(f"[0-9]*-{FOLDER_NAME}"))
-    assert folders, f"aide-create made no <NN>-{FOLDER_NAME} folder in {specs}"
-    folder = folders[0]
-    for name in ["1-description.md", "2-analysis.md", "3-solution.md", "4-status.md"]:
-        assert (folder / name).exists(), f"aide-create left out {name}"
-    analysis_before = (folder / "2-analysis.md").read_text()
-    solution_before = (folder / "3-solution.md").read_text()
 
-    analyzed = invoke("aide-analyze", folder.name, 300)
-    assert analyzed.returncode == 0, f"aide-analyze failed: {analyzed.stderr}"
+def create_spec(workspace_root: Path, specs: Path) -> str:
+    """Make the spec with aide-create-spec and commit it, as the board's
+    create without AI does. Returns the folder's name."""
+    created = subprocess.run(
+        [str(workspace_root / "core" / "scripts" / "aide-create-spec"),
+         "--specs-root", str(specs), "--title", TITLE, "--description", DESCRIPTION],
+        capture_output=True, text=True,
+    )
+    lines = created.stdout.strip().splitlines()
+    result = json.loads(lines[-1]) if lines else {}
+    assert created.returncode == 0 and result.get("ok"), \
+        f"aide-create-spec failed: {created.stdout}{created.stderr}"
+    folder = result["specFolder"]
+    git(specs, "add", "-A")
+    git(specs, "commit", "-qm", f"Create {folder}")
+    return folder
 
-    analysis = (folder / "2-analysis.md").read_text()
-    solution = (folder / "3-solution.md").read_text()
-    assert analysis != analysis_before, "aide-analyze did not change 2-analysis.md"
-    _assert_filled(analysis)
-    assert "greet" in analysis.lower(), "2-analysis.md does not mention the greeting function"
-    assert solution != solution_before, "aide-analyze did not change 3-solution.md"
-    assert any(w in solution.lower() for w in ["step", "phase", "implementation plan"]), \
-        "3-solution.md holds no implementation steps"
+
+def analyze_with(tool: str, model: str, runner_path: Path, ws: dict, workspace_root: Path) -> None:
+    """Create a spec, run `analyze` on it through the runner with <tool>
+    on <model>, and check the analysis and the plan were really written
+    on the spec's branch."""
+    specs = ws["specs"]
+    folder = create_spec(workspace_root, specs)
+    analysis_before = (specs / folder / "2-analysis.md").read_text()
+    solution_before = (specs / folder / "3-solution.md").read_text()
+
+    code, result, _stdout, stderr = run(
+        runner_path, ws, return_stderr=True,
+        spec=folder, tool=tool, model=model, project_name="e2e",
+        timeout_sec=ANALYZE_TIMEOUT_SEC, permission_mode="bypassPermissions",
+    )
+    assert code == 0 and result.get("ok") is True, \
+        f"the runner's analyze on {tool} failed: {json.dumps(result)}\n{stderr[-4000:]}"
+
+    branch = result.get("branch") or f"aide/{folder}"
+    analysis = git(specs, "show", f"{branch}:{folder}/2-analysis.md")
+    solution = git(specs, "show", f"{branch}:{folder}/3-solution.md")
+    assert analysis.strip() != analysis_before.strip(), "analyze did not change 2-analysis.md"
+    assert solution.strip() != solution_before.strip(), "analyze did not change 3-solution.md"
+    assert_analyzed(analysis, solution)

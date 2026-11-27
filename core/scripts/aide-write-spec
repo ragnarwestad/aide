@@ -1,13 +1,11 @@
 #!/usr/bin/env bash
-# aide-write-spec — the one legitimate way /aide-analyze, /aide-implement
-# and /aide-archive land a spec file's content on disk. Content comes in
-# on stdin; the caller
-# (the skill/model) is responsible for assembling the full file text,
-# exactly as the Write tool would have required. Once this is the only
-# path a legitimate spec-file write takes, a Write/Edit permission rule
+# aide-write-spec — the one legitimate way the analyze, implement and
+# archive steps land a spec file's content on disk. Content comes in on
+# stdin; the caller (the step's model) assembles the full file text. With
+# this the only path a spec-file write takes, a Write/Edit permission rule
 # can be scoped to the specs-repo path with no legitimate case left to
-# break — the same reasoning that put aide-create-spec in place for
-# /aide-create's own file creation.
+# break — the same reasoning that put aide-create-spec in place for the
+# create step's own file creation.
 #
 # Prints ONE JSON line to stdout and, if given, to --result-file:
 #   {ok, exitCode, terminalReason, error?, specFolder?, file?}
@@ -86,9 +84,9 @@ command -v jq >/dev/null 2>&1 || { echo '{"ok":false,"exitCode":2,"terminalReaso
 [ -n "$file" ] || aide_spec_refuse "missing --file"
 [[ " $ALLOWED_FILES " == *" $file "* ]] || aide_spec_refuse "unknown --file: $file"
 
-# Dual-location resolution — mirrors aide-create-spec's --stamp-outcome,
-# needed because aide-archive's Step 2 writes 4-status.md AFTER
-# aide-archive-spec has already moved the folder into archive/.
+# Dual-location resolution, needed because the archive skill's Step 2
+# writes 4-status.md AFTER aide-archive-spec has already moved the
+# folder into archive/.
 target=""
 for candidate in "$specs_root/$folder/$file" "$specs_root/archive/$folder/$file"; do
   [ -f "$candidate" ] && { target="$candidate"; break; }

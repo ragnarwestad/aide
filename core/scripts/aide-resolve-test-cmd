@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # aide-resolve-test-cmd — the project's test command, the one place it is
-# read. A step's own run, the landing and `/aide-implement` all call this
+# read. A step's own run, the landing and the implement skill all call this
 # literal script, so they agree on "the tests" by construction.
 #
 # The command is the manifest's `AIDE_TEST_CMD:` and nothing else, read in

@@ -318,12 +318,11 @@ The plan review runs in a session of its own on ${plan_review_tool:-$tool} ${pla
 $step_log_note
 $headless_note"
 else
-  # `/aide-create` with no argument is the skill's own documented form
-  # for the queue. The title and the description are each in a tag of
-  # their own, after a sentence saying what the tags hold: a description
-  # is full of sentences that read like orders ("remove the routes"), and
-  # only a boundary tells the session they are the spec's text, not its
-  # task.
+  # The create skill is called with no argument. The title and the
+  # description are each in a tag of their own, after a sentence saying
+  # what the tags hold: a description is full of sentences that read like
+  # orders ("remove the routes"), and only a boundary tells the session
+  # they are the spec's text, not its task.
   # Same voice as the title line, for the same reason: a value the skill
   # is TOLD, not one it has to infer or that a sub-format inside the
   # argument string would have to be parsed back out of. Nothing chosen

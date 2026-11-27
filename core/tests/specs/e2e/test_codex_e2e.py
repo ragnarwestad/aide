@@ -1,29 +1,22 @@
-"""E2E: Codex runs /aide-create and /aide-analyze as the installed skills
-(~/.agents/skills), headless, and the spec it makes is really analyzed.
+"""E2E: the runner runs a spec's analyze step on Codex, headless, and the
+spec is really analyzed.
 
-Called the way the dashboard's runner calls it: `codex exec` with the
-prompt on stdin, in the workspace-write sandbox. Real CLI calls, billed:
+The spec is made with aide-create-spec (no AI); `analyze` goes through
+core/scripts/aide-run-spec with the real `codex` on a small model, inside
+the real srt sandbox, the way the board runs it. Real CLI calls, billed:
 deselected by pytest.ini, run with `-m e2e`.
 """
-import subprocess
-
 import pytest
 
-from .conftest import available, run_workflow
+from .conftest import analyze_with, available
+
+MODEL = "gpt-6-luna"
 
 
 @pytest.mark.e2e
 @pytest.mark.codex
 @pytest.mark.slow
 @pytest.mark.skipif(not available("codex"), reason="Codex CLI not installed")
-def test_aide_create_then_analyze(e2e_env):
-    workspace, specs, env = e2e_env
-
-    def invoke(skill: str, argument: str, timeout: int) -> subprocess.CompletedProcess:
-        return subprocess.run(
-            ["codex", "exec", "--sandbox", "workspace-write", "--skip-git-repo-check", "-"],
-            input=f"/{skill} {argument}",
-            capture_output=True, text=True, timeout=timeout, cwd=str(workspace), env=env,
-        )
-
-    run_workflow(invoke, specs)
+@pytest.mark.skipif(not available("srt"), reason="srt (the sandbox a Codex step runs in) not installed")
+def test_runner_analyzes_a_spec_on_codex(runner, workspace, workspace_root, real_cli):
+    analyze_with("codex", MODEL, runner, workspace, workspace_root)

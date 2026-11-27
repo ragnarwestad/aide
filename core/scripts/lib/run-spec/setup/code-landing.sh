@@ -153,11 +153,12 @@ fi
 # under exactly this key, literally, and the real number and slug are
 # assigned later, at landing, under the specs repo's own merge lock
 # the one place two concurrent creates cannot both miss.
-# Both that landing-time step and an interactive session's own Steps 2-3
-# reach the SAME two shared functions in _aide-spec-lib.sh
-# (aide_next_spec_number, aide_slug_from_title) for the number and the
-# slug, never a second, independent count — which is what keeps this
-# from repeating the mistake of one rule written down twice.
+# Both that landing-time step and the board's direct create
+# (aide-create-spec without --folder-name) reach the SAME two shared
+# functions in _aide-spec-lib.sh (aide_next_spec_number,
+# aide_slug_from_title) for the number and the slug, never a second,
+# independent count — which is what keeps this from repeating the
+# mistake of one rule written down twice.
 if [ -z "$spec_folder" ] && [ "$command_name" = "create" ]; then
   [[ "$spec_arg" =~ ^[A-Za-z0-9._-]{1,128}$ ]] || refuse "invalid --spec: $spec_arg"
   # Refused here, before a worktree exists, like every other required

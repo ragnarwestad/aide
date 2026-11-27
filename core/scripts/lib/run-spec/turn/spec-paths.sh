@@ -253,10 +253,9 @@ specs_ref_before="${head_before[0]}"
 # also robust in a way parsing `git status` is not — the step may or may
 # not have committed its own work by the time we look.
 #
-# Two shapes count as a spec folder: the numbered `NN-slug` an
-# interactive session still makes on its own, and the `new-<8 hex>`
-# provisional key every headless create makes instead — both tested by
-# the functions in lib/spec-reference.sh.
+# Two shapes count as a spec folder: the numbered `NN-slug` and the
+# `new-<8 hex>` provisional key a create run is told to use — both
+# tested by the functions in lib/spec-reference.sh.
 spec_folders_now() {
   local d base
   for d in "$specs_root_wt"/*/; do
@@ -284,14 +283,14 @@ printf '%s' "$prompt" > "$work_dir/prompt"
 started_at="$(date +%s)"
 
 # --- the mechanical archive pre-check -----------------------------
-# Most of what `/aide-archive` used to spend a full AI session on is pure
-# logic — folder resolution, the conflict check, reading 4-status.md's
-# tables to decide whether the work is done. aide-archive-spec does that
-# in bash and prints a verdict; when the verdict is "nothing to do yet",
-# spawning claude/codex for it would cost tokens and time on the common
-# path for no judgment actually needed. Literal string `archive`, like
-# every other archive-only fork in this file (update_branch_to_base
-# above is the same shape) — this must run AFTER worktree setup, since
+# Most of the archive step is pure logic — folder resolution, the
+# conflict check, reading 4-status.md's tables to decide whether the
+# work is done. aide-archive-spec does that in bash and prints a
+# verdict; when the verdict is "nothing to do yet", spawning
+# claude/codex for it would cost tokens and time on the common path for
+# no judgment actually needed. Literal string `archive`, like every
+# other archive-only fork in this file (update_branch_to_base above is
+# the same shape) — this must run AFTER worktree setup, since
 # the conflict half of the check needs MERGE_HEAD, which only exists once
 # update_branch_to_base has had its chance to leave it set.
 skip_ai=""; archive_terminal_reason=""; archive_note=""
@@ -321,7 +320,7 @@ fi
 # `create` needs no AI session at all when the New-spec form's own
 # "let AI formulate acceptance criteria" box was cleared: the title,
 # description, depends-on and acceptance choice the form already posted
-# are the whole of what /aide-create's Step 4 needs, and its own script
+# are the whole of what the create skill's Step 4 needs, and its own script
 # call (aide-create-spec) is 100% mechanical file writing. Kept as its
 # own variable rather than folded into $skip_ai: archive's skip_ai is
 # also `ok=true` on several NON-completed terminal reasons (below), which

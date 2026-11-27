@@ -6,16 +6,14 @@
 # 3-solution.md, 4-status.md) unless the message matches the convention
 # documented in core/rules/spec-structure.md's "Workflow steps
 # completed" section — Run /aide-<step> for <spec-folder>[...]. Every
-# spec file is meant to be produced by invoking the actual /aide-*
-# skill, never hand-written; a human copying the pattern by hand looks
-# identical to one the skill produced, and this hook is what tells them
-# apart.
+# spec file is meant to be written by a step the board runs
+# (aide-run-spec), never by hand.
 #
 # 1-description.md is the one documented exception: spec-structure.md
 # allows a hand-edit to its Description field on an EXISTING file, so
 # it is gated only when newly added, not when modified. The other four
 # names are gated whether added or modified — no case for hand-editing
-# their content outside a skill run is documented anywhere.
+# their content outside a step's run is documented anywhere.
 #
 # Best-effort only, as the description that asked for this hook says
 # itself: a commit message can be typed to match the convention on a
@@ -75,11 +73,10 @@ fi
   echo ""
   echo "  Run /aide-<step> for <spec-folder>[ (headless)][ (stopped: <reason>)]"
   echo ""
-  echo "Spec files are produced by invoking the actual /aide-* skill for"
-  echo "that step, never by hand-writing them — see"
-  echo "core/rules/spec-structure.md, \"Templates\". If this commit"
-  echo "genuinely came from a skill run, its message should already"
-  echo "match; reword it with:"
+  echo "Spec files are written by a step the board runs, never by"
+  echo "hand-writing them — see core/rules/spec-structure.md,"
+  echo "\"Templates\". If this commit genuinely came from a step's run,"
+  echo "its message should already match; reword it with:"
   echo ""
   echo "  git commit --amend -m \"Run /aide-<step> for <spec-folder>\""
 } >&2

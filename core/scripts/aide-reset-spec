@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# aide-reset-spec — the mechanical whole of /aide-reset: put an ACTIVE
+# aide-reset-spec — the mechanical whole of a reset: put an ACTIVE
 # spec's work round back to the start by writing 2-analysis.md,
 # 3-solution.md and 4-status.md fresh from the templates, leaving
 # 0-README.md and 1-description.md byte for byte as they were.

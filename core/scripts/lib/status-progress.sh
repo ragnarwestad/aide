@@ -121,7 +121,7 @@ status_progress_for() {   # sets $progress_done, $progress_total
 
 # Sets $advanced_count: the rows whose Status cell is anything OTHER than
 # not-started — done, in-progress, blocked, waiting, or their word forms
-# all count, since none of them is a status `/aide-analyze` is ever
+# all count, since none of them is a status the analyze step is ever
 # allowed to leave a row in (that is implement's and archive's job). Used
 # by aide-run-spec's own analyze-scope guard, unfiltered — no TS mirror,
 # since nothing on the dashboard side ever needs "how many rows advanced".

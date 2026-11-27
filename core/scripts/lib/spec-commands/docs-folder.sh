@@ -17,7 +17,7 @@ aide_spec_docs_folder_or_exit() {   # <issue-id>
     echo "Searched in: $SPECS_ROOT"
     echo ""
     echo "Tips:"
-    echo "  - Have you run /aide-create first?"
+    echo "  - Has the spec been created (on the board, or with aide create)?"
     echo "  - Check AIDE_SPECS_PATH in .aide/config in the project root"
     echo ""
     echo "Available folders:"

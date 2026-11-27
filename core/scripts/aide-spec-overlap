@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # aide-spec-overlap — which other open specs of the same project change the
-# same files as this one. /aide-analyze's comparison step calls it, and
+# same files as this one. The analyze skill's comparison step calls it, and
 # aide-run-spec calls it again after the analyze turn
 # (lib/run-spec/record/shared-files-check.sh), so a session that skipped the
 # step is still caught.

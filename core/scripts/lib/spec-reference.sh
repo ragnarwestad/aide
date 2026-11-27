@@ -58,8 +58,8 @@ aide_spec_reference() {
 # - `<step>` is the step's own name, exactly as `--command` names it.
 # - `<spec-folder>` is the folder, never the numeric id: a `create` run
 #   names the folder it just made.
-# - ` (headless)` is present for a run `aide-run-spec` made and absent
-#   for one committed at somebody's keyboard. Both count.
+# - ` (headless)` is present for a run `aide-run-spec` made; a subject
+#   without it counts too.
 # - ` (model: <tool> [<model>])` says who ran the step. It comes before
 #   the stop reason, which is read to the end of the subject.
 # - ` (stopped: <reason>)` is present only when the run did NOT complete,

@@ -1,32 +1,57 @@
-"""E2E: Copilot uses the installed aide-create and aide-analyze skills
-(~/.agents/skills), headless, and the spec it makes is really analyzed.
+"""E2E: Copilot, installed by Aide but running no spec step on the board
+(core/scripts/lib/runnable-tools.json), sees the skills Aide installs for
+it, and a shell command it starts inherits the job's environment.
 
-Copilot has no slash command for these, so the prompt names the skill in
-words and the argument follows, as the dashboard's runner does for a CLI
-without one. Real CLI calls, billed: deselected by pytest.ini, run with
-`-m e2e`.
+The skill check reads `copilot skill list` and makes no model call; the
+environment check is a real, billed call. Both are deselected by
+pytest.ini, run with `-m e2e`.
 """
+import os
 import subprocess
+from pathlib import Path
 
 import pytest
 
-from .conftest import available, run_workflow
+from .conftest import available, mise_path
+
+# Where the Copilot installer puts Aide's skills, and the list of what it
+# put there (core/scripts/_install-skills.sh).
+PERSONAL_SKILLS = Path.home() / ".agents" / "skills"
+INSTALLED_MANIFEST = PERSONAL_SKILLS / ".aide-installed-manifest"
+
+
+def _personal_skills(listing: str) -> set[str]:
+    """The skill names under `Personal skills:` in `copilot skill list`."""
+    names, inside = set(), False
+    for line in listing.splitlines():
+        if line.endswith("skills:") and not line.startswith(" "):
+            inside = line == "Personal skills:"
+        elif inside and line.startswith("  ") and " - " in line:
+            names.add(line.strip().split(" - ", 1)[0])
+    return names
 
 
 @pytest.mark.e2e
 @pytest.mark.copilot
 @pytest.mark.slow
 @pytest.mark.skipif(not available("copilot"), reason="Copilot CLI not installed")
-def test_aide_create_then_analyze(e2e_env):
-    workspace, specs, env = e2e_env
+def test_copilot_lists_the_installed_aide_skills(tmp_path):
+    """Every skill the installer put in ~/.agents/skills is one Copilot
+    lists as a personal skill. Run outside any project, so no project's
+    own skills are mixed in."""
+    assert INSTALLED_MANIFEST.exists(), \
+        f"{INSTALLED_MANIFEST} is missing: Aide is not installed for Copilot (./install-all.sh)"
+    installed = {n for n in INSTALLED_MANIFEST.read_text().split() if n}
+    assert installed, f"{INSTALLED_MANIFEST} lists no skills"
 
-    def invoke(skill: str, argument: str, timeout: int) -> subprocess.CompletedProcess:
-        return subprocess.run(
-            ["copilot", "-p", f"Use the {skill} skill with this argument: {argument}", "--allow-all-tools"],
-            capture_output=True, text=True, timeout=timeout, cwd=str(workspace), env=env,
-        )
+    result = subprocess.run(
+        ["copilot", "skill", "list"], capture_output=True, text=True, timeout=60,
+        cwd=str(tmp_path), env={**os.environ, "PATH": mise_path()},
+    )
 
-    run_workflow(invoke, specs)
+    assert result.returncode == 0, f"copilot skill list failed: {result.stderr}"
+    missing = installed - _personal_skills(result.stdout)
+    assert not missing, f"Copilot does not list these installed skills: {sorted(missing)}\n{result.stdout}"
 
 
 ENV_MARKER = "AIDE_E2E_ENV_MARKER"

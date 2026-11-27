@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# aide-close-spec — the mechanical steps of /aide-close:
+# aide-close-spec — the mechanical steps of the close step:
 # resolving the spec argument to a folder, checking whether a merge
 # conflict is open, and stamping-and-moving the folder with the reason
 # the person closing it typed.
@@ -10,13 +10,13 @@
 # milestones. A reason is the one thing it does require
 # closing without one is refused before anything is touched.
 #
-# Callable directly by a person running /aide-close interactively, and
-# by aide-run-spec as a pre-check before it decides whether to spawn the
-# model at all. Idempotent the same way aide-archive-spec is: a folder
-# already under archive/ carrying a **Closed:** stamp is reported as
-# already-closed rather than stamped again — the dual-call-site case
-# (aide-run-spec's own pre-check, then the skill's Step 1 calling this a
-# second time for the same close step).
+# Called by aide-run-spec as a pre-check before it decides whether to
+# spawn the model at all, and again by the skill's Step 1. Idempotent
+# the same way aide-archive-spec is: a folder already under archive/
+# carrying a **Closed:** stamp is reported as already-closed rather
+# than stamped again — the dual-call-site case (aide-run-spec's own
+# pre-check, then the skill's Step 1 calling this a second time for the
+# same close step).
 #
 # Prints ONE JSON line to stdout and, if given, to --result-file:
 #   {ok, exitCode, terminalReason, error?, note?, specFolder?}

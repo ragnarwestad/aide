@@ -52,7 +52,7 @@ amend_note="${model_suffix}${suffix}"
 # them as the merge — the half-merged tree the rest of this script exists
 # to never leave anywhere. Undoing it here puts the branch back exactly
 # where the step found it, which is also what "leaves the branch as it
-# found it" means when /aide-archive gives up on the resolution on
+# found it" means when the archive step gives up on the resolution on
 # purpose.
 abort_unfinished_merges
 

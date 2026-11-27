@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # aide-emit-run — report a TDD phase boundary from inside an
-# /aide-implement run to the board.
+# implement run to the board.
 #
 #   aide-emit-run --phase red|green|verify [--spec N] [--command implement|archive]
 #

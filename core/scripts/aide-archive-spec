@@ -1,23 +1,21 @@
 #!/usr/bin/env bash
-# aide-archive-spec — the mechanical steps of /aide-archive:
+# aide-archive-spec — the mechanical steps of the archive step:
 # resolving the spec argument to a folder, checking whether a merge
 # conflict is open, reading 4-status.md's Tasks tables to decide whether
 # the work is done, and (when it is) stamping and moving the folder.
 #
 # Only two things here need a model's judgment, and neither is this
 # script's job: resolving an actual merge conflict, and deciding what
-# documentation should outlive the spec (Step 4 of the skill). Every
-# other archive run used to spend a full AI session reasoning about
-# 4-status.md's tables by hand, purely to conclude "not yet" — this
-# script answers that without spawning one.
+# documentation should outlive the spec (Step 2 of the skill). This
+# script answers "not yet" without spawning an AI session.
 #
-# Callable directly by a person running /aide-archive interactively, and
-# by aide-run-spec as a pre-check before it decides whether to spawn the
-# model at all. Idempotent: calling it twice for the same spec (once
-# from each caller, in the same archive step) must never error or
-# double-write — a folder already under archive/ is reported as
-# already-archived rather than moved again, and a held-back section
-# already matching the current verdict is left exactly as it is.
+# Called by aide-run-spec as a pre-check before it decides whether to
+# spawn the model at all, and again by the skill's Step 1. Idempotent:
+# calling it twice for the same spec (once from each caller, in the
+# same archive step) must never error or double-write — a folder
+# already under archive/ is reported as already-archived rather than
+# moved again, and a held-back section already matching the current
+# verdict is left exactly as it is.
 #
 # Prints ONE JSON line to stdout and, if given, to --result-file:
 #   {ok, exitCode, terminalReason, error?, note?, specFolder?,
@@ -145,7 +143,7 @@ aide_spec_command_folder "$specs_root" "$spec_arg"
 # move below, and the SKILL.md session's Step 1 then calls this script a
 # second time for the same archive step. specFolder/needsDocFeedback are
 # reported here too, same as the fresh `archived` outcome, so a caller
-# that reaches this on that second call still knows where Step 4 reads
+# that reaches this on that second call still knows where Step 2 reads
 # from.
 # Stamps and moves every group member other than `$1` that is still active.
 move_group_members() {
@@ -182,8 +180,7 @@ esac
 # archive step rather than aborting, so this can be running in a worktree
 # that is mid-merge. Checked in every directory the caller named — the
 # specs repo has a branch of its own and can conflict independently of
-# the project (SKILL.md's own Step 1 already said so before this script
-# existed).
+# the project.
 check_dirs=("$project_dir")
 [ -n "$specs_dir" ] && [ -d "$specs_dir" ] && check_dirs+=("$specs_dir")
 for dir in "${check_dirs[@]}"; do
@@ -264,8 +261,7 @@ fi
 # The tests are not this script's business any more: the landing runs
 # the project's suite once on the merged result and pushes only when it
 # is green (dashboard land-branch/test-gate.ts). A red suite there is
-# the job's error; a person's own /aide-archive gets the same gate from
-# the dashboard when the step lands.
+# the job's error.
 
 # --- archived: stamp and move ----------------------------------------------
 [ -f "$status_file" ] && remove_held_back_section
