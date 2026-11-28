@@ -210,6 +210,13 @@ table:is([data-list="jobs"], [data-list="specs"]) tr:is(.spechead, .grouphead) .
   position: absolute; inset-inline-start: var(--sp-2); inset-block-start: var(--sp-2);
   pointer-events: none;
 }
+/* A group's icon stands on its card's cell, inside the cell's 2px edge,
+   where a job's stands on its row. */
+table:is([data-list="jobs"], [data-list="specs"]) tr.execution-group > td.groupcell { position: relative; }
+table:is([data-list="jobs"], [data-list="specs"]) table.groupcard > tbody > tr.grouphead { position: static; }
+table:is([data-list="jobs"], [data-list="specs"]) table.groupcard > tbody > tr.grouphead .specpart > .kindicon {
+  inset-inline-start: calc(var(--sp-2) - 2px); inset-block-start: calc(var(--sp-2) - 2px);
+}
 table:is([data-list="jobs"], [data-list="specs"]) tr:is(.spechead, .grouphead) .specpart > .kindicon,
 table:is([data-list="jobs"], [data-list="specs"]) tr:is(.spechead, .grouphead) .specpart > .kindicon svg {
   width: 15px; height: 15px;

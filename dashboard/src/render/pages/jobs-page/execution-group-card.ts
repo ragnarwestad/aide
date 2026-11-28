@@ -273,10 +273,11 @@ export function executionGroupCard(
   const name = group.displayName ?? group.name;
   const key = `${group.project}\n${group.name}`;
   const anchor = executionGroupAnchor(group);
-  // The card is one cell of the list holding a table of its own: the group's
-  // two lines, then its members drawn exactly as on the list, each its own
-  // card. A cell has one border, so the card around the specs cannot be
-  // drawn on the specs' own cells.
+  // The card is one cell of the list holding two tables of its own: the
+  // group's two lines, as wide as the card so their columns stand where a
+  // job card's do, then its members drawn exactly as on the list, each its
+  // own card, inset from the card's edges. A cell has one border, so the
+  // card around the specs cannot be drawn on the specs' own cells.
   // Shut, unless a member's spec is open in it (the address that opens a
   // spec opens its group too) or a chosen state shows it, which the row
   // tells the page script in `data-group-open`.
@@ -292,7 +293,8 @@ export function executionGroupCard(
       : member.html.replace("<tr", `<tr${membership}`);
   }).join("") + `</tbody>`;
   return `<tr class="execution-group" id="${esc(anchor)}" data-spec-group="${esc(key)}"${opts.openFor ? ` data-group-open="${esc(opts.openFor)}"` : ""}>` +
-    `<td class="groupcell" colspan="6"><table class="list speclist groupcard">${columnGroup()}${head}${memberRows}</table>` +
+    `<td class="groupcell" colspan="6"><table class="list speclist groupcard grouplines">${columnGroup()}${head}</table>` +
+    `<table class="list speclist groupcard">${columnGroup()}${memberRows}</table>` +
     groupDialogs(group, members, controls, language, { anchor, name, opts }) +
     `</td></tr>` +
     `<tr class="specgap" aria-hidden="true"><td colspan="6"></td></tr>`;

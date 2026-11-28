@@ -1,6 +1,6 @@
-/* An execution group is one card on the list: a cell holding a table of
-   its own, with the group's two lines on the card's ground and its member
-   specs drawn as their own cards inside it, inset from its edges. */
+/* An execution group is one card on the list: a cell holding two tables of
+   its own, the group's two lines on the card's ground and its member specs
+   drawn as their own cards, inset from its edges. */
 table.speclist > tbody > tr.execution-group > td.groupcell {
   padding: 0 var(--sp-2); border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
 /* Its edge is the group icon's colour, softened as a spec card's is, all
@@ -9,6 +9,12 @@ table.speclist > tbody > tr.execution-group > td.groupcell {
 table.speclist > tbody > tr.execution-group:not(.specgap):not(.specstate) > td.groupcell {
   border: 2px solid color-mix(in oklab, var(--kind-group) 50%, var(--line)); }
 table.speclist.groupcard { width: 100%; }
+/* The group's own two lines reach out over the cell's inset to the card's
+   edge, less the pixel its edge is wider than a job card's, so their columns
+   are as wide as a job card's and everything on them stands where it does
+   on a job. */
+table.speclist.groupcard.grouplines { --group-inset: calc(var(--sp-2) + 1px);
+  width: calc(100% + 2 * var(--group-inset)); margin-inline: calc(-1 * var(--group-inset)); }
 /* Specific enough to beat the spec cards' own edge rules, `:first-child`
    and `:last-child` included. */
 table.speclist.groupcard > tbody > tr:is(.grouphead, .groupline):not(.specgap, .specstate) > td:nth-child(n) {
@@ -20,13 +26,16 @@ table.speclist.groupcard > tbody[data-group-head] > tr.specnotice > td:nth-child
 table.speclist.groupcard > tbody[data-group-members] > tr[data-group-archive],
 table.speclist.groupcard > tbody[data-group-members] > tr[data-group-archive] > td:nth-child(n) {
   border-left: 0; border-right: 0; }
-/* The fold is centred across both header lines; the title reaches left of an ordinary job. */
-table.speclist.groupcard > tbody > tr.grouphead > td { padding-top: var(--sp-3); padding-bottom: 0; }
+/* The card's edge is a pixel wider than a job's, which the title's air
+   gives back. */
+table.speclist.groupcard > tbody > tr.grouphead > td { padding-top: calc(var(--sp-3) - 1px); padding-bottom: 0; }
 .groupheadline { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); }
 table.speclist.groupcard > tbody > tr.grouphead .groupheadline { margin-left: calc(-1 * var(--sp-5)); }
-.groupheadline > .menu { flex: 0 0 auto; }
-table.speclist.groupcard > tbody > tr.groupline > td { padding-top: 0; padding-bottom: var(--sp-3); }
-table.speclist.groupcard > tbody > tr.groupline > td { padding-top: var(--sp-1); }
+/* The menu's button is taller than the title, and adds no height to its line. */
+.groupheadline > .menu { flex: 0 0 auto; margin-block: calc(-1 * var(--sp-2)); }
+/* The line under the title, and the card's foot, stand where a job card's
+   do, the card's 2px edge counted. */
+table.speclist.groupcard > tbody > tr.groupline > td { padding-top: calc(var(--sp-3) - 2px); padding-bottom: 7px; }
 table.speclist.groupcard > tbody > tr.groupline .pipslot { display: flex; margin: 0; padding-left: 0; }
 table.speclist.groupcard > tbody > tr.groupline > td[data-col="state"] { text-align: center; }
 table.speclist.groupcard > tbody > tr.groupline .actionslot[hidden] { display: none; }
@@ -35,37 +44,39 @@ table.speclist.groupcard > tbody > tr.grouphead:has([data-group-toggle][aria-exp
 /* The first member is the first row of its table, which the list's own
    first row gives up its top edge for; a member's card keeps it. */
 table.speclist.groupcard > tbody[data-group-members] > tr.spechead:first-child > td { border-top: 1px solid var(--card-edge, var(--line)); }
+/* Its chevron stands on the state line, where a job's does. */
 table.speclist.groupcard > tbody > tr.grouphead > td.foldcell {
-  vertical-align: middle; text-align: center; line-height: 0; padding: 0 var(--sp-1); }
-/* Offset the group's inset to align its fold with the other cards, on every width. */
-table.speclist.groupcard > tbody > tr.grouphead > td.foldcell > .fold { position: relative; left: calc(-1 * var(--sp-2)); }
+  vertical-align: top; text-align: center; line-height: 0; padding: calc(var(--sp-3) + var(--sp-1) + 1px) var(--sp-1) 0; }
 /* On a phone the table is blocks: the card is the cell's box alone, and the
-   group's lines share one grid. The `:not()`s outweigh
-   the phone's own rules for the list's rows. A member's state line gives up
+   group's lines share one grid. The `:not()`s and the card's own cell in
+   front outweigh the phone's own rules for the list's rows, which come later. A member's state line gives up
    the card's inset from its pips' cell, or its time wraps. */
 @media (max-width: 40rem) {
   table.speclist > tbody > tr.execution-group:not(.spechead, .specgap):not(.specstate) {
     display: block; border: 0; background: none; }
   table.speclist > tbody > tr.execution-group > td.groupcell { display: block; padding: 0 var(--sp-1); }
-  table.speclist.groupcard > tbody[hidden] { display: none; }
-  table.speclist.groupcard > tbody > tr:is(.grouphead, .groupline):not(.spechead, .specstate, .subrow) {
+  tr.execution-group > td.groupcell > table.speclist.groupcard > tbody[hidden] { display: none; }
+  /* The lines keep to the cell, and stand where a job card's do. */
+  tr.execution-group > td.groupcell > table.speclist.groupcard.grouplines { --group-inset: 0px; }
+  tr.execution-group > td.groupcell > table.speclist.groupcard > tbody > tr:is(.grouphead, .groupline):not(.spechead, .specstate, .subrow) {
     display: grid; grid-template-columns: 20px minmax(0, 1fr) var(--state-w) var(--time-w); align-items: center;
-    gap: var(--sp-2); border: 0; background: none; padding: 0 var(--sp-2); }
-  table.speclist.groupcard > tbody > tr:is(.grouphead, .groupline):not(.spechead, .specstate, .subrow)[hidden] { display: none; }
-  table.speclist.groupcard > tbody > tr:is(.grouphead, .groupline):not(.spechead, .specstate, .subrow) > td {
+    gap: var(--sp-2); border: 0; background: none; padding: 0 7px 0 0; }
+  tr.execution-group > td.groupcell > table.speclist.groupcard > tbody > tr.grouphead:not(.spechead, .specstate, .subrow) { align-items: start; }
+  tr.execution-group > td.groupcell > table.speclist.groupcard > tbody > tr.groupline > td { padding-top: 7px; padding-bottom: 11px; }
+  tr.execution-group > td.groupcell > table.speclist.groupcard > tbody > tr:is(.grouphead, .groupline):not(.spechead, .specstate, .subrow)[hidden] { display: none; }
+  tr.execution-group > td.groupcell > table.speclist.groupcard > tbody > tr:is(.grouphead, .groupline):not(.spechead, .specstate, .subrow) > td {
     display: block; padding-left: 0; padding-right: 0; }
-  table.speclist.groupcard > tbody > tr.grouphead:not(.spechead, .specstate, .subrow) > td:nth-child(n+5),
-  table.speclist.groupcard > tbody > tr.groupline > td:nth-child(n+4) { display: none; }
-  table.speclist.groupcard > tbody > tr:is(.grouphead, .groupline) > td[data-col="state"] { text-align: center; }
-  table.speclist.groupcard > tbody > tr.grouphead > td.foldcell { padding-top: 0; transform: translateY(calc(var(--sp-3) + var(--sp-2))); }
-  table.speclist.groupcard > tbody > tr.grouphead .groupheadline { margin-left: calc(-1 * var(--sp-2)); }
-  table.speclist.groupcard > tbody > tr.groupline > td:first-child { grid-column: 2; }
-  table.speclist.groupcard > tbody > tr.grouphead > td.foldcell > .fold { width: 20px; }
-  table.speclist.groupcard > tbody > tr.grouphead > td:nth-child(2) { grid-column: 2 / -1; }
-  table.speclist.groupcard > tbody > tr.groupline > td[data-col="state"] :is(.badgeslot, .badge) { width: 100%; box-sizing: border-box; }
-  table.speclist.groupcard > tbody > tr.groupline > td[data-col="started"] { font-size: var(--fs-s); }
-  /* Its state and time end where a job card's do. */
-  table.speclist.groupcard > tbody > tr.groupline:not(.spechead, .specstate, .subrow) { padding-right: 0; }
+  tr.execution-group > td.groupcell > table.speclist.groupcard > tbody > tr.grouphead:not(.spechead, .specstate, .subrow) > td:nth-child(n+5),
+  tr.execution-group > td.groupcell > table.speclist.groupcard > tbody > tr.groupline > td:nth-child(n+4) { display: none; }
+  tr.execution-group > td.groupcell > table.speclist.groupcard > tbody > tr:is(.grouphead, .groupline) > td[data-col="state"] { text-align: center; }
+  /* The fold adds no height to the title's line; its chevron is moved down to the state line. */
+  tr.execution-group > td.groupcell > table.speclist.groupcard > tbody > tr.grouphead > td.foldcell { padding-top: 0; height: 0; transform: translateY(calc(var(--sp-3) + var(--sp-2) - 3px)); }
+  tr.execution-group > td.groupcell > table.speclist.groupcard > tbody > tr.grouphead .groupheadline { margin-left: calc(-1 * var(--sp-2)); }
+  tr.execution-group > td.groupcell > table.speclist.groupcard > tbody > tr.groupline > td:first-child { grid-column: 2; }
+  tr.execution-group > td.groupcell > table.speclist.groupcard > tbody > tr.grouphead > td.foldcell > .fold { width: 20px; }
+  tr.execution-group > td.groupcell > table.speclist.groupcard > tbody > tr.grouphead > td:nth-child(2) { grid-column: 2 / -1; }
+  tr.execution-group > td.groupcell > table.speclist.groupcard > tbody > tr.groupline > td[data-col="state"] :is(.badgeslot, .badge) { width: 100%; box-sizing: border-box; }
+  tr.execution-group > td.groupcell > table.speclist.groupcard > tbody > tr.groupline > td[data-col="started"] { font-size: var(--fs-s); }
   table.speclist.groupcard tr.specstate > td:first-child {
     flex-basis: calc(var(--sp-3) + var(--fold-w) + var(--phase-w) + var(--aimodel-w) + var(--tick-w)
       + 2 * var(--sp-2) - 2 * var(--sp-1) - 2px); }
