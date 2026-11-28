@@ -335,7 +335,7 @@ export const fr: Record<TranslationKey, string> = {
   "schedule.browserChrome": "Chrome, connecté",
   "schedule.sandbox": "Bac à sable",
   "schedule.sandboxOn": "Activé",
-  "schedule.sandboxOff": "Désactivé, pour qu’un navigateur puisse démarrer",
+  "schedule.sandboxOff": "Désactivé",
   "schedule.reportOnly": "Une tâche planifiée peut committer dans le projet et ses specs — les mêmes dépôts qu'atteint l'étape d'une spec. Une fois terminée, le tableau de bord merge le travail.",
   "schedule.enabled": "Activé",
   "schedule.yes": "oui",

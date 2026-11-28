@@ -28,6 +28,7 @@ export {
 
 export {
   type ScheduleAdminResult,
+  sandboxChoiceError,
   scheduleEntryError,
   createScheduleEntry,
   updateScheduleEntry,

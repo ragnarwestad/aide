@@ -7,7 +7,7 @@ import { describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
 import {
   followScheduleRow, leaveAfterSave, postScheduleEnabled, postScheduleRun, reconcileScheduleRuns, runCronPreview, scheduleCronPreview,
-  submitScheduleForm,
+  sandboxFollowsTool, submitScheduleForm,
 } from "../../src/specs-client/schedule-actions.ts";
 
 /** The Enabled switch as `switchControl()` draws it, in a document of its own. */
@@ -331,5 +331,32 @@ describe("followScheduleRow", () => {
     expect(followScheduleRow(click(true), (h) => went.push(h))).toBeNull();
     expect(followScheduleRow(click(false, { metaKey: true }), (h) => went.push(h))).toBeNull();
     expect(went).toEqual([]);
+  });
+});
+
+/** The schedule form's model and Sandbox fields as the server draws them. */
+function fakeScheduleForm(model: string, sandbox: "on" | "off"): HTMLFormElement {
+  const window = new Window();
+  window.document.body.innerHTML =
+    `<form class="scheduleform"><select name="model">` +
+    `<option value="Opus" data-tool="claude"${model === "Opus" ? " selected" : ""}>Opus</option>` +
+    `<option value="sol" data-tool="codex"${model === "sol" ? " selected" : ""}>sol</option></select>` +
+    `<label class="field"><span>Sandbox</span><select name="sandbox">` +
+    `<option value="on"${sandbox === "on" ? " selected" : ""}>On</option>` +
+    `<option value="off"${sandbox === "off" ? " selected" : ""}>Off</option></select></label></form>`;
+  return window.document.querySelector("form") as unknown as HTMLFormElement;
+}
+
+describe("sandboxFollowsTool", () => {
+  test("the Sandbox choice is offered for a Claude Code model only, and On is what a hidden one posts", () => {
+    const form = fakeScheduleForm("sol", "off");
+    const field = form.querySelector('select[name="sandbox"]')!.closest("label") as HTMLElement;
+    const sandbox = form.querySelector('select[name="sandbox"]') as HTMLSelectElement;
+    sandboxFollowsTool(form);
+    expect(field.hidden).toBe(true);
+    expect(sandbox.value).toBe("on");
+    (form.querySelector('select[name="model"]') as HTMLSelectElement).value = "Opus";
+    sandboxFollowsTool(form);
+    expect(field.hidden).toBe(false);
   });
 });

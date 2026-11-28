@@ -4,6 +4,7 @@
 // Config tab edits its settings. The edit state is the address
 // (`?edit=1`), never stored.
 import type { ScheduleEntry } from "../../../queue/schedule.ts";
+import { sandboxApplies } from "../../../queue/providers/tools.ts";
 import { scheduleNotifyOf } from "../../../queue/schedule.ts";
 import { t, type Language } from "../../../i18n";
 import { btnLink, facts, messageSlot } from "../../ui/components";
@@ -66,7 +67,9 @@ export function renderScheduleSettings(opts: ScheduleSettingsOptions): string {
       : []),
     { label: esc(t(lang, "schedule.notify")), value: esc(t(lang, notify)) },
     { label: esc(t(lang, "schedule.browser")), value: esc(t(lang, entry.chrome ? "schedule.browserChrome" : "schedule.browserNone")) },
-    { label: esc(t(lang, "schedule.sandbox")), value: esc(t(lang, entry.sandbox === false ? "schedule.sandboxOff" : "schedule.sandboxOn")) },
+    ...(sandboxApplies(opts.modelChoices?.find((m) => m.name === model)?.tool)
+      ? [{ label: esc(t(lang, "schedule.sandbox")), value: esc(t(lang, entry.sandbox === false ? "schedule.sandboxOff" : "schedule.sandboxOn")) }]
+      : []),
     { label: esc(t(lang, "schedule.enabled")), value: esc(capitalizeFirst(t(lang, entry.enabled ? "schedule.yes" : "schedule.no"))) },
   ]);
   const actions =

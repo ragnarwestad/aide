@@ -165,6 +165,19 @@ describe("POST /api/queue/schedule/<project>/<name>/enabled", () => {
 });
 
 describe("the entry's model, over the wire", () => {
+  test("sandbox off is refused unless the run is on Claude, the posted model's or the default's", async () => {
+    const t = start([nightly({ model: "codex-fast" })], { queueDefaults: DEFAULTS });
+    const created = await fetch(`${t.base}/api/queue/schedule`, jsonPost({ project: "aide", ...weekly(), model: "codex-fast", sandbox: "off" }));
+    expect(created.status).toBe(400);
+    const edited = await fetch(`${t.base}/api/queue/schedule/aide/nightly`, jsonPost(nightly({ model: "codex-fast", sandbox: "off" })));
+    expect(edited.status).toBe(400);
+    expect(t.stored()).toHaveLength(1);
+    expect(t.stored()[0]!.sandbox).toBeUndefined();
+    const onDefault = await fetch(`${t.base}/api/queue/schedule/aide/nightly`, jsonPost(nightly({ model: "", sandbox: "off" })));
+    expect(onDefault.status).toBe(200);
+    expect(t.stored()[0]!.sandbox).toBe(false);
+  });
+
   test("create stores the posted model on the entry", async () => {
     const t = start([], { queueDefaults: DEFAULTS });
     const res = await fetch(`${t.base}/api/queue/schedule`, jsonPost({ project: "aide", ...nightly({ model: "codex-fast" }) }));

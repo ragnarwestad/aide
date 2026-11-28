@@ -520,7 +520,9 @@ An entry may also carry:
   (`aide-run-spec --chrome`), for a prompt that reads a page behind a login. It needs Chrome running there with the
   Claude extension signed in to the same account as Claude Code, and a model run by Claude.
 - `"sandbox": false`, set as Sandbox: each run starts Claude without its sandbox (`aide-run-spec --no-sandbox`), for a
-  prompt whose commands start a browser ([What a step can reach](the-runner.md#what-a-step-can-reach)).
+  prompt whose commands start a browser or list processes ([What a step can reach](the-runner.md#what-a-step-can-reach)).
+  The form shows the choice for a Claude Code model only, and a save of Off with any other model is refused: Codex and
+  OpenCode always run in their sandbox.
 
 A fresh install has no scheduled jobs. A project's own files never carry a schedule; a job belongs to the installation
 that fires it.

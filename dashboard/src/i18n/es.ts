@@ -335,7 +335,7 @@ export const es: Record<TranslationKey, string> = {
   "schedule.browserChrome": "Chrome, con sesión iniciada",
   "schedule.sandbox": "Sandbox",
   "schedule.sandboxOn": "Activado",
-  "schedule.sandboxOff": "Desactivado, para que pueda arrancar un navegador",
+  "schedule.sandboxOff": "Desactivado",
   "schedule.reportOnly": "Un trabajo programado puede hacer commits en el proyecto y sus specs — los mismos repositorios que alcanza el paso de una spec. Cuando termina, el tablero mergea el trabajo.",
   "schedule.enabled": "Activado",
   "schedule.yes": "sí",

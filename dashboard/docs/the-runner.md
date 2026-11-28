@@ -361,7 +361,8 @@ running its commands unconfined.
 **A browser cannot start in the sandbox**, Claude's or srt. Chromium registers a macOS service neither has a setting
 for. Every step is told so in its prompt and does not run browser tests itself; the runner's own test run, outside the sandbox,
 runs them before the work can merge. A scheduled job whose own commands start a browser runs without the sandbox: its
-entry's Sandbox is set to Off on its Settings tab (`"sandbox": false`, `aide-run-spec --no-sandbox`).
+entry's Sandbox is set to Off on its Settings tab (`"sandbox": false`, `aide-run-spec --no-sandbox`), which only a
+Claude Code model offers.
 
 **The runner's own test run executes what the step wrote, outside the sandbox.** An `implement` step's tests, a
 merge's tests and every hook git runs for them run with everything the user can reach, the denied paths included. A

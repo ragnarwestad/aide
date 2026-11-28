@@ -75,3 +75,10 @@ export const TOOL_NAMES: Record<RunnableTool, string> = Object.fromEntries(
 export const SHORT_TOOL_NAMES: Record<RunnableTool, string> = Object.fromEntries(
   RUNNABLE_TOOLS.map((tool) => [tool, TOOLS[tool].shortName]),
 ) as Record<RunnableTool, string>;
+
+/** Whether a run on `tool` can leave its sandbox, which a scheduled entry's
+ *  Sandbox choice asks for. Only Claude can (`aide-run-spec --no-sandbox`);
+ *  Codex and OpenCode always run inside srt. A model naming no tool is
+ *  Claude's. Read by the save routes, the form's page script and the entry's
+ *  Settings tab, so all three agree. */
+export const sandboxApplies = (tool: string | undefined): boolean => (tool ?? "claude") === "claude";

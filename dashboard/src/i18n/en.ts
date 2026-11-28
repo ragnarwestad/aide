@@ -342,7 +342,7 @@ export const en = {
   "schedule.browserChrome": "Chrome, logged in",
   "schedule.sandbox": "Sandbox",
   "schedule.sandboxOn": "On",
-  "schedule.sandboxOff": "Off, so a browser can start",
+  "schedule.sandboxOff": "Off",
   "schedule.reportOnly": "A scheduled job may commit to the project and its specs — the same repositories a spec's step reaches. Once it ends, the board merges the work.",
   "schedule.enabled": "Enabled",
   "schedule.yes": "yes",

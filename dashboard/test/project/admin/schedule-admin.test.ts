@@ -10,6 +10,7 @@ import { join } from "node:path";
 import {
   createScheduleEntry,
   deleteScheduleEntry,
+  sandboxChoiceError,
   scheduleEntryError,
   setScheduleEnabled,
   updateScheduleEntry,
@@ -367,6 +368,13 @@ describe("an entry's sandbox choice", () => {
     const { dir, store, stored } = setup();
     expect(createScheduleEntry(store, PROJECT, dir, { ...req(), sandbox: "no" }).ok).toBe(false);
     expect(stored()).toHaveLength(0);
+  });
+
+  test("off is refused for a run that is not on Claude, which always runs in its sandbox", () => {
+    expect(sandboxChoiceError(false, "codex")).toContain("Claude");
+    expect(sandboxChoiceError(false, "opencode")).toContain("Claude");
+    expect(sandboxChoiceError(false, "claude")).toBeNull();
+    expect(sandboxChoiceError(true, "codex")).toBeNull();
   });
 
   test("an edit that posts on turns it back on, and one that posts nothing keeps it", () => {

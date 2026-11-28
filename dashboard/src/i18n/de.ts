@@ -335,7 +335,7 @@ export const de: Record<TranslationKey, string> = {
   "schedule.browserChrome": "Chrome, angemeldet",
   "schedule.sandbox": "Sandbox",
   "schedule.sandboxOn": "An",
-  "schedule.sandboxOff": "Aus, damit ein Browser starten kann",
+  "schedule.sandboxOff": "Aus",
   "schedule.reportOnly": "Ein geplanter Job darf in das Projekt und seine Specs committen — dieselben Repositories, die der Schritt einer Spec erreicht. Sobald er fertig ist, mergt das Dashboard die Arbeit.",
   "schedule.enabled": "Aktiviert",
   "schedule.yes": "ja",

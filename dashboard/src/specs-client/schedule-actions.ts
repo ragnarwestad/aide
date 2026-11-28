@@ -10,6 +10,7 @@ import { postForm, refusalText, setSwitch, writeLine, type ActionResult } from "
 import { swapPage } from "./page-swap";
 import { jobActivity } from "../queue/job-rules/activity.ts";
 import { scheduleTrackingKey } from "../project/spec-names.ts";
+import { sandboxApplies } from "../queue/providers/tools.ts";
 
 type ScheduleJob = {
   project?: string;
@@ -122,6 +123,18 @@ export async function postScheduleRun(form: HTMLFormElement, fetchImpl: typeof f
   } finally {
     if (button && !accepted) button.disabled = false;
   }
+}
+
+/** The Sandbox choice follows the model: only a Claude Code run can leave
+ *  its sandbox, so for any other tool the field is hidden and set back to
+ *  On, which is then what the form posts. */
+export function sandboxFollowsTool(form: HTMLFormElement): void {
+  const sandbox = form.querySelector('select[name="sandbox"]') as HTMLSelectElement | null;
+  const field = sandbox?.closest("label") as HTMLElement | null;
+  if (!sandbox || !field) return;
+  const model = form.querySelector('select[name="model"]') as HTMLSelectElement | null;
+  field.hidden = !sandboxApplies(model ? model.options[model.selectedIndex]?.dataset.tool : undefined);
+  if (field.hidden) sandbox.value = "on";
 }
 
 /** Save or Create on the page that makes or changes an entry. The

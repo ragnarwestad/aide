@@ -337,7 +337,7 @@ export const nb: Record<TranslationKey, string> = {
   "schedule.browserChrome": "Chrome, innlogget",
   "schedule.sandbox": "Sandkasse",
   "schedule.sandboxOn": "På",
-  "schedule.sandboxOff": "Av, så en nettleser kan starte",
+  "schedule.sandboxOff": "Av",
   "schedule.reportOnly": "En planlagt jobb kan committe til prosjektet og specene sine — de samme repoene et spec-steg når. Når jobben er ferdig, merger dashbordet arbeidet.",
   "schedule.enabled": "Aktivert",
   "schedule.yes": "ja",

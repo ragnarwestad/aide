@@ -9,6 +9,7 @@ import { existsSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { CronExpressionParser } from "cron-parser";
 import { listedModelName } from "../../queue/model-name.ts";
+import { sandboxApplies } from "../../queue/providers/tools.ts";
 import { escapesRoot, isScheduleChrome, isScheduleNotify, isScheduleSandbox, SCHEDULE_NAME_RE, type ScheduleEntry, type ScheduleNotify } from "../../queue/schedule.ts";
 import type { ScheduleStore } from "../../queue/schedule-store.ts";
 
@@ -89,6 +90,16 @@ function choicesError(req: ScheduleRequest): string | null {
   const sandbox = req.sandbox?.trim();
   if (sandbox && !isScheduleSandbox(sandbox)) return `"${sandbox}" is not a sandbox choice: on or off`;
   return null;
+}
+
+/** Why an entry's sandbox choice cannot be kept for a run on `tool`, or
+ *  `null`. Only Claude can run without its sandbox (`aide-run-spec
+ *  --no-sandbox`); Codex and OpenCode always run inside srt, so an Off
+ *  saved for them would be stored and then do nothing. */
+export function sandboxChoiceError(sandboxOn: boolean, tool: string): string | null {
+  return !sandboxOn && !sandboxApplies(tool)
+    ? `Sandbox off works only on Claude Code: a ${tool} run always runs in its sandbox`
+    : null;
 }
 
 /** Why a create/edit request cannot be saved, or `null`. Checked before

@@ -6,7 +6,8 @@ import { scheduleTrackingKey } from "../../project/spec-names.ts";
 // `spec-edit.ts`'s reset route and `queue-admin.ts`'s settings route —
 // refuse before any write, then a JSON answer. A saved create or edit
 // names the page the reader came from, for the page script to go to.
-import { createScheduleEntry, deleteScheduleEntry, setScheduleEnabled, updateScheduleEntry } from "../../project/project-admin";
+import { createScheduleEntry, deleteScheduleEntry, sandboxChoiceError, setScheduleEnabled, updateScheduleEntry } from "../../project/project-admin";
+import { listedModelName } from "../../queue/model-name.ts";
 import { nextFireTime, scheduleRequest } from "../../queue/schedule.ts";
 import { enqueueRequest } from "../../queue/request/index.ts";
 import { providerModelError } from "../../queue/providers/parse.ts";
@@ -30,6 +31,21 @@ function pairRefusal(ctx: RoutesContext, provider: string | undefined, model: st
   if (!provider || !model.trim() || !ctx.queue.defaults.providers?.[provider]) return null;
   const refused = providerModelError(ctx.queue.defaults, provider, model.trim());
   return refused ? refusal({ error: refused.error, solution: refused.solution }) : null;
+}
+
+/** The refusal a sandbox-off save gets when its run would not be on
+ *  Claude: the posted model's tool, or, with none posted, the tool of the
+ *  model the schedule step falls back to. `keptOff` is what an edit that
+ *  posts no choice keeps. */
+function sandboxRefusal(ctx: RoutesContext, body: Record<string, unknown>, keptOff = false): Response | null {
+  const posted = str(body.sandbox).trim();
+  if (!(posted === "off" || (!posted && keptOff))) return null;
+  const { model = {}, modelChoices = {} } = ctx.queue.defaults;
+  const asked = str(body.model).trim();
+  const listed = asked ? listedModelName(Object.keys(modelChoices), asked) : undefined;
+  const name = listed && "name" in listed ? listed.name : asked || model.schedule || model.default;
+  const refused = sandboxChoiceError(false, (name ? modelChoices[name]?.tool : undefined) ?? "claude");
+  return refused ? refusal({ error: refused, solution: "Choose a Claude Code model, or set Sandbox to On." }) : null;
 }
 
 async function scheduleRoute(_ctx: RoutesContext, req: Request, url: URL, path: string): Promise<Response | null> {
@@ -143,7 +159,8 @@ async function scheduleRoute2(ctx: RoutesContext, req: Request, _url: URL, path:
     if ("refusal" in sent) return sent.refusal;
     const body = sent.body;
     const current = ctx.scheduleStore.list(project).find((entry) => entry.name === name);
-    const mismatch = pairRefusal(ctx, str(body.provider).trim() || current?.provider, str(body.model));
+    const mismatch = pairRefusal(ctx, str(body.provider).trim() || current?.provider, str(body.model)) ??
+      sandboxRefusal(ctx, body, current?.sandbox === false);
     if (mismatch) return mismatch;
     const result = updateScheduleEntry(ctx.scheduleStore, project, ctx.machineryProjectDir(project), name, {
       name: str(body.name), cron: str(body.cron), prompt: str(body.prompt), model: str(body.model), provider: str(body.provider), notify: str(body.notify), chrome: str(body.chrome), sandbox: str(body.sandbox),
@@ -175,7 +192,7 @@ async function scheduleRoute3(ctx: RoutesContext, req: Request, _url: URL, path:
     const body = sent.body;
     const project = str(body.project);
     if (!ctx.allowed.has(project)) return json({ error: `"${project}" is not a project this dashboard knows` }, 400);
-    const mismatch = pairRefusal(ctx, str(body.provider).trim(), str(body.model));
+    const mismatch = pairRefusal(ctx, str(body.provider).trim(), str(body.model)) ?? sandboxRefusal(ctx, body);
     if (mismatch) return mismatch;
     const result = createScheduleEntry(ctx.scheduleStore, project, ctx.machineryProjectDir(project), {
       name: str(body.name), cron: str(body.cron), prompt: str(body.prompt), model: str(body.model), provider: str(body.provider), notify: str(body.notify), chrome: str(body.chrome), sandbox: str(body.sandbox),

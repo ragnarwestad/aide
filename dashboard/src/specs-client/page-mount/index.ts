@@ -19,7 +19,7 @@ import { bindIconFile } from "../icon-file";
 import { bindPushPanel } from "../push";
 import { startReloadWhileIdle } from "../reload-while-idle";
 import { bindReportFrame } from "../report-frame";
-import { bindScheduleRuns, postScheduleEnabled, postScheduleRun, scheduleCronPreview, submitScheduleForm } from "../schedule-actions";
+import { bindScheduleRuns, postScheduleEnabled, postScheduleRun, sandboxFollowsTool, scheduleCronPreview, submitScheduleForm } from "../schedule-actions";
 import { placeNamedRow } from "../spec-detail";
 import { NEW_SPEC_FORM } from "../state";
 import { bindLists } from "./lists.ts";
@@ -123,6 +123,9 @@ function mountSchedule(doc: Document, cleanups: (() => void)[], options: { refer
     // remembered across a redraw here, so the pick lives in the select until
     // the form is posted.
     form.addEventListener("change", onAiChange);
+    // After the AI pick has filled in its model, so the field reads the model it settled on.
+    form.addEventListener("change", () => sandboxFollowsTool(form));
+    sandboxFollowsTool(form);
   }
 }
 
