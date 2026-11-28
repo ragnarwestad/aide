@@ -5,6 +5,7 @@ run-spec/turn/side-turn.sh).
 """
 
 import json
+import os
 
 from ...conftest import run
 from ..run_spec_results import CODEX_STREAM_OK, RESULT_OK, emits
@@ -58,3 +59,16 @@ def test_autocompact_outside_the_range_or_on_codex_is_refused(runner, workspace,
     rc, out, _ = run(runner, workspace, codex=codex, tool="codex", autocompact="300000")
     assert rc != 0 and "--autocompact" in out["error"], out
     assert not fake_claude.calls.exists() and not fake_codex.calls.exists()
+
+
+def test_a_stand_in_step_with_no_stand_in_named_is_refused_and_starts_no_claude_AC_3_AC_5(
+        runner, workspace, fake_claude, tmp_path, monkeypatch):
+    real = fake_claude(f"cat > /dev/null; echo '{json.dumps(RESULT_OK)}'")
+    on_path = tmp_path / "on-path"
+    on_path.mkdir()
+    (on_path / "claude").symlink_to(real)
+    monkeypatch.delenv("AIDE_CLAUDE_BIN", raising=False)
+    monkeypatch.setenv("PATH", f"{on_path}:{os.environ['PATH']}")
+    rc, out, _ = run(runner, workspace, tool="fake-claude")
+    assert rc != 0 and out["error"].startswith("--tool fake-claude needs a stand-in binary"), out
+    assert not fake_claude.calls.exists()

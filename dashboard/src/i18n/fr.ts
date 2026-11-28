@@ -63,6 +63,7 @@ export const fr: Record<TranslationKey, string> = {
   "shell.storageFaultRead": "{file} n'a pas pu être lu ({reason}) : le tableau de bord le laisse tel quel et n'y enregistre plus. Réparez ou déplacez le fichier sur le serveur, puis redémarrez le tableau de bord.",
   "shell.storageFaultQueueWrite": "{file} n'a pas pu être enregistré ({reason}) : les dernières modifications de la file ne sont qu'en mémoire et seront perdues au redémarrage. Réparez le dossier sur le serveur ; la prochaine modification les enregistrera.",
   "shell.storageFaultGroupWrite": "{file} n'a pas pu être enregistré ({reason}) : la modification du groupe n'a pas été faite. Réparez le dossier sur le serveur, puis refaites la modification.",
+  "shell.storageFaultPendingWrite": "{file} n'a pas pu être enregistré ({reason}) : le choix n'a pas été enregistré. Réparez le dossier sur le serveur, puis refaites le choix.",
   "deploy.title": "Déploiement…",
   "deploy.stepFetch": "Récupérer depuis origin",
   "deploy.stepInstall": "Installer",

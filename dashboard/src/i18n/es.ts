@@ -63,6 +63,7 @@ export const es: Record<TranslationKey, string> = {
   "shell.storageFaultRead": "No se pudo leer {file} ({reason}), así que el panel lo ha dejado como está y no guarda en él. Repara o mueve el archivo en el servidor y reinicia el panel.",
   "shell.storageFaultQueueWrite": "No se pudo guardar {file} ({reason}); los últimos cambios de la cola solo están en memoria y se pierden al reiniciar. Repara la carpeta en el servidor; el próximo cambio los guarda.",
   "shell.storageFaultGroupWrite": "No se pudo guardar {file} ({reason}); el cambio en el grupo no se hizo. Repara la carpeta en el servidor y vuelve a hacer el cambio.",
+  "shell.storageFaultPendingWrite": "No se pudo guardar {file} ({reason}); la elección no se guardó. Repara la carpeta en el servidor y vuelve a hacer la elección.",
   "deploy.title": "Desplegando…",
   "deploy.stepFetch": "Traer desde origin",
   "deploy.stepInstall": "Instalar",

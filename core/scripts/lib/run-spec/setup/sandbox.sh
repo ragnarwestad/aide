@@ -33,7 +33,9 @@ sandbox_denied=(
 # sandbox later runs or reads as settings. A login shell, launchd, the
 # commands on PATH, git's own settings, the AI tools' settings, hooks and
 # skills, and the board's queue settings, where a schedule entry may turn
-# the sandbox off. Installing onto the serving host is the landing's job
+# the sandbox off. `.claude.json` here is the global configuration beside
+# `~/.claude`; what is protected inside `~/.claude` is the account list
+# below. Installing onto the serving host is the landing's job
 # (`AIDE_INSTALL_CMD`), never a step's.
 sandbox_write_denied=(
   .zshrc
@@ -50,23 +52,15 @@ sandbox_write_denied=(
   .gitconfig
   .config/git
   .claude.json
-  .claude/settings.json
-  .claude/settings.local.json
-  .claude/hooks
-  .claude/skills
-  .claude/agents
-  .claude/rules
-  .claude/plugins
-  .claude/CLAUDE.md
   .agents
   .codex
   .config/opencode
 )
 
-# What a step may not write under each Claude account's directory
-# (`CLAUDE_CONFIG_DIR`), the same names as under `~/.claude` above. The
-# directory itself is not listed: Claude Code writes its sessions there, and
-# a deny cannot be opened again below it.
+# What a step may not write under each Claude account's directory:
+# `~/.claude` and every `CLAUDE_CONFIG_DIR`. The directory itself is not
+# listed: Claude Code writes its sessions there, and a deny cannot be opened
+# again below it.
 sandbox_account_write_denied=(
   .claude.json
   settings.json
@@ -90,12 +84,13 @@ sandbox_account_write_denied=(
 sandbox_runtime_write_denied() {
   local dir name checkouts="${AIDE_CHECKOUT_ROOT:-$HOME/.aide/dashboard/checkouts}"
   printf '%s\n' "${AIDE_QUEUE_CONFIG:-$HOME/.aide/dashboard/queue-config.json}"
-  # Every Claude account the board may run a step on (one directory per
-  # line), and this step's own.
+  # Every Claude account: the default one in ~/.claude, every one the board
+  # may run a step on (one directory per line), and this step's own.
   while IFS= read -r dir; do
     [ -n "$dir" ] || continue
     for name in "${sandbox_account_write_denied[@]}"; do printf '%s\n' "$dir/$name"; done
-  done <<< "${AIDE_CLAUDE_CONFIG_DIRS:-}
+  done <<< "$HOME/.claude
+${AIDE_CLAUDE_CONFIG_DIRS:-}
 ${claude_config_dir:-}"
   # Every Codex folder a provider keeps a login in (one per line), whole: a
   # Claude step never writes in one, as it writes nothing in `~/.codex`.

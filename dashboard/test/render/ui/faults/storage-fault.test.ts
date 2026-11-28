@@ -22,7 +22,8 @@ afterEach(() => {
 const resolve = () => ({ specFolders: ["81-queue-and-runner"] });
 const DEFAULTS = { timeoutSec: { default: 60 }, permissionMode: { default: "acceptEdits" }, model: { default: "sonnet" } };
 
-const sentence = (key: "shell.storageFaultRead" | "shell.storageFaultQueueWrite" | "shell.storageFaultGroupWrite", fault: StorageFault) => esc(t("en", key, { file: fault.file, reason: fault.reason }));
+type FaultKey = "shell.storageFaultRead" | "shell.storageFaultQueueWrite" | "shell.storageFaultGroupWrite" | "shell.storageFaultPendingWrite";
+const sentence = (key: FaultKey, fault: StorageFault) => esc(t("en", key, { file: fault.file, reason: fault.reason }));
 
 describe("headerNotices: a storage fault", () => {
   test("each kind of fault shows the sentence for what it left behind, naming the file and the reason (AC-2, AC-3)", () => {
@@ -35,6 +36,12 @@ describe("headerNotices: a storage fault", () => {
     expect(html).toContain(sentence("shell.storageFaultRead", read));
     expect(html).toContain(sentence("shell.storageFaultQueueWrite", queueWrite));
     expect(html).toContain(sentence("shell.storageFaultGroupWrite", groupWrite));
+  });
+
+  test("a pending-choice file that could not be saved shows the pending write sentence (AC-2)", () => {
+    const fault: StorageFault = { file: "/state/pending-models.json", store: "pending", action: "write", reason: "EACCES: permission denied" };
+    setStorageFault(fault);
+    expect(headerNotices("en")).toContain(sentence("shell.storageFaultPendingWrite", fault));
   });
 
   test("a queue file that cannot be read is in the header from the moment the store is built (AC-2)", () => {

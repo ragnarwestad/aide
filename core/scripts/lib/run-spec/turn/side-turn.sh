@@ -23,41 +23,10 @@ side_argv_for() {  # <tool> <model> <name> [<bin>]
     saved_opencode_config="${opencode_config:-}"
   local -a saved_flags=(${safety_flags[@]+"${safety_flags[@]}"})
   side_argv=()
-  case "$side_tool" in
-    codex)
-      side_bin="$own_bin"
-      if [ -z "$side_bin" ]; then
-        [ -n "$codex_bin" ] || codex_bin="$(find_bin "${AIDE_CODEX_BIN:-}" codex)"
-        side_bin="$codex_bin"
-      fi
-      [ -n "$side_bin" ] && [ -x "$side_bin" ] || return 1
-      ;;
-    opencode)
-      side_bin="$own_bin"
-      if [ -z "$side_bin" ]; then
-        [ -n "$opencode_bin" ] || opencode_bin="$(find_bin "${AIDE_OPENCODE_BIN:-}" opencode)"
-        side_bin="$opencode_bin"
-      fi
-      [ -n "$side_bin" ] && [ -x "$side_bin" ] || return 1
-      ;;
-    claude|fake-claude)
-      side_bin="$claude_bin"
-      if [ "$side_tool" = "fake-claude" ]; then
-        # The stand-in by name: without one the turn does not run, so a
-        # turn that says it is scripted never reaches a model.
-        side_bin="${AIDE_CLAUDE_BIN:-}"
-        [ -n "$side_bin" ] || side_bin="$(aide_config_get AIDE_CLAUDE_BIN "$project_root")"
-        [ -n "$side_bin" ] || return 1
-        side_bin="$(find_bin "$side_bin" claude)"
-      elif [ -n "$own_bin" ]; then
-        side_bin="$own_bin"
-      fi
-      [ -n "$side_bin" ] || side_bin="$(find_bin "${AIDE_CLAUDE_BIN:-}" claude)"
-      [ -n "$side_bin" ] && [ -x "$side_bin" ] || return 1
-      [ "$side_tool" = "fake-claude" ] || [ -n "$own_bin" ] || claude_bin="$side_bin"
-      ;;
-    *) return 1 ;;
-  esac
+  # Its own program (--<part>-bin) or the policy's; never the step's --bin,
+  # which is the step's provider's program, not this turn's.
+  side_bin="$(tool_bin "$side_tool" "$own_bin")" || return 1
+  [ -n "$side_bin" ] && [ -x "$side_bin" ] || return 1
   # A Codex or OpenCode turn runs only inside srt (setup/srt.sh).
   case "$side_tool" in codex|opencode)
     [ -n "${srt_bin:-}" ] && [ -x "$srt_bin" ] \

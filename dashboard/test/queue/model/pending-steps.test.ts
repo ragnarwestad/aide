@@ -10,10 +10,11 @@
 // generic `enqueue()`.
 
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { QueueStore, type QueueDefaults } from "../../../src/queue/queue.ts";
+import { clearAllStorageFaults, storageFaults } from "../../../src/queue/store/storage-faults.ts";
 import { pageUntil, queueHarness, IMPLEMENTED, statusSaying } from "../../helpers/queue-server.ts";
 
 const DEFAULTS: QueueDefaults = {
@@ -30,7 +31,10 @@ beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), "aide-pending-steps-"));
 });
 
-afterEach(() => rmSync(dir, { recursive: true, force: true }));
+afterEach(() => {
+  clearAllStorageFaults();
+  rmSync(dir, { recursive: true, force: true });
+});
 
 describe("QueueStore.setPendingSteps()", () => {
   test("records a valid choice", () => {
@@ -66,10 +70,10 @@ describe("QueueStore.setPendingSteps()", () => {
     expect(store.pendingSteps["aide/81-queue-and-runner"]).toEqual(["archive"]);
   });
 
-  test("persists across a fresh QueueStore instance pointed at the same file", () => {
+  test("a choice saved is there after a restart (AC-5)", () => {
     const pendingStepsPath = join(dir, "pending-steps.json");
     const first = new QueueStore({ defaults: DEFAULTS, resolve, pendingStepsPath });
-    first.setPendingSteps("aide", "81-queue-and-runner", ["analyze"]);
+    expect(first.setPendingSteps("aide", "81-queue-and-runner", ["analyze"]).ok).toBe(true);
 
     const second = new QueueStore({ defaults: DEFAULTS, resolve, pendingStepsPath });
     expect(second.pendingSteps["aide/81-queue-and-runner"]).toEqual(["analyze"]);
@@ -83,11 +87,46 @@ describe("QueueStore.setPendingSteps()", () => {
     expect(raw).toEqual({ "aide/81-queue-and-runner": ["analyze"] });
   });
 
-  test("a malformed file on disk is dropped, not crashed on", () => {
+  test("a file that cannot be parsed is left as it is, reported, and never written (AC-1)", () => {
     const pendingStepsPath = join(dir, "pending-steps.json");
     writeFileSync(pendingStepsPath, "not json");
     const store = new QueueStore({ defaults: DEFAULTS, resolve, pendingStepsPath });
     expect(store.pendingSteps).toEqual({});
+    expect(storageFaults()).toEqual([expect.objectContaining({ file: pendingStepsPath, store: "pending", action: "read" })]);
+    expect(store.setPendingSteps("aide", "81-queue-and-runner", ["analyze"]).ok).toBe(false);
+    expect(store.pendingSteps).toEqual({});
+    expect(readFileSync(pendingStepsPath, "utf-8")).toBe("not json");
+  });
+
+  test("a file holding a list instead of a table is left as it is and reported (AC-1)", () => {
+    const pendingStepsPath = join(dir, "pending-steps.json");
+    writeFileSync(pendingStepsPath, "[]");
+    const store = new QueueStore({ defaults: DEFAULTS, resolve, pendingStepsPath });
+    expect(storageFaults()).toEqual([expect.objectContaining({ file: pendingStepsPath, store: "pending", action: "read" })]);
+    expect(store.setPendingSteps("aide", "81-queue-and-runner", ["analyze"]).ok).toBe(false);
+    expect(readFileSync(pendingStepsPath, "utf-8")).toBe("[]");
+  });
+
+  test("a save that fails is refused and leaves the earlier choice in memory (AC-2)", () => {
+    const pendingStepsPath = join(dir, "pending-steps.json");
+    const store = new QueueStore({ defaults: DEFAULTS, resolve, pendingStepsPath });
+    store.setPendingSteps("aide", "81-queue-and-runner", ["analyze"]);
+    rmSync(pendingStepsPath);
+    mkdirSync(pendingStepsPath);
+    const result = store.setPendingSteps("aide", "81-queue-and-runner", ["implement"]);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toContain(pendingStepsPath);
+    expect(store.pendingSteps["aide/81-queue-and-runner"]).toEqual(["analyze"]);
+    expect(storageFaults()).toEqual([expect.objectContaining({ file: pendingStepsPath, store: "pending", action: "write" })]);
+  });
+
+  test("an existing steps file keeps its choices when another is saved (AC-4)", () => {
+    const pendingStepsPath = join(dir, "pending-steps.json");
+    writeFileSync(pendingStepsPath, JSON.stringify({ "aide/80-earlier": ["archive"] }));
+    const first = new QueueStore({ defaults: DEFAULTS, resolve, pendingStepsPath });
+    expect(first.setPendingSteps("aide", "81-queue-and-runner", ["analyze"]).ok).toBe(true);
+    const second = new QueueStore({ defaults: DEFAULTS, resolve, pendingStepsPath });
+    expect(second.pendingSteps).toEqual({ "aide/80-earlier": ["archive"], "aide/81-queue-and-runner": ["analyze"] });
   });
 });
 

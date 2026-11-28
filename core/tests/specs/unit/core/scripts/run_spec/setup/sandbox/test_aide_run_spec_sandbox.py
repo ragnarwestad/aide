@@ -265,29 +265,76 @@ def test_the_boards_own_queue_settings_and_checkouts_are_denied_where_it_says_th
         assert f"/{board}/{path}" in denied, (path, denied)
 
 
-def test_each_claude_account_directory_has_its_named_entries_denied_and_not_the_directory(workspace_root, tmp_path):
-    """The board hands over every configured account's directory
-    (AIDE_CLAUDE_CONFIG_DIRS) and the step its own (--claude-config-dir): the
-    files a step could write to change what Claude Code runs are denied under
-    each, as they are under ~/.claude. The directory itself is not: Claude
-    Code writes its sessions there, and a deny cannot be opened again."""
-    home = tmp_path / "home"
+# Today's protected names under every Claude account's directory, written out
+# here so a name dropped from the script turns a test red.
+ACCOUNT_NAMES = [".claude.json", "settings.json", "settings.local.json", "hooks", "skills", "agents", "rules",
+                 "plugins", "CLAUDE.md"]
+
+
+def _account_settings(workspace_root, home, listed="", before=""):
+    """sandbox_settings_json with HOME, AIDE_CLAUDE_CONFIG_DIRS and whatever
+    `before` runs after sourcing; returns the write-deny list and deny rules."""
     script = workspace_root / "core/scripts/lib/run-spec/setup/sandbox.sh"
-    listed = f"{home}/.claude-2\n{home}/.claude-3\n/opt/claude-3"
-    out = subprocess.run(["bash", "-c", f'source "{script}"; claude_config_dir=/opt/claude-4; sandbox_settings_json'],
+    out = subprocess.run(["bash", "-c", f'source "{script}"; {before} sandbox_settings_json'],
                          capture_output=True, text=True, check=True,
                          env={**os.environ, "HOME": str(home), "AIDE_CLAUDE_CONFIG_DIRS": listed}).stdout
     settings = json.loads(out)
-    denied = settings["sandbox"]["filesystem"]["denyWrite"]
-    rules = settings["permissions"]["deny"]
-    names = [".claude.json", "settings.json", "settings.local.json", "hooks", "skills", "agents", "rules",
-             "plugins", "CLAUDE.md"]
-    for directory in ("~/.claude-2", "~/.claude-3", "//opt/claude-3", "//opt/claude-4"):
-        for name in names:
+    return settings["sandbox"]["filesystem"], settings["permissions"]["deny"]
+
+
+def test_each_claude_account_directory_has_its_named_entries_denied_and_not_the_directory_ac_2_ac_3(
+        workspace_root, tmp_path):
+    """The board hands over every configured account's directory
+    (AIDE_CLAUDE_CONFIG_DIRS) and the step its own (--claude-config-dir): the
+    files a step could write to change what Claude Code runs are denied under
+    each, and under ~/.claude. The directory itself is not: Claude Code writes
+    its sessions there, and a deny cannot be opened again."""
+    home = tmp_path / "home"
+    listed = f"{home}/.claude-2\n{home}/.claude-3\n/opt/claude-3"
+    fs, rules = _account_settings(workspace_root, home, listed, "claude_config_dir=/opt/claude-4;")
+    denied = fs["denyWrite"]
+    assert "~/.claude.json" in denied and "~/.claude.json" not in fs["denyRead"]
+    for directory in ("~/.claude", "~/.claude-2", "~/.claude-3", "//opt/claude-3", "//opt/claude-4"):
+        for name in ACCOUNT_NAMES:
             assert f"{directory}/{name}" in denied, (directory, name)
+            assert f"{directory}/{name}" not in fs["denyRead"], (directory, name)
             assert f"Edit({directory}/{name})" in rules, (directory, name)
         assert directory not in denied, directory
         assert f"Edit({directory}/**)" not in rules, directory
+
+
+def test_every_account_root_gets_the_same_names_wherever_it_lives_ac_4(workspace_root, tmp_path):
+    """~/.claude, an account under $HOME and one outside it are each denied
+    exactly the script's one account list."""
+    home = tmp_path / "home"
+    script = workspace_root / "core/scripts/lib/run-spec/setup/sandbox.sh"
+    names = subprocess.run(["bash", "-c", f'source "{script}"; printf "%s\\n" "${{sandbox_account_write_denied[@]}}"'],
+                           capture_output=True, text=True, check=True).stdout.split()
+    fs, _ = _account_settings(workspace_root, home, f"{home}/.claude-2", "claude_config_dir=/opt/claude-3;")
+    for root in ("~/.claude", "~/.claude-2", "//opt/claude-3"):
+        under = {path[len(root) + 1:] for path in fs["denyWrite"] if path.startswith(root + "/")}
+        assert under == set(names), root
+
+
+def test_with_no_account_configured_the_default_account_keeps_every_name_denied_ac_2(workspace_root, tmp_path):
+    """With no AIDE_CLAUDE_CONFIG_DIRS and no step account, ~/.claude.json and
+    every protected name under ~/.claude are still denied."""
+    fs, rules = _account_settings(workspace_root, tmp_path / "home")
+    assert "~/.claude.json" in fs["denyWrite"]
+    for name in ACCOUNT_NAMES:
+        assert f"~/.claude/{name}" in fs["denyWrite"], name
+        assert f"Edit(~/.claude/{name})" in rules, name
+
+
+def test_a_name_added_to_the_account_list_reaches_every_account_ac_1(workspace_root, tmp_path):
+    """One definition: a name appended to the account list is denied under
+    ~/.claude, every configured account and the step's own."""
+    home = tmp_path / "home"
+    fs, rules = _account_settings(workspace_root, home, f"{home}/.claude-2",
+                                  "sandbox_account_write_denied+=(probe); claude_config_dir=/opt/claude-4;")
+    for path in ("~/.claude/probe", "~/.claude-2/probe", "//opt/claude-4/probe"):
+        assert path in fs["denyWrite"], path
+        assert f"Edit({path})" in rules and f"Edit({path}/**)" in rules, path
 
 
 def test_every_codex_folder_is_denied_for_writing_and_its_login_for_reading(workspace_root, tmp_path):

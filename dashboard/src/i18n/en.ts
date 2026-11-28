@@ -64,6 +64,7 @@ export const en = {
   "shell.storageFaultRead": "{file} could not be read ({reason}), so the board has left it as it is and is not saving to it. Fix or move the file on the serving host, then restart the board.",
   "shell.storageFaultQueueWrite": "{file} could not be saved ({reason}); the latest changes to the queue are only in memory and are lost at a restart. Fix the folder on the serving host; the next change saves them.",
   "shell.storageFaultGroupWrite": "{file} could not be saved ({reason}); the change to the group was not made. Fix the folder on the serving host, then make the change again.",
+  "shell.storageFaultPendingWrite": "{file} could not be saved ({reason}); the choice was not saved. Fix the folder on the serving host, then make the choice again.",
   "deploy.title": "Deploying…",
   "deploy.stepFetch": "Fetch from origin",
   "deploy.stepInstall": "Install",

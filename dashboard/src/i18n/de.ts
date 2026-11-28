@@ -63,6 +63,7 @@ export const de: Record<TranslationKey, string> = {
   "shell.storageFaultRead": "{file} konnte nicht gelesen werden ({reason}), daher lässt das Dashboard die Datei unverändert und speichert nicht in sie. Repariere oder verschiebe die Datei auf dem Host, dann starte das Dashboard neu.",
   "shell.storageFaultQueueWrite": "{file} konnte nicht gespeichert werden ({reason}); die letzten Änderungen an der Warteschlange sind nur im Speicher und gehen bei einem Neustart verloren. Repariere den Ordner auf dem Host; die nächste Änderung speichert sie.",
   "shell.storageFaultGroupWrite": "{file} konnte nicht gespeichert werden ({reason}); die Änderung an der Gruppe wurde nicht vorgenommen. Repariere den Ordner auf dem Host, dann nimm die Änderung erneut vor.",
+  "shell.storageFaultPendingWrite": "{file} konnte nicht gespeichert werden ({reason}); die Auswahl wurde nicht gespeichert. Repariere den Ordner auf dem Host, dann triff die Auswahl erneut.",
   "deploy.title": "Wird bereitgestellt…",
   "deploy.stepFetch": "Von origin holen",
   "deploy.stepInstall": "Installieren",

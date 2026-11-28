@@ -16,6 +16,7 @@ import {
 import type { CreateProjectAllower, Job, JobAction, ProjectResolver, QueueDefaults } from "../types.ts";
 import { forProject } from "../providers/project-defaults.ts";
 import type { Sentence } from "../../messages/types.ts";
+import type { RequestRefusal } from "../../format/request-fixes.ts";
 import { mergeBranchRefs, type BranchRef } from "../types.ts";
 import {
   invalidRequest,
@@ -29,7 +30,7 @@ import { specReference } from "../../project/spec-folder.ts";
 
 import { JobsMirror } from "./mirror.ts";
 import { loadModelIds, recordModelId } from "./model-ids.ts";
-import { loadPendingModels, loadPendingSteps, pendingProvidersPath, savePendingTable } from "./pending-tables.ts";
+import { loadPendingChoices, loadPendingSteps, PendingFile, savePendingChoices } from "./pending-tables.ts";
 import { editTailModel, renamePendingModel, setPendingModel, writePendingModel, type PickContext } from "./picks.ts";
 import { tailEditStep, withTailStep } from "./tail-edits.ts";
 import type { JobPatch, PendingModelResult, PendingStepsResult, QueueOptions, TransitionResult } from "./types.ts";
@@ -43,9 +44,10 @@ export class QueueStore {
   private readonly cap: number;
   /** The queue file; `storage.fault` says whether the latest change is on disk. */
   readonly storage: JobsMirror;
-  private readonly pendingModelsPath?: string;
+  /** `pending-models.json`, model and provider together. */
+  private readonly pendingModelsFile: PendingFile;
   private readonly modelIdsPath?: string;
-  private readonly pendingStepsPath?: string;
+  private readonly pendingStepsFile: PendingFile;
   readonly defaults: QueueDefaults;
   /** A model picked for a phase before any job exists, keyed
    *  by `project/specFolder` and then by step — the same shape
@@ -54,9 +56,8 @@ export class QueueStore {
    *  `setPendingModel()` is allowed to write it. */
   readonly pendingModels: Record<string, Record<string, string>> = {};
   /** The provider picked beside each pending model, in the same shape,
-   *  kept in a file of its own beside `pending-models.json`. */
+   *  kept with it in `pending-models.json`. */
   readonly pendingProviders: Record<string, Record<string, string>> = {};
-  private readonly pendingProvidersPath?: string;
   /** The phase choice a reader made — at create time, or at a later Run
    *  — recorded so it outlives the one job that made it: the
    *  same `project/specFolder` key as `pendingModels`,
@@ -75,10 +76,9 @@ export class QueueStore {
     this.executionGroups = new ExecutionGroupStore(opts.executionGroupsPath);
     this.cap = opts.cap ?? 1000;
     this.storage = new JobsMirror(opts.mirrorPath, (line) => this.log(line));
-    this.pendingModelsPath = opts.pendingModelsPath;
-    this.pendingProvidersPath = pendingProvidersPath(opts.pendingModelsPath);
+    this.pendingModelsFile = new PendingFile(opts.pendingModelsPath);
     this.modelIdsPath = opts.modelIdsPath;
-    this.pendingStepsPath = opts.pendingStepsPath;
+    this.pendingStepsFile = new PendingFile(opts.pendingStepsPath);
     this.defaults = opts.defaults;
     this.resolve = opts.resolve;
     this.allowCreateProject = opts.allowCreateProject ?? (() => false);
@@ -95,10 +95,9 @@ export class QueueStore {
       const group = job.executionGroupId ? this.executionGroups.get(job.executionGroupId) : undefined;
       if (job.state === state && group && ["queued", "running", "archiving"].includes(group.state)) this.syncExecutionGroup(job);
     }
-    loadPendingModels(this.pendingModelsPath, this.pendingModels);
-    loadPendingModels(this.pendingProvidersPath, this.pendingProviders);
+    loadPendingChoices(this.pendingModelsFile, this.pendingModels, this.pendingProviders);
     loadModelIds(this.modelIdsPath, this.modelIds);
-    loadPendingSteps(this.pendingStepsPath, this.pendingSteps);
+    loadPendingSteps(this.pendingStepsFile, this.pendingSteps);
     this.waiting = createWaiting(this, opts.mirrorPath);
   }
   /** An unfinished job for the same spec that already covers one of
@@ -361,8 +360,8 @@ export class QueueStore {
 
   /** Carries a create job's pending picks from its provisional key to the
    *  real folder landing assigns it. */
-  renamePendingModel(project: string, fromFolder: string, toFolder: string): void {
-    renamePendingModel(this.picks(), project, fromFolder, toFolder);
+  renamePendingModel(project: string, fromFolder: string, toFolder: string): RequestRefusal | undefined {
+    return renamePendingModel(this.picks(), project, fromFolder, toFolder);
   }
 
   private picks(): PickContext {
@@ -371,7 +370,7 @@ export class QueueStore {
       defaults: this.defaults,
       pendingModels: this.pendingModels,
       pendingProviders: this.pendingProviders,
-      persist: () => this.persistPendingModels(),
+      save: (models, providers) => savePendingChoices(this.pendingModelsFile, models, providers),
       mirror: () => this.mirror(),
       changed: () => this.changed(),
     };
@@ -388,17 +387,27 @@ export class QueueStore {
   /** A reopen that resets the files discards the round, and the phases a
    *  reader had ticked for it go with it: the row falls back to every
    *  phase the spec has not had, so its button names Analyze. */
-  forgetPendingSteps(project: string, specFolder: string): void {
+  forgetPendingSteps(project: string, specFolder: string): RequestRefusal | undefined {
     const key = `${project}/${specFolder}`;
-    if (!(key in this.pendingSteps)) return;
-    delete this.pendingSteps[key];
-    this.persistPendingStepsTable();
-    this.changed();
+    if (!(key in this.pendingSteps)) return undefined;
+    const { [key]: _forgotten, ...rest } = this.pendingSteps;
+    const refused = this.commitPendingSteps(rest);
+    if (!refused) this.changed();
+    return refused;
   }
 
-  private recordPendingSteps(project: string, specFolder: string, steps: readonly string[]): void {
-    this.pendingSteps[`${project}/${specFolder}`] = steps.filter((s) => (PHASE_STEPS as readonly string[]).includes(s));
-    this.persistPendingStepsTable();
+  private recordPendingSteps(project: string, specFolder: string, steps: readonly string[]): RequestRefusal | undefined {
+    const chosen = steps.filter((s) => (PHASE_STEPS as readonly string[]).includes(s));
+    return this.commitPendingSteps({ ...this.pendingSteps, [`${project}/${specFolder}`]: chosen });
+  }
+
+  /** Saves the next steps table, and only then keeps it in memory. */
+  private commitPendingSteps(next: Record<string, string[]>): RequestRefusal | undefined {
+    const refused = this.pendingStepsFile.save(next);
+    if (refused) return refused;
+    for (const key of Object.keys(this.pendingSteps)) delete this.pendingSteps[key];
+    Object.assign(this.pendingSteps, next);
+    return undefined;
   }
 
   /** Record which phases a reader chose, before or between jobs —
@@ -407,13 +416,14 @@ export class QueueStore {
    *  `reopen`/`close` and every other internal-only step are real
    *  members of `WORKFLOW_STEPS` but never a phase a row's own checkbox
    *  could have ticked, and must never be recorded as if one had been.
-   *  Unlike its two siblings this never refuses — an unknown entry is
-   *  dropped rather than reported, the same direction `parsePendingSteps`
-   *  already fails in — and the whole list REPLACES what was recorded
+   *  An unknown entry is dropped rather than reported, the same direction
+   *  `parsePendingSteps` already fails in; it refuses only a choice that
+   *  could not be saved. The whole list REPLACES what was recorded
    *  before, including down to empty: "nothing ticked" is itself the
    *  choice the form needs to tell apart from "no choice on record at all". */
   setPendingSteps(project: string, specFolder: string, steps: readonly string[]): PendingStepsResult {
-    this.recordPendingSteps(project, specFolder, steps);
+    const refused = this.recordPendingSteps(project, specFolder, steps);
+    if (refused) return { ok: false, ...refused };
     this.changed();
     return { ok: true };
   }
@@ -473,14 +483,6 @@ export class QueueStore {
     recordModelId(this.modelIdsPath, this.modelIds, choice, modelId);
   }
 
-  private persistPendingModels(): void {
-    savePendingTable(this.pendingModelsPath, this.pendingModels);
-    savePendingTable(this.pendingProvidersPath, this.pendingProviders);
-  }
-
-  private persistPendingStepsTable(): void {
-    savePendingTable(this.pendingStepsPath, this.pendingSteps);
-  }
 }
 
 // What used to live here too, in parts beside this file.

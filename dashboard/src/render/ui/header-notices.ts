@@ -151,12 +151,18 @@ function deployFaultNotice(lang: Language): string {
   return rowMessage("failed", formatSentence(lang, fault) ?? "", { tag: "p", hook: "deploy-fault" });
 }
 
-/** A queue or groups file the board could not read or write: one line per
+const WRITE_SENTENCE = {
+  queue: "shell.storageFaultQueueWrite",
+  groups: "shell.storageFaultGroupWrite",
+  pending: "shell.storageFaultPendingWrite",
+} as const;
+
+/** A queue, groups or pending-choice file the board could not read or write: one line per
  *  file, saying what the failure left behind, until a write succeeds. */
 function storageFaultNotices(lang: Language): string {
   return storageFaults()
     .map(({ file, store, action, reason }) => {
-      const key = action === "read" ? "shell.storageFaultRead" : store === "queue" ? "shell.storageFaultQueueWrite" : "shell.storageFaultGroupWrite";
+      const key = action === "read" ? "shell.storageFaultRead" : WRITE_SENTENCE[store];
       return rowMessage("failed", t(lang, key, { file, reason }), { tag: "p", hook: "storage-fault" });
     })
     .join("");

@@ -360,7 +360,13 @@ async function modelRoute(ctx: RoutesContext, req: Request, path: string): Promi
     // A step this job was not queued with is a choice about a job still
     // to come: kept on this job alone, it went when the job ended, and
     // the next run of the step was back on the default.
-    if (!(job.steps as string[]).includes(step)) ctx.queue.setPendingModel(job.project, job.specFolder, step, model, provider);
+    if (!(job.steps as string[]).includes(step)) {
+      const saved = ctx.queue.setPendingModel(job.project, job.specFolder, step, model, provider);
+      if (!saved.ok) {
+        logRefusal("model", spec, saved.error);
+        return refusal(saved, { spec });
+      }
+    }
     return json({ ok: true, job: result.job });
   }
   return null;

@@ -2,10 +2,16 @@
 
 import { IMPLEMENTED } from "../../helpers/queue-server.ts";
 import { afterEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { JOB, listUntil, specControls, setupQueueRoutesHarness } from "../fixtures.ts";
+import { QueueStore } from "../../../src/queue/queue.ts";
+import { clearAllStorageFaults } from "../../../src/queue/store/storage-faults.ts";
+
+/** The pending picks a restarted store reads back from `pendingModelsPath`. */
+const savedPicks = (pendingModelsPath: string) =>
+  new QueueStore({ defaults: { timeoutSec: { default: 1200 }, permissionMode: { default: "acceptEdits" }, model: { default: "sonnet" } }, resolve: () => null, pendingModelsPath });
 
 const { harness, start } = setupQueueRoutesHarness(undefined, IMPLEMENTED);
 
@@ -202,8 +208,17 @@ describe("POST /api/queue/:id/model", () => {
     const pendingPath = join(mkdtempSync(join(tmpdir(), "aide-pending-")), "pending-models.json");
     const { base, id } = await running(["analyze"], 0, pendingPath);
     expect((await pick(base, id, "archive", "fable")).status).toBe(200);
-    const kept = JSON.parse(readFileSync(pendingPath, "utf-8")) as Record<string, Record<string, string>>;
-    expect(Object.values(kept).some((steps) => steps.archive === "fable")).toBe(true);
+    expect(Object.values(savedPicks(pendingPath).pendingModels).some((steps) => steps.archive === "fable")).toBe(true);
+  });
+
+  test("a pick for a step outside the job that cannot be kept for the spec is refused (AC-2)", async () => {
+    const pendingPath = join(mkdtempSync(join(tmpdir(), "aide-pending-")), "pending-models.json");
+    const { base, id } = await running(["analyze"], 0, pendingPath);
+    mkdirSync(pendingPath);
+    const res = await pick(base, id, "archive", "fable");
+    clearAllStorageFaults();
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { error: string }).error).toContain(pendingPath);
   });
 
   test("a pick for a step the job will run stays the job's alone", async () => {
@@ -331,12 +346,11 @@ describe("POST /api/queue/specs/:project/:folder/model with a provider", () => {
       method: "POST", headers: JSON_HEADERS, body: JSON.stringify({ step: "implement", ...body }),
     });
 
-  test("the provider is kept beside the model, in a file of its own (AC-9)", async () => {
+  test("the provider is kept beside the model (AC-9)", async () => {
     const dir = mkdtempSync(join(tmpdir(), "aide-pending-"));
     const { base } = harness.start({ extra: { queueDefaults: DEFAULTS, pendingModelsPath: join(dir, "pending-models.json") } });
     expect((await pick(base, { model: "gpt-6", provider: "Codex" })).status).toBe(200);
-    const kept = JSON.parse(readFileSync(join(dir, "pending-providers.json"), "utf-8")) as Record<string, Record<string, string>>;
-    expect(Object.values(kept)).toEqual([{ implement: "Codex" }]);
+    expect(Object.values(savedPicks(join(dir, "pending-models.json")).pendingProviders)).toEqual([{ implement: "Codex" }]);
   });
 
   test("a provider that cannot run the model is refused, and nothing is kept (AC-9)", async () => {
@@ -345,6 +359,6 @@ describe("POST /api/queue/specs/:project/:folder/model with a provider", () => {
     const res = await pick(base, { model: "gpt-6", provider: "Claude" });
     expect(res.status).toBe(400);
     expect(((await res.json()) as { error: string }).error).toContain("gpt-6 is a Codex model and Claude is a Claude Code provider");
-    expect(existsSync(join(dir, "pending-providers.json"))).toBe(false);
+    expect(existsSync(join(dir, "pending-models.json"))).toBe(false);
   });
 });

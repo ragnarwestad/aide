@@ -4,10 +4,11 @@
 // made on a running job's tail.
 
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { QueueStore, type QueueDefaults } from "../../../src/queue/queue.ts";
+import { clearAllStorageFaults, storageFaults } from "../../../src/queue/store/storage-faults.ts";
 
 const DEFAULTS: QueueDefaults = {
   timeoutSec: { default: 1200 },
@@ -24,7 +25,10 @@ beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), "aide-pending-models-"));
 });
 
-afterEach(() => rmSync(dir, { recursive: true, force: true }));
+afterEach(() => {
+  clearAllStorageFaults();
+  rmSync(dir, { recursive: true, force: true });
+});
 
 describe("QueueStore.setPendingModel()", () => {
   test("records and clears Review and Verify choices across a restart (AC-9, AC-11)", () => {
@@ -87,19 +91,133 @@ describe("QueueStore.setPendingModel()", () => {
     expect(second.pendingModels["aide/81-queue-and-runner"]?.analyze).toBe("fable");
   });
 
-  test("written tmp-then-renamed, like every other file this store writes", () => {
+  test("written in one versioned file, model and provider together", () => {
     const pendingModelsPath = join(dir, "pending-models.json");
     const store = new QueueStore({ defaults: DEFAULTS, resolve, pendingModelsPath });
     store.setPendingModel("aide", "81-queue-and-runner", "analyze", "fable");
     const raw = JSON.parse(readFileSync(pendingModelsPath, "utf-8")) as unknown;
-    expect(raw).toEqual({ "aide/81-queue-and-runner": { analyze: "fable" } });
+    expect(raw).toEqual({ version: 2, choices: { "aide/81-queue-and-runner": { analyze: { model: "fable" } } } });
   });
+});
 
-  test("a malformed file on disk is dropped, not crashed on", () => {
+// The pending choices are kept to the same rules as the queue's own file:
+// a file that cannot be read is left as it is and reported, a save that
+// fails is refused and leaves memory as it was, and a model and its
+// provider are written in one rename.
+describe("the pending-models file on disk", () => {
+  const PROVIDERS: QueueDefaults = {
+    ...DEFAULTS,
+    modelChoices: { ...DEFAULTS.modelChoices, codex: { tool: "codex" as const } },
+    providers: { Codex: { name: "Codex", tool: "codex" as const }, Other: { name: "Other", tool: "codex" as const } },
+  };
+  const KEY = "aide/81-queue-and-runner";
+  const faultFor = (file: string) => storageFaults().find((fault) => fault.file === file);
+
+  test("a file that cannot be parsed is left as it is, reported, and never written (AC-1)", () => {
     const pendingModelsPath = join(dir, "pending-models.json");
     writeFileSync(pendingModelsPath, "not json");
     const store = new QueueStore({ defaults: DEFAULTS, resolve, pendingModelsPath });
     expect(store.pendingModels).toEqual({});
+    expect(faultFor(pendingModelsPath)).toMatchObject({ store: "pending", action: "read" });
+    const result = store.setPendingModel("aide", "81-queue-and-runner", "analyze", "fable");
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toContain(pendingModelsPath);
+    expect(store.pendingModels).toEqual({});
+    expect(readFileSync(pendingModelsPath, "utf-8")).toBe("not json");
+  });
+
+  test("an unreadable providers file beside a legacy models file locks both files (AC-1)", () => {
+    const pendingModelsPath = join(dir, "pending-models.json");
+    const providersPath = join(dir, "pending-providers.json");
+    const legacy = JSON.stringify({ [KEY]: { implement: "codex" } });
+    writeFileSync(pendingModelsPath, legacy);
+    writeFileSync(providersPath, "{ broken");
+    const store = new QueueStore({ defaults: PROVIDERS, resolve, pendingModelsPath });
+    expect(faultFor(providersPath)).toMatchObject({ store: "pending", action: "read" });
+    expect(store.setPendingModel("aide", "81-queue-and-runner", "analyze", "codex", "Codex").ok).toBe(false);
+    expect(store.setPendingModel("aide", "81-queue-and-runner", "analyze", "codex").ok).toBe(false);
+    expect(readFileSync(pendingModelsPath, "utf-8")).toBe(legacy);
+    expect(readFileSync(providersPath, "utf-8")).toBe("{ broken");
+  });
+
+  test("an unreadable providers file with no models file is reported and not removed (AC-1)", () => {
+    const pendingModelsPath = join(dir, "pending-models.json");
+    const providersPath = join(dir, "pending-providers.json");
+    writeFileSync(providersPath, "not json");
+    const store = new QueueStore({ defaults: DEFAULTS, resolve, pendingModelsPath });
+    expect(faultFor(providersPath)).toMatchObject({ store: "pending", action: "read" });
+    expect(store.setPendingModel("aide", "81-queue-and-runner", "analyze", "fable").ok).toBe(false);
+    expect(readFileSync(providersPath, "utf-8")).toBe("not json");
+    expect(existsSync(pendingModelsPath)).toBe(false);
+  });
+
+  test("with no files at all nothing is reported and a pick is saved (AC-1)", () => {
+    const pendingModelsPath = join(dir, "pending-models.json");
+    const store = new QueueStore({ defaults: DEFAULTS, resolve, pendingModelsPath });
+    expect(storageFaults()).toEqual([]);
+    expect(store.setPendingModel("aide", "81-queue-and-runner", "analyze", "fable").ok).toBe(true);
+    expect(existsSync(pendingModelsPath)).toBe(true);
+  });
+
+  test("a save that fails is refused, reported and not kept; the next good save clears the fault (AC-2)", () => {
+    const pendingModelsPath = join(dir, "pending-models.json");
+    const store = new QueueStore({ defaults: DEFAULTS, resolve, pendingModelsPath });
+    mkdirSync(pendingModelsPath);
+    const result = store.setPendingModel("aide", "81-queue-and-runner", "analyze", "fable");
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toContain(pendingModelsPath);
+    expect(faultFor(pendingModelsPath)).toMatchObject({ store: "pending", action: "write" });
+    expect(store.pendingModels).toEqual({});
+    rmSync(pendingModelsPath, { recursive: true });
+    expect(store.setPendingModel("aide", "81-queue-and-runner", "analyze", "fable").ok).toBe(true);
+    expect(faultFor(pendingModelsPath)).toBeUndefined();
+    expect(store.pendingModels[KEY]).toEqual({ analyze: "fable" });
+  });
+
+  test("a model and its provider come back together from the one file (AC-3)", () => {
+    const pendingModelsPath = join(dir, "pending-models.json");
+    const first = new QueueStore({ defaults: PROVIDERS, resolve, pendingModelsPath });
+    expect(first.setPendingModel("aide", "81-queue-and-runner", "implement", "codex", "Codex").ok).toBe(true);
+    expect(existsSync(join(dir, "pending-providers.json"))).toBe(false);
+    const second = new QueueStore({ defaults: PROVIDERS, resolve, pendingModelsPath });
+    expect(second.pendingModels[KEY]).toEqual({ implement: "codex" });
+    expect(second.pendingProviders[KEY]).toEqual({ implement: "Codex" });
+  });
+
+  test("a save interrupted before its rename leaves the pair from the last completed save (AC-3)", () => {
+    const pendingModelsPath = join(dir, "pending-models.json");
+    const first = new QueueStore({ defaults: PROVIDERS, resolve, pendingModelsPath });
+    expect(first.setPendingModel("aide", "81-queue-and-runner", "implement", "codex", "Codex").ok).toBe(true);
+    writeFileSync(`${pendingModelsPath}.tmp`, JSON.stringify({ version: 2, choices: { [KEY]: { implement: { model: "fable", provider: "Other" } } } }));
+    const second = new QueueStore({ defaults: PROVIDERS, resolve, pendingModelsPath });
+    expect(second.pendingModels[KEY]).toEqual({ implement: "codex" });
+    expect(second.pendingProviders[KEY]).toEqual({ implement: "Codex" });
+  });
+
+  test("a stale providers file beside a versioned file is not read (AC-3)", () => {
+    const pendingModelsPath = join(dir, "pending-models.json");
+    writeFileSync(pendingModelsPath, JSON.stringify({ version: 2, choices: { [KEY]: { implement: { model: "codex", provider: "Codex" } } } }));
+    writeFileSync(join(dir, "pending-providers.json"), JSON.stringify({ [KEY]: { implement: "Other" } }));
+    const store = new QueueStore({ defaults: PROVIDERS, resolve, pendingModelsPath });
+    expect(store.pendingModels[KEY]).toEqual({ implement: "codex" });
+    expect(store.pendingProviders[KEY]).toEqual({ implement: "Codex" });
+  });
+
+  test("legacy models, providers and steps survive the migration, and the providers file goes (AC-4)", () => {
+    const pendingModelsPath = join(dir, "pending-models.json");
+    const pendingStepsPath = join(dir, "pending-steps.json");
+    const providersPath = join(dir, "pending-providers.json");
+    writeFileSync(pendingModelsPath, JSON.stringify({ [KEY]: { implement: "codex", analyze: "fable" } }));
+    writeFileSync(providersPath, JSON.stringify({ [KEY]: { implement: "Codex", archive: "Codex" } }));
+    writeFileSync(pendingStepsPath, JSON.stringify({ [KEY]: ["analyze", "implement"] }));
+    const first = new QueueStore({ defaults: PROVIDERS, resolve, pendingModelsPath, pendingStepsPath });
+    expect(first.pendingProviders[KEY]).toEqual({ implement: "Codex" });
+    expect(first.setPendingModel("aide", "82-next", "analyze", "fable").ok).toBe(true);
+    expect(existsSync(providersPath)).toBe(false);
+    const second = new QueueStore({ defaults: PROVIDERS, resolve, pendingModelsPath, pendingStepsPath });
+    expect(second.pendingModels).toEqual({ [KEY]: { implement: "codex", analyze: "fable" }, "aide/82-next": { analyze: "fable" } });
+    expect(second.pendingProviders).toEqual({ [KEY]: { implement: "Codex" } });
+    expect(second.pendingSteps[KEY]).toEqual(["analyze", "implement"]);
   });
 });
 
@@ -157,6 +275,18 @@ describe("QueueStore.renamePendingModel()", () => {
     store.renamePendingModel("aide", "new-abcd1234", "94-a-new-spec");
     expect(store.pendingModels["aide/new-abcd1234"]).toBeUndefined();
     expect(store.pendingModels["aide/94-a-new-spec"]).toEqual({ implement: "fable" });
+  });
+
+  test("moves the entry in memory even when the file cannot take it, and reports the fault", () => {
+    const pendingModelsPath = join(dir, "pending-models.json");
+    const store = new QueueStore({ defaults: DEFAULTS, resolve, pendingModelsPath });
+    store.setPendingModel("aide", "new-abcd1234", "implement", "fable");
+    rmSync(pendingModelsPath);
+    mkdirSync(pendingModelsPath);
+    expect(store.renamePendingModel("aide", "new-abcd1234", "94-a-new-spec")).toBeDefined();
+    expect(store.pendingModels["aide/new-abcd1234"]).toBeUndefined();
+    expect(store.pendingModels["aide/94-a-new-spec"]).toEqual({ implement: "fable" });
+    expect(storageFaults()).toEqual([expect.objectContaining({ file: pendingModelsPath, action: "write" })]);
   });
 
   test("a no-op when nothing is recorded under the provisional key", () => {

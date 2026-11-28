@@ -63,6 +63,7 @@ export const nb: Record<TranslationKey, string> = {
   "shell.storageFaultRead": "{file} kunne ikke leses ({reason}), så dashbordet har latt den være og lagrer ikke til den. Rett eller flytt filen på maskinen som kjører dashbordet, og start dashbordet på nytt.",
   "shell.storageFaultQueueWrite": "{file} kunne ikke lagres ({reason}); de siste endringene i køen finnes bare i minnet og forsvinner ved en omstart. Rett mappen på maskinen som kjører dashbordet; neste endring lagrer dem.",
   "shell.storageFaultGroupWrite": "{file} kunne ikke lagres ({reason}); endringen i gruppen ble ikke gjort. Rett mappen på maskinen som kjører dashbordet, og gjør endringen på nytt.",
+  "shell.storageFaultPendingWrite": "{file} kunne ikke lagres ({reason}); valget ble ikke lagret. Rett mappen på maskinen som kjører dashbordet, og gjør valget på nytt.",
   "deploy.title": "Deployer…",
   "deploy.stepFetch": "Hent fra origin",
   "deploy.stepInstall": "Installer",

@@ -402,9 +402,12 @@ What an operator needs and will not find here, or anywhere else in these pages:
 
 - **Backup and restore.** The host owns state nothing else has: `queue.json` and the other mirrors, the jobs
   directory, the checkouts, the worktrees. Nothing says which of it is precious, which regenerates itself, or how
-  to take a copy. What is written down: a `queue.json` or `execution-groups.json` the board cannot read, or that
-  holds invalid data, is left as it is, never saved to while the board runs, and named at the top of every page with
-  the reason; restore or move it, then restart. A failed save is named there too. An entry the board could not read
+  to take a copy. What is written down: a `queue.json`, `execution-groups.json`, `pending-models.json`,
+  `pending-providers.json` or `pending-steps.json` the board cannot read, or that holds invalid data, is left as it
+  is, never saved to while the board runs, and named at the top of every page with the reason; restore or move it,
+  then restart. A failed save is named there too, and a model, provider or phase choice that could not be saved is
+  refused. `pending-models.json` holds each step's model and provider together; an older `pending-providers.json`
+  beside it is read once and removed at the next save. An entry the board could not read
   in an otherwise good file is left off the board and kept in `<file>.rejected.json` beside it.
 - **How the host authenticates.** The runs use an AI account and push over git; a keychain that locks after a
   reboot is the classic unattended failure, and nothing here says how to check either.

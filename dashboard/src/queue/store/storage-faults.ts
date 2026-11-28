@@ -7,7 +7,7 @@ import { existsSync, lstatSync, readFileSync, renameSync, rmSync, writeFileSync 
 
 export interface StorageFault {
   file: string;
-  store: "queue" | "groups";
+  store: "queue" | "groups" | "pending";
   action: "read" | "write";
   reason: string;
 }

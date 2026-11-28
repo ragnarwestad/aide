@@ -13,6 +13,10 @@ import { takeLandingCancel } from "../../src/serve/land-branch/cancel-landing.ts
 const harness = queueHarness("aide-execution-group-routes-");
 afterEach(() => harness.cleanup());
 
+/** The pending picks a restarted store reads back from `pendingModelsPath`. */
+const savedPicks = (pendingModelsPath: string) =>
+  new QueueStore({ defaults: { timeoutSec: { default: 1200 }, permissionMode: { default: "acceptEdits" }, model: { default: "sonnet" } }, resolve: () => null, pendingModelsPath });
+
 const description = (folder: string) => `# ${folder}\n\n## Tracking info\n\n- **Created:** \`2026-11-11\`\n`;
 
 describe("execution-group HTTP routes", () => {
@@ -37,8 +41,7 @@ describe("execution-group HTTP routes", () => {
       body: "project=aide&specFolder=81-queue-and-runner&groupName=Release&member=82-next&steps=analyze&steps=implement&model.analyze=fable&provider.analyze=Claude&model.implement=opus&provider.implement=Claude&model.plan-review=sonnet&provider.plan-review=Claude&model.verify=fable&provider.verify=Claude",
     });
     expect(response.status).toBe(200);
-    const models = JSON.parse(readFileSync(pendingModelsPath, "utf8"));
-    const providers = JSON.parse(readFileSync(join(pendingModelsPath, "../pending-providers.json"), "utf8"));
+    const { pendingModels: models, pendingProviders: providers } = savedPicks(pendingModelsPath);
     for (const folder of ["81-queue-and-runner", "82-next"]) {
       expect(models[`aide/${folder}`]).toMatchObject({ analyze: "fable", implement: "opus", "plan-review": "sonnet", verify: "fable", archive: "sonnet" });
       expect(providers[`aide/${folder}`]).toMatchObject({ analyze: "Claude", implement: "Claude", "plan-review": "Claude", verify: "Claude" });
@@ -59,7 +62,7 @@ describe("execution-group HTTP routes", () => {
     const response = await fetch(`${base}/api/queue`, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" },
       body: "project=aide&specFolder=81-queue-and-runner&groupName=Release&member=82-next&steps=analyze&model.analyze=fable&model.plan-review=fable" });
     expect(response.status).toBe(200);
-    expect(JSON.parse(readFileSync(pendingModelsPath, "utf8"))["aide/82-next"]["plan-review"]).toBeUndefined();
+    expect(savedPicks(pendingModelsPath).pendingModels["aide/82-next"]?.["plan-review"]).toBeUndefined();
   });
 
   test("Start after Stop uses the choices Run wrote to the member row (AC-4)", async () => {

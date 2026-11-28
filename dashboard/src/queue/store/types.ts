@@ -19,13 +19,10 @@ export type JobPatch = Partial<Omit<Job, "state">> & { state?: never };
  *  smaller type of its own. */
 export type PendingModelResult = { ok: true } | ({ ok: false } & import("../../format/request-fixes.ts").RequestRefusal);
 
-/** The sibling of `PendingModelResult`, for
- *  `setPendingSteps()` — same shape. Unlike the other two,
- *  `setPendingSteps()` never refuses: it filters what it is given
- *  against `PHASE_STEPS` rather than reporting an unknown entry, so this
- *  is always `{ ok: true }` in practice — kept as its own type anyway,
- *  the same as its two siblings, rather than a bare `void`. */
-export type PendingStepsResult = { ok: true } | { ok: false; error: string };
+/** The sibling of `PendingModelResult`, for `setPendingSteps()`. It
+ *  filters what it is given against `PHASE_STEPS` rather than reporting
+ *  an unknown entry, so it refuses only a choice that could not be saved. */
+export type PendingStepsResult = { ok: true } | ({ ok: false } & import("../../format/request-fixes.ts").RequestRefusal);
 
 /** What `QueueStore.transition()` answers with: the
  *  updated job on a hit, or the state and event the table refused —

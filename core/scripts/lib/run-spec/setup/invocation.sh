@@ -22,29 +22,40 @@ find_bin() {
   printf '%s' "$found"
 }
 
+# The program <tool> runs as, for a step and a side turn alike: <explicit>,
+# then AIDE_<TOOL>_BIN, then the project's own .aide/config (AIDE_CLAUDE_BIN,
+# the one program key it has: a per-machine file where a project points its
+# runs at a stand-in), then ~/.local/bin and PATH. fake-claude names its
+# stand-in BY NAME: with none named this prints nothing and fails, so a turn
+# that says it is scripted never reaches the real CLI.
+tool_bin() {  # <tool> <explicit>
+  local which_tool="$1" chosen="$2" name
+  case "$which_tool" in
+    codex) name=codex; [ -n "$chosen" ] || chosen="${AIDE_CODEX_BIN:-}" ;;
+    opencode) name=opencode; [ -n "$chosen" ] || chosen="${AIDE_OPENCODE_BIN:-}" ;;
+    claude|fake-claude)
+      name=claude
+      [ -n "$chosen" ] || chosen="${AIDE_CLAUDE_BIN:-}"
+      [ -n "$chosen" ] || chosen="$(aide_config_get AIDE_CLAUDE_BIN "$project_root")" ;;
+    *) return 1 ;;
+  esac
+  [ "$which_tool" != "fake-claude" ] || [ -n "$chosen" ] || return 1
+  find_bin "$chosen" "$name"
+}
+
 claude_bin=""; codex_bin=""; opencode_bin=""
-if [ "$tool" = "codex" ]; then
-  codex_bin="$(find_bin "${bin_arg:-${AIDE_CODEX_BIN:-}}" codex)"
-  [ -n "$codex_bin" ] && [ -x "$codex_bin" ] || refuse_fix "cannot find the codex binary" "set AIDE_CODEX_BIN"
-elif [ "$tool" = "opencode" ]; then
-  opencode_bin="$(find_bin "${bin_arg:-${AIDE_OPENCODE_BIN:-}}" opencode)"
-  [ -n "$opencode_bin" ] && [ -x "$opencode_bin" ] || refuse_fix "cannot find the opencode binary" "set AIDE_OPENCODE_BIN"
-else
-  # The environment wins; the project's own .aide/config is the fallback.
-  # A per-machine file is where a project points its runs at a stand-in
-  # binary without the whole dashboard following it there.
-  # A provider's own program (--bin) wins over both.
-  claude_override="${bin_arg:-${AIDE_CLAUDE_BIN:-}}"
-  [ -n "$claude_override" ] || claude_override="$(aide_config_get AIDE_CLAUDE_BIN "$project_root")"
-  # `--tool fake-claude` asks for the stand-in BY NAME, so a missing
-  # override is a refusal rather than a silent fall-through to the real
-  # CLI: a run that says it is scripted must never reach a model.
-  if [ "$tool" = "fake-claude" ] && [ -z "$claude_override" ]; then
-    refuse_fix "--tool fake-claude needs a stand-in binary" "set AIDE_CLAUDE_BIN in the project's .aide/config"
-  fi
-  claude_bin="$(find_bin "$claude_override" claude)"
-  [ -n "$claude_bin" ] && [ -x "$claude_bin" ] || refuse_fix "cannot find the claude binary" "set AIDE_CLAUDE_BIN"
-fi
+step_bin="$(tool_bin "$tool" "${bin_arg:-}")" || step_bin=""
+case "$tool" in
+  codex) codex_bin="$step_bin"
+    [ -n "$codex_bin" ] && [ -x "$codex_bin" ] || refuse_fix "cannot find the codex binary" "set AIDE_CODEX_BIN" ;;
+  opencode) opencode_bin="$step_bin"
+    [ -n "$opencode_bin" ] && [ -x "$opencode_bin" ] || refuse_fix "cannot find the opencode binary" "set AIDE_OPENCODE_BIN" ;;
+  *)
+    [ "$tool" != "fake-claude" ] || [ -n "$step_bin" ] \
+      || refuse_fix "--tool fake-claude needs a stand-in binary" "set AIDE_CLAUDE_BIN in the project's .aide/config"
+    claude_bin="$step_bin"
+    [ -n "$claude_bin" ] && [ -x "$claude_bin" ] || refuse_fix "cannot find the claude binary" "set AIDE_CLAUDE_BIN" ;;
+esac
 # srt, which every Codex and OpenCode turn runs in (setup/srt.sh). A step on
 # either does not start without it; a side turn on either is not run.
 srt_bin="$(find_bin "${AIDE_SRT_BIN:-}" srt)"

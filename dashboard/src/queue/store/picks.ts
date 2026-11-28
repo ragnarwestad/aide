@@ -21,8 +21,8 @@ export interface PickContext {
   /** `project/specFolder` → step → model, and the same for the provider. */
   pendingModels: Record<string, Record<string, string>>;
   pendingProviders: Record<string, Record<string, string>>;
-  /** Writes both pending tables. */
-  persist: () => void;
+  /** Writes both pending tables as given; the refusal when they are not on disk. */
+  save: (models: Record<string, Record<string, string>>, providers: Record<string, Record<string, string>>) => RequestRefusal | undefined;
   mirror: () => void;
   changed: () => void;
 }
@@ -81,28 +81,47 @@ export function editTailModel(ctx: PickContext, id: string, step: string, model:
   return { ok: true, job: next };
 }
 
+type Table = Record<string, Record<string, string>>;
+
+/** Saves the next tables, and only then makes them what the store holds:
+ *  a pick that did not reach the file leaves memory as it was. */
+function commit(ctx: PickContext, models: Table, providers: Table): RequestRefusal | undefined {
+  const refused = ctx.save(models, providers);
+  if (!refused) keep(ctx, models, providers);
+  return refused;
+}
+
+function keep(ctx: PickContext, models: Table, providers: Table): void {
+  for (const [table, next] of [[ctx.pendingModels, models], [ctx.pendingProviders, providers]] as const) {
+    for (const key of Object.keys(table)) delete table[key];
+    Object.assign(table, next);
+  }
+}
+
 /** The write `setPendingModel()` and a create's own seeding share, without
  *  either one's own `changed()` call: a create folds this into the ONE
  *  insert-and-seed operation it is, and `insert()` has already announced
  *  that. */
 export function writePendingModel(
   ctx: PickContext, project: string, specFolder: string, step: string, model: string, provider?: string,
-): void {
+): RequestRefusal | undefined {
   const key = `${project}/${specFolder}`;
-  ctx.pendingModels[key] = { ...ctx.pendingModels[key], [step]: model };
-  if (provider) ctx.pendingProviders[key] = { ...ctx.pendingProviders[key], [step]: provider };
-  ctx.persist();
+  const models = { ...ctx.pendingModels, [key]: { ...ctx.pendingModels[key], [step]: model } };
+  const providers = provider ? { ...ctx.pendingProviders, [key]: { ...ctx.pendingProviders[key], [step]: provider } } : ctx.pendingProviders;
+  return commit(ctx, models, { ...providers });
 }
 
-function clearPendingModel(ctx: PickContext, project: string, specFolder: string, step: string): void {
+function clearPendingModel(ctx: PickContext, project: string, specFolder: string, step: string): RequestRefusal | undefined {
   const record = `${project}/${specFolder}`;
-  for (const table of [ctx.pendingModels, ctx.pendingProviders]) {
-    if (!table[record]) continue;
-    const { [step]: _removed, ...rest } = table[record]!;
-    if (Object.keys(rest).length) table[record] = rest;
-    else delete table[record];
-  }
-  ctx.persist();
+  const [models, providers] = [ctx.pendingModels, ctx.pendingProviders].map((table) => {
+    const next = { ...table };
+    if (!next[record]) return next;
+    const { [step]: _removed, ...rest } = next[record]!;
+    if (Object.keys(rest).length) next[record] = rest;
+    else delete next[record];
+    return next;
+  });
+  return commit(ctx, models!, providers!);
 }
 
 /** Record a model, and the provider, picked for a phase that has no job
@@ -116,7 +135,8 @@ export function setPendingModel(
   const wanted = [...WORKFLOW_STEPS, ...PICK_PARTS].find((s) => s === step);
   if (!wanted) return { ok: false, ...invalidRequest(`${step || "that step"} is not a step a model can be chosen for`) };
   if ((PICK_PARTS as readonly string[]).includes(wanted) && model === "") {
-    clearPendingModel(ctx, project, specFolder, wanted);
+    const refused = clearPendingModel(ctx, project, specFolder, wanted);
+    if (refused) return { ok: false, ...refused };
     ctx.changed();
     return { ok: true };
   }
@@ -129,7 +149,8 @@ export function setPendingModel(
     if ("error" in checked) return { ok: false, ...checked };
     key = checked.key;
   }
-  writePendingModel(ctx, project, specFolder, wanted, found.name, key);
+  const refused = writePendingModel(ctx, project, specFolder, wanted, found.name, key);
+  if (refused) return { ok: false, ...refused };
   ctx.changed();
   return { ok: true };
 }
@@ -138,20 +159,19 @@ export function setPendingModel(
  *  real folder landing assigns it. A no-op when nothing is recorded under
  *  the provisional key, which is the common case: most picks are for a
  *  phase the create job DOES run and never touch these tables. */
-export function renamePendingModel(ctx: PickContext, project: string, fromFolder: string, toFolder: string): void {
+export function renamePendingModel(ctx: PickContext, project: string, fromFolder: string, toFolder: string): RequestRefusal | undefined {
   const fromKey = `${project}/${fromFolder}`;
   const toKey = `${project}/${toFolder}`;
-  const models = ctx.pendingModels[fromKey];
-  const providers = ctx.pendingProviders[fromKey];
-  if (!models && !providers) return;
-  if (models) {
-    delete ctx.pendingModels[fromKey];
-    ctx.pendingModels[toKey] = models;
-  }
-  if (providers) {
-    delete ctx.pendingProviders[fromKey];
-    ctx.pendingProviders[toKey] = providers;
-  }
-  ctx.persist();
+  if (!ctx.pendingModels[fromKey] && !ctx.pendingProviders[fromKey]) return undefined;
+  const [models, providers] = [ctx.pendingModels, ctx.pendingProviders].map((table) => {
+    const { [fromKey]: moved, ...rest } = table;
+    return moved ? { ...rest, [toKey]: moved } : rest;
+  });
+  // The landing that asks for this has already happened and moves the
+  // job's folder whatever the answer, so the picks move with it in memory
+  // even when the file could not take the change; the fault is reported.
+  const refused = ctx.save(models!, providers!);
+  keep(ctx, models!, providers!);
   ctx.changed();
+  return refused;
 }

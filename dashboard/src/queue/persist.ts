@@ -217,7 +217,7 @@ export function persistPendingModels(file: string, table: Record<string, unknown
  *  key is kept, not dropped: it is the recorded answer "nothing was
  *  ticked", a real choice and not the same thing as no entry at all. */
 export function parsePendingSteps(raw: unknown): Record<string, string[]> | null {
-  if (!raw || typeof raw !== "object") return null;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
   const out: Record<string, string[]> = {};
   for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
     if (!Array.isArray(value)) continue;
