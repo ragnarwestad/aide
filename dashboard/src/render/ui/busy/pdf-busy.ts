@@ -13,7 +13,7 @@ import { SPINNER } from "../../../page-contract.ts";
 // showing), but cosmetic only: the link and the PDF are unaffected
 // either way.
 //
-// Like its siblings, this file can neither import nor export anything.
+// `render/scripts/head-script.ts` bundles it into the one inline script every page carries.
 
 (() => {
 

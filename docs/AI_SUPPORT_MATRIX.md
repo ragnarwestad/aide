@@ -278,7 +278,7 @@ core/implementations/claude-code/
 | `~/.agents/skills/*/SKILL.md`  | Personal skills (Aide installs `core/skills/` here) |
 | `~/.copilot/skills/*/SKILL.md` | Global skills (shared across projects)              |
 
-Since we already have skills in `.claude/skills/`, Copilot picks them up automatically — we do not need to duplicate them to `.github/skills/`.
+Aide installs its skills in `~/.agents/skills/`, which Copilot reads, so nothing is copied into a project's `.github/skills/`.
 
 ### Features
 

@@ -2,10 +2,9 @@ import { PAGE_DRAWN } from "../../page-contract.ts";
 
 // The number on the installed app's icon: how many specs wait for a person.
 //
-// Like `sw-register.ts`, this file can neither import nor export anything —
-// `shell.ts` transpiles it into the same inline classic <script> — and
-// `test/render/scripts/app-badge.test.ts` runs it against a fake navigator
-// and document for the same reason.
+// `render/scripts/head-script.ts` bundles it into the one inline script every page carries,
+// and `test/render/scripts/app-badge.test.ts` bundles it the same way and runs
+// it against a fake navigator and document.
 //
 // The server writes the count into a <meta> before this script, so the badge
 // is set before the body is drawn. A page that holds the live connection

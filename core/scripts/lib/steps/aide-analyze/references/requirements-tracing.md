@@ -14,7 +14,7 @@
 
 ## Overview
 
-When 1-description.md has a `## Acceptance criteria` section, /aide-analyze
+When 1-description.md has a `## Acceptance criteria` section, the Analyze step
 threads its AC-n ids through the rest of the spec. No section present:
 every step below is unchanged from today's plain-text behavior, and the
 acceptance criteria checks still run — at `warn` and `stop` a
@@ -81,7 +81,7 @@ runner applies that saved choice to every row; no skill writes the mark.
 An open row holds archive back; a `Not verified` row does not.
 
 These rows are for the user the spec is for to judge and tick from the
-spec's Overview tab — never for `/aide-implement` or `/aide-analyze` to
+spec's Overview tab — never for the Implement step or the Analyze step to
 tick. `aide-archive-spec` refuses to archive while any of
 them is still unticked (`Not verified` counts as ticked). No Acceptance criteria section: `4-status.md` is
 written exactly as it is today, with no such section.
@@ -92,13 +92,13 @@ A spec whose archive is held back on unticked `## Acceptance criteria`
 rows, and whose `4-status.md` carries a `**Round boundary:**` stamp
 (written by `aide-archive-spec` the moment it declined), is not a fresh
 analysis — it is taking ANOTHER round on the checks that are still
-open. This is a different kind of restart from `/aide-reopen` with its
+open. This is a different kind of restart from the Reopen step with its
 reset, which regenerates `2-analysis.md`/`3-solution.md`/
 `4-status.md` from their templates and drops history; a held-back round
 does the opposite on every point below.
 
 **A reopened spec takes the same round.** A spec taken back with
-`/aide-reopen` without a reset (`aide-reopen-spec`) keeps its three
+the Reopen step without a reset (`aide-reopen-spec`) keeps its three
 round files and carries a `**Round boundary:**` line after its
 `**Archived:**` or `**Closed:**` line. It has no open row, so its scope
 is what changed since that boundary: an id newly added to

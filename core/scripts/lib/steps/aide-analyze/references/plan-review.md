@@ -13,7 +13,7 @@
 ## Overview
 
 Attack the plan while mistakes are still cheap: after `3-solution.md` is
-written, before any test exists. It is the part of `/aide-analyze`
+written, before any test exists. It is the part of the Analyze step
 between writing `3-solution.md` and writing `4-status.md`, so one run
 produces both the plan and its review.
 

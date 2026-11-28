@@ -9,8 +9,7 @@ import { PAGE_DRAWN } from "../../page-contract.ts";
 // upstream of the browser can have decided what colour it should be.
 // Reading the choice and setting one attribute is the whole of it.
 //
-// Like `specs-client.ts`, this file can neither import nor export
-// anything: `shell.ts` transpiles it into an inline classic <script>.
+// `render/scripts/head-script.ts` bundles it into the one inline script every page carries.
 //
 // It runs in <head>, which is the opposite of where `opts.script` goes
 // and for the opposite reason: the theme must be on the html element

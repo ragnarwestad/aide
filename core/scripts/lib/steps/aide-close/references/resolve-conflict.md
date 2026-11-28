@@ -109,7 +109,7 @@ check: never skip it, and never report a resolution as done without it.
 ### Step 5: Carry on, or undo
 
 **Tests green:** the resolution is finished. Go back to
-`/aide-close`'s Step 1 and run `aide-close-spec` again — now past the
+the Close step's Step 1 and run `aide-close-spec` again — now past the
 conflict, it checks the closing reason and moves the spec exactly as an
 ordinary run does. `aide-run-spec` commits anything still uncommitted,
 pushes the BRANCH, and reports the run. There is nothing to push by

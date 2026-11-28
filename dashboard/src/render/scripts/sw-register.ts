@@ -1,10 +1,5 @@
-// Registering the service worker: the last of the four scripts every
-// page carries, and the smallest.
-//
-// Like `theme-script.ts`, this file can neither import nor export
-// anything — `shell.ts` transpiles it into the same inline classic
-// <script> — and `test/sw-register.test.ts` runs it against a fake
-// navigator for the same reason that file exists.
+// Registering the service worker. `render/scripts/head-script.ts` bundles
+// it into the one inline script every page carries.
 //
 // Both guards below are the ordinary case, not the edge one. Every
 // page the shell renders carries this, the generated ones included,

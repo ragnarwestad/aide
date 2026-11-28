@@ -14,7 +14,7 @@ import { PAGE_DRAWN, PAGE_FETCHING, SPINNER } from "../../../page-contract.ts";
 // all, when the reader presses Back into it. `pageshow` with
 // `persisted` true is the signal that happened, and closes it.
 //
-// Like nav-busy.ts, this file can neither import nor export anything.
+// `render/scripts/head-script.ts` bundles it into the one inline script every page carries.
 
 const DELAY_MS = 150;
 // A press's cover stays until the press is answered: Escape does not lift it.

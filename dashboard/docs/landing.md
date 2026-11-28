@@ -229,12 +229,12 @@ commands the change calls for and runs them through `aide-record-test-run`.
 - A red run gets the whole command once more, unless it timed out or the landing repairs tests instead (`repairsTests`
   in the merge policy: `archive` and Merge). Green on the second run merges without a notice
   on the archived row. The job keeps the lines the first run failed on (`testsGreenOnRetry`).
-- Red on both runs pushes nothing: the local merge is dropped, the branch stays where the step left it, and the job
+- Red on both runs, or on the one run of a landing that repairs tests, pushes nothing: the local merge is dropped, the branch stays where the step left it, and the job
   STOPS with `errorReason: tests-red` and `stopReason: tests-red`, amber and not red. The same commands then run once on
   the default branch alone (`resultOnDefaultBranch`); red there too, the sentence says main is red as well, and archive
   merges the work once main is green again.
 - Green on main alone, the sentence names the failing tests that `aide-record-test-run` read from the output and put on
-  its answer (`failingTests`), the same reading a step's own run gets. The same tests on both runs: the merge broke them. Different tests on the
+  its answer (`failingTests`), the same reading a step's own run gets. On a landing that ran twice, the same tests on both runs: the merge broke them. Different tests on the
   two runs: that points to unstable tests or a busy machine, and only then does the sentence say to press Archive again
   when the machine is quieter. No test named: the sentence says the tests are red on the merge and green on main
   alone. Each outcome is a message in the board's catalogue, in the reader's language; the test output is the detail

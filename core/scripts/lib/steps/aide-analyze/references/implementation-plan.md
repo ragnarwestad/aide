@@ -90,7 +90,7 @@ End a criterion with *(browser)* when only a real browser can answer it:
 whether something is displayed, where it sits on the screen, what
 scrolls, what moves when its text changes. What the markup or the
 stylesheet says is not a browser question, and a criterion without the
-tag is tested the ordinary way. `/aide-implement` writes a browser test
+tag is tested the ordinary way. The Implement step writes a browser test
 for every tagged criterion.
 
 ## The test command

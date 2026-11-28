@@ -25,43 +25,43 @@ Read the section the step at hand needs.
 
 - Optionally a `Depends on:` line in Tracking info, naming the specs this
   one builds on (comma-separated; each identifier is either a bare number
-  or a full `NN-slug` folder name — narrower than `/aide-analyze`'s
+  or a full `NN-slug` folder name — narrower than the Analyze step's
   resolver, which also takes an issue key). `analyze`,
   `implement` and `archive` wait until every named spec has merged on
   the default branch; `create` runs regardless
 - Optionally an `Acceptance criteria checks:` line in Tracking info —
-  `off`, `warn` or `stop` — saying how strictly `/aide-analyze` checks
+  `off`, `warn` or `stop` — saying how strictly the Analyze step checks
   the spec's acceptance criteria. `aide-run-spec` writes it after a
   create from the dashboard's New spec form; absent, or any other value,
   is `off`. It is chosen once, at create
 - A `Let me choose the approach:` line in Tracking info — `yes` or `no` —
   written by `aide-run-spec` after every create from the New spec form,
   directly after the `Acceptance criteria checks:` line. `yes` asks
-  `/aide-analyze` to mark each approach (see 3-solution below); absent, or any
+  the Analyze step to mark each approach (see 3-solution below); absent, or any
   other value, is `no`
 - A `Sent back to a full analysis:` line in Tracking info — one sentence
   saying what made the spec larger than its short analysis allowed —
-  written by `aide-run-spec` when `/aide-implement` on a short analysis
-  finds the spec is not small after all, or when `/aide-analyze` writes a
+  written by `aide-run-spec` when the Implement step on a short analysis
+  finds the spec is not small after all, or when the Analyze step writes a
   short analysis over a limit, directly after the `Let me choose
   the approach:` line (else after `Acceptance criteria checks:`, else after
   `Created:`). It is kept on the spec: a spec with the line is never given
   a short analysis again, so it goes back at most once. Absent, or empty,
   is not sent back
 - A `Completion without changes:` line in Tracking info, written by hand.
-  `allowed` lets `/aide-analyze` record that what the spec asks for
+  `allowed` lets the Analyze step record that what the spec asks for
   already holds, and the job then ends after Analyze (see "No change
   needed" below). Absent, or any other value, is not allowed
 - A held-back spec taking another round on its open checks (see
   4-status's own Acceptance criteria section below) numbers a new id
   after the highest one already written — the same additive rule,
   applied to a second round rather than to the first draft
-- `/aide-create` keeps every criterion a description already has, word
+- The Create step keeps every criterion a description already has, word
   for word and with its id, and may add criteria after the highest id
   (the aide-create skill has how)
-- `/aide-analyze` never retrofits an Acceptance criteria section into
+- The Analyze step never retrofits an Acceptance criteria section into
   an existing `1-description.md` on its own initiative — only original
-  authoring (via `/aide-create`) adds one
+  authoring (via the Create step) adds one
 
 ---
 
@@ -75,9 +75,9 @@ Read the section the step at hand needs.
   contents — a reader who jumps straight to the heading, or only scans
   the ToC, must still find the pick. The RECOMMENDED one IS the spec —
   every section below it describes that approach and no other, and
-  `/aide-implement` builds the plan it finds. Wanting a different one
+  the Implement step builds the plan it finds. Wanting a different one
   means saying so in `1-description.md` and analysing again
-  (change an acceptance criterion, then `/aide-analyze` again) — or, on a
+  (change an acceptance criterion, then the Analyze step again) — or, on a
   spec whose `Let me choose the approach:` line says `yes`, choosing it on
   the Specs list
 - On such a spec every lead ends in one of three marks, and exactly one is
@@ -114,7 +114,7 @@ Read the section the step at hand needs.
   the behaviour is observed, its test file, whether that file exists,
   and the rules tested there. As few places as cover the criteria, and a
   new one only where no existing test file observes the behaviour.
-  `/aide-implement` writes its tests there; a criterion no test can reach
+  The Implement step writes its tests there; a criterion no test can reach
   gets no place, and the Manual testing note says why
 - Manual testing is a NOTE, not a checklist: it names what no test
   covers and why. Nothing under it is a task, and nothing under it
@@ -155,7 +155,7 @@ A short analysis writes these three files and no more:
   specs` record Step 6 writes. No other section
 - `3-solution.md`: Tracking info with the two fields; a `## Short analysis`
   section of one plain sentence saying there is no plan and no plan review,
-  the grade, the two counts, and that `/aide-implement` builds it from the
+  the grade, the two counts, and that the Implement step builds it from the
   description, the files to change and the places below; `## Scope` with the
   grade and its factors; `## Testing` with the project's test command and
   `### Where the tests sit`, one line per place naming the AC-ids it covers,
@@ -300,7 +300,7 @@ they are left as they are.
 ## 4-status: Acceptance criteria
 
 When `1-description.md` has a `## Acceptance criteria` section,
-`/aide-analyze` adds one more section to `4-status.md`, after the last
+the Analyze step adds one more section to `4-status.md`, after the last
 implementation phase and before `## Notation`, with exactly one row per
 `AC-n` id from `1-description.md`, in ascending id order, carrying that
 requirement's own SHALL text — never a scenario from `3-solution.md`'s
@@ -347,7 +347,7 @@ this section alone. A spec with no such section, or every row ticked,
 archives exactly as it did before this section existed.
 
 **A held-back spec may take another round on its open rows.**
-`/aide-analyze` and `/aide-implement` may run again on a spec whose
+The Analyze step and the Implement step may run again on a spec whose
 archive is held back this way — a THIRD kind of restart, distinct
 from a reopen that resets the files, which regenerates this table from
 its template. A held-back round instead APPENDS while the session
@@ -363,7 +363,7 @@ round that held it back, or a new `AC-n` id has been added — when none
 has, the spec stays held back on Analyze and Implement alike, not only
 on Archive.
 
-**A reopened spec takes the same round.** `/aide-reopen` without a
+**A reopened spec takes the same round.** The Reopen step without a
 reset (`aide-reopen-spec`) moves an archived or closed spec back into
 the active list with `2-analysis.md`, `3-solution.md` and `4-status.md`
 kept, and stamps a `**Round boundary:**` line after its

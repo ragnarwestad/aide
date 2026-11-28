@@ -3,7 +3,7 @@
 Finish a merge that git could not finish on its own — or decide it
 cannot be finished safely, and put everything back.
 
-This is `/aide-archive`'s first step, and only when there is a conflict
+This is the Archive step's first step, and only when there is a conflict
 open: a merge that fails is the merging step's problem, not a phase of
 its own.
 
@@ -127,7 +127,7 @@ check: never skip it, and never report a resolution as done without it.
 ### Step 5: Carry on, or undo
 
 **Tests green:** the resolution is finished. Go back to
-`/aide-archive`'s Step 1 and run `aide-archive-spec` again — now past the
+the Archive step's Step 1 and run `aide-archive-spec` again — now past the
 conflict, it reads the status tables and decides the rest exactly as an
 ordinary run does. `aide-run-spec` commits anything still uncommitted,
 pushes the BRANCH, and reports the run. There is nothing to push by

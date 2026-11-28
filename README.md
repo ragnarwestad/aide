@@ -13,21 +13,21 @@
 
 ---
 
-Spec-driven development with AI CLIs: every change starts as a spec, and a board runs it through analysis,
-implementation and archiving on Claude Code, Codex or OpenCode.
+Spec-driven development with Claude Code, Codex and OpenCode.
 
 ## What Aide is
 
-Before an AI CLI writes code, the change is written down as a spec: plain-Markdown files that say what is wrong
-(you write that), what the codebase looks like around it and the plan (the AI CLI writes those), and what each step
-did. The spec is committed to git, in the project or in
-a specs repository of its own, so the reasoning a chat history loses is still there to review a month later.
+Aide takes a code change from a written description to merged code, using the AI CLI you already have: Claude Code,
+Codex or OpenCode.
 
-The **board** (the dashboard) is a local web application that runs the specs. You add a project, write a spec, and
-press Run: it takes the spec through analyze, implement and archive, each step a real run of the AI CLI and model you
-chose for it, in a worktree of its own. It runs several specs at a time, records each step's cost and outcome, holds
-the spec before archive until you have ticked its acceptance criteria, and merges the code only once the project's
-own tests pass on the merged result.
+For each change, the AI CLI analyses the code, writes a plan and implements it in a git worktree of its own. Aide
+merges the code only when the project's own tests pass and you have ticked the acceptance criteria.
+
+The description, the analysis, the plan and what each step did are kept as a spec: a folder of Markdown files
+committed to git, where the reason for a change can be looked up later.
+
+You run it from the **board**, a web page on your own machine that runs several specs at a time and shows what each
+step cost and how it ended.
 
 The steps run only on the board. You start them from its buttons, or with the `aide` command from a terminal or an
 AI session. Aide also installs a few skills into each AI CLI, for the work around a spec.

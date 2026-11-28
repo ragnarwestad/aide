@@ -14,8 +14,7 @@ import { PAGE_DRAWN } from "../../page-contract.ts";
 // a reader wants is a preference, not a page, so it is remembered in the
 // browser and switches with no reload.
 //
-// Like `specs-client.ts`, this file can neither import nor export
-// anything.
+// `render/scripts/head-script.ts` bundles it into the one inline script every page carries.
 
 (() => {
   const KEY = "unit";

@@ -53,7 +53,7 @@ from the prompt's own "Use exactly this reason when closing the spec:"
 line.
 
 Pass `--specs-dir` whenever the specs root lives in a different git repo
-from the project — same reasoning as `/aide-archive`'s own Step 1.
+from the project — same reasoning as the Archive step's own Step 1.
 It is the folder the spec folders sit in (`<specs repo>/<project>`), never the specs
 repo's own root, which holds one folder per project and no spec.
 

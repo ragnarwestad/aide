@@ -55,7 +55,8 @@ Each entry says what the word is and links the page that has the rest.
 - **Phase** — one of the four steps a spec passes through: create,
   analyze, implement, archive.
 - **State** — where a spec stands, in the past tense: created, analyzed,
-  implemented, archived, closed. Derived from its files, never stored.
+  implemented, archived, closed. Read from `4-status.md` and the
+  `4-status.json` the runner writes beside it.
   [How a spec moves between phases](../dashboard/docs/spec-transitions.md).
 - **Round** — another analysis or implementation on a spec that is held
   back on its criteria, or reopened with its files kept, without starting
