@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { readFileSync } from "node:fs";
 import { DESCRIPTION_MAX, descriptionPart } from "../../src/project/description-bound.ts";
 
 const HEAD = "# T - Description\n\n## Table of contents\n\n- [Description](#description)\n\n---\n\n## Tracking info\n\n- **Task:** `1-t/`\n\n---\n\n";
@@ -15,6 +16,15 @@ describe("descriptionPart", () => {
     const body = "## Problem\n\nIt breaks.\n\n## Acceptance criteria\n\n- **AC-1:** It works.";
     const file = `${HEAD}## Description\n\n${body}\n\n${CLOSING}`;
     expect(descriptionPart(file)).toBe(body);
+  });
+
+  test("stops at the closing line create.sh writes today, and at the one older specs still carry", () => {
+    const script = readFileSync(new URL("../../../core/scripts/lib/create-spec/create.sh", import.meta.url), "utf8");
+    const written = script.split("\n").find((line) => line.startsWith("*This description can be edited before"))!;
+    expect(written).not.toContain("/aide-");
+    for (const closing of [written, CLOSING.trim()]) {
+      expect(descriptionPart(`${HEAD}## Description\n\nThe text.\n\n${closing}\nafter\n`)).toBe("The text.");
+    }
   });
 
   test("stops at the template's closing note, and what follows it does not count (AC-1)", () => {

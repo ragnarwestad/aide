@@ -40,7 +40,7 @@ Structure - follow the spec structure § 1-description:
 - NO affected files or estimate here — they are commitments about the
   solution (3-solution.md)
 
-## 2-analysis.md (placeholder - filled in by /aide-analyze)
+## 2-analysis.md (placeholder - filled in by the Analyze step)
 
 Structure - follow the spec structure § 2-analysis:
 
@@ -52,16 +52,16 @@ Structure - follow the spec structure § 2-analysis:
   Tracking info once `analyze` has actually run, plus a time of day onto
   `Last analyzed:`
 - **Mapping:** Placeholder for how the analysis was performed - search terms, methods, tools
-- **Findings:** Affected files (numbered list), a Files to change section (placeholder, filled in by /aide-analyze), plus sections for codebase analysis, affected components, patterns, test coverage, API dependencies
+- **Findings:** Affected files (numbered list), a Files to change section (placeholder, filled in by the Analyze step), plus sections for codebase analysis, affected components, patterns, test coverage, API dependencies
 - NOTHING that judges the solution — no grade, estimate or risks (3-solution.md)
 
-## 3-solution.md (placeholder - filled in by /aide-analyze)
+## 3-solution.md (placeholder - filled in by the Analyze step)
 
 Structure - follow the spec structure § 3-solution:
 
 - `# TITLE - Solution`
 - TOC with: Tracking info, Scope, Approaches, Recommended solution, Behavior delta, Acceptance criteria, Risk analysis, Implementation plan, Testing
-  (a "Plan review" section is added after Acceptance criteria by /aide-analyze's review step)
+  (a "Plan review" section is added after Acceptance criteria by the Analyze step's review)
 - **Tracking info:** Task=`FOLDER/`, Last updated=`[not prepared yet]` —
   and nothing about a phase outcome record: `aide-run-spec` writes
   `Repo`/`Model`/`Result`/`Time spent`/`Cost` into this file's own
@@ -76,7 +76,7 @@ Structure - follow the spec structure § 3-solution:
 - **Implementation plan:** TDD Red-Green-Verify with 4 phases and checkbox lists
 - **Testing:** A Where the tests sit subsection (public interface, test file, AC-ids), sections for unit, integration and e2e tests, plus a Manual testing note (what no test covers and why — a note, not a checklist)
 
-## 4-status.md (placeholder - filled in by /aide-analyze)
+## 4-status.md (placeholder - filled in by the Analyze step)
 
 Structure - follow the spec structure § 4-status:
 

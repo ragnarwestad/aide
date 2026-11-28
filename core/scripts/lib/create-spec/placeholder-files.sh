@@ -35,7 +35,7 @@ aide_write_analysis_placeholder() {
 
 ## Mapping
 
-*(Filled in by /aide-analyze: search terms, methods, tools used to locate affected code.)*
+*(Filled in by the Analyze step: search terms, methods, tools used to locate affected code.)*
 
 ---
 
@@ -43,31 +43,31 @@ aide_write_analysis_placeholder() {
 
 ### Affected files
 
-*(Filled in by /aide-analyze.)*
+*(Filled in by the Analyze step.)*
 
 ### Files to change
 
-*(Filled in by /aide-analyze.)*
+*(Filled in by the Analyze step.)*
 
 ### Codebase analysis
 
-*(Filled in by /aide-analyze.)*
+*(Filled in by the Analyze step.)*
 
 ### Affected components
 
-*(Filled in by /aide-analyze.)*
+*(Filled in by the Analyze step.)*
 
 ### Patterns
 
-*(Filled in by /aide-analyze.)*
+*(Filled in by the Analyze step.)*
 
 ### Test coverage
 
-*(Filled in by /aide-analyze.)*
+*(Filled in by the Analyze step.)*
 
 ### API dependencies
 
-*(Filled in by /aide-analyze.)*
+*(Filled in by the Analyze step.)*
 AIDE_EOF
 }
 
@@ -99,20 +99,20 @@ aide_write_solution_placeholder() {
 
 ## Scope
 
-*(Filled in by /aide-analyze: files to change, complexity level and
+*(Filled in by the Analyze step: files to change, complexity level and
 factors, estimate.)*
 
 ---
 
 ## Approaches
 
-*(Filled in by /aide-analyze: at least 2 approaches with pros/cons/estimate.)*
+*(Filled in by the Analyze step: at least 2 approaches with pros/cons/estimate.)*
 
 ---
 
 ## Recommended solution
 
-*(Filled in by /aide-analyze: before/after examples, in separate code blocks.)*
+*(Filled in by the Analyze step: before/after examples, in separate code blocks.)*
 
 ---
 AIDE_EOF
@@ -127,31 +127,31 @@ aide_append_solution_sections() {
 
 ## Behavior delta
 
-*(Filled in by /aide-analyze: what the solution adds, modifies and removes.)*
+*(Filled in by the Analyze step: what the solution adds, modifies and removes.)*
 
 ---
 
 ## Acceptance criteria
 
-*(Filled in by /aide-analyze: testable given/when/then scenarios.)*
+*(Filled in by the Analyze step: testable given/when/then scenarios.)*
 
 ---
 
 ## Risk analysis
 
-*(Filled in by /aide-analyze: risks with consequence/probability/mitigation.)*
+*(Filled in by the Analyze step: risks with consequence/probability/mitigation.)*
 
 ---
 
 ## Implementation plan
 
-*(Filled in by /aide-analyze: TDD Red-Green-Verify, 4 phases.)*
+*(Filled in by the Analyze step: TDD Red-Green-Verify, 4 phases.)*
 
 ---
 
 ## Testing
 
-*(Filled in by /aide-analyze: where the tests sit, unit, integration, e2e, and a manual testing note.)*
+*(Filled in by the Analyze step: where the tests sit, unit, integration, e2e, and a manual testing note.)*
 AIDE_EOF
 }
 

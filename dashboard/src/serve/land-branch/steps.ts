@@ -248,7 +248,7 @@ export const mergeStepTitle = (step: WorkflowStep): string => MERGE_TITLES[step]
 export const MERGE_STEP: Partial<Record<WorkflowStep, string>> = {
   create: "7 of 7",
   analyze: "11 of 11",
-  reopen: "6 of 6",
+  reopen: "5 of 5",
   archive: "5 of 5",
   close: "4 of 4",
 };

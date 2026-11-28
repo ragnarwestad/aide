@@ -2,6 +2,7 @@
 
 import { pickTab } from "../job-page";
 import { t, type Language } from "../../../i18n";
+import { stepLabel } from "../../../format/step-label.ts";
 import type { SpecPageView } from "./types.ts";
 import { ANALYSIS_FILE, DESCRIPTION_FILE, SOLUTION_FILE, STATUS_FILE } from "../../../project/spec-names.ts";
 import { inFlight } from "../../../queue/queue.ts";
@@ -163,8 +164,9 @@ export function documentTabScript(view: SpecPageView, tab: SpecTab): DocumentTab
  *  passes no mark and keeps its own output unchanged. */
 export function tabHelp(lang: Language): Record<SpecTab, string> {
   const code = (text: string) => `<code>${text}</code>`;
-  const analyze = code("/aide-analyze");
-  const implement = code("/aide-implement");
+  // The steps by the names their buttons carry.
+  const analyze = stepLabel("analyze", lang);
+  const implement = stepLabel("implement", lang);
   const saveNote = t(lang, "specTab.help.saveNote");
   return {
     description: `${t(lang, "specTab.help.description", { file: code(DESCRIPTION_FILE) })} ${saveNote}`,

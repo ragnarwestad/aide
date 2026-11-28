@@ -51,15 +51,15 @@ def test_hooks_the_step_wrote_do_not_run_when_the_runner_commits_and_pushes(
 def test_the_steps_own_git_still_runs_its_hooks(runner, workspace, fake_claude, tmp_path):
     """Only the runner's own git is changed: a command the step runs is
     the step's, and runs inside the sandbox with the repository's hooks.
-    Each hook writes the git command that started it."""
+    The hook writes the subject of each commit it ran for."""
     marker = tmp_path / "hooks-that-ran.txt"
-    hook = f'#!/bin/sh\nps -o command= -p "$PPID" >> {shlex.quote(str(marker))}\n'
+    hook = f'#!/bin/sh\nhead -n 1 "$1" >> {shlex.quote(str(marker))}\n'
     git(workspace["project"], "config", "core.hooksPath", ".githooks")
     claude = fake_claude(
         "cat > /dev/null\n"
         'mkdir -p "$PWD/.githooks"\n'
-        f'printf %s {shlex.quote(hook)} > "$PWD/.githooks/pre-commit"\n'
-        'chmod +x "$PWD/.githooks/pre-commit"\n'
+        f'printf %s {shlex.quote(hook)} > "$PWD/.githooks/commit-msg"\n'
+        'chmod +x "$PWD/.githooks/commit-msg"\n'
         'echo "written by the step" > "$PWD/new-code.txt"\n'
         'git add new-code.txt && git commit -q -m "The step commits its own work"\n'
         f"echo '{json.dumps(RESULT_OK)}'"
@@ -67,8 +67,8 @@ def test_the_steps_own_git_still_runs_its_hooks(runner, workspace, fake_claude, 
     rc, out, _ = run(runner, workspace, claude, command="implement")
     assert rc == 0, out
     started_by = marker.read_text().splitlines()
-    assert started_by, "the step's own commit ran its pre-commit hook"
-    assert set(started_by) == {"git commit -q -m The step commits its own work"}
+    assert started_by, "the step's own commit ran its commit-msg hook"
+    assert set(started_by) == {"The step commits its own work"}
 
 
 def test_a_pinned_worktree_keeps_the_git_directory_it_was_cut_with(workspace_root, tmp_path):

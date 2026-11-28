@@ -2,7 +2,7 @@
 the spec is really analyzed.
 
 The spec is made with aide-create-spec (no AI); `analyze` goes through
-core/scripts/aide-run-spec with the real `opencode` on OpenCode Zen's free
+core/scripts/aide-run-spec with the real `opencode` on OpenCode Zen's free DeepSeek
 model, inside the real srt sandbox, the way the board runs it. Real CLI
 calls: deselected by pytest.ini, run with `-m e2e`.
 """
@@ -10,7 +10,7 @@ import pytest
 
 from .conftest import analyze_with, available
 
-MODEL = "opencode/nemotron-3.5-lightning-free"
+MODEL = "opencode/deepseek-v4.1-flash-free"
 
 
 @pytest.mark.e2e

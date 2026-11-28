@@ -6,9 +6,11 @@
 export const DESCRIPTION_MAX = 10000;
 
 const HEADING = /^## Description[ \t]*$/;
-/** The two lines that close the description in a created file: the create
- *  step's own, and the template's note. */
+/** The lines that close the description in a created file: the create
+ *  step's own, in today's words and in the words older specs still carry,
+ *  and the template's note. */
 const isClosing = (line: string): boolean =>
+  line.trim() === "*This description can be edited before the Analyze step runs.*" ||
   line.trim() === "*This description can be edited before /aide-analyze runs.*" ||
   line.startsWith("_(This field can be edited manually");
 

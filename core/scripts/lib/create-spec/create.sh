@@ -227,7 +227,7 @@ cat > "$dest/1-description.md" <<AIDE_EOF
 
 ${description}
 
-*This description can be edited before /aide-analyze runs.*
+*This description can be edited before the Analyze step runs.*
 AIDE_EOF
 
 aide_write_placeholder_files "$dest" "$title" "$folder"

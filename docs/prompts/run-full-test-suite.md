@@ -1,7 +1,7 @@
 Run this repository's (Aide's) whole test suite on main and record what it
-said. Nobody is watching. Fix a red test yourself only when the test is what
-is wrong and the fix stays inside test files; propose one spec for every
-other red test; then stop.
+said. Nobody is watching. Fix every red test you can, in the test or in the
+code, wherever the cause lies; write a spec text into the report for each
+one you cannot fix; then stop.
 
 You work on a branch of your own. What you commit, the board merges after
 this run, and only once the repository's test command is green on the merge.
@@ -23,30 +23,33 @@ failing test once more on its own and counts only a second failure, so a
 test can fail first and still leave its part green: that test is
 unstable, not red. Unstable tests are reported, never fixed or proposed.
 
-## Step 2 of 4: Fix a red test whose test is wrong
+A test that fails because this run was not allowed to do something —
+`Operation not permitted`, `EPERM`, a browser or a program that was
+refused at start — could not run here. It is reported as such, under its
+own heading, and is never fixed or proposed: the merge runs it where it is
+allowed.
+
+## Step 2 of 4: Fix the red tests
 
 For each red test, read the test and the code it tests, and decide where
-the cause lies.
+the cause lies: in the test (a time limit too short for the machine, a
+test that depends on another test's leftovers or on the order the tests
+run in, a fixture that no longer matches what the code is meant to do, a
+wrong path or name) or in the code the test checks.
 
-Fix it yourself only when all of these hold:
-- the cause is in the test: a time limit too short for the machine, a test
-  that depends on another test's leftovers or on the order the tests run
-  in, a fixture that no longer matches what the code is meant to do, a
-  wrong path or name in the test;
-- the fix changes test files only (`core/tests/`, `dashboard/test/` and
-  the helpers there), nothing the tests test;
-- the fix keeps everything the test checks: no assertion removed or
-  loosened, no test skipped, marked to be skipped, deleted or renamed
-  away, no retry added around it.
+Fix it where the cause lies, when you are sure of the cause and the fix
+keeps everything the test checks: no assertion removed or loosened, no
+test skipped, marked to be skipped, deleted or renamed away, no retry
+added around it, and no behaviour another test relies on changed.
 
-When you fix one, run that test file on its own and see it green, then
-commit it with a message in English, in the imperative, saying what was
-wrong with the test. One commit per test file. Never commit anything
-outside test files.
+When you fix one, run that test file on its own and see it green, and run
+the test files that cover any code you changed. Then commit, with a message
+in English, in the imperative, saying what was wrong. One commit per
+cause.
 
-Every other red test — the cause is in the code, you are not sure where
-it lies, or the fix would need to touch anything but a test — is left as
-it is and goes into the spec in Step 4.
+A red test whose cause you are not sure of, or whose fix would change what
+the code is meant to do, is left as it is and goes into the spec text in
+Step 4.
 
 ## Step 3 of 4: Write the report
 
@@ -58,9 +61,11 @@ page shows as the run's report. Plain HTML, no styling:
 - one line per part with its pass and fail counts,
 - the name of every red test, each with the assertion lines underneath
   it, and whether you fixed it (with the commit's subject) or left it for
-  the spec,
+  the spec text,
 - under its own heading, every unstable test: one that failed first and
   passed when run again, with its file,
+- under its own heading, every test that could not run here, with the
+  line that says what was refused,
 - each red part's last 50 lines of output at the bottom, in a `<pre>`.
 
 If a part could not run at all — no browser, no dependencies, a crash
@@ -68,25 +73,21 @@ before the first test — say that in the same file instead, with what the
 command printed. A missing report reads as "nothing happened"; an honest
 "it could not start" does not.
 
-## Step 4 of 4: Propose one spec for the red tests you did not fix
+## Step 4 of 4: Write a spec text for the red tests you did not fix
 
-When at least one red test is left unfixed, propose one spec that covers
-every such test file, unless an earlier one is still open: look through
-the titles in the specs folder that `AIDE_SPECS_PATH` in `.aide/config`
-names, leaving out `archive/`, and propose nothing when a title starts
-with `Make the tests green on main`.
-
-Write the proposal to `$AIDE_SCHEDULE_OUTPUT_DIR/proposed-specs.json`, a
-JSON list holding one object with a `title` and a `description`:
-- `title`: `Make the tests green on main (<YYYY-MM-DD>)`, with today's
-  date.
-- `description`: a `## Problem` section naming the commit tested and,
-  for each red test file left unfixed, the failing tests, their assertion
-  lines and where you think the cause lies; a `## Solution` section
-  saying the tests pass on main again, with each cause fixed where it
-  lies — in the code, or in the test when the test is what is wrong; and
-  an `## Acceptance criteria` section with `- **AC-1:**` lines, each one
+When at least one red test is left unfixed, add a section headed
+`Proposed spec` at the end of the report, for a person to read and decide
+whether a spec is needed. It holds one spec text covering every such test
+file:
+- a title: `Make the tests green on main (<YYYY-MM-DD>)`, with today's
+  date;
+- a description, in a `<pre>` so it can be copied as Markdown: a
+  `## Problem` section naming the commit tested and, for each red test
+  file left unfixed, the failing tests, their assertion lines and where
+  you think the cause lies; a `## Solution` section saying the tests pass
+  on main again, with each cause fixed where it lies; and an
+  `## Acceptance criteria` section with `- **AC-1:**` lines, each one
   sentence. Under 4,000 characters.
 
-Write no file when no red test is left unfixed, or when an earlier spec is
-still open.
+Write no `proposed-specs.json`: nothing from this run becomes a spec by
+itself.

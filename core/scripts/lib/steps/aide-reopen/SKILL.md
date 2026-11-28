@@ -12,8 +12,7 @@ description: >-
 effort: medium
 ---
 
-Reopen an archived spec: remove the branch it left behind and put the
-folder back among the active specs. By default every file is kept and
+Reopen an archived spec: put the folder back among the active specs. By default every file is kept and
 the spec takes a round on what changed in its description; only when
 asked are the analysis, the plan and the status reset as well.
 
@@ -33,12 +32,14 @@ starts, write one line `--- Step N of X: <title> — started`, and when
 it ends, one line `--- Step N of X: <title> — done`. A step that ends
 the run early says `— stopped: <why>` in place of `— done`, and one that does not apply to this run `— skipped: <why>`.
 
-Step 6, the merge of spec files into the default branch, is Aide's, after
-the reopen: Aide writes its marks there.
+Step 5, the merge of spec files into the default branch, is Aide's, after
+the reopen: Aide writes its marks there. The earlier round's branch is
+removed by Aide before this skill starts, in both repositories and on
+both origins.
 
-### Step 1 of 6: Find the spec
+### Step 1 of 5: Find the spec
 
-First write `--- Step 1 of 6: Find the spec — started`, and when this step ends, `--- Step 1 of 6: Find the spec — done`.
+First write `--- Step 1 of 5: Find the spec — started`, and when this step ends, `--- Step 1 of 5: Find the spec — done`.
 
 
 Resolve the spec to a folder, looking under `archive/` — that is
@@ -53,29 +54,9 @@ round that is running.
 The job says the mode: the reset mode when Reopen on the spec's page
 asked for a reset, the keep mode otherwise.
 
-### Step 2 of 6: Remove the branch the earlier round left behind
+### Step 2 of 5: Move the folder back
 
-First write `--- Step 2 of 6: Remove the branch the earlier round left behind — started`, and when this step ends, `--- Step 2 of 6: Remove the branch the earlier round left behind — done`.
-
-
-`aide/<NN>-slug` can be in four places, and the one that is missed is
-the one the next run refuses on:
-
-| Repository     | Where                         |
-|----------------|-------------------------------|
-| the project    | the local ref in the checkout |
-| the project    | `origin`                      |
-| the specs repo | the local ref in the checkout |
-| the specs repo | `origin`                      |
-
-Delete all four in ONE loop over the pairs, so the four deletions stay
-alike. Every deletion tolerates "already gone" — the merge that
-archived the spec usually removed the branch already — and an origin
-that cannot be reached is no reason to stop.
-
-### Step 3 of 6: Move the folder back
-
-First write `--- Step 3 of 6: Move the folder back — started`, and when this step ends, `--- Step 3 of 6: Move the folder back — done`.
+First write `--- Step 2 of 5: Move the folder back — started`, and when this step ends, `--- Step 2 of 5: Move the folder back — done`.
 
 
 Run, from the specs repository as it stands before anything is moved:
@@ -99,9 +80,9 @@ modes.
 Either mark is what stops the earlier round's steps counting. On a
 refusal, report the script's `error` and stop.
 
-### Step 4 of 6: Commit spec files
+### Step 3 of 5: Commit spec files
 
-First write `--- Step 4 of 6: Commit spec files — started`, and when this step ends, `--- Step 4 of 6: Commit spec files — done`.
+First write `--- Step 3 of 5: Commit spec files — started`, and when this step ends, `--- Step 3 of 5: Commit spec files — done`.
 
 
 The runner commits the move with this subject:
@@ -110,9 +91,9 @@ The runner commits the move with this subject:
 Run /aide-reopen for <spec-folder>
 ```
 
-### Step 5 of 6: Confirm
+### Step 4 of 5: Confirm
 
-First write `--- Step 5 of 6: Confirm — started`, and when this step ends, `--- Step 5 of 6: Confirm — done`.
+First write `--- Step 4 of 5: Confirm — started`, and when this step ends, `--- Step 4 of 5: Confirm — done`.
 
 ```text
 Reopened: 17-clean-up-console-log
@@ -125,9 +106,9 @@ Reopened: 17-clean-up-console-log
 Next: Analyze
 ```
 
-### Step 6 of 6: Merge spec files into main
+### Step 5 of 5: Merge spec files into main
 
-Aide writes `--- Step 6 of 6: Merge spec files into main — started` itself, after the reopen, and ends it `— done` or `— stopped: <why>`.
+Aide writes `--- Step 5 of 5: Merge spec files into main — started` itself, after the reopen, and ends it `— done` or `— stopped: <why>`.
 
 Aide merges the spec files committed on the spec's branch into the specs
 repository's default branch, and the reopen is finished when that merge

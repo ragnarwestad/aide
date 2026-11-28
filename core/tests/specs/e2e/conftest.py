@@ -15,6 +15,7 @@ import json
 import os
 import re
 import shutil
+import tempfile
 import subprocess
 from pathlib import Path
 
@@ -25,7 +26,7 @@ from ..unit.core.scripts.spec.spec_repos import git
 
 # The templates' own placeholders (core/scripts/lib/create-spec/
 # placeholder-files.sh): still there means the AI never filled them in.
-TEMPLATE_PLACEHOLDERS = ["(Filled in by /aide-analyze", "[not analyzed yet]"]
+TEMPLATE_PLACEHOLDERS = ["(Filled in by the Analyze step", "(Filled in by /aide-analyze", "[not analyzed yet]"]
 
 TITLE = "E2E greeting"
 DESCRIPTION = "Create a simple greeting function with greet(name)"
@@ -94,14 +95,21 @@ def e2e_env(e2e_workspace):
 @pytest.fixture
 def real_cli(monkeypatch):
     """The environment the runner starts the real CLI in: mise's shims on
-    PATH, and the real srt for the Codex and OpenCode turns that run
-    inside it (the runner helper puts a stand-in there otherwise)."""
+    PATH, the real srt for the Codex and OpenCode turns that run inside it
+    (the runner helper puts a stand-in there otherwise), and a short
+    TMPDIR. srt listens on a socket under TMPDIR, and macOS refuses a
+    socket path over 104 bytes, which the suite's own nested temp
+    directories pass."""
     monkeypatch.setenv("PATH", mise_path())
+    short_tmp = tempfile.mkdtemp(prefix="aide-e2e-", dir="/tmp")
+    monkeypatch.setenv("TMPDIR", short_tmp)
     srt = shutil.which("srt", path=mise_path())
     if srt:
         monkeypatch.setenv("AIDE_SRT_BIN", srt)
     else:
         monkeypatch.delenv("AIDE_SRT_BIN", raising=False)
+    yield
+    shutil.rmtree(short_tmp, ignore_errors=True)
 
 
 def create_spec(workspace_root: Path, specs: Path) -> str:
