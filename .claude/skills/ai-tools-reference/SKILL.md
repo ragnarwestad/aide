@@ -407,6 +407,31 @@ applyTo: "**/*.ts,**/*.tsx"
 Files in `.github/agents/*.md`. YAML frontmatter with `name`,
 `description`, `tools`, `model`, `mcp-servers`.
 
+From v1.0.117 a custom agent can opt in to tools explicitly, and a
+subagent keeps to the `tools` list in its agent file even when the file
+has no prompt. The release notes give no syntax for the opt-in; check
+the custom-agent docs before writing one.
+
+### Sandbox, approvals and `-p` (v1.0.117+)
+
+- **CA certificates:** `sandbox.userPolicy.network.extraCaCertificates`,
+  in user or managed settings, makes sandboxed commands trust extra CA
+  certificates, for a proxy that intercepts TLS. Aide sets none.
+- **Worktrees:** in a linked Git worktree the sandbox may write, commits,
+  new branches and stashing work again. The repository's existing
+  settings files stay read-only to sandboxed commands and agent edits.
+- **MCP approvals:** approving an MCP server's tools, for the session or
+  for a location, covers that server's tools alone, also when the
+  server's name matches a built-in permission type such as shell
+  commands or memory stores.
+- **Extensions in `-p`:** an extension starts only when its launch is
+  already approved: by `--allow-all-tools`, by `--yolo` or by an approval
+  saved earlier. Autopilot asks before each launch, which nobody answers
+  in a headless run.
+- **Exit code:** a non-interactive run exits 0 when a session write fails
+  for a moment and the final save succeeds. A model pinned to a provider
+  that is unavailable is an error, not a silent switch.
+
 ### AGENTS.md support
 
 Copilot reads `AGENTS.md` in the repo root and cwd. The CLI supports it,

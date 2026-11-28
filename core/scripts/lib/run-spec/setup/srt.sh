@@ -20,7 +20,10 @@ SRT_PACKAGE="npm:@anthropic-ai/sandbox-runtime@0.0.83"
 # Where a turn may connect: srt denies every other host, and it takes no
 # wildcard broader than one domain. Every turn reaches the AI providers; a
 # turn that may write also reaches GitHub and the package registries a
-# project's own install and tests fetch from.
+# project's own install and tests fetch from; a scheduled job also reaches
+# the sites the news check reads (the Sources, Watched pages and YouTube
+# channels in docs/AI_NEWS_LOG.md, and the X and YouTube readers in
+# scripts/news/).
 srt_provider_domains=(
   anthropic.com '*.anthropic.com'
   openai.com '*.openai.com' chatgpt.com '*.chatgpt.com'
@@ -29,6 +32,13 @@ srt_provider_domains=(
 srt_fetch_domains=(
   github.com '*.github.com' '*.githubusercontent.com'
   registry.npmjs.org pypi.org files.pythonhosted.org
+)
+srt_schedule_domains=(
+  claude.com '*.claude.com' claude.ai '*.claude.ai' claude.dev '*.claude.dev'
+  github.blog '*.github.io' agents.md agentskills.io aaif.io modelcontextprotocol.io '*.modelcontextprotocol.io'
+  artificialanalysis.ai '*.artificialanalysis.ai' martinfowler.com arxiv.org '*.arxiv.org' learn.microsoft.com
+  x.com '*.x.com' twitter.com '*.twitter.com' fxtwitter.com '*.fxtwitter.com'
+  youtube.com '*.youtube.com' youtu.be '*.googlevideo.com' '*.ytimg.com'
 )
 
 # The Codex folder this turn logs in from: the one entry under it a turn
@@ -129,6 +139,7 @@ srt_settings_json() {  # <tool> <permission-mode> <settings-file> [<writable-dir
     acceptEdits) for path in "$@"; do [ -n "$path" ] && allow+=("$(srt_rule_path "$path")"); done
                  domains+=("${srt_fetch_domains[@]}") ;;
   esac
+  [ "${command_name:-}" = "schedule" ] && domains+=("${srt_schedule_domains[@]}")
   while IFS= read -r state; do [ -n "$state" ] && allow+=("$state"); done <<< "$(srt_own_state "$tool_name")"
   jq -cn --arg tool "$tool_name" \
     --argjson reads "$(printf '%s\n' "${reads[@]}" | jq -R . | jq -sc .)" \

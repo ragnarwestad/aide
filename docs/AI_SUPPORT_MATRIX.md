@@ -283,7 +283,9 @@ Aide installs its skills in `~/.agents/skills/`, which Copilot reads, so nothing
 ### Features
 
 - **Slash commands** — reads the personal skills from `~/.agents/skills/` (e.g. `/aide-explore`)
-- **Headless mode** — `copilot -p` runs a prompt with no one at the keyboard
+- **Headless mode** — `copilot -p` runs a prompt with no one at the keyboard.
+  What its sandbox, approvals and extensions do there from 1.0.117 is in
+  the `ai-tools-reference` skill, "Sandbox, approvals and `-p`".
 - **MCP:** Support via the GitHub MCP server
 
 ### Installation into target projects

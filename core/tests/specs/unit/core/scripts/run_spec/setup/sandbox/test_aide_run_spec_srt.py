@@ -8,8 +8,9 @@ import re
 
 import pytest
 
-from ....conftest import run
+from ....conftest import git, run
 from ...run_spec_results import CODEX_STREAM_OK, OPENCODE_STREAM_OK, RESULT_OK, emits
+from ...run_spec_invoking import schedule
 from ...run_spec_status_files import with_status
 from ...turn.test_aide_run_spec_review_models import _claude, _codex_says
 
@@ -154,6 +155,45 @@ def test_a_turn_reaches_only_the_listed_hosts(runner, workspace, fake_codex):
     assert network["deniedDomains"] == []
     assert "chatgpt.com" in network["allowedDomains"]
     assert all(re.fullmatch(r"(\*\.)?[a-z0-9-]+(\.[a-z0-9-]+)+", d) for d in network["allowedDomains"])
+
+
+def _reaches(host, domains):
+    """Whether srt lets `host` through `domains`: by name, or by a `*.` entry for a domain above it."""
+    return host in domains or any(d.startswith("*.") and host.endswith(d[1:]) for d in domains)
+
+
+def _news_hosts(workspace_root):
+    """Every host the news check reads: the source tables of the news log and the X and YouTube readers."""
+    log = (workspace_root / "docs" / "AI_NEWS_LOG.md").read_text()
+    tables = re.findall(r"^### (?:Sources|Watched pages|YouTube channels)\n(.*?)(?=^#)", log, re.M | re.S)
+    readers = [(workspace_root / "scripts" / "news" / name).read_text() for name in ("fetch-x-list.py", "fetch-youtube.py")]
+    return set(re.findall(r"https://([a-z0-9.-]+)", "\n".join(tables + readers)))
+
+
+def _scheduled_codex(runner, workspace, fake_codex):
+    project = workspace["project"]
+    (project / "docs").mkdir(exist_ok=True)
+    (project / "docs" / "nightly-report.md").write_text("Write the report.\n")
+    git(project, "add", "docs/nightly-report.md")
+    git(project, "commit", "-qm", "add the job's prompt")
+    codex = fake_codex(emits(CODEX_STREAM_OK))
+    rc, out, _ = schedule(runner, workspace, None, tool="codex", codex=codex, permission_mode="bypassPermissions")
+    assert rc == 0, out
+    turns = _turns(workspace)
+    assert turns, out
+    return [settings["network"]["allowedDomains"] for _, settings in turns]
+
+
+def test_a_scheduled_job_reaches_every_site_the_news_check_reads(runner, workspace, fake_codex, workspace_root):
+    hosts = _news_hosts(workspace_root)
+    assert {"x.com", "api.x.com", "www.youtube.com", "code.claude.com", "agents.md"} <= hosts, hosts
+    for domains in _scheduled_codex(runner, workspace, fake_codex):
+        assert [h for h in sorted(hosts) if not _reaches(h, domains)] == []
+
+
+def test_a_spec_step_does_not_reach_the_sites_only_a_scheduled_job_reads(runner, workspace, fake_codex):
+    _, settings = _codex(runner, workspace, fake_codex)
+    assert not _reaches("x.com", settings["network"]["allowedDomains"])
 
 
 @pytest.mark.parametrize("mode, home, writes", [("bypassPermissions", True, True), ("acceptEdits", False, True),

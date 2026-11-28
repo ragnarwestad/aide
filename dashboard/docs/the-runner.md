@@ -385,8 +385,14 @@ whole tool, not only its commands. It lives in `run-spec/setup/srt.sh`, and it d
   - `plan` (every review, verification and plan review): nothing.
 
   Every mode may also write the temporary directories and the tool's own state folders.
-- The network reaches only a fixed list of hosts: the AI providers, and for a turn that may write, GitHub and the npm
-  and Python registries too. A command may still start a server on localhost and reach it.
+- The network reaches only a fixed list of hosts:
+  - every turn: the AI providers;
+  - a turn that may write: GitHub and the npm and Python registries too;
+  - a scheduled job: also the sites the news check reads, from the source tables in `docs/AI_NEWS_LOG.md` and the X
+    and YouTube readers in `scripts/news/`.
+
+  A host off the list is refused with `host is not on the allow list`. A command may still start a server on
+  localhost and reach it.
 - Codex is let through to the macOS certificate service (`enableWeakerNetworkIsolation`). Without it, no request of
   Codex gets through.
 
