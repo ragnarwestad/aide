@@ -8,6 +8,7 @@
   - [YouTube channels](#youtube-channels)
 - [Notation](#notation)
 - [News log](#news-log)
+  - [2026-11-28](#2026-11-28)
   - [2026-11-27](#2026-11-27)
   - [2026-11-26](#2026-11-26)
   - [2026-11-25](#2026-11-25)
@@ -167,6 +168,65 @@ Relevance markers in each review's `Relevance for aide` section:
 ---
 
 ## News log
+
+### 2026-11-28
+
+Review period: 2026-11-27 to 2026-11-28. All 16 source addresses, 19 watched table pages, nine linked model guides and 14 YouTube channels attempted.
+Fresh MyAI and all YouTube channels were unavailable. Web fallback recovered blocked news pages; watched-page comparisons remain incomplete.
+
+**Claude Code (review period):**
+
+| Date      | Version | News                                                                                                                                                     | Source                                                       |
+|-----------|---------|----------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------|
+| Nov 27–28 | —       | No new CLI release. Blog/resources latest Nov 24; Anthropic news latest dated article Nov 20. The Nov 28 page header is not an article publication date. | [Source](https://github.com/anthropics/claude-code/releases) |
+
+**GitHub Copilot CLI (review period):**
+
+| Date                | Version                              | News                                                                                                                                                                                                                | Source                                                                |
+|---------------------|--------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|
+| Nov 27              | 1.0.117                              | Stable: custom sandbox CA certificates, explicit custom-agent tool exposure, scoped MCP approvals, approved extension launches in headless mode, worktree sandbox fixes and successful headless-save exit handling. | [Source](https://github.com/github/copilot-cli/releases/tag/v1.0.117) |
+| Nov 27–28           | 1.0.117-5; 1.0.118-0…2 (pre-release) | Pre-release builds only; changes are assessed when released as stable.                                                                                                                                              | [Source](https://github.com/github/copilot-cli/releases)              |
+| Nov 27–28 (checked) | —                                    | Changelog and newest blog article dated Nov 25; no new dated article.                                                                                                                                               | [Source](https://github.blog/ai-and-ml/github-copilot/)               |
+
+**OpenAI Codex CLI (review period):**
+
+| Date                | Version                       | News                                                           | Source                                             |
+|---------------------|-------------------------------|----------------------------------------------------------------|----------------------------------------------------|
+| Nov 27              | 0.174.0-alpha.9 (pre-release) | Generic pre-release notes; no stable behavior inferred.        | [Source](https://github.com/openai/codex/releases) |
+| Nov 27–28 (checked) | —                             | Changelog and developer blog latest Nov 24; no new dated item. | [Source](https://developers.openai.com/blog)       |
+
+**OpenCode (review period):**
+
+| Date                | Version | News                                                                                                    | Source                                                   |
+|---------------------|---------|---------------------------------------------------------------------------------------------------------|----------------------------------------------------------|
+| Nov 27–28 (checked) | —       | No new GitHub release since Nov 27. Website changelog has no new dated item established in this period. | [Source](https://github.com/anomalyco/opencode/releases) |
+
+**Across tools (review period):**
+
+| Date                | Version       | News                                                                                                                                                                      | Source                                                                                                             |
+|---------------------|---------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------|
+| Nov 27–28 (checked) | —             | Cookbooks latest commit Nov 20; Fowler latest dated article Nov 12. Artificial Analysis harness comparisons remain present; chart values are unavailable in fetched text. | [Source](https://artificialanalysis.ai/agents/coding-agents)                                                       |
+| Nov 28 (checked)    | watched pages | 13 pages unchanged. Direct fetches of six pages and nine linked model guides returned HTTP 403; web fallback read them, but cannot establish snapshot changes.            | [Source](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) |
+
+**Relevance for aide:**
+
+- ⭐ Copilot 1.0.117 adds sandbox.userPolicy.network.extraCaCertificates in user or managed settings. Document the setting in the reference and matrix; do not install corporate certificates by default. [Source](https://github.com/github/copilot-cli/releases/tag/v1.0.117).
+- ⭐ Copilot 1.0.117 adds explicit tool exposure for custom agents and enforces their tool lists even without a prompt. Update the custom-agent reference after checking the supported syntax; do not infer it from the release note. [Source](https://github.com/github/copilot-cli/releases/tag/v1.0.117).
+- ⚠️ Copilot 1.0.117 limits MCP approvals to the server even when its name matches a built-in permission type. Document this boundary in the reference and verify any permission probes against the stable CLI. [Source](https://github.com/github/copilot-cli/releases/tag/v1.0.117).
+- ⚠️ Copilot 1.0.117 keeps existing repository settings read-only in writable worktrees while restoring commits, branch creation and stashing. Update sandbox/worktree guidance and verify the runner’s actual settings before changing flags. [Source](https://github.com/github/copilot-cli/releases/tag/v1.0.117).
+- ⚠️ Copilot 1.0.117 clarifies that -p starts extensions only with prior launch approval. Document this condition in headless guidance and verify it against the runner’s invocation; autopilot prompts do not make unattended approval possible. [Source](https://github.com/github/copilot-cli/releases/tag/v1.0.117).
+- ✅ Copilot 1.0.117 returns exit code 0 when a temporary session-save failure recovers at final save, and reports an unavailable pinned model provider instead of silently switching. Useful for runner result handling; no local change established. [Source](https://github.com/github/copilot-cli/releases/tag/v1.0.117).
+- ℹ No new dated vendor article on working with coding agents was found in the review period. Cookbooks and Fowler have no new dated item; no new guidance is inferred from undated pages. [Source](https://developers.openai.com/blog).
+- ℹ Coverage gap: MyAI complete=false; fresh X API collection failed with Tunnel connection failed: 403 host is not on the allow list. Zero collected and zero retained; no posts assessed.
+- ℹ Coverage gap: all 14 YouTube feeds returned HTTP 403 and every yt-dlp fallback failed with Tunnel connection failed: 403 host is not on the allow list. Zero videos listed, selected or captioned; this is unavailable coverage, not no news.
+- ℹ All 16 source addresses were attempted. Six direct requests returned curl (22), HTTP 403; all six were read through the web tool (WebFetch fallback). All 19 watched table pages and nine linked model guides were attempted; 13 table pages were unchanged. Direct fetch/comparison failed with HTTP 403 for the six watched addresses below and all nine linked guides; web fallback reading cannot establish their snapshot changes.
+- ℹ Watched-page direct fetch/comparison failed: HTTP 403; read through web fallback, changes unverified. [Source](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices).
+- ℹ Watched-page direct fetch/comparison failed: HTTP 403; read through web fallback, changes unverified. [Source](https://code.claude.com/docs/en/best-practices).
+- ℹ Watched-page direct fetch/comparison failed: HTTP 403; read through web fallback, changes unverified. [Source](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices).
+- ℹ Watched-page direct fetch/comparison failed: HTTP 403; read through web fallback, changes unverified. [Source](https://code.claude.com/docs/en/hooks-guide).
+- ℹ Watched-page direct fetch/comparison failed: HTTP 403; read through web fallback, changes unverified. [Source](https://agentskills.io/specification).
+- ℹ Watched-page direct fetch/comparison failed: HTTP 403; read through web fallback, changes unverified. [Source](https://agents.md).
+
 
 ### 2026-11-27
 
